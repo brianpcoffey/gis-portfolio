@@ -1,0 +1,58 @@
+﻿@page
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Home";
+}
+<div class="container py-5">
+    <section class="text-center mb-5">
+        <h1 class="display-3 fw-bold">Brian Patrick Coffey</h1>
+        <p class="lead">Empowering the United States Air Force with innovative software solutions for finance, administration, and beyond.</p>
+    </section>
+
+    <section class="about-me mb-5 mx-auto">
+        <h2 class="h4 mb-3">About Me</h2>
+        <p>
+            I am a passionate Software Engineer dedicated to designing and developing modern web applications that drive operational excellence for the United States Air Force. My expertise spans financial systems, administrative automation, and geographic information systems, with a focus on reliability, security, and user experience.
+        </p>
+    </section>
+
+    <section>
+        <h2 class="h4 mb-3 text-center">Featured Projects</h2>
+        <div class="row g-4 justify-content-center">
+            <div class="col-12 col-sm-6 col-lg-4">
+                <a href="/Projects/GIS" class="text-decoration-none">
+                    <div class="card h-100 shadow-sm text-center card-hover">
+                        <div class="card-body">
+                            <i class="fa-solid fa-map card-icon"></i>
+                            <h5 class="card-title">Geographic Information Systems</h5>
+                            <p class="card-text">Developed mini-projects leveraging GIS software to enhance spatial analysis and decision-making for Air Force operations.</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <a href="/Projects/Financial" class="text-decoration-none">
+                    <div class="card h-100 shadow-sm text-center card-hover">
+                        <div class="card-body">
+                            <i class="fa-solid fa-money-bill-wave card-icon"></i>
+                            <h5 class="card-title">Financial Systems</h5>
+                            <p class="card-text">Engineered secure and efficient financial applications to streamline budgeting, reporting, and resource management.</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <a href="/Projects/Admin" class="text-decoration-none">
+                    <div class="card h-100 shadow-sm text-center card-hover">
+                        <div class="card-body">
+                            <i class="fa-solid fa-users card-icon"></i>
+                            <h5 class="card-title">Administrative Automation</h5>
+                            <p class="card-text">Created tools to automate routine administrative tasks, improving productivity and reducing manual workload.</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+</div>

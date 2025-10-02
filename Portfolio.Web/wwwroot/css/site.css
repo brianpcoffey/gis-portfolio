@@ -1,0 +1,440 @@
+/* ======================================
+   Base font size and responsive scaling
+   ====================================== */
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+/* ======================================
+   Global body and layout
+   ====================================== */
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+    background-color: #f8f9fa;
+    color: #212529;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+    body.dark-mode {
+        background-color: #212529;
+        color: #f8f9fa;
+    }
+
+/* ======================================
+   Navbar
+   ====================================== */
+.navbar {
+    background-color: #343a40;
+    transition: background-color 0.3s;
+}
+
+body.dark-mode .navbar {
+    background-color: #181a1b !important;
+}
+
+/* ======================================
+   About Me section styling
+   ====================================== */
+.about-me {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1.75rem;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #212529;
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+body.dark-mode .about-me {
+    color: #f8f9fa;
+    background-color: #2b2d31;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+
+.about-me h2, .about-me h3 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.about-me p {
+    color: inherit;
+}
+
+.about-me a {
+    color: #0d6efd;
+    text-decoration: underline;
+    transition: color 0.3s;
+}
+
+body.dark-mode .about-me a {
+    color: #66b2ff;
+}
+
+/* ======================================
+   Cards
+   ====================================== */
+.card {
+    background-color: #ffffff;
+    color: #212529;
+    transition: background-color 0.3s, color 0.3s, box-shadow 0.3s, transform 0.2s;
+}
+
+    .card .card-icon {
+        display: block;
+        margin: 0 auto 0.5rem;
+        font-size: 2rem;
+        color: #343a40;
+        transition: color 0.2s, transform 0.2s;
+    }
+
+body.dark-mode .card {
+    background-color: #343a40;
+    color: #f8f9fa;
+}
+
+    body.dark-mode .card .card-icon {
+        color: #f8f9fa;
+    }
+
+/* Card hover effect */
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+    .card-hover:hover .card-icon {
+        color: #0056b3;
+        transform: scale(1.1);
+    }
+
+/* ======================================
+   Form controls
+   ====================================== */
+.form-control {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #ced4da;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark-mode .form-control {
+    background-color: #495057;
+    color: #fff;
+    border-color: #ced4da;
+}
+
+/* ======================================
+   Buttons
+   ====================================== */
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+
+    .btn-primary:focus, .btn-primary.focus {
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.5);
+    }
+
+.btn-outline-primary {
+    color: #007bff;
+    border-color: #007bff;
+}
+
+    .btn-outline-primary:hover {
+        background-color: #007bff;
+        color: #fff;
+    }
+
+    .btn-outline-primary:focus, .btn-outline-primary.focus {
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.5);
+    }
+
+/* Dark mode buttons */
+body.dark-mode .btn-primary {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+body.dark-mode .btn-outline-primary {
+    color: #f8f9fa;
+    border-color: #f8f9fa;
+}
+
+    body.dark-mode .btn-outline-primary:hover {
+        background-color: #f8f9fa;
+        color: #212529;
+    }
+
+/* ======================================
+   Theme toggle button
+   ====================================== */
+.theme-toggle-btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: inherit;
+    padding: 0.25rem 0.5rem;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    transition: color 0.3s;
+}
+
+    .theme-toggle-btn:focus {
+        outline: none;
+        box-shadow: none;
+    }
+
+    .theme-toggle-btn .fa-regular,
+    .theme-toggle-btn .fa-solid {
+        font-size: 1rem;
+        vertical-align: middle;
+        transition: color 0.2s;
+    }
+
+    body.dark-mode .theme-toggle-btn .fa-moon,
+    .theme-toggle-btn .fa-sun {
+        color: #f8f9fa;
+    }
+
+/* ======================================
+   Form floating placeholders
+   ====================================== */
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+/* ======================================
+   Focus styles
+   ====================================== */
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+/* ======================================
+   Profile dropdown and avatar
+   ====================================== */
+.profile-dropdown {
+    margin: 0;
+    padding: 0;
+}
+
+.profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    outline: none;
+    box-shadow: none;
+    min-width: 0;
+}
+
+.profile-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    transition: box-shadow 0.2s, border 0.2s;
+    box-shadow: 0 0 0 0 transparent;
+    border: 2px solid transparent;
+}
+
+.profile-avatar:hover .profile-img,
+.profile-avatar:focus .profile-img {
+    box-shadow: 0 0 0 2px #0d6efd33;
+    border-color: #0d6efd;
+}
+
+.profile-fallback {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #6c757d;
+    color: #fff;
+    font-size: 1.25rem;
+    transition: box-shadow 0.2s, border 0.2s;
+}
+
+.profile-avatar:hover .profile-fallback,
+.profile-avatar:focus .profile-fallback {
+    box-shadow: 0 0 0 2px #0d6efd33;
+    border: 2px solid #0d6efd;
+}
+
+.dropdown-menu[aria-labelledby="profileDropdown"] {
+    min-width: 140px;
+    padding: 0.5rem 0;
+    font-size: 1rem;
+}
+
+@media (max-width: 576px) {
+    .profile-dropdown {
+        margin: 0;
+    }
+
+    .profile-avatar {
+        padding: 0;
+    }
+
+    .dropdown-menu[aria-labelledby="profileDropdown"] {
+        right: 0;
+        left: auto;
+        min-width: 120px;
+        font-size: 0.95rem;
+    }
+}
+
+/* ======================================
+   Login card styling
+   ====================================== */
+.login-card {
+    max-width: 350px;
+    border-radius: 1rem;
+    background: #fff;
+    border: none;
+    transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+body.dark-mode .login-card {
+    background: #23272b;
+    color: #f8f9fa;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+
+/* Profile image in login card */
+.login-card .profile-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border: 2px solid #e0e0e0;
+    margin-bottom: 0.5rem;
+    transition: box-shadow 0.2s, border 0.2s;
+}
+
+body.dark-mode .login-card .profile-img {
+    border-color: #444;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.22);
+}
+
+@media (max-width: 576px) {
+    .login-card {
+        max-width: 100%;
+        padding: 1.5rem 0.5rem;
+    }
+}
+
+/* Google Sign-In button alignment */
+.g-signin2 {
+    margin: 0 auto;
+}
+
+/* Sign-Out button styling */
+#signOutBtn {
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.95rem;
+    transition: background 0.18s, color 0.18s;
+}
+
+    #signOutBtn:hover,
+    #signOutBtn:focus {
+        background: #0d6efd22;
+        color: #0d6efd;
+    }
+
+body.dark-mode #signOutBtn:hover,
+body.dark-mode #signOutBtn:focus {
+    background: #0d6efd33;
+    color: #fff;
+}
+
+/* ======================================
+   Google-style login button
+   ====================================== */
+.btn-google {
+    background-color: #fff;
+    color: #444;
+    border: 1px solid #ddd;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: box-shadow 0.2s, background-color 0.2s;
+}
+
+    .btn-google:hover,
+    .btn-google:focus {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        text-decoration: none;
+        outline: none;
+    }
+
+.btn-google-logo {
+    width: 20px;
+    height: 20px;
+}
+
+/* ======================================
+   Responsive typography
+   ====================================== */
+h1.display-3 {
+    font-size: 2.5rem;
+}
+
+@media (min-width: 768px) {
+    h1.display-3 {
+        font-size: 3.5rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    h1.display-3 {
+        font-size: 4rem;
+    }
+}
+
+/* ======================================
+   Responsive container padding
+   ====================================== */
+.container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}

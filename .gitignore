@@ -1,0 +1,8 @@
+# IDE and build artifacts
+.vs/
+bin/
+obj/
+
+# Secrets/config
+Portfolio.Web/appsettings.json
+Portfolio.Web/appsettings.Development.json
