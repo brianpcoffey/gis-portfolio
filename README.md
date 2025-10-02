@@ -1,7 +1,3 @@
-Here’s a professional **README** for your portfolio project based on the details you’ve shared. It’s structured, clean, and suitable for GitHub or personal documentation:
-
----
-
 # Brian Patrick Coffey – Software Engineering Portfolio
 
 ## Overview
