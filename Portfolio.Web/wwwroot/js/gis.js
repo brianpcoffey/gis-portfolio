@@ -1,6 +1,6 @@
 // ArcGIS JS API and feature management for GIS Explorer
 
-require([
+window.require([
     "esri/Map",
     "esri/views/MapView",
     "esri/Graphic",
