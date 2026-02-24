@@ -68,6 +68,16 @@ window.require([
             } catch {
                 return;
             }
+            // After parsing geometry
+            if (geometry.x !== undefined && geometry.y !== undefined) {
+                geometry.type = "point";
+            } else if (geometry.rings) {
+                geometry.type = "polygon";
+            } else if (geometry.paths) {
+                geometry.type = "polyline";
+            } else {
+                return; // skip unsupported
+            }
             let symbol;
             if (geometry.x !== undefined && geometry.y !== undefined) {
                 // Point

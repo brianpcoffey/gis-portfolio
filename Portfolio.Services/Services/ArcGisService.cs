@@ -6,16 +6,10 @@ using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {
-    public class ArcGisService : IArcGisService
+    public class ArcGisService(HttpClient httpClient, ILogger<ArcGisService> logger) : IArcGisService
     {
-        private readonly HttpClient _httpClient;
-        private readonly ILogger<ArcGisService> _logger;
-
-        public ArcGisService(HttpClient httpClient, ILogger<ArcGisService> logger)
-        {
-            _httpClient = httpClient;
-            _logger = logger;
-        }
+        private readonly HttpClient _httpClient = httpClient;
+        private readonly ILogger<ArcGisService> _logger = logger;
 
         public async Task<List<FeatureDto>> QueryFeaturesAsync(string layerId, string? bbox = null, CancellationToken cancellationToken = default)
         {
@@ -35,13 +29,13 @@ namespace Portfolio.Services.Services
                 if (arcGisResponse?.Features is null or { Count: 0 })
                     return [];
 
-                return arcGisResponse.Features.Select(f => new FeatureDto
+                return [.. arcGisResponse.Features.Select(f => new FeatureDto
                 {
                     LayerId = layerId,
                     FeatureId = f.Attributes.TryGetValue("OBJECTID", out var id) ? id?.ToString() ?? "" : "",
                     Name = GetFeatureName(f.Attributes),
                     GeometryJson = JsonSerializer.Serialize(f.Geometry)
-                }).ToList();
+                })];
             }
             catch (OperationCanceledException)
             {

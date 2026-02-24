@@ -5,19 +5,14 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Services.Services
 {
-    public class SavedFeatureService : ISavedFeatureService
+    public class SavedFeatureService(ISavedFeatureRepository repository) : ISavedFeatureService
     {
-        private readonly ISavedFeatureRepository _repository;
-
-        public SavedFeatureService(ISavedFeatureRepository repository)
-        {
-            _repository = repository;
-        }
+        private readonly ISavedFeatureRepository _repository = repository;
 
         public async Task<List<SavedFeatureDto>> GetAllAsync()
         {
             var features = await _repository.GetAllAsync();
-            return features.Select(MapToDto).ToList();
+            return [.. features.Select(MapToDto)];
         }
 
         public async Task<SavedFeatureDto?> GetByIdAsync(int id)

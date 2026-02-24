@@ -6,16 +6,11 @@ using Portfolio.Services.Interfaces;
 namespace Portfolio.Web.Controllers
 {
     [ApiController]
-    [Route("api/saved-features")]
+    [Route("api/savedfeatures")]
     [Authorize]
-    public class SavedFeaturesApiController : ControllerBase
+    public class SavedFeaturesApiController(ISavedFeatureService savedFeatureService) : ControllerBase
     {
-        private readonly ISavedFeatureService _savedFeatureService;
-
-        public SavedFeaturesApiController(ISavedFeatureService savedFeatureService)
-        {
-            _savedFeatureService = savedFeatureService;
-        }
+        private readonly ISavedFeatureService _savedFeatureService = savedFeatureService;
 
         // GET: /api/savedfeatures
         [HttpGet]
@@ -39,23 +34,35 @@ namespace Portfolio.Web.Controllers
         // POST: /api/savedfeatures
         [HttpPost]
         [ProducesResponseType(typeof(SavedFeatureDto), 201)]
-        [ProducesResponseType(typeof(object), 400)]
-        public async Task<IActionResult> Create(
-            [FromBody] SavedFeatureCreateDto dto,
-            CancellationToken cancellationToken)
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> SaveFeature([FromBody] FeatureDto feature, CancellationToken cancellationToken)
         {
+            if (feature is null ||
+                string.IsNullOrWhiteSpace(feature.LayerId) ||
+                string.IsNullOrWhiteSpace(feature.FeatureId) ||
+                string.IsNullOrWhiteSpace(feature.Name) ||
+                string.IsNullOrWhiteSpace(feature.GeometryJson))
+            {
+                return BadRequest(new { error = "Invalid feature data." });
+            }
+
+            var createDto = new SavedFeatureCreateDto
+            {
+                LayerId = feature.LayerId,
+                FeatureId = feature.FeatureId,
+                Name = feature.Name,
+                GeometryJson = feature.GeometryJson,
+                Description = null // Optionally map if present in FeatureDto
+            };
+
             try
             {
-                var result = await _savedFeatureService.CreateAsync(dto, cancellationToken);
-                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+                var saved = await _savedFeatureService.CreateAsync(createDto, cancellationToken);
+                return CreatedAtAction(nameof(SaveFeature), new { id = saved.Id }, saved);
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
+                return Conflict(new { error = ex.Message });
             }
         }
 

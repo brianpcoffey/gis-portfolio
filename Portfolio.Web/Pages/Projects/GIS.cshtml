@@ -17,5 +17,19 @@
     <div id="mapView" style="height: 500px; width: 100%;"></div>
     <div id="featureList" class="mt-4"></div>
 </div>
+<!-- Load jQuery first, without AMD -->
+<script>
+    // Temporarily disable AMD to prevent conflicts
+    var defined = window.define;
+    window.define = undefined;
+</script>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script>
+    // Restore AMD for ArcGIS
+    window.define = defined;
+</script>
+
+<!-- Then load ArcGIS API -->
 <script src="https://js.arcgis.com/4.28/"></script>
 <script src="~/js/gis.js"></script>

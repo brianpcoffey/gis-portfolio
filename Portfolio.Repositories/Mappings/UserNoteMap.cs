@@ -12,7 +12,7 @@ namespace Portfolio.Repositories.Mappings
             builder.HasKey(n => n.Id);
 
             builder.Property(n => n.SavedFeatureId).IsRequired();
-            builder.Property(n => n.Comment).IsRequired().HasMaxLength(1000);
+            builder.Property(n => n.Note).IsRequired().HasMaxLength(1000);
             builder.Property(n => n.CreatedAt).IsRequired();
         }
     }

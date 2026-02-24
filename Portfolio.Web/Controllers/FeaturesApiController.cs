@@ -6,14 +6,9 @@ namespace Portfolio.Web.Controllers
 {
     [ApiController]
     [Route("api/features")]
-    public class FeaturesApiController : ControllerBase
+    public class FeaturesApiController(IArcGisService arcGisService) : ControllerBase
     {
-        private readonly IArcGisService _arcGisService;
-
-        public FeaturesApiController(IArcGisService arcGisService)
-        {
-            _arcGisService = arcGisService;
-        }
+        private readonly IArcGisService _arcGisService = arcGisService;
 
         // GET: /api/features?layerId=3&bbox=...
         [HttpGet]
