@@ -9,5 +9,6 @@ namespace Portfolio.Services.Interfaces
         Task<SavedFeatureDto> AddAsync(SavedFeatureDto dto);
         Task<SavedFeatureDto> UpdateAsync(SavedFeatureDto dto);
         Task<bool> DeleteAsync(int id);
+        Task<SavedFeatureDto> CreateAsync(SavedFeatureCreateDto dto, CancellationToken cancellationToken = default);
     }
 }

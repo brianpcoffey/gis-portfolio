@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {
@@ -16,47 +17,75 @@ namespace Portfolio.Services.Services
             _logger = logger;
         }
 
-        public async Task<List<FeatureDto>> QueryFeaturesAsync(string layerId, string? bbox = null)
+        public async Task<List<FeatureDto>> QueryFeaturesAsync(string layerId, string? bbox = null, CancellationToken cancellationToken = default)
         {
-            // Example: https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer/3/query?where=1=1&f=json
-            var url = $"https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer/{layerId}/query?where=1=1&f=json";
+            ArgumentException.ThrowIfNullOrWhiteSpace(layerId, nameof(layerId));
+
+            var url = $"https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer/{layerId}/query?where=1=1&f=json&outFields=*";
             if (!string.IsNullOrEmpty(bbox))
                 url += $"&geometry={bbox}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects";
 
             try
             {
-                var response = await _httpClient.GetFromJsonAsync<ArcGisQueryResponse>(url);
-                if (response?.features == null) return new List<FeatureDto>();
-                return response.features.Select(f => new FeatureDto
+                _logger.LogInformation("Querying ArcGIS features: {Url}", url);
+                var response = await _httpClient.GetAsync(url, cancellationToken);
+                response.EnsureSuccessStatusCode();
+
+                var arcGisResponse = await response.Content.ReadFromJsonAsync<ArcGisQueryResponse>(cancellationToken: cancellationToken);
+                if (arcGisResponse?.Features is null or { Count: 0 })
+                    return [];
+
+                return arcGisResponse.Features.Select(f => new FeatureDto
                 {
                     LayerId = layerId,
-                    FeatureId = f.attributes["OBJECTID"].ToString(),
-                    Name = f.attributes.ContainsKey("NAME") ? f.attributes["NAME"].ToString() : $"Feature {f.attributes["OBJECTID"]}",
-                    GeometryJson = System.Text.Json.JsonSerializer.Serialize(f.geometry)
+                    FeatureId = f.Attributes.TryGetValue("OBJECTID", out var id) ? id?.ToString() ?? "" : "",
+                    Name = GetFeatureName(f.Attributes),
+                    GeometryJson = JsonSerializer.Serialize(f.Geometry)
                 }).ToList();
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("ArcGIS feature query was canceled.");
+                throw;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error querying ArcGIS features");
+                return [];
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error querying ArcGIS features");
-                return new List<FeatureDto>();
+                return [];
             }
         }
 
-        public async Task<FeatureDto?> GetFeatureAsync(string layerId, string featureId)
+        public async Task<FeatureDto?> GetFeatureAsync(string layerId, string featureId, CancellationToken cancellationToken = default)
         {
-            var features = await QueryFeaturesAsync(layerId);
-            return features.FirstOrDefault(f => f.FeatureId == featureId);
+            var features = await QueryFeaturesAsync(layerId, null, cancellationToken);
+            return features.Find(f => f.FeatureId == featureId);
         }
 
-        // Helper class for deserialization
-        private class ArcGisQueryResponse
+        private static string GetFeatureName(Dictionary<string, object?> attributes)
         {
-            public List<ArcGisFeature> features { get; set; } = new();
+            if (attributes.TryGetValue("NAME", out var name) && name is not null)
+                return name.ToString() ?? "";
+
+            if (attributes.TryGetValue("OBJECTID", out var objectId) && objectId is not null)
+                return $"Feature {objectId}";
+
+            return "Unknown Feature";
         }
-        private class ArcGisFeature
+
+        private sealed class ArcGisQueryResponse
         {
-            public Dictionary<string, object> attributes { get; set; } = new();
-            public object geometry { get; set; } = new();
+            public List<ArcGisFeature> Features { get; set; } = [];
+        }
+
+        private sealed class ArcGisFeature
+        {
+            public Dictionary<string, object?> Attributes { get; set; } = [];
+            public object? Geometry { get; set; }
         }
     }
 }

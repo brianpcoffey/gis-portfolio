@@ -1,20 +1,10 @@
-using System;
-using System.ComponentModel.DataAnnotations;
+using Portfolio.Common.Models;
 
-namespace Portfolio.Common.Models
+public class UserNote
 {
-    public class UserNote
-    {
-        public int Id { get; set; }
-
-        [Required]
-        public int SavedFeatureId { get; set; }
-
-        [Required]
-        public string Comment { get; set; } = string.Empty;
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        public SavedFeature? SavedFeature { get; set; }
-    }
+    public int Id { get; set; }
+    public int SavedFeatureId { get; set; }
+    public string Note { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public SavedFeature SavedFeature { get; set; } = null!;
 }

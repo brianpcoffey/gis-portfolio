@@ -19,16 +19,26 @@ window.require([
     let allFeatures = [];
 
     // Fetch features from backend API
-    async function fetchFeatures(filter = "") {
-        const res = await fetch(`/api/features?layerId=${layerId}`);
-        const features = await res.json();
-        allFeatures = features;
-        let filtered = features;
-        if (filter) {
-            filtered = features.filter(f => f.name && f.name.toLowerCase().includes(filter.toLowerCase()));
+    async function fetchFeatures(filter = "", bbox = null) {
+        let url = `/api/features?layerId=${encodeURIComponent(layerId)}`;
+        if (bbox) url += `&bbox=${encodeURIComponent(bbox)}`;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Failed to fetch features: ${res.status}`);
+            const features = await res.json();
+            allFeatures = features;
+            let filtered = features;
+            if (filter) {
+                filtered = features.filter(f => f.name && f.name.toLowerCase().includes(filter.toLowerCase()));
+            }
+            renderFeatureList(filtered);
+            renderMapFeatures(filtered);
+        } catch (err) {
+            console.error(err);
+            document.getElementById("featureList").innerHTML =
+                `<div class='alert alert-danger'>Error loading features.</div>`;
+            graphicsLayer.removeAll();
         }
-        renderFeatureList(filtered);
-        renderMapFeatures(filtered);
     }
 
     // Render feature list with Save buttons
@@ -108,6 +118,8 @@ window.require([
         });
         if (res.ok) {
             alert("Feature saved!");
+        } else if (res.status === 409) {
+            alert("Feature already saved.");
         } else {
             alert("Failed to save feature.");
         }

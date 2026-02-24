@@ -18,12 +18,12 @@ namespace Portfolio.Web.Controllers
         // GET: /api/features?layerId=3&bbox=...
         [HttpGet]
         [ProducesResponseType(typeof(List<FeatureDto>), 200)]
-        public async Task<IActionResult> GetFeatures([FromQuery] string layerId, [FromQuery] string? bbox)
+        public async Task<IActionResult> GetFeatures([FromQuery] string layerId, [FromQuery] string? bbox, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(layerId))
                 return BadRequest(new { error = "layerId is required." });
 
-            var features = await _arcGisService.QueryFeaturesAsync(layerId, bbox);
+            var features = await _arcGisService.QueryFeaturesAsync(layerId, bbox, cancellationToken);
             return Ok(features);
         }
     }
