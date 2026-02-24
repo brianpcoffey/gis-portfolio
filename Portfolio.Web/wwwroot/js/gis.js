@@ -1,89 +1,129 @@
-// GIS map logic using Leaflet
-let map = L.map('map').setView([51.505, -0.09], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+// ArcGIS JS API and feature management for GIS Explorer
 
-let features = [];
-let featureMarkers = {};
+require([
+    "esri/Map",
+    "esri/views/MapView",
+    "esri/Graphic",
+    "esri/layers/GraphicsLayer"
+], function (Map, MapView, Graphic, GraphicsLayer) {
+    const layerId = "3"; // Example layer, adjust as needed
+    const graphicsLayer = new GraphicsLayer();
+    const map = new Map({ basemap: "streets-navigation-vector", layers: [graphicsLayer] });
+    const view = new MapView({
+        container: "mapView",
+        map: map,
+        center: [-98, 39], // USA center
+        zoom: 4
+    });
 
-function loadFeatures() {
-    fetch('/api/gis/features')
-        .then(res => res.json())
-        .then(data => {
-            features = data;
-            updateMap();
-            updateList();
-        });
-}
+    let allFeatures = [];
 
-function updateMap() {
-    Object.values(featureMarkers).forEach(m => map.removeLayer(m));
-    featureMarkers = {};
-    features.forEach(f => {
-        if (f.featureType === "Marker") {
-            let coords = JSON.parse(f.coordinates);
-            let marker = L.marker([coords.lat, coords.lng]).addTo(map)
-                .bindPopup(`<b>${f.name}</b><br>${f.description}`);
-            featureMarkers[f.id] = marker;
+    // Fetch features from backend API
+    async function fetchFeatures(filter = "") {
+        const res = await fetch(`/api/features?layerId=${layerId}`);
+        const features = await res.json();
+        allFeatures = features;
+        let filtered = features;
+        if (filter) {
+            filtered = features.filter(f => f.name && f.name.toLowerCase().includes(filter.toLowerCase()));
         }
-        // Polygon support can be expanded here
-    });
-}
+        renderFeatureList(filtered);
+        renderMapFeatures(filtered);
+    }
 
-function updateList() {
-    let html = '<ul class="list-group">';
-    features.forEach(f => {
-        html += `<li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>${f.name} (${f.featureType})</span>
-            <div>
-                <button class="btn btn-sm btn-secondary" onclick="editFeature(${f.id})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteFeature(${f.id})">Delete</button>
+    // Render feature list with Save buttons
+    function renderFeatureList(features) {
+        const list = document.getElementById("featureList");
+        if (!features.length) {
+            list.innerHTML = "<div class='alert alert-info'>No features found.</div>";
+            return;
+        }
+        list.innerHTML = features.map(f => `
+            <div class="card mb-2">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <span>${f.name}</span>
+                    <button class="btn btn-primary btn-sm" onclick='window.saveFeature(${JSON.stringify(f)})'>Save Feature</button>
+                </div>
             </div>
-        </li>`;
-    });
-    html += '</ul>';
-    document.getElementById('featuresList').innerHTML = html;
-}
+        `).join("");
+    }
 
-document.getElementById('featureForm').onsubmit = function(e) {
-    e.preventDefault();
-    let id = document.getElementById('featureId').value;
-    let payload = {
-        name: document.getElementById('featureName').value,
-        description: document.getElementById('featureDescription').value,
-        featureType: document.getElementById('featureType').value,
-        coordinates: document.getElementById('featureCoordinates').value
+    // Render features on the map
+    function renderMapFeatures(features) {
+        graphicsLayer.removeAll();
+        features.forEach(f => {
+            let geometry;
+            try {
+                geometry = JSON.parse(f.geometryJson);
+            } catch {
+                return;
+            }
+            let symbol;
+            if (geometry.x !== undefined && geometry.y !== undefined) {
+                // Point
+                symbol = {
+                    type: "simple-marker",
+                    color: "blue",
+                    size: 8
+                };
+            } else if (geometry.rings) {
+                // Polygon
+                symbol = {
+                    type: "simple-fill",
+                    color: [51, 153, 255, 0.3],
+                    outline: { color: "blue", width: 2 }
+                };
+            } else {
+                return;
+            }
+            const graphic = new Graphic({
+                geometry: geometry,
+                symbol: symbol,
+                attributes: { name: f.name, featureId: f.featureId }
+            });
+            graphicsLayer.add(graphic);
+        });
+    }
+
+    // Map click popup
+    view.on("click", function (event) {
+        view.hitTest(event).then(function (response) {
+            const graphic = response.results.find(r => r.graphic && r.graphic.layer === graphicsLayer)?.graphic;
+            if (graphic) {
+                view.popup.open({
+                    title: graphic.attributes.name,
+                    content: `<button class="btn btn-primary btn-sm" onclick="window.saveFeatureFromPopup('${graphic.attributes.featureId}')">Save Feature</button>`,
+                    location: event.mapPoint
+                });
+            }
+        });
+    });
+
+    // Save feature via API
+    window.saveFeature = async function (feature) {
+        const res = await fetch("/api/savedfeatures", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(feature)
+        });
+        if (res.ok) {
+            alert("Feature saved!");
+        } else {
+            alert("Failed to save feature.");
+        }
     };
-    let method = id ? 'PUT' : 'POST';
-    let url = '/api/gis/features' + (id ? `/${id}` : '');
-    fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).then(() => {
-        loadFeatures();
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('addFeatureModal')).hide();
+
+    // Save feature from popup
+    window.saveFeatureFromPopup = function (featureId) {
+        const feature = allFeatures.find(f => f.featureId === featureId);
+        if (feature) window.saveFeature(feature);
+    };
+
+    // Filter input
+    document.getElementById("featureFilter").addEventListener("input", e => {
+        fetchFeatures(e.target.value);
     });
-};
 
-function editFeature(id) {
-    let f = features.find(x => x.id === id);
-    document.getElementById('featureId').value = f.id;
-    document.getElementById('featureName').value = f.name;
-    document.getElementById('featureDescription').value = f.description;
-    document.getElementById('featureType').value = f.featureType;
-    document.getElementById('featureCoordinates').value = f.coordinates;
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('addFeatureModal')).show();
-}
-
-function deleteFeature(id) {
-    fetch(`/api/gis/features/${id}`, { method: 'DELETE' })
-        .then(() => loadFeatures());
-}
-
-// Dark/Light mode toggle
-const toggleModeBtn = document.getElementById('toggleMode');
-toggleModeBtn.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
+    // Initial load
+    fetchFeatures();
 });
-
-loadFeatures();

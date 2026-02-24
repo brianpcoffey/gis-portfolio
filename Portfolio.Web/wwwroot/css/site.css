@@ -43,6 +43,13 @@ body.dark-mode .navbar {
     background-color: #181a1b !important;
 }
 
+.navbar-collapse {
+    transition: none;
+    overflow: visible;
+    max-height: none;
+    opacity: 1;
+}
+
 /* ======================================
    About Me section styling
    ====================================== */
@@ -193,53 +200,35 @@ body.dark-mode .btn-outline-primary {
     border: none !important;
     box-shadow: none !important;
     color: inherit;
-    padding: 0.25rem 0.5rem;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    transition: color 0.3s;
+    padding: 0.5rem 0.75rem;
 }
 
-    .theme-toggle-btn:focus {
-        outline: none;
-        box-shadow: none;
-    }
-
-    .theme-toggle-btn .fa-regular,
-    .theme-toggle-btn .fa-solid {
-        font-size: 1rem;
-        vertical-align: middle;
-        transition: color 0.2s;
-    }
-
-    body.dark-mode .theme-toggle-btn .fa-moon,
-    .theme-toggle-btn .fa-sun {
-        color: #f8f9fa;
-    }
-
-/* ======================================
-   Form floating placeholders
-   ====================================== */
-.form-floating > .form-control-plaintext::placeholder,
-.form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
+body:not(.dark-mode) .theme-toggle-btn {
+    color: #212529 !important;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder,
-.form-floating > .form-control:focus::placeholder {
-    text-align: start;
+body.dark-mode .theme-toggle-btn {
+    color: #f8f9fa !important;
 }
 
-/* ======================================
-   Focus styles
-   ====================================== */
-.btn:focus,
-.btn:active:focus,
-.btn-link.nav-link:focus,
-.form-control:focus,
-.form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.theme-toggle-btn:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.theme-toggle-btn .fa-regular,
+.theme-toggle-btn .fa-solid {
+    font-size: 1rem;
+    vertical-align: middle;
+    transition: color 0.2s;
+    color: inherit !important;
+}
+
+.theme-toggle-btn .fa-moon.text-light {
+    color: #fff !important;
+}
+.theme-toggle-btn .fa-sun.text-warning {
+    color: #ffc107 !important;
 }
 
 /* ======================================
@@ -271,12 +260,7 @@ body.dark-mode .btn-outline-primary {
     transition: box-shadow 0.2s, border 0.2s;
     box-shadow: 0 0 0 0 transparent;
     border: 2px solid transparent;
-}
-
-.profile-avatar:hover .profile-img,
-.profile-avatar:focus .profile-img {
-    box-shadow: 0 0 0 2px #0d6efd33;
-    border-color: #0d6efd;
+    display: block;
 }
 
 .profile-fallback {
@@ -287,6 +271,15 @@ body.dark-mode .btn-outline-primary {
     color: #fff;
     font-size: 1.25rem;
     transition: box-shadow 0.2s, border 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-avatar:hover .profile-img,
+.profile-avatar:focus .profile-img {
+    box-shadow: 0 0 0 2px #0d6efd33;
+    border-color: #0d6efd;
 }
 
 .profile-avatar:hover .profile-fallback,

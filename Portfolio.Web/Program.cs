@@ -1,6 +1,12 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.EntityFrameworkCore;
+using Portfolio.Repositories;
+using Portfolio.Repositories.Interfaces;
+using Portfolio.Repositories.Repositories;
+using Portfolio.Services.Interfaces;
+using Portfolio.Services.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +16,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 
-// Optional: Session (needed if you want to clear session on logout)
+// --------------------------
+// Dependency Injection
+// --------------------------
+builder.Services.AddScoped<ISavedFeatureRepository, SavedFeatureRepository>();
+builder.Services.AddScoped<IUserNoteRepository, UserNoteRepository>();
+builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
+builder.Services.AddScoped<IArcGisService, ArcGisService>();
+builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
+
+// --------------------------
+// Session
+// --------------------------
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -24,13 +41,15 @@ builder.Services.AddSession(options =>
 // --------------------------
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme; // "Cookies"
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
 .AddCookie(options =>
 {
     options.LoginPath = "/Login";
     options.LogoutPath = "/Logout";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None;
 })
 .AddGoogle(options =>
 {
@@ -48,10 +67,19 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddControllers();
 
-// Swagger for API testing
+// --------------------------
+// Swagger / API Explorer
+// --------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// --------------------------
+// Database Context
+// --------------------------
+builder.Services.AddDbContext<PortfolioDbContext>(options =>
+      options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
@@ -67,18 +95,23 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-
-// Session must come **before** Authentication/Authorization if you use session
 app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Swagger
+// --------------------------
+// Swagger UI
+// --------------------------
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Portfolio API V1");
+});
 
-// Map Razor Pages
+// --------------------------
+// Map endpoints
+// --------------------------
+app.MapControllers();
 app.MapRazorPages();
 
 app.Run();
