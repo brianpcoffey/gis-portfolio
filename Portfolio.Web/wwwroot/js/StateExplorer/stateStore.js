@@ -71,13 +71,41 @@ export function updateSavedFeatures(featuresArray) {
         map.set(String(f.featureId || f.FeatureId), f);
     });
     appState.savedFeatures = map;
+
+    // Update feature list saved flags to match the new savedFeatures map
+    const savedKeys = new Set(Array.from(map.keys()));
+    appState.features = appState.features.map(f => {
+        const key = String(f.featureId || f.FeatureId || "");
+        if (savedKeys.has(key)) {
+            const saved = map.get(key) || {};
+            return { ...f, isSaved: true, savedDbId: String(saved.id || saved.Id || "") };
+        } else {
+            // remove saved markers if present
+            const clone = { ...f };
+            delete clone.isSaved;
+            delete clone.savedDbId;
+            return clone;
+        }
+    });
+
     notify();
 }
 
 export function addSavedFeature(feature) {
+    const key = String(feature.featureId || feature.FeatureId);
     const map = new Map(appState.savedFeatures);
-    map.set(String(feature.featureId || feature.FeatureId), feature);
+    map.set(key, feature);
     appState.savedFeatures = map;
+
+    // If this feature exists in the features list, mark it as saved and store DB id
+    appState.features = appState.features.map(f => {
+        const fid = String(f.featureId || f.FeatureId || "");
+        if (fid === key) {
+            return { ...f, isSaved: true, savedDbId: String(feature.id || feature.Id || "") };
+        }
+        return f;
+    });
+
     notify();
 }
 
@@ -87,6 +115,19 @@ export function removeSavedFeatureById(featureId) {
     const map = new Map(appState.savedFeatures);
     map.delete(id);
     appState.savedFeatures = map;
+
+    // Clear saved marker on matching feature entries
+    appState.features = appState.features.map(f => {
+        const fid = String(f.featureId || f.FeatureId || "");
+        if (fid === id) {
+            const clone = { ...f };
+            delete clone.isSaved;
+            delete clone.savedDbId;
+            return clone;
+        }
+        return f;
+    });
+
     notify();
 }
 

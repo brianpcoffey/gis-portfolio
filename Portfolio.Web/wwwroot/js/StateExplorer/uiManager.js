@@ -6,6 +6,7 @@ import { getState, updateCollections, setSelectedCollection } from './stateStore
 import { CollectionService } from './collectionService.js';
 
 let saveModalInstance = null;
+let viewModalInstance = null;
 
 function query(id) { return document.getElementById(id); }
 
@@ -162,6 +163,7 @@ export const UI = {
                 const fid = btn.dataset.featureId;
                 if (action === "zoom") document.dispatchEvent(new CustomEvent("ui:zoomSaved", { detail: { featureId: fid } }));
                 if (action === "remove") document.dispatchEvent(new CustomEvent("ui:removeSaved", { detail: { savedId, featureId: fid } }));
+                if (action === "view") document.dispatchEvent(new CustomEvent("ui:viewSaved", { detail: { savedId, featureId: fid } }));
             });
             savedList._delegationAttached = true;
         }
@@ -237,6 +239,15 @@ export const UI = {
             confirmBtn._attached = true;
         }
 
+        // Listen for view saved events and open modal
+        if (!document._ui_view_handler_attached) {
+            document.addEventListener("ui:viewSaved", (e) => {
+                const d = e.detail || {};
+                UI.openViewModal(d);
+            });
+            document._ui_view_handler_attached = true;
+        }
+
         // Search debounce wiring - emit events
         const searchInput = query("searchInput");
         if (searchInput && !searchInput._attached) {
@@ -245,7 +256,7 @@ export const UI = {
                 clearTimeout(timeout);
                 const q = e.target.value;
                 timeout = setTimeout(() => {
-                    document.dispatchEvent(new CustomEvent("ui:search", { detail: { query: q } }));
+                    document.dispatchEvent(new CustomEvent("ui:search", { detail: { query: q } } ));
                 }, 250);
             });
             searchInput._attached = true;
@@ -315,6 +326,16 @@ export const UI = {
 
             const btnGroup = document.createElement("div");
             btnGroup.className = "btn-group btn-group-sm";
+
+            const viewBtn = document.createElement("button");
+            viewBtn.type = "button";
+            viewBtn.className = "btn btn-outline-info";
+            viewBtn.title = "View details";
+            viewBtn.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+            viewBtn.dataset.action = "view";
+            viewBtn.dataset.featureId = featureKey;
+            if (savedDbId) viewBtn.dataset.savedId = savedDbId;
+            btnGroup.appendChild(viewBtn);
 
             const zoomBtn = document.createElement("button");
             zoomBtn.type = "button";
@@ -427,6 +448,80 @@ export const UI = {
         saveModalInstance.hide();
     },
 
+    // New: view saved modal helpers
+    openViewModal(detail = {}) {
+        const modalEl = query("viewSavedModal");
+        if (!modalEl) return;
+        viewModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        // Find saved entry in state by savedId or featureId
+        const state = getState();
+        let saved;
+        if (detail.savedId) {
+            saved = Array.from(state.savedFeatures.values()).find(s => String(s.id || s.Id || "") === String(detail.savedId));
+        }
+        if (!saved && detail.featureId) {
+            saved = state.savedFeatures.get(String(detail.featureId));
+        }
+        if (!saved) {
+            // fallback: show minimal info
+            query("viewSavedTitle").textContent = `Saved State`;
+            query("viewSavedMeta").innerHTML = "";
+        } else {
+            const title = saved.Name || saved.displayName || saved.name || `State ${saved.FeatureId || saved.featureId || ""}`;
+            const desc = (saved.Description || saved.description || saved.UserNotes?.map(n=>n.Text).join("\n") || "").toString();
+            query("viewSavedTitle").textContent = title;
+
+            // metadata
+            const metaPairs = extractMetadataPairs(saved);
+            if (metaPairs.length) {
+                const html = metaPairs.map(p => `<div><strong>${escapeHtml(p[0])}:</strong> ${escapeHtml(String(p[1]))}</div>`).join("");
+                query("viewSavedMeta").innerHTML = html;
+            } else {
+                query("viewSavedMeta").innerHTML = "";
+            }
+
+            // attach zoom data attributes
+            const zoomBtn = query("btnViewZoom");
+            if (zoomBtn) {
+                zoomBtn.dataset.featureId = String(saved.FeatureId || saved.featureId || "");
+            }
+
+            // attach remove/unsave
+            const removeBtn = query("btnViewRemove");
+            if (removeBtn) {
+                removeBtn.dataset.savedId = String(saved.id || saved.Id || "");
+                removeBtn.dataset.featureId = String(saved.FeatureId || saved.featureId || "");
+            }
+        }
+
+        // wire buttons (idempotent)
+        const zoomBtn = query("btnViewZoom");
+        if (zoomBtn) {
+            zoomBtn.onclick = () => {
+                const fid = zoomBtn.dataset.featureId;
+                document.dispatchEvent(new CustomEvent("ui:zoomSaved", { detail: { featureId: fid } }));
+            };
+        }
+        const removeBtn = query("btnViewRemove");
+        if (removeBtn) {
+            removeBtn.onclick = () => {
+                const savedId = removeBtn.dataset.savedId || "";
+                const featureId = removeBtn.dataset.featureId || "";
+                if (!confirm("Remove saved state?")) return;
+                document.dispatchEvent(new CustomEvent("ui:removeSaved", { detail: { savedId, featureId } }));
+                // close modal after action
+                if (viewModalInstance) viewModalInstance.hide();
+            };
+        }
+        viewModalInstance.show();
+    },
+
+    closeViewModal() {
+        if (!viewModalInstance) return;
+        viewModalInstance.hide();
+    },
+
     // Comparison panel rendering
     renderComparison() {
         const panel = query("comparisonPanel");
@@ -506,8 +601,12 @@ export const UI = {
             return;
         }
 
+        const state = getState();
+        const fid = String(feature.featureId || feature.FeatureId || "");
+        // authoritative saved state is in savedFeatures map
+        const savedEntry = state.savedFeatures.get(fid);
+
         const title = escapeHtml(feature.displayName || feature.Name || feature.name || "");
-        const fid = escapeHtml(feature.featureId || feature.FeatureId || "");
         const description = escapeHtml(feature.Description || feature.description || "");
 
         // Build metadata table
@@ -519,25 +618,50 @@ export const UI = {
                 `</dl>`;
         }
 
+        // If savedEntry exists show Saved state and Unsave action, otherwise show Save button
+        let actionHtml = "";
+        if (savedEntry) {
+            actionHtml = `
+                <button id="btnSavedIndicator" class="btn btn-sm btn-success" disabled>Saved</button>
+                <button id="btnUnsaveFromDetail" class="btn btn-sm btn-outline-danger">Unsave</button>
+                <button id="btnZoomFromDetail" class="btn btn-sm btn-outline-secondary">Zoom</button>
+            `;
+        } else {
+            actionHtml = `
+                <button id="btnSaveFromDetail" class="btn btn-sm btn-primary">Save</button>
+                <button id="btnZoomFromDetail" class="btn btn-sm btn-outline-secondary">Zoom</button>
+            `;
+        }
+
         const html = `
             <h5>${title}</h5>
-            <p class="small text-muted mb-1">Feature ID: ${fid}</p>
+            <p class="small text-muted mb-1">Feature ID: ${escapeHtml(fid)}</p>
             ${metaHtml}
             <p>${description}</p>
             <div class="d-flex gap-2">
-                <button id="btnSaveFromDetail" class="btn btn-sm btn-primary">Save</button>
-                <button id="btnZoomFromDetail" class="btn btn-sm btn-outline-secondary">Zoom</button>
+                ${actionHtml}
             </div>
         `;
         target.innerHTML = html;
 
-        // Wire the two buttons once (replace handlers to avoid duplicates)
+        // Wire buttons
         const saveBtn = query("btnSaveFromDetail");
         if (saveBtn) {
             saveBtn.onclick = () => {
                 document.dispatchEvent(new CustomEvent("ui:openSaveModal", { detail: { featureId: feature.featureId || feature.FeatureId, feature } }));
             };
         }
+
+        const unsaveBtn = query("btnUnsaveFromDetail");
+        if (unsaveBtn) {
+            unsaveBtn.onclick = () => {
+                // Use saved DB id if available, else send feature id
+                const savedId = String(savedEntry?.id || savedEntry?.Id || "");
+                const payload = savedId ? { savedId, featureId: fid } : { featureId: fid };
+                document.dispatchEvent(new CustomEvent("ui:removeSaved", { detail: payload }));
+            };
+        }
+
         const zoomBtn = query("btnZoomFromDetail");
         if (zoomBtn) {
             zoomBtn.onclick = () => document.dispatchEvent(new CustomEvent("ui:zoomSaved", { detail: { featureId: feature.featureId || feature.FeatureId } }));
