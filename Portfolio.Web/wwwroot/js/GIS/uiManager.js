@@ -8,6 +8,137 @@ let saveModalInstance = null;
 
 function query(id) { return document.getElementById(id); }
 
+function escapeHtml(s) {
+    if (s === null || s === undefined) return "";
+    return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+// Extract useful metadata pairs from a feature object.
+// Prioritizes a small set of friendly fields (Name, Feature ID, Region, Capital, Population (est.), Area, Admission)
+// Omits any ObjectID/OBJECTID/ObjectId keys and maps common GIS field names to user-friendly labels.
+function extractMetadataPairs(feature) {
+    const pairs = [];
+    if (!feature) return pairs;
+
+    const pushIf = (label, val) => {
+        if (val !== undefined && val !== null && String(val).trim() !== "") {
+            pairs.push([label, val]);
+        }
+    };
+
+    // Friendly primary fields
+    pushIf("Name", feature.displayName || feature.Name || feature.name);
+    pushIf("Feature ID", feature.featureId || feature.FeatureId);
+
+    // Common sources to search
+    const sources = [feature || {}, feature.properties || {}, feature.attributes || {}];
+
+    const lookup = (keys) => {
+        for (const key of keys) {
+            for (const s of sources) {
+                if (!s) continue;
+                // direct match
+                if (key in s) return s[key];
+                // case-insensitive match
+                const found = Object.keys(s).find(k => k.toLowerCase() === key.toLowerCase());
+                if (found) return s[found];
+            }
+        }
+        return undefined;
+    };
+
+    // Mapping of known property keys to friendly labels
+    const keyLabelMap = {
+        "sub_region": "Region",
+        "region": "Region",
+        "state_name": "State",
+        "STATE_NAME": "State",
+        "capital": "Capital",
+        "population": "Population (est.)",
+        "pop": "Population (est.)",
+        "shape_area": "Area",
+        "shape_length": "Perimeter",
+        "area": "Area",
+        "admission_date": "Admission",
+        "state_fips": "FIPS",
+        "state_code": "State Code",
+        "abbr": "Abbreviation"
+    };
+
+    // Preferred keys (order matters)
+    const preferredKeyGroups = [
+        ["sub_region", "region", "SUB_REGION", "REGION"],
+        ["capital", "CAPITAL"],
+        ["population", "POP", "pop"],
+        ["shape_area", "area", "SHAPE_AREA", "AREA"],
+        ["admission_date", "ADMISSION_DATE"]
+    ];
+
+    // Push mapped preferred fields first
+    for (const group of preferredKeyGroups) {
+        const val = lookup(group);
+        const exampleKey = group[0];
+        const label = keyLabelMap[exampleKey.toLowerCase()] || (group[0] === "population" ? "Population (est.)" : undefined);
+        pushIf(label || group[0], val);
+    }
+
+    // Short description if present
+    pushIf("Short Description", feature.shortDescription || feature.description || feature.Description);
+
+    // Fallback: include a few additional primitive properties (max 6),
+    // but exclude object id fields and already displayed fields.
+    const seenLabels = new Set(pairs.map(p => p[0].toLowerCase()));
+    const extras = [];
+    const propertySources = [feature.properties || {}, feature.attributes || {}, feature];
+
+    const excludedKeysLower = new Set([
+        "displayname", "name", "featureid", "feature_id", "description", "shortdescription",
+        "objectid", "object_id"
+    ]);
+
+    const toFriendlyLabel = (k) => {
+        const lower = k.toLowerCase();
+        if (keyLabelMap[lower]) return keyLabelMap[lower];
+        // convert snake/upper to Title Case: STATE_FIPS -> State Fips -> FIPS override handled above
+        return k.replace(/_/g, " ").replace(/\b\w+/g, s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
+    };
+
+    for (const src of propertySources) {
+        for (const k of Object.keys(src || {})) {
+            const kLower = String(k).toLowerCase();
+            if (excludedKeysLower.has(kLower)) continue;
+            const label = toFriendlyLabel(k);
+            if (seenLabels.has(label.toLowerCase())) continue;
+            const v = src[k];
+            if (v === undefined || v === null) continue;
+            // skip large objects, stringify small objects
+            if (typeof v === "object") {
+                try {
+                    const s = JSON.stringify(v);
+                    if (s.length > 200) continue;
+                    extras.push([label, s]);
+                } catch {
+                    continue;
+                }
+            } else {
+                extras.push([label, v]);
+            }
+            seenLabels.add(label.toLowerCase());
+            if (extras.length >= 6) break;
+        }
+        if (extras.length >= 6) break;
+    }
+
+    extras.forEach(p => pairs.push(p));
+
+    return pairs;
+}
+
 export const UI = {
     init() {
         // Single-time event wiring for delegated lists and static buttons
@@ -248,18 +379,23 @@ export const UI = {
             const title = feature?.displayName || feature?.Name || feature?.name || `State ${id}`;
             const desc = (feature?.Description || feature?.description || "").toString();
 
+            // Build metadata snippet
+            const metaPairs = extractMetadataPairs(feature);
+            const metaHtml = metaPairs.length ? `<div class="mt-2"><small class="text-muted">${metaPairs.map(p => `<div>${escapeHtml(p[0])}: <strong>${escapeHtml(p[1])}</strong></div>`).join("")}</small></div>` : "";
+
             const card = document.createElement("div");
             card.className = "card mb-2 p-2";
             card.innerHTML = `
                 <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <strong>${title}</strong>
-                        <div class="small text-muted">ID: ${id}</div>
-                        <div class="small text-truncate" style="max-width:360px;">${desc}</div>
+                    <div style="min-width:0;">
+                        <strong>${escapeHtml(title)}</strong>
+                        <div class="small text-muted">ID: ${escapeHtml(id)}</div>
+                        <div class="small text-truncate" style="max-width:360px;">${escapeHtml(desc)}</div>
+                        ${metaHtml}
                     </div>
                     <div class="btn-group-vertical btn-group-sm ms-2">
-                        <button type="button" class="btn btn-outline-secondary" data-action="zoom" data-feature-id="${id}" title="Zoom to feature">🔎</button>
-                        <button type="button" class="btn btn-outline-danger" data-action="toggle" data-feature-id="${id}" title="Remove from comparison">✖</button>
+                        <button type="button" class="btn btn-outline-secondary" data-action="zoom" data-feature-id="${escapeHtml(id)}" title="Zoom to feature">🔎</button>
+                        <button type="button" class="btn btn-outline-danger" data-action="toggle" data-feature-id="${escapeHtml(id)}" title="Remove from comparison">✖</button>
                     </div>
                 </div>
             `;
@@ -296,10 +432,25 @@ export const UI = {
             target.innerHTML = '<p class="text-muted text-center small">Click a state on the map to view details</p>';
             return;
         }
+
+        const title = escapeHtml(feature.displayName || feature.Name || feature.name || "");
+        const fid = escapeHtml(feature.featureId || feature.FeatureId || "");
+        const description = escapeHtml(feature.Description || feature.description || "");
+
+        // Build metadata table
+        const metaPairs = extractMetadataPairs(feature);
+        let metaHtml = "";
+        if (metaPairs.length) {
+            metaHtml = `<dl class="row small mb-2">` +
+                metaPairs.map(([k, v]) => `<dt class="col-5 text-muted">${escapeHtml(k)}</dt><dd class="col-7"><strong>${escapeHtml(v)}</strong></dd>`).join("") +
+                `</dl>`;
+        }
+
         const html = `
-            <h5>${feature.displayName || feature.Name || feature.name}</h5>
-            <p class="small text-muted mb-1">Feature ID: ${feature.featureId || feature.FeatureId}</p>
-            <p>${feature.Description || feature.description || ""}</p>
+            <h5>${title}</h5>
+            <p class="small text-muted mb-1">Feature ID: ${fid}</p>
+            ${metaHtml}
+            <p>${description}</p>
             <div class="d-flex gap-2">
                 <button id="btnSaveFromDetail" class="btn btn-sm btn-primary">Save</button>
                 <button id="btnZoomFromDetail" class="btn btn-sm btn-outline-secondary">Zoom</button>
