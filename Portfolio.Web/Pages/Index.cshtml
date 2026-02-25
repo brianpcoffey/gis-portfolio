@@ -4,55 +4,215 @@
     Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Home";
 }
-<div class="container py-5">
-    <section class="text-center mb-5">
-        <h1 class="display-3 fw-bold">Brian Patrick Coffey</h1>
-        <p class="lead">Empowering the United States Air Force with innovative software solutions for finance, administration, and beyond.</p>
-    </section>
 
-    <section class="about-me mb-5 mx-auto">
-        <h2 class="h4 mb-3">About Me</h2>
-        <p>
-            I am a passionate Software Engineer dedicated to designing and developing modern web applications that drive operational excellence for the United States Air Force. My expertise spans financial systems, administrative automation, and geographic information systems, with a focus on reliability, security, and user experience.
-        </p>
-    </section>
-
-    <section>
-        <h2 class="h4 mb-3 text-center">Featured Projects</h2>
-        <div class="row g-4 justify-content-center">
-            <div class="col-12 col-sm-6 col-lg-4">
-                <a href="/Projects/GIS" class="text-decoration-none">
-                    <div class="card h-100 shadow-sm text-center card-hover">
-                        <div class="card-body">
-                            <i class="fa-solid fa-map card-icon"></i>
-                            <h5 class="card-title">Geographic Information Systems</h5>
-                            <p class="card-text">Developed mini-projects leveraging GIS software to enhance spatial analysis and decision-making for Air Force operations.</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-12 col-sm-6 col-lg-4">
-                <a href="/Projects/Financial" class="text-decoration-none">
-                    <div class="card h-100 shadow-sm text-center card-hover">
-                        <div class="card-body">
-                            <i class="fa-solid fa-money-bill-wave card-icon"></i>
-                            <h5 class="card-title">Financial Systems</h5>
-                            <p class="card-text">Engineered secure and efficient financial applications to streamline budgeting, reporting, and resource management.</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-12 col-sm-6 col-lg-4">
-                <a href="/Projects/Admin" class="text-decoration-none">
-                    <div class="card h-100 shadow-sm text-center card-hover">
-                        <div class="card-body">
-                            <i class="fa-solid fa-users card-icon"></i>
-                            <h5 class="card-title">Administrative Automation</h5>
-                            <p class="card-text">Created tools to automate routine administrative tasks, improving productivity and reducing manual workload.</p>
-                        </div>
-                    </div>
-                </a>
+<main>
+    <!-- Hero -->
+    <section id="hero" class="hero-section" role="region" aria-label="Hero">
+        <div class="container">
+            <div class="hero-content text-center">
+                <h1 class="hero-title">Brian Patrick Coffey</h1>
+                <p class="hero-subtitle">Software Engineer</p>
+                <p class="hero-desc">
+                    Software engineer focused on secure, maintainable, scalable enterprise applications.
+                    Experience delivering ASP.NET Core solutions, spatial analysis, and web GIS for mission-critical workflows.
+                </p>
+                <div class="hero-cta">
+                    <a href="#projects" class="btn btn-accent btn-lg me-2">View Projects</a>
+                    <a href="#contact" class="btn btn-outline-accent btn-lg">Contact</a>
+                </div>
             </div>
         </div>
     </section>
-</div>
+
+    <!-- Skills (sourced from resume) -->
+    <section id="skills" class="skills-section py-5" role="region" aria-labelledby="skillsHeading">
+        <div class="container">
+            <h2 id="skillsHeading" class="section-title text-center mb-5">Technical Skills</h2>
+            <div class="row g-4 justify-content-center">
+                <!-- GIS (single category) -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="skill-card h-100" aria-hidden="false">
+                        <div class="skill-icon" aria-hidden="true"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <h3>GIS</h3>
+                        <ul class="skill-list" aria-label="GIS Skills">
+                            <li><span class="skill-tag">ArcGIS Pro</span></li>
+                            <li><span class="skill-tag">QGIS</span></li>
+                            <li><span class="skill-tag">Spatial Analysis</span></li>
+                            <li><span class="skill-tag">Geoprocessing</span></li>
+                            <li><span class="skill-tag">Geodatabases</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Programming (from resume) -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="skill-card h-100">
+                        <div class="skill-icon" aria-hidden="true"><i class="fa-solid fa-code"></i></div>
+                        <h3>Programming</h3>
+                        <ul class="skill-list" aria-label="Programming Languages">
+                            <li><span class="skill-tag">C#</span></li>
+                            <li><span class="skill-tag">C++</span></li>
+                            <li><span class="skill-tag">JavaScript</span></li>
+                            <li><span class="skill-tag">SQL</span></li>
+                            <li><span class="skill-tag">HTML / CSS</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Frameworks & Web GIS (from resume) -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="skill-card h-100">
+                        <div class="skill-icon" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></div>
+                        <h3>Frameworks & Web GIS</h3>
+                        <ul class="skill-list" aria-label="Frameworks and Web GIS">
+                            <li><span class="skill-tag">ASP.NET Core</span></li>
+                            <li><span class="skill-tag">Entity Framework</span></li>
+                            <li><span class="skill-tag">Leaflet</span></li>
+                            <li><span class="skill-tag">ArcGIS JS API</span></li>
+                            <li><span class="skill-tag">Mapbox / OpenLayers</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Tools & Practices -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="skill-card h-100">
+                        <div class="skill-icon" aria-hidden="true"><i class="fa-solid fa-toolbox"></i></div>
+                        <h3>Tools & Practices</h3>
+                        <ul class="skill-list" aria-label="Tools and practices">
+                            <li><span class="skill-tag">SQL Server / SSMS</span></li>
+                            <li><span class="skill-tag">Azure DevOps</span></li>
+                            <li><span class="skill-tag">xUnit</span></li>
+                            <li><span class="skill-tag">DevSecOps / Fortify</span></li>
+                            <li><span class="skill-tag">Git / Visual Studio</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Projects -->
+    <section id="projects" class="projects-section py-5" role="region" aria-labelledby="projectsHeading">
+        <div class="container">
+            <h2 id="projectsHeading" class="section-title text-center mb-5">Featured Projects</h2>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <article class="project-card h-100" aria-labelledby="project-state-explorer">
+                        <div class="project-image" aria-hidden="true">
+                            <i class="fa-solid fa-map fa-3x"></i>
+                        </div>
+                        <div class="project-info">
+                            <h3 id="project-state-explorer" class="project-title">US State Explorer</h3>
+                            <p class="project-desc">Interactive GIS dashboard for exploring, comparing, and analyzing U.S. state data with ArcGIS JS API and ASP.NET Core backend.</p>
+                            <div class="project-stack" aria-hidden="true">
+                                <span class="badge-gis">ArcGIS JS</span>
+                                <span class="badge-gis">ASP.NET Core</span>
+                                <span class="badge-gis">GeoJSON</span>
+                            </div>
+                            <div class="mt-3">
+                                <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/StateExplorer/Index" title="Open demo">Demo</a>
+                                <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/state-explorer" target="_blank" rel="noopener">GitHub</a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- keep other existing project cards (financial/admin) but preserve content -->
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <a href="/Projects/Financial" class="text-decoration-none">
+                        <div class="project-card h-100">
+                            <div class="project-image" aria-hidden="true">
+                                <i class="fa-solid fa-money-bill-wave fa-3x"></i>
+                            </div>
+                            <div class="project-info">
+                                <h5 class="project-title">Financial Systems</h5>
+                                <p class="project-desc">Secure financial applications for budgeting, reporting, and resource management.</p>
+                                <div class="project-stack"><span class="badge-gis">C#</span><span class="badge-gis">SQL Server</span></div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <a href="/Projects/Admin" class="text-decoration-none">
+                        <div class="project-card h-100">
+                            <div class="project-image" aria-hidden="true">
+                                <i class="fa-solid fa-gears fa-3x"></i>
+                            </div>
+                            <div class="project-info">
+                                <h5 class="project-title">Administrative Automation</h5>
+                                <p class="project-desc">Automation tooling to reduce manual workload and streamline workflows.</p>
+                                <div class="project-stack"><span class="badge-gis">Python</span><span class="badge-gis">Power Automate</span></div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="/Projects" class="btn btn-outline-accent">View all projects</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="about-section py-5" role="region" aria-labelledby="aboutHeading">
+        <div class="container">
+            <h2 id="aboutHeading" class="section-title text-center mb-4">About</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="about-card">
+                        <p><strong>Lead Software Engineer</strong> with active Secret clearance. I deliver secure, enterprise-grade web applications (ASP.NET Core, SQL Server) and geospatial tools that enable data-driven decisions. I lead Agile teams through architecture, delivery, testing, and production operations.</p>
+                        <p>Specialties: system modernization, spatial analysis, web GIS, secure development, automation of manual workflows, and test automation (xUnit).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="contact-section py-5" role="contentinfo" aria-labelledby="contactHeading">
+        <div class="container">
+            <h2 id="contactHeading" class="section-title text-center mb-4">Contact</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-6 text-center">
+                    <a class="contact-link d-block mb-2"
+                       href="https://mail.google.com/mail/?view=cm&fs=1&to=brianpcoffey99@gmail.com"
+                       target="_blank"
+                       rel="noopener"
+                       aria-label="Email via Gmail">
+                        <i class="fa-solid fa-envelope me-2"></i>
+                        brianpcoffey99@gmail.com
+                    </a>
+
+                    <a class="contact-link d-block mb-2"
+                       href="https://linkedin.com/in/brianpatrickcoffey"
+                       target="_blank"
+                       rel="noopener">
+                        <i class="fa-brands fa-linkedin me-2"></i>
+                        linkedin.com/in/brianpatrickcoffey
+                    </a>
+
+                    <a class="contact-link d-block"
+                       href="https://github.com/brianpcoffey"
+                       target="_blank"
+                       rel="noopener">
+                        <i class="fa-brands fa-github me-2"></i>
+                        github.com/brianpcoffey
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+@section Scripts {
+    <script>
+        function copyEmailContact() {
+            navigator.clipboard.writeText('brianpcoffey99@gmail.com')
+                .then(() => alert('Email copied to clipboard!'));
+        }
+    </script>
+}
