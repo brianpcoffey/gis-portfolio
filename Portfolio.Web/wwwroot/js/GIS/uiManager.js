@@ -2,7 +2,8 @@
 // All DOM rendering and UI behaviors. Uses delegation and single-time event wiring.
 // UI methods do not perform network requests or mutate global variables directly.
 
-import { getState } from './stateStore.js';
+import { getState, updateCollections, setSelectedCollection } from './stateStore.js';
+import { CollectionService } from './collectionService.js';
 
 let saveModalInstance = null;
 
@@ -148,27 +149,76 @@ export const UI = {
                 const btn = e.target.closest("button");
                 if (!btn) {
                     const item = e.target.closest(".list-group-item");
-                    if (item && item.dataset.featureId) {
+                    if (item && (item.dataset.featureId || item.dataset.savedId)) {
+                        // select by external FeatureId (for viewing/zoom)
                         const fid = item.dataset.featureId;
-                        // emit an app-level custom event
                         document.dispatchEvent(new CustomEvent("ui:selectSaved", { detail: { featureId: fid } }));
                     }
                     return;
                 }
                 const action = btn.dataset.action;
+                // Buttons now carry both saved-db id and external feature id
+                const savedId = btn.dataset.savedId;
                 const fid = btn.dataset.featureId;
                 if (action === "zoom") document.dispatchEvent(new CustomEvent("ui:zoomSaved", { detail: { featureId: fid } }));
-                if (action === "remove") document.dispatchEvent(new CustomEvent("ui:removeSaved", { detail: { featureId: fid } }));
+                if (action === "remove") document.dispatchEvent(new CustomEvent("ui:removeSaved", { detail: { savedId, featureId: fid } }));
             });
             savedList._delegationAttached = true;
         }
 
         const collectionsList = query("collectionsList");
         if (collectionsList && !collectionsList._delegationAttached) {
-            collectionsList.addEventListener("click", (e) => {
-                const btn = e.target.closest(".list-group-item");
-                if (!btn) return;
-                const id = btn.dataset.collectionId;
+            collectionsList.addEventListener("click", async (e) => {
+                const btn = e.target.closest("button");
+                const item = e.target.closest(".list-group-item");
+                if (!item) return;
+                const id = item.dataset.collectionId;
+
+                // If the click was on a small action button, handle edit/delete.
+                if (btn) {
+                    const action = btn.dataset.action;
+                    if (action === "edit") {
+                        // Prompt for new values (simple UX)
+                        const state = getState();
+                        const col = state.collections.find(c => String(c.id) === String(id));
+                        if (!col) return;
+                        const newName = prompt("Collection name:", col.name);
+                        if (!newName || !newName.trim()) return;
+                        const newColor = prompt("Collection color (hex):", col.color || "#6c757d") || col.color;
+                        try {
+                            await CollectionService.updateCollection(id, { name: newName.trim(), color: newColor.trim() });
+                            // merge update locally
+                            const updated = { ...col, name: newName.trim(), color: newColor.trim(), lastModified: new Date().toISOString() };
+                            const newList = state.collections.map(c => String(c.id) === String(id) ? updated : c);
+                            updateCollections(newList);
+                            UI.showToast("Collection", "Collection updated", "success");
+                            // keep selection on updated collection
+                            setSelectedCollection(id);
+                        } catch (err) {
+                            console.error("update collection failed", err);
+                            UI.showToast("Collection", "Failed to update collection", "danger");
+                        }
+                    } else if (action === "delete") {
+                        if (!confirm("Delete this collection? This cannot be undone.")) return;
+                        try {
+                            await CollectionService.deleteCollection(id);
+                            const state = getState();
+                            const newList = state.collections.filter(c => String(c.id) !== String(id));
+                            updateCollections(newList);
+                            UI.showToast("Collection", "Collection deleted", "success");
+                            // clear selection if it was the deleted one
+                            if (String(state.selectedCollectionId) === String(id)) {
+                                setSelectedCollection(null);
+                            }
+                        } catch (err) {
+                            console.error("delete collection failed", err);
+                            UI.showToast("Collection", "Failed to delete collection", "danger");
+                        }
+                    }
+                    return;
+                }
+
+                // Otherwise treat as select
                 document.dispatchEvent(new CustomEvent("ui:selectCollection", { detail: { collectionId: id } }));
             });
             collectionsList._delegationAttached = true;
@@ -240,14 +290,18 @@ export const UI = {
 
         const frag = document.createDocumentFragment();
         entries.forEach(saved => {
-            const id = String(saved.featureId || saved.FeatureId);
+            // saved: may contain saved.Id (db id) and featureId (external)
+            const featureKey = String(saved.featureId || saved.FeatureId);
+            const savedDbId = String(saved.id || saved.Id || "");
             const item = document.createElement("div");
             item.className = "list-group-item d-flex justify-content-between align-items-center";
-            item.dataset.featureId = id;
+            // store both for click handling
+            item.dataset.featureId = featureKey;
+            if (savedDbId) item.dataset.savedId = savedDbId;
 
             const left = document.createElement("div");
             left.style.cursor = "pointer";
-            left.textContent = saved.displayName || saved.Name || saved.name || `State ${id}`;
+            left.textContent = saved.displayName || saved.Name || saved.name || `State ${featureKey}`;
             left.className = "flex-grow-1";
             item.appendChild(left);
 
@@ -260,7 +314,9 @@ export const UI = {
             zoomBtn.title = "Zoom";
             zoomBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass-plus"></i>';
             zoomBtn.dataset.action = "zoom";
-            zoomBtn.dataset.featureId = id;
+            zoomBtn.dataset.featureId = featureKey;
+            // also include saved id on the button to make it available
+            if (savedDbId) zoomBtn.dataset.savedId = savedDbId;
             btnGroup.appendChild(zoomBtn);
 
             const removeBtn = document.createElement("button");
@@ -269,7 +325,9 @@ export const UI = {
             removeBtn.title = "Remove";
             removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             removeBtn.dataset.action = "remove";
-            removeBtn.dataset.featureId = id;
+            // remove needs saved DB id for API and feature id for client removal
+            removeBtn.dataset.featureId = featureKey;
+            if (savedDbId) removeBtn.dataset.savedId = savedDbId;
             btnGroup.appendChild(removeBtn);
 
             item.appendChild(btnGroup);
@@ -290,10 +348,17 @@ export const UI = {
         state.collections.forEach(col => {
             if (list) {
                 const item = document.createElement("button");
+                const isActive = String(state.selectedCollectionId) === String(col.id);
                 item.type = "button";
-                item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+                item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center" + (isActive ? " active" : "");
                 item.dataset.collectionId = String(col.id);
-                item.innerHTML = `<span><span class="badge me-2" style="background:${col.color};width:10px;height:10px;border-radius:50%;display:inline-block;"></span>${col.name}</span>`;
+
+                // left: badge + name, right: small action buttons
+                item.innerHTML = `<span><span class="badge me-2" style="background:${escapeHtml(col.color)};width:10px;height:10px;border-radius:50%;display:inline-block;"></span>${escapeHtml(col.name)}</span>
+                                  <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-light btn-sm" data-action="edit" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-action="delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                                  </div>`;
                 list.appendChild(item);
             }
             if (select) {

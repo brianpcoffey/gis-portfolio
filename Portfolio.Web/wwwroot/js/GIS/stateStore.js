@@ -120,3 +120,8 @@ export function updateCollections(collections) {
     appState.collections = Array.isArray(collections) ? collections : [];
     notify();
 }
+
+export function setSelectedCollection(collectionId) {
+    appState.selectedCollectionId = collectionId == null ? null : String(collectionId);
+    notify();
+}

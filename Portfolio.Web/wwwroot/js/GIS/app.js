@@ -30,10 +30,6 @@ async function initialize() {
 
     await MapManager.init();
 
-    // Debug check (safe to leave in)
-    console.log("MapManager.view =", MapManager.view);
-
-
     // Load data (includes collections from server)
     const [features, saved, collections] = await Promise.all([
         FeatureService.getFeatures(),
@@ -293,14 +289,22 @@ async function initialize() {
         "ui:removeSaved",
         async e => {
 
-            const id =
-                String(e.detail.featureId);
+            // Now expecting both savedId (db id) and featureId (external)
+            const savedId = String(e.detail.savedId || "");
+            const featureKey = String(e.detail.featureId || "");
 
             try {
 
-                await FeatureService.deleteFeature(id);
+                if (savedId) {
+                    // delete by saved DB id (API expects int id)
+                    await FeatureService.deleteFeature(savedId);
+                } else {
+                    // fallback: if no savedId available, try deleting by feature key (may fail)
+                    await FeatureService.deleteFeature(featureKey);
+                }
 
-                removeSavedFeatureById(id);
+                // remove from client-state using the external feature id key
+                if (featureKey) removeSavedFeatureById(featureKey);
 
                 UI.showToast(
                     "Remove",
@@ -573,8 +577,6 @@ async function initialize() {
 
         }
     );
-
-
 
     subscribe(state => {
 
