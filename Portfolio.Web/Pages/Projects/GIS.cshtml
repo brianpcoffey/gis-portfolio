@@ -182,15 +182,12 @@
 </div>
 
 @section Scripts {
-    <!-- jQuery (required for Typeahead) -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-
-    <!-- Typeahead (no invalid SRI attribute) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js" crossorigin="anonymous"></script>
-
-    <!-- ArcGIS JS API -->
     <script src="https://js.arcgis.com/4.28/"></script>
-
-    <!-- Custom GIS JS -->
-    <script src="~/js/gis.js"></script>
+    <script type="module" src="~/js/GIS/stateStore.js"></script>
+    <script type="module" src="~/js/GIS/featureService.js"></script>
+    <script type="module" src="~/js/GIS/mapManager.js"></script>
+    <script type="module" src="~/js/GIS/uiManager.js"></script>
+    <script type="module" src="~/js/GIS/app.js"></script>
 }
