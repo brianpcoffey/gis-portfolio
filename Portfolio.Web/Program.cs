@@ -25,6 +25,10 @@ builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<IArcGisService, ArcGisService>();
 builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
 
+// Collections repository & service registrations
+builder.Services.AddScoped<ICollectionRepository, CollectionRepository>();
+builder.Services.AddScoped<ICollectionService, CollectionService>();
+
 // --------------------------
 // Session
 // --------------------------
@@ -113,5 +117,11 @@ app.UseSwaggerUI(c =>
 // --------------------------
 app.MapControllers();
 app.MapRazorPages();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PortfolioDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();

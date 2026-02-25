@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Portfolio.Services.Interfaces;
 using Portfolio.Common.DTOs;
 
-namespace Portfolio.Web.Controllers
+namespace Portfolio.Web.Controllers.Api
 {
     [ApiController]
     [Route("api/features")]

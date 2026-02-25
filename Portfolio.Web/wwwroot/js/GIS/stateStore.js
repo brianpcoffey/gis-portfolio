@@ -1,9 +1,11 @@
 // stateStore.js
-export const appState = {
+// Centralized application state with subscribe/notify and safe update helpers.
+
+const initialState = {
     features: [],
-    savedFeatures: new Map(),
+    savedFeatures: new Map(), // Map<featureId, feature>
     selectedFeatureId: null,
-    compareSet: new Set(),
+    compareSet: new Set(), // Set<featureId>
     collections: [
         { id: 1, name: "Favorites", color: "#dc3545" },
         { id: 2, name: "Research", color: "#0d6efd" },
@@ -13,29 +15,106 @@ export const appState = {
     compareMode: false
 };
 
-// Simple pub/sub for state changes
-const listeners = [];
+export const appState = { ...initialState };
 
-export function subscribe(listener) {
-    listeners.push(listener);
+// Subscribers
+const listeners = new Set();
+
+export function subscribe(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
 }
 
-export function notify() {
-    listeners.forEach(fn => fn(appState));
+function notify() {
+    listeners.forEach(fn => {
+        try { fn(getState()); } catch (e) { console.error("Subscriber error", e); }
+    });
 }
 
-// State mutation helpers
+// Utilities
+export function getState() {
+    // Return shallow snapshot to discourage direct mutation
+    return {
+        ...appState,
+        savedFeatures: new Map(appState.savedFeatures),
+        compareSet: new Set(appState.compareSet),
+        features: Array.from(appState.features),
+        collections: Array.from(appState.collections)
+    };
+}
+
 export function setState(partial) {
-    Object.assign(appState, partial);
+    Object.keys(partial).forEach(k => {
+        // Avoid replacing Map/Set with plain objects unintentionally
+        if (k === "savedFeatures" && partial[k] instanceof Map) {
+            appState.savedFeatures = new Map(partial[k]);
+        } else if (k === "compareSet" && partial[k] instanceof Set) {
+            appState.compareSet = new Set(partial[k]);
+        } else {
+            appState[k] = partial[k];
+        }
+    });
     notify();
 }
 
-export function updateSavedFeatures(features) {
-    appState.savedFeatures = new Map(features.map(f => [f.featureId, f]));
+// Helpers for common updates
+export function updateFeatures(featuresArray) {
+    appState.features = Array.isArray(featuresArray) ? featuresArray : [];
+    notify();
+}
+
+export function updateSavedFeatures(featuresArray) {
+    const map = new Map();
+    (featuresArray || []).forEach(f => {
+        map.set(String(f.featureId || f.FeatureId), f);
+    });
+    appState.savedFeatures = map;
+    notify();
+}
+
+export function addSavedFeature(feature) {
+    const map = new Map(appState.savedFeatures);
+    map.set(String(feature.featureId || feature.FeatureId), feature);
+    appState.savedFeatures = map;
+    notify();
+}
+
+export function removeSavedFeatureById(featureId) {
+    const id = String(featureId);
+    if (!appState.savedFeatures.has(id)) return;
+    const map = new Map(appState.savedFeatures);
+    map.delete(id);
+    appState.savedFeatures = map;
+    notify();
+}
+
+export function setSelectedFeature(featureId) {
+    appState.selectedFeatureId = featureId == null ? null : String(featureId);
+    notify();
+}
+
+export function toggleCompareFeature(featureId) {
+    const id = String(featureId);
+    const set = new Set(appState.compareSet);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    appState.compareSet = set;
+    notify();
+}
+
+export function clearSelectionAndCompare() {
+    appState.selectedFeatureId = null;
+    appState.compareSet = new Set();
+    appState.compareMode = false;
+    notify();
+}
+
+export function setCompareMode(enabled) {
+    appState.compareMode = Boolean(enabled);
     notify();
 }
 
 export function updateCollections(collections) {
-    appState.collections = collections;
+    appState.collections = Array.isArray(collections) ? collections : [];
     notify();
 }
