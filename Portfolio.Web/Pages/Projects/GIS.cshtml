@@ -8,85 +8,49 @@
     ViewData["Title"] = "GIS Feature Analyzer";
 }
 
-<link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css" />
+<!-- Custom CSS -->
+<link rel="stylesheet" href="~/css/gis.css" />
 
-<style>
-    .feature-card {
-        transition: all 0.2s;
-        cursor: pointer;
-    }
-
-        .feature-card:hover {
-            background-color: #f8f9fa;
-            transform: translateX(3px);
-        }
-
-        .feature-card.selected {
-            border-left: 4px solid #0d6efd;
-            background-color: #e7f1ff;
-        }
-
-        .feature-card.comparing {
-            border-left: 4px solid #ffc107;
-            background-color: #fff8e1;
-        }
-
-    .stat-badge {
-        font-size: 0.75rem;
-    }
-
-    .toolbar-btn {
-        min-width: 100px;
-    }
-
-    #mapView {
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .comparison-panel {
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .note-item {
-        border-left: 3px solid #6c757d;
-    }
-</style>
+<!-- Typeahead CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js-bootstrap4-css/1.0.0/typeaheadjs.min.css" />
 
 <div class="container-fluid py-3">
     <!-- TOOLBAR -->
     <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex flex-wrap gap-2 align-items-center bg-light p-2 rounded">
-                <div class="input-group" style="max-width: 300px;">
-                    <span class="input-group-text"><i class="bi bi-search"></i>🔍</span>
-                    <input id="searchInput" type="text" class="form-control" placeholder="Search features...">
+        <!-- Align search with left sidebar (matches col sizes used below) -->
+        <div class="col-lg-3 col-md-4">
+            <div class="bg-light p-3 rounded d-flex align-items-center">
+                <div class="input-group flex-nowrap w-100" style="max-width: 100%;">
+                    <span class="input-group-text d-flex align-items-center justify-content-center">🔍</span>
+                    <input id="searchInput" type="text" class="form-control typeahead" placeholder="Search states..." autocomplete="off">
                 </div>
-                <div class="vr d-none d-md-block"></div>
-                <button id="btnCompareMode" class="btn btn-outline-warning toolbar-btn">
-                    📊 Compare Mode
-                </button>
-                <button id="btnClearSelection" class="btn btn-outline-secondary toolbar-btn">
-                    ✖️ Clear Selection
-                </button>
-                <button id="btnExport" class="btn btn-outline-success toolbar-btn">
-                    📥 Export Data
-                </button>
-                <div class="ms-auto">
-                    <select id="basemapSelect" class="form-select form-select-sm">
-                        <option value="streets-navigation-vector">Streets</option>
-                        <option value="satellite">Satellite</option>
-                        <option value="topo-vector">Topographic</option>
-                        <option value="dark-gray-vector">Dark</option>
-                    </select>
-                </div>
+            </div>
+        </div>
+
+        <!-- Center toolbar actions -->
+        <div class="col-lg-6 col-md-8">
+            <div class="bg-light p-3 rounded d-flex flex-wrap gap-2 align-items-center">
+                <button id="btnCompareMode" class="btn btn-outline-warning toolbar-btn">📊 Compare Mode</button>
+                <button id="btnClearSelection" class="btn btn-outline-secondary toolbar-btn">✖️ Clear Selection</button>
+                <button id="btnExport" class="btn btn-outline-success toolbar-btn">📥 Export Data</button>
+            </div>
+        </div>
+
+        <!-- Right toolbar (basemap select) — aligns with right column on large screens, stacks on smaller -->
+        <div class="col-lg-3 col-md-12">
+            <div class="bg-light p-3 rounded d-flex align-items-center justify-content-end">
+                <select id="basemapSelect" class="form-select form-select-sm" style="min-width: 150px; max-width: 100%;">
+                    <option value="streets-navigation-vector">Streets</option>
+                    <option value="satellite">Satellite</option>
+                    <option value="topo-vector">Topographic</option>
+                    <option value="dark-gray-vector">Dark</option>
+                </select>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- LEFT SIDEBAR - Saved Features -->
+    <div class="row g-3">
+        <!-- LEFT SIDEBAR -->
         <div class="col-lg-3 col-md-4">
             <div class="card shadow-sm mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -94,34 +58,33 @@
                     <button id="btnNewCollection" class="btn btn-sm btn-primary">+ New</button>
                 </div>
                 <div class="card-body p-0">
-                    <div id="collectionsList" class="list-group list-group-flush" style="max-height: 200px; overflow-y: auto;">
+                    <div id="collectionsList" class="list-group list-group-flush" style="max-height: 200px; overflow-y:auto;">
                         <div class="list-group-item text-muted text-center small">Loading...</div>
                     </div>
                 </div>
             </div>
 
             <div class="card shadow-sm">
-                <div class="card-header">
-                    <strong>💾 Saved Features</strong>
-                    <span id="savedCount" class="badge bg-primary float-end">0</span>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>💾 Saved States</strong>
+                    <span id="savedCount" class="badge bg-primary">0</span>
                 </div>
                 <div class="card-body p-0">
-                    <div id="savedFeaturesList" class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
-                        <div class="list-group-item text-muted text-center small">No saved features yet</div>
+                    <div id="savedFeaturesList" class="list-group list-group-flush" style="max-height: 400px; overflow-y:auto;">
+                        <div class="list-group-item text-muted text-center small">No saved states yet</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- CENTER - Map -->
+        <!-- CENTER - MAP -->
         <div class="col-lg-6 col-md-8">
-            <div id="mapView" class="shadow-sm" style="height: 600px;"></div>
+            <div id="mapView" class="shadow-sm rounded" style="height:600px;"></div>
 
-            <!-- Comparison Panel (hidden by default) -->
             <div id="comparisonPanel" class="card mt-3 d-none">
-                <div class="card-header bg-warning text-dark">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
                     <strong>📊 Comparison Results</strong>
-                    <button id="btnCloseComparison" class="btn-close float-end"></button>
+                    <button id="btnCloseComparison" class="btn-close"></button>
                 </div>
                 <div class="card-body comparison-panel">
                     <div id="comparisonContent"></div>
@@ -129,47 +92,41 @@
             </div>
         </div>
 
-        <!-- RIGHT SIDEBAR - Feature Details -->
-        <div class="col-lg-3">
+        <!-- RIGHT SIDEBAR -->
+        <div class="col-lg-3 col-md-12">
             <div class="card shadow-sm mb-3">
-                <div class="card-header">
-                    <strong>📍 Feature Details</strong>
-                </div>
+                <div class="card-header"><strong>📍 State Details</strong></div>
                 <div class="card-body" id="featureDetails">
-                    <p class="text-muted text-center small">Click a feature on the map to view details</p>
+                    <p class="text-muted text-center small">Click a state on the map to view details</p>
                 </div>
             </div>
 
             <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between">
-                    <strong>📈 Statistics</strong>
-                </div>
+                <div class="card-header"><strong>📈 Statistics</strong></div>
                 <div class="card-body">
-                    <div id="statsPanel">
-                        <div class="row text-center">
-                            <div class="col-6 mb-2">
-                                <div class="border rounded p-2">
-                                    <div id="statTotal" class="h4 mb-0">0</div>
-                                    <small class="text-muted">Total Features</small>
-                                </div>
+                    <div id="statsPanel" class="row text-center g-2">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <div id="statTotal" class="h4 mb-0">0</div>
+                                <small class="text-muted">Total States</small>
                             </div>
-                            <div class="col-6 mb-2">
-                                <div class="border rounded p-2">
-                                    <div id="statSaved" class="h4 mb-0 text-success">0</div>
-                                    <small class="text-muted">Saved</small>
-                                </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <div id="statSaved" class="h4 mb-0 text-success">0</div>
+                                <small class="text-muted">Saved</small>
                             </div>
-                            <div class="col-6">
-                                <div class="border rounded p-2">
-                                    <div id="statSelected" class="h4 mb-0 text-primary">0</div>
-                                    <small class="text-muted">Selected</small>
-                                </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <div id="statSelected" class="h4 mb-0 text-primary">0</div>
+                                <small class="text-muted">Selected</small>
                             </div>
-                            <div class="col-6">
-                                <div class="border rounded p-2">
-                                    <div id="statComparing" class="h4 mb-0 text-warning">0</div>
-                                    <small class="text-muted">Comparing</small>
-                                </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <div id="statComparing" class="h4 mb-0 text-warning">0</div>
+                                <small class="text-muted">Comparing</small>
                             </div>
                         </div>
                     </div>
@@ -177,6 +134,7 @@
             </div>
         </div>
     </div>
+
 </div>
 
 <!-- Save Feature Modal -->
@@ -184,18 +142,18 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Save Feature</h5>
+                <h5 class="modal-title">Save State</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="modalFeatureId">
+                <input type="hidden" id="modalFeatureId" />
                 <div class="mb-3">
-                    <label class="form-label">Feature Name</label>
-                    <input type="text" id="modalFeatureName" class="form-control" readonly>
+                    <label class="form-label">State Name</label>
+                    <input type="text" id="modalFeatureName" class="form-control" readonly />
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Description / Notes</label>
-                    <textarea id="modalDescription" class="form-control" rows="3" placeholder="Add notes about this feature..."></textarea>
+                    <textarea id="modalDescription" class="form-control" rows="3" placeholder="Add notes about this state..."></textarea>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Add to Collection</label>
@@ -206,7 +164,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" id="btnConfirmSave" class="btn btn-primary">Save Feature</button>
+                <button type="button" id="btnConfirmSave" class="btn btn-primary">Save State</button>
             </div>
         </div>
     </div>
@@ -216,13 +174,23 @@
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="toast" class="toast" role="alert">
         <div class="toast-header">
-            <strong class="me-auto" id="toastTitle">Notification</strong>
+            <strong id="toastTitle" class="me-auto">Notification</strong>
             <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
         </div>
-        <div class="toast-body" id="toastMessage"></div>
+        <div id="toastMessage" class="toast-body"></div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="/js/gis.js"></script>
+    <!-- jQuery (required for Typeahead) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+    <!-- Typeahead (no invalid SRI attribute) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js" crossorigin="anonymous"></script>
+
+    <!-- ArcGIS JS API -->
+    <script src="https://js.arcgis.com/4.28/"></script>
+
+    <!-- Custom GIS JS -->
+    <script src="~/js/gis.js"></script>
 }

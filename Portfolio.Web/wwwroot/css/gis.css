@@ -1,0 +1,151 @@
+.feature-card {
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+    .feature-card:hover {
+        background-color: #f8f9fa;
+        transform: translateX(3px);
+    }
+
+    .feature-card.selected {
+        border-left: 4px solid #0d6efd;
+        background-color: #e7f1ff;
+    }
+
+.feature-card.comparing {
+    border-left: 4px solid #ffc107;
+    background-color: #fff8e1;
+}
+
+.stat-badge {
+    font-size: 0.75rem;
+}
+
+.toolbar-btn {
+    min-width: 100px;
+}
+
+#mapView {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.comparison-panel {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.note-item {
+    border-left: 3px solid #6c757d;
+}
+
+.input-group {
+    position: relative;
+}
+
+    .input-group .input-group-text {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        white-space: nowrap;
+    }
+
+    .twitter-typeahead,
+    .input-group .twitter-typeahead {
+        display: block;
+        width: 100%;
+        position: relative;
+        box-sizing: border-box;
+    }
+
+        .typeahead,
+        .twitter-typeahead input,
+        .input-group .typeahead {
+            width: 100% !important;
+            position: relative;
+            background-clip: padding-box;
+            z-index: 2;
+            height: auto;
+            padding: 0.375rem 0.75rem;
+            line-height: 1.5;
+            border-radius: 0 0.375rem 0.375rem 0;
+        }
+
+.tt-hint {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: #999;
+    opacity: 0.6;
+    z-index: 1;
+    pointer-events: none;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    background: transparent;
+}
+
+.tt-menu {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    z-index: 2050;
+    min-width: 100%;
+    width: auto;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.tt-suggestion {
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+    display: block;
+    color: var(--bs-body-color, #212529);
+    background: transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95rem;
+}
+
+.tt-suggestion:last-child {
+    border-bottom: none;
+}
+
+.tt-suggestion:hover,
+.tt-suggestion.tt-cursor {
+    background-color: var(--bs-primary-bg-subtle, #e7f1ff);
+}
+
+.tt-hint,
+.tt-suggestion small {
+    color: #6c757d;
+}
+
+.twitter-typeahead .tt-menu,
+.typeahead .tt-menu {
+    min-width: 100%;
+}
+
+.input-group .input-group-text {
+    white-space: nowrap;
+}
+
+.twitter-typeahead {
+    width: 100%;
+}
+
+.tt-hint {
+    color: #999;
+}

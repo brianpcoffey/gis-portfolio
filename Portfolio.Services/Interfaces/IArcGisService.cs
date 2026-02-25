@@ -1,5 +1,4 @@
 using Portfolio.Common.DTOs;
-using System.Threading;
 
 namespace Portfolio.Services.Interfaces
 {

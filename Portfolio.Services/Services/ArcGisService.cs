@@ -34,7 +34,8 @@ namespace Portfolio.Services.Services
                     LayerId = layerId,
                     FeatureId = f.Attributes.TryGetValue("OBJECTID", out var id) ? id?.ToString() ?? "" : "",
                     Name = GetFeatureName(f.Attributes),
-                    GeometryJson = JsonSerializer.Serialize(f.Geometry)
+                    GeometryJson = JsonSerializer.Serialize(f.Geometry),
+                    Attributes = f.Attributes // Include all attributes from ArcGIS
                 })];
             }
             catch (OperationCanceledException)
@@ -62,6 +63,9 @@ namespace Portfolio.Services.Services
 
         private static string GetFeatureName(Dictionary<string, object?> attributes)
         {
+            if (attributes.TryGetValue("STATE_NAME", out var stateName) && stateName is not null)
+                return stateName.ToString() ?? "";
+
             if (attributes.TryGetValue("NAME", out var name) && name is not null)
                 return name.ToString() ?? "";
 
