@@ -301,8 +301,16 @@ export const UI = {
 
             const left = document.createElement("div");
             left.style.cursor = "pointer";
-            left.textContent = saved.displayName || saved.Name || saved.name || `State ${featureKey}`;
             left.className = "flex-grow-1";
+
+            // Build display title with optional collection
+            const titleText = saved.displayName || saved.Name || saved.name || `State ${featureKey}`;
+            let titleHtml = escapeHtml(titleText);
+            if (saved.CollectionName || saved.collectionName) {
+                const cname = escapeHtml(saved.CollectionName || saved.collectionName);
+                titleHtml = `<span>${titleHtml} <small class="text-muted ms-2">(${cname})</small></span>`;
+            }
+            left.innerHTML = titleHtml;
             item.appendChild(left);
 
             const btnGroup = document.createElement("div");

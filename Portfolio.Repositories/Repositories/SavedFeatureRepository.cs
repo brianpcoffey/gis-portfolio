@@ -2,55 +2,64 @@ using Microsoft.EntityFrameworkCore;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 
-namespace Portfolio.Repositories.Repositories
+namespace Portfolio.Repositories
 {
     public class SavedFeatureRepository : ISavedFeatureRepository
     {
-        private readonly PortfolioDbContext _context;
+        private readonly PortfolioDbContext _db;
 
-        public SavedFeatureRepository(PortfolioDbContext context)
+        public SavedFeatureRepository(PortfolioDbContext db)
         {
-            _context = context;
+            _db = db;
         }
 
-        public async Task<bool> ExistsAsync(string layerId, string featureId, CancellationToken cancellationToken = default)
+        public async Task<List<SavedFeature>> GetAllAsync()
         {
-            return await _context.SavedFeatures
-                .AnyAsync(f => f.LayerId == layerId && f.FeatureId == featureId, cancellationToken);
+            return await _db.SavedFeatures
+                .Include(sf => sf.Collection)
+                .Include(sf => sf.UserNotes)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
-        public async Task<SavedFeature> AddAsync(SavedFeature entity)
+        public async Task<SavedFeature?> GetByIdAsync(int id)
         {
-            await _context.SavedFeatures.AddAsync(entity);
-            await _context.SaveChangesAsync();
-            return entity;
+            return await _db.SavedFeatures
+                .Include(sf => sf.Collection)
+                .Include(sf => sf.UserNotes)
+                .FirstOrDefaultAsync(sf => sf.Id == id);
         }
 
-        public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        public async Task<SavedFeature?> GetByLayerAndFeatureIdAsync(string layerId, string featureId)
         {
-            await _context.SaveChangesAsync(cancellationToken);
+            return await _db.SavedFeatures
+                .FirstOrDefaultAsync(sf => sf.LayerId == layerId && sf.FeatureId == featureId);
         }
 
-        public async Task<List<SavedFeature>> GetAllAsync() =>
-            await _context.SavedFeatures.ToListAsync();
-
-        public async Task<SavedFeature?> GetByIdAsync(int id) =>
-            await _context.SavedFeatures.FirstOrDefaultAsync(f => f.Id == id);
-
-        public async Task<SavedFeature> UpdateAsync(SavedFeature feature)
+        public async Task<SavedFeature?> GetByFeatureKeyAsync(string featureKey)
         {
-            feature.LastModified = DateTime.UtcNow;
-            _context.SavedFeatures.Update(feature);
-            await _context.SaveChangesAsync();
+            return await _db.SavedFeatures
+                .Include(sf => sf.Collection)
+                .Include(sf => sf.UserNotes)
+                .FirstOrDefaultAsync(sf => sf.FeatureId == featureKey);
+        }
+
+        public async Task<SavedFeature> AddAsync(SavedFeature feature)
+        {
+            _db.SavedFeatures.Add(feature);
+            await _db.SaveChangesAsync();
+            // reload navigation props
+            await _db.Entry(feature).Reference(f => f.Collection).LoadAsync();
+            await _db.Entry(feature).Collection(f => f.UserNotes).LoadAsync();
             return feature;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var feature = await _context.SavedFeatures.FindAsync(id);
-            if (feature == null) return false;
-            _context.SavedFeatures.Remove(feature);
-            await _context.SaveChangesAsync();
+            var sf = await _db.SavedFeatures.FindAsync(id);
+            if (sf == null) return false;
+            _db.SavedFeatures.Remove(sf);
+            await _db.SaveChangesAsync();
             return true;
         }
     }

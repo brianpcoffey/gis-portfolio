@@ -5,92 +5,87 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Services.Services
 {
-    public class SavedFeatureService(ISavedFeatureRepository repository) : ISavedFeatureService
+    public class SavedFeatureService : ISavedFeatureService
     {
-        private readonly ISavedFeatureRepository _repository = repository;
+        private readonly ISavedFeatureRepository _repo;
+        private readonly IUserNoteRepository _noteRepo;
+
+        public SavedFeatureService(ISavedFeatureRepository repo, IUserNoteRepository noteRepo)
+        {
+            _repo = repo;
+            _noteRepo = noteRepo;
+        }
 
         public async Task<List<SavedFeatureDto>> GetAllAsync()
         {
-            var features = await _repository.GetAllAsync();
-            return [.. features.Select(MapToDto)];
+            var list = await _repo.GetAllAsync();
+            return list.Select(MapToDto).ToList();
         }
 
-        public async Task<SavedFeatureDto?> GetByIdAsync(int id)
+        public async Task<SavedFeatureDto> CreateAsync(CreateSavedFeatureDto dto)
         {
-            var feature = await _repository.GetByIdAsync(id);
-            return feature is null ? null : MapToDto(feature);
-        }
-
-        public async Task<SavedFeatureDto> AddAsync(SavedFeatureDto dto)
-        {
-            var entity = new SavedFeature
+            // ensure not duplicate
+            var existing = await _repo.GetByLayerAndFeatureIdAsync(dto.LayerId, dto.FeatureId);
+            if (existing != null)
             {
-                LayerId = dto.LayerId,
-                FeatureId = dto.FeatureId,
-                Name = dto.Name,
-                GeometryJson = dto.GeometryJson,
-                Description = dto.Description,
-                DateSaved = DateTime.UtcNow
-            };
-            var result = await _repository.AddAsync(entity);
-            return MapToDto(result);
-        }
-
-        public async Task<SavedFeatureDto> UpdateAsync(SavedFeatureDto dto)
-        {
-            var entity = await _repository.GetByIdAsync(dto.Id)
-                ?? throw new KeyNotFoundException($"Feature with ID {dto.Id} not found.");
-
-            entity.Name = dto.Name;
-            entity.GeometryJson = dto.GeometryJson;
-            entity.Description = dto.Description;
-            entity.LastModified = DateTime.UtcNow;
-
-            var result = await _repository.UpdateAsync(entity);
-            return MapToDto(result);
-        }
-
-        public async Task<bool> DeleteAsync(int id)
-        {
-            return await _repository.DeleteAsync(id);
-        }
-
-        public async Task<SavedFeatureDto> CreateAsync(SavedFeatureCreateDto dto, CancellationToken cancellationToken = default)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(dto.LayerId, nameof(dto.LayerId));
-            ArgumentException.ThrowIfNullOrWhiteSpace(dto.FeatureId, nameof(dto.FeatureId));
-            ArgumentException.ThrowIfNullOrWhiteSpace(dto.Name, nameof(dto.Name));
-            ArgumentException.ThrowIfNullOrWhiteSpace(dto.GeometryJson, nameof(dto.GeometryJson));
-
-            var exists = await _repository.ExistsAsync(dto.LayerId, dto.FeatureId, cancellationToken);
-            if (exists)
-                throw new InvalidOperationException("Feature already saved.");
+                throw new InvalidOperationException("Feature already saved");
+            }
 
             var entity = new SavedFeature
             {
                 LayerId = dto.LayerId,
                 FeatureId = dto.FeatureId,
-                Name = dto.Name,
-                GeometryJson = dto.GeometryJson,
+                Name = dto.Name ?? string.Empty,
+                GeometryJson = dto.GeometryJson ?? string.Empty,
                 Description = dto.Description,
+                CollectionId = dto.CollectionId,
                 DateSaved = DateTime.UtcNow,
                 LastModified = DateTime.UtcNow
             };
 
-            var result = await _repository.AddAsync(entity);
-            return MapToDto(result);
+            var saved = await _repo.AddAsync(entity);
+
+            if (!string.IsNullOrWhiteSpace(dto.Description))
+            {
+                var note = new UserNote
+                {
+                    SavedFeatureId = saved.Id,
+                    Note = dto.Description,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _noteRepo.AddAsync(note);
+            }
+
+            return MapToDto(saved);
         }
 
-        private static SavedFeatureDto MapToDto(SavedFeature entity) => new()
+        public async Task<bool> DeleteByDbIdAsync(int id)
         {
-            Id = entity.Id,
-            LayerId = entity.LayerId,
-            FeatureId = entity.FeatureId,
-            Name = entity.Name,
-            GeometryJson = entity.GeometryJson,
-            Description = entity.Description,
-            DateSaved = entity.DateSaved,
-            LastModified = entity.LastModified
-        };
+            return await _repo.DeleteAsync(id);
+        }
+
+        public async Task<bool> DeleteByFeatureKeyAsync(string featureKey)
+        {
+            var sf = await _repo.GetByFeatureKeyAsync(featureKey);
+            if (sf == null) return false;
+            return await _repo.DeleteAsync(sf.Id);
+        }
+
+        private SavedFeatureDto MapToDto(SavedFeature sf)
+        {
+            return new SavedFeatureDto
+            {
+                Id = sf.Id,
+                LayerId = sf.LayerId,
+                FeatureId = sf.FeatureId,
+                Name = sf.Name,
+                GeometryJson = sf.GeometryJson,
+                Description = sf.Description,
+                CollectionId = sf.CollectionId,
+                CollectionName = sf.Collection?.Name,
+                DateSaved = sf.DateSaved,
+                LastModified = sf.LastModified
+            };
+        }
     }
 }

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -6,92 +5,57 @@ using Portfolio.Services.Interfaces;
 namespace Portfolio.Web.Controllers
 {
     [ApiController]
-    [Route("api/savedfeatures")]
-    [Authorize]
-    public class SavedFeaturesApiController(ISavedFeatureService savedFeatureService) : ControllerBase
+    [Route("api/[controller]")]
+    public class SavedFeaturesController : ControllerBase
     {
-        private readonly ISavedFeatureService _savedFeatureService = savedFeatureService;
+        private readonly ISavedFeatureService _service;
 
-        // GET: /api/savedfeatures
+        public SavedFeaturesController(ISavedFeatureService service)
+        {
+            _service = service;
+        }
+
         [HttpGet]
-        [ProducesResponseType(typeof(List<SavedFeatureDto>), 200)]
         public async Task<IActionResult> GetAll()
         {
-            var features = await _savedFeatureService.GetAllAsync();
-            return Ok(features);
+            var items = await _service.GetAllAsync();
+            return Ok(items);
         }
 
-        // GET: /api/savedfeatures/{id}
-        [HttpGet("{id:int}")]
-        [ProducesResponseType(typeof(SavedFeatureDto), 200)]
-        [ProducesResponseType(typeof(object), 404)]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var feature = await _savedFeatureService.GetByIdAsync(id);
-            return feature is null ? NotFound() : Ok(feature);
-        }
-
-        // POST: /api/savedfeatures
         [HttpPost]
-        [ProducesResponseType(typeof(SavedFeatureDto), 201)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> SaveFeature([FromBody] FeatureDto feature, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create([FromBody] CreateSavedFeatureDto dto)
         {
-            if (feature is null ||
-                string.IsNullOrWhiteSpace(feature.LayerId) ||
-                string.IsNullOrWhiteSpace(feature.FeatureId) ||
-                string.IsNullOrWhiteSpace(feature.Name) ||
-                string.IsNullOrWhiteSpace(feature.GeometryJson))
-            {
-                return BadRequest(new { error = "Invalid feature data." });
-            }
-
-            var createDto = new SavedFeatureCreateDto
-            {
-                LayerId = feature.LayerId,
-                FeatureId = feature.FeatureId,
-                Name = feature.Name,
-                GeometryJson = feature.GeometryJson,
-                Description = null // Optionally map if present in FeatureDto
-            };
+            if (string.IsNullOrWhiteSpace(dto.LayerId) || string.IsNullOrWhiteSpace(dto.FeatureId))
+                return BadRequest(new { error = "LayerId and FeatureId are required." });
 
             try
             {
-                var saved = await _savedFeatureService.CreateAsync(createDto, cancellationToken);
-                return CreatedAtAction(nameof(SaveFeature), new { id = saved.Id }, saved);
+                var created = await _service.CreateAsync(dto);
+                return Ok(created);
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
-                return Conflict(new { error = ex.Message });
+                return Conflict(new { error = "Feature already saved" });
             }
         }
 
-        // PUT: /api/savedfeatures/{id}
-        [HttpPut("{id:int}")]
-        public async Task<ActionResult<SavedFeatureDto>> Update(int id, [FromBody] SavedFeatureDto dto)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
         {
-            if (id != dto.Id)
-                return BadRequest(new { message = "ID mismatch" });
+            if (string.IsNullOrWhiteSpace(id)) return BadRequest();
 
-            try
+            if (int.TryParse(id, out var intId))
             {
-                var result = await _savedFeatureService.UpdateAsync(dto);
-                return Ok(result);
+                var ok = await _service.DeleteByDbIdAsync(intId);
+                if (!ok) return NotFound();
+                return NoContent();
             }
-            catch (KeyNotFoundException)
+            else
             {
-                return NotFound();
+                var ok = await _service.DeleteByFeatureKeyAsync(id);
+                if (!ok) return NotFound();
+                return NoContent();
             }
-        }
-
-        // DELETE: /api/savedfeatures/{id}
-        [HttpDelete("{id:int}")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(typeof(object), 404)]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var deleted = await _savedFeatureService.DeleteAsync(id);
-            return deleted ? NoContent() : NotFound();
         }
     }
 }

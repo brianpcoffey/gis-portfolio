@@ -5,10 +5,8 @@ namespace Portfolio.Services.Interfaces
     public interface ISavedFeatureService
     {
         Task<List<SavedFeatureDto>> GetAllAsync();
-        Task<SavedFeatureDto?> GetByIdAsync(int id);
-        Task<SavedFeatureDto> AddAsync(SavedFeatureDto dto);
-        Task<SavedFeatureDto> UpdateAsync(SavedFeatureDto dto);
-        Task<bool> DeleteAsync(int id);
-        Task<SavedFeatureDto> CreateAsync(SavedFeatureCreateDto dto, CancellationToken cancellationToken = default);
+        Task<SavedFeatureDto> CreateAsync(CreateSavedFeatureDto dto);
+        Task<bool> DeleteByDbIdAsync(int id);
+        Task<bool> DeleteByFeatureKeyAsync(string featureKey);
     }
 }
