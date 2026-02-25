@@ -32,10 +32,10 @@ namespace Portfolio.Repositories.Repositories
         }
 
         public async Task<List<SavedFeature>> GetAllAsync() =>
-            await _context.SavedFeatures.Include(f => f.UserNotes).ToListAsync();
+            await _context.SavedFeatures.ToListAsync();
 
         public async Task<SavedFeature?> GetByIdAsync(int id) =>
-            await _context.SavedFeatures.Include(f => f.UserNotes).FirstOrDefaultAsync(f => f.Id == id);
+            await _context.SavedFeatures.FirstOrDefaultAsync(f => f.Id == id);
 
         public async Task<SavedFeature> UpdateAsync(SavedFeature feature)
         {
