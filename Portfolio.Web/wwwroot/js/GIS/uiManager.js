@@ -1,4 +1,4 @@
-// uiManager.js
+﻿// uiManager.js
 // All DOM rendering and UI behaviors. Uses delegation and single-time event wiring.
 // UI methods do not perform network requests or mutate global variables directly.
 
@@ -69,6 +69,28 @@ export const UI = {
             });
             searchInput._attached = true;
         }
+
+        // Comparison panel wiring
+        const closeBtn = query("btnCloseComparison");
+        if (closeBtn && !closeBtn._attached) {
+            closeBtn.addEventListener("click", () => {
+                document.dispatchEvent(new CustomEvent("ui:closeComparison"));
+            });
+            closeBtn._attached = true;
+        }
+
+        const comparisonContent = query("comparisonContent");
+        if (comparisonContent && !comparisonContent._delegationAttached) {
+            comparisonContent.addEventListener("click", (e) => {
+                const btn = e.target.closest("button");
+                if (!btn) return;
+                const action = btn.dataset.action;
+                const fid = btn.dataset.featureId;
+                if (action === "zoom") document.dispatchEvent(new CustomEvent("ui:zoomCompare", { detail: { featureId: fid } }));
+                if (action === "toggle") document.dispatchEvent(new CustomEvent("ui:toggleCompare", { detail: { featureId: fid } }));
+            });
+            comparisonContent._delegationAttached = true;
+        }
     },
 
     // Render helpers - idempotent and quick
@@ -105,7 +127,7 @@ export const UI = {
             zoomBtn.type = "button";
             zoomBtn.className = "btn btn-outline-secondary";
             zoomBtn.title = "Zoom";
-            zoomBtn.innerHTML = '<i class="fa-solid fa-search-plus"></i>';
+            zoomBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass-plus"></i>';
             zoomBtn.dataset.action = "zoom";
             zoomBtn.dataset.featureId = id;
             btnGroup.appendChild(zoomBtn);
@@ -199,6 +221,72 @@ export const UI = {
     closeSaveModal() {
         if (!saveModalInstance) return;
         saveModalInstance.hide();
+    },
+
+    // Comparison panel rendering
+    renderComparison() {
+        const panel = query("comparisonPanel");
+        const content = query("comparisonContent");
+        if (!panel || !content) return;
+
+        const state = getState();
+        const ids = Array.from(state.compareSet || []);
+        // If compareMode is not enabled or there are no ids, hide panel
+        if (!state.compareMode || ids.length === 0) {
+            panel.classList.add("d-none");
+            content.innerHTML = "";
+            this.renderCompareIndicator();
+            return;
+        }
+
+        // Build content
+        const frag = document.createDocumentFragment();
+        ids.forEach(id => {
+            // Try to locate feature in features list first, then savedFeatures
+            let feature = state.features.find(f => String(f.featureId || f.FeatureId) === String(id));
+            if (!feature) feature = state.savedFeatures.get(String(id));
+            const title = feature?.displayName || feature?.Name || feature?.name || `State ${id}`;
+            const desc = (feature?.Description || feature?.description || "").toString();
+
+            const card = document.createElement("div");
+            card.className = "card mb-2 p-2";
+            card.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${title}</strong>
+                        <div class="small text-muted">ID: ${id}</div>
+                        <div class="small text-truncate" style="max-width:360px;">${desc}</div>
+                    </div>
+                    <div class="btn-group-vertical btn-group-sm ms-2">
+                        <button type="button" class="btn btn-outline-secondary" data-action="zoom" data-feature-id="${id}" title="Zoom to feature">🔎</button>
+                        <button type="button" class="btn btn-outline-danger" data-action="toggle" data-feature-id="${id}" title="Remove from comparison">✖</button>
+                    </div>
+                </div>
+            `;
+            frag.appendChild(card);
+        });
+
+        content.innerHTML = "";
+        content.appendChild(frag);
+        panel.classList.remove("d-none");
+        this.renderCompareIndicator();
+    },
+
+    // Visual indicator for compare mode (toggles button style/text)
+    renderCompareIndicator() {
+        const btn = query("btnCompareMode");
+        if (!btn) return;
+        const state = getState();
+        if (state.compareMode) {
+            // active style
+            btn.classList.remove("btn-outline-warning");
+            btn.classList.add("btn-warning", "active");
+            btn.textContent = `📊 Compare Mode (${state.compareSet.size || 0})`;
+        } else {
+            btn.classList.remove("btn-warning", "active");
+            btn.classList.add("btn-outline-warning");
+            btn.textContent = "📊 Compare Mode";
+        }
     },
 
     renderFeatureDetails(feature) {

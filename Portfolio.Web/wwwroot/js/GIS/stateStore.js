@@ -1,6 +1,8 @@
 // stateStore.js
 // Centralized application state with subscribe/notify and safe update helpers.
 
+export const MAX_COMPARE = 4; // maximum features allowed in compare set
+
 const initialState = {
     features: [],
     savedFeatures: new Map(), // Map<featureId, feature>

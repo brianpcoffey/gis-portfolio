@@ -14,7 +14,8 @@ import {
     clearSelectionAndCompare,
     setCompareMode,
     updateCollections,
-    getState
+    getState,
+    MAX_COMPARE
 } from './stateStore.js';
 
 import { FeatureService } from './featureService.js';
@@ -44,13 +45,14 @@ async function initialize() {
     updateSavedFeatures(saved);
     updateCollections(collections);
 
-
     // State subscription
     subscribe(state => {
 
         UI.renderCollections();
         UI.renderSavedFeaturesList();
         UI.renderStats();
+        UI.renderComparison();
+        UI.renderCompareIndicator && UI.renderCompareIndicator();
 
     });
 
@@ -177,6 +179,13 @@ async function initialize() {
 
             if (state.compareMode) {
 
+                // Enforce maximum compare limit when adding (but allow toggling off)
+                const idStr = String(fid);
+                const already = state.compareSet.has(idStr);
+                if (!already && (state.compareSet.size >= MAX_COMPARE)) {
+                    UI.showToast("Compare", `Cannot compare more than ${MAX_COMPARE} features.`, "danger");
+                    return;
+                }
                 toggleCompareFeature(fid);
 
             }
@@ -476,6 +485,28 @@ async function initialize() {
         }
     );
 
+    // New UI -> App event handlers (compare panel)
+    document.addEventListener("ui:zoomCompare", e => {
+        MapManager.zoomToFeature(e.detail.featureId);
+    });
+
+    document.addEventListener("ui:toggleCompare", e => {
+        // enforce max when toggled from the UI controls as well
+        const state = getState();
+        const idStr = String(e.detail.featureId);
+        const already = state.compareSet.has(idStr);
+        if (!already && (state.compareSet.size >= MAX_COMPARE)) {
+            UI.showToast("Compare", `Cannot compare more than ${MAX_COMPARE} features.`, "danger");
+            return;
+        }
+        toggleCompareFeature(e.detail.featureId);
+    });
+
+    document.addEventListener("ui:closeComparison", () => {
+        // Clear compare mode and set compare set empty
+        clearSelectionAndCompare();
+    });
+
 
 
     document.addEventListener(
@@ -584,6 +615,8 @@ async function initialize() {
     UI.renderCollections();
     UI.renderSavedFeaturesList();
     UI.renderStats();
+    UI.renderComparison();
+    UI.renderCompareIndicator && UI.renderCompareIndicator();
 
 }
 
