@@ -1,23 +1,32 @@
+/* GIS-specific UI tweaks aligned to site theme variables (site.css)
+   - Uses CSS variables: --surface, --background, --text, --text-muted, --border, --accent, --primary, --shadow, --transition
+   - Works with body.dark-mode (site.css switches variables)
+*/
+
+/* Card / feature list */
 .feature-card {
-    transition: all 0.2s;
+    transition: transform var(--transition, 0.2s), background-color var(--transition, 0.2s);
     cursor: pointer;
+    background: transparent;
+    color: var(--text);
 }
 
-    .feature-card:hover {
-        background-color: #f8f9fa;
-        transform: translateX(3px);
-    }
+.feature-card:hover {
+    background-color: var(--background);
+    transform: translateX(3px);
+}
 
-    .feature-card.selected {
-        border-left: 4px solid #0d6efd;
-        background-color: #e7f1ff;
-    }
+.feature-card.selected {
+    border-left: 4px solid var(--primary, #0d6efd);
+    background-color: rgba(13,110,253,0.06);
+}
 
 .feature-card.comparing {
-    border-left: 4px solid #ffc107;
-    background-color: #fff8e1;
+    border-left: 4px solid #ffc107; /* keep warning visual */
+    background-color: rgba(255,193,7,0.06);
 }
 
+/* Small UI tokens */
 .stat-badge {
     font-size: 0.75rem;
 }
@@ -26,60 +35,78 @@
     min-width: 100px;
 }
 
+/* Map container */
 #mapView {
     border-radius: 8px;
     overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px var(--shadow);
 }
 
+/* Comparison panel */
 .comparison-panel {
     max-height: 200px;
     overflow-y: auto;
+    background: transparent;
 }
 
+/* Notes / list items */
 .note-item {
-    border-left: 3px solid #6c757d;
+    border-left: 3px solid var(--text-muted, #6c757d);
 }
 
+/* Input group / typeahead */
 .input-group {
     position: relative;
 }
 
-    .input-group .input-group-text {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.375rem 0.75rem;
-        font-size: 1rem;
-        line-height: 1.5;
-        white-space: nowrap;
-    }
+/* ensure input-group text matches theme and does not get overridden */
+.input-group .input-group-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
 
-    .twitter-typeahead,
-    .input-group .twitter-typeahead {
-        display: block;
-        width: 100%;
-        position: relative;
-        box-sizing: border-box;
-    }
+/* Typeahead core */
+.twitter-typeahead,
+.input-group .twitter-typeahead {
+    display: block;
+    width: 100%;
+    position: relative;
+    box-sizing: border-box;
+}
 
-        .typeahead,
-        .twitter-typeahead input,
-        .input-group .typeahead {
-            width: 100% !important;
-            position: relative;
-            background-clip: padding-box;
-            z-index: 2;
-            height: auto;
-            padding: 0.375rem 0.75rem;
-            line-height: 1.5;
-            border-radius: 0 0.375rem 0.375rem 0;
-        }
+.typeahead,
+.twitter-typeahead input,
+.input-group .typeahead {
+    width: 100% !important;
+    position: relative;
+    background-clip: padding-box;
+    z-index: 2;
+    height: auto;
+    padding: 0.375rem 0.75rem;
+    line-height: 1.5;
+    border-radius: 0 0.375rem 0.375rem 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: none;
+}
 
+/* Hints / menu */
 .tt-hint {
     position: absolute;
     top: 0;
     left: 0;
-    color: #999;
+    color: var(--text-muted, #999);
     opacity: 0.6;
     z-index: 1;
     pointer-events: none;
@@ -97,10 +124,10 @@
     z-index: 2050;
     min-width: 100%;
     width: auto;
-    background: var(--bs-body-bg, #fff);
-    border: 1px solid var(--bs-border-color, #dee2e6);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 0.375rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08);
     max-height: 300px;
     overflow-y: auto;
     box-sizing: border-box;
@@ -111,7 +138,7 @@
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid rgba(0,0,0,0.03);
     display: block;
-    color: var(--bs-body-color, #212529);
+    color: var(--text);
     background: transparent;
     white-space: nowrap;
     overflow: hidden;
@@ -125,12 +152,12 @@
 
 .tt-suggestion:hover,
 .tt-suggestion.tt-cursor {
-    background-color: var(--bs-primary-bg-subtle, #e7f1ff);
+    background-color: rgba(56,161,105,0.08); /* gentle accent hover */
 }
 
 .tt-hint,
 .tt-suggestion small {
-    color: #6c757d;
+    color: var(--text-muted, #6c757d);
 }
 
 .twitter-typeahead .tt-menu,
@@ -138,14 +165,174 @@
     min-width: 100%;
 }
 
+/* Ensure input-group text doesn't wrap unexpectedly */
 .input-group .input-group-text {
     white-space: nowrap;
 }
 
+/* Utility */
 .twitter-typeahead {
     width: 100%;
 }
 
-.tt-hint {
-    color: #999;
+/* Theme-aware helper classes (added to Index.cshtml) */
+.theme-root {
+    color: var(--text);
+    background: transparent;
 }
+
+/* Surface elements (cards, map, major panels) */
+.theme-surface {
+    background: var(--surface) !important;
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+/* Toolbar surfaces */
+.theme-toolbar {
+    background: var(--surface) !important;
+    border: 1px solid var(--border);
+}
+
+/* Cards */
+.theme-card {
+    background: var(--surface) !important;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+/* Card header */
+.theme-card-header {
+    background: transparent;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Muted text for theme */
+.theme-text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Buttons within theme-aware surfaces (keeps bootstrap colors but ensures legibility) */
+.theme-btn {
+    transition: all var(--transition, 0.2s);
+    color: inherit;
+}
+
+/* Panels / comparison */
+.theme-panel {
+    background: transparent;
+    color: var(--text);
+}
+
+/* Modals */
+/* Increase specificity and use !important to override external libs (ArcGIS/Bootstrap) that force light backgrounds */
+.modal-content,
+.theme-modal,
+.modal .modal-dialog .modal-content {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    box-shadow: 0 8px 24px var(--shadow) !important;
+}
+
+/* Make modal header/footer borders consistent with theme */
+.theme-modal-header,
+.theme-modal-footer,
+.modal-header,
+.modal-footer {
+    border-color: var(--border) !important;
+}
+
+/* Ensure close button (svg/currentColor) is visible in dark mode */
+.modal .btn-close {
+    color: var(--text) !important;
+    filter: none !important;
+}
+
+/* Toasts */
+.theme-toast {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 6px 18px var(--shadow);
+}
+
+.theme-toast-header {
+    background: transparent;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+}
+
+.theme-toast-body {
+    color: var(--text);
+}
+
+/* Small badge overrides to match theme */
+.theme-badge {
+    background-color: var(--accent);
+    color: #fff;
+}
+
+/* Stats card */
+.theme-stat {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text);
+}
+
+/* Accessibility: high-contrast focus outlines where appropriate */
+a:focus, button:focus, input:focus {
+    outline: 3px solid rgba(56,161,105,0.12);
+    outline-offset: 2px;
+}
+
+/* --- Dark-mode / override fixes for inputs, menus, and backdrops --- */
+
+/* Force form controls and typeahead inputs to follow theme (overrides ArcGIS/bootstrap dark leaks) */
+.input-group .form-control,
+.input-group .form-control:focus,
+.typeahead,
+.twitter-typeahead input,
+.tt-suggestion {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
+}
+
+/* Stronger menu styling so it isn't white in dark mode */
+.tt-menu {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* Focus states for inputs / typeahead to match site accent */
+.input-group .form-control:focus,
+.typeahead:focus,
+.twitter-typeahead input:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 0.15rem rgba(56,161,105,0.12) !important;
+    outline: none;
+}
+
+/* Make modal backdrop darker in dark mode for better contrast */
+body.dark-mode .modal-backdrop.show {
+    background-color: rgba(0,0,0,0.65) !important;
+}
+
+/* Slightly stronger shadow for menus in dark mode */
+body.dark-mode .tt-menu {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+}
+
+/* Ensure suggestions text is legible */
+.tt-suggestion,
+.tt-suggestion small {
+    color: var(--text) !important;
+}
+
+/* Keep any previously defined small overrides that are harmless */
+.tt-hint { color: var(--text-muted, #999); }

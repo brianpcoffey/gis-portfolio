@@ -1,10 +1,9 @@
-using System;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
+using System.Security.Claims;
 
 namespace Portfolio.Services.Services
 {

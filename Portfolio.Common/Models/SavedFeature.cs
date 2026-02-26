@@ -3,6 +3,7 @@ namespace Portfolio.Common.Models
     public class SavedFeature
     {
         public int Id { get; set; }
+        public Guid UserId { get; set; }
         public string LayerId { get; set; } = string.Empty;
         public string FeatureId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -7,6 +8,7 @@ using Portfolio.Repositories.Interfaces;
 using Portfolio.Repositories.Repositories;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
+using Portfolio.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,10 +26,10 @@ builder.Services.AddScoped<IUserNoteRepository, UserNoteRepository>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<IArcGisService, ArcGisService>();
 builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
-
-// Collections repository & service registrations
 builder.Services.AddScoped<ICollectionRepository, CollectionRepository>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
+builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 // --------------------------
 // Session
@@ -70,14 +72,51 @@ builder.Services.AddAuthentication(options =>
     options.ClaimActions.MapJsonKey("picture", "picture");
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Authenticated", policy =>
+        policy.RequireAuthenticatedUser());
+    // Add more policies as needed
+});
+
 builder.Services.AddControllers();
 
 // --------------------------
 // Swagger / API Explorer
 // --------------------------
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Enable XML comments for controllers and models
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        options.IncludeXmlComments(xmlPath);
+
+    // Add security definition for cookie authentication
+    options.AddSecurityDefinition("cookieAuth", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Cookie",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        In = Microsoft.OpenApi.Models.ParameterLocation.Cookie,
+        Description = "Cookie-based authentication"
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "cookieAuth"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // --------------------------
 // Database Context
@@ -100,6 +139,10 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
+
+// Insert anonymous user middleware BEFORE controllers/pages so the profile is available
+app.UseMiddleware<AnonymousUserMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

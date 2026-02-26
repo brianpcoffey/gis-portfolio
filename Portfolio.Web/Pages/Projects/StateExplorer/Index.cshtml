@@ -14,13 +14,13 @@
 <!-- Typeahead CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js-bootstrap4-css/1.0.0/typeaheadjs.min.css" />
 
-<div class="container-fluid py-3">
+<div class="container-fluid py-3 theme-root">
     <!-- PAGE TITLE -->
     <div class="row mb-3">
         <div class="col-12">
-            <div class="bg-white shadow-sm rounded p-3">
+            <div class="theme-surface shadow-sm rounded p-3">
                 <h2 class="mb-1">🗺️ US State Explorer</h2>
-                <div class="text-muted small">
+                <div class="text-muted theme-text-muted small">
                     Explore, compare, and save U.S. states using interactive GIS tools.
                 </div>
             </div>
@@ -31,7 +31,7 @@
     <div class="row mb-3">
         <!-- Align search with left sidebar (matches col sizes used below) -->
         <div class="col-lg-3 col-md-4">
-            <div class="bg-light p-3 rounded d-flex align-items-center">
+            <div class="theme-toolbar p-3 rounded d-flex align-items-center">
                 <div class="input-group flex-nowrap w-100" style="max-width: 100%;">
                     <span class="input-group-text d-flex align-items-center justify-content-center">🔍</span>
                     <input id="searchInput" type="text" class="form-control typeahead" placeholder="Search states..." autocomplete="off">
@@ -41,16 +41,16 @@
 
         <!-- Center toolbar actions -->
         <div class="col-lg-6 col-md-8">
-            <div class="bg-light p-3 rounded d-flex flex-wrap gap-2 align-items-center">
-                <button id="btnCompareMode" class="btn btn-outline-warning toolbar-btn">📊 Compare Mode</button>
-                <button id="btnClearSelection" class="btn btn-outline-secondary toolbar-btn">✖️ Clear Selection</button>
-                <button id="btnExport" class="btn btn-outline-success toolbar-btn">📥 Export Data</button>
+            <div class="theme-toolbar p-3 rounded d-flex flex-wrap gap-2 align-items-center">
+                <button id="btnCompareMode" class="btn btn-outline-warning toolbar-btn theme-btn">📊 Compare Mode</button>
+                <button id="btnClearSelection" class="btn btn-outline-secondary toolbar-btn theme-btn">✖️ Clear Selection</button>
+                <button id="btnExport" class="btn btn-outline-success toolbar-btn theme-btn">📥 Export Data</button>
             </div>
         </div>
 
         <!-- Right toolbar (basemap select) — aligns with right column on large screens, stacks on smaller -->
         <div class="col-lg-3 col-md-12">
-            <div class="bg-light p-3 rounded d-flex align-items-center justify-content-end">
+            <div class="theme-toolbar p-3 rounded d-flex align-items-center justify-content-end">
                 <select id="basemapSelect" class="form-select form-select-sm" style="min-width: 150px; max-width: 100%;">
                     <option value="streets-navigation-vector">Streets</option>
                     <option value="satellite">Satellite</option>
@@ -64,26 +64,26 @@
     <div class="row g-3">
         <!-- LEFT SIDEBAR -->
         <div class="col-lg-3 col-md-4">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card shadow-sm mb-3 theme-card">
+                <div class="card-header d-flex justify-content-between align-items-center theme-card-header">
                     <strong>📁 My Collections</strong>
-                    <button id="btnNewCollection" class="btn btn-sm btn-primary">+ New</button>
+                    <button id="btnNewCollection" class="btn btn-sm btn-primary theme-btn">+ New</button>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 theme-body">
                     <div id="collectionsList" class="list-group list-group-flush" style="max-height: 200px; overflow-y:auto;">
-                        <div class="list-group-item text-muted text-center small">Loading...</div>
+                        <div class="list-group-item text-muted text-center small theme-text-muted">Loading...</div>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card shadow-sm theme-card">
+                <div class="card-header d-flex justify-content-between align-items-center theme-card-header">
                     <strong>💾 Saved States</strong>
-                    <span id="savedCount" class="badge bg-primary">0</span>
+                    <span id="savedCount" class="badge bg-primary theme-badge">0</span>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 theme-body">
                     <div id="savedFeaturesList" class="list-group list-group-flush" style="max-height: 400px; overflow-y:auto;">
-                        <div class="list-group-item text-muted text-center small">No saved states yet</div>
+                        <div class="list-group-item text-muted text-center small theme-text-muted">No saved states yet</div>
                     </div>
                 </div>
             </div>
@@ -91,14 +91,14 @@
 
         <!-- CENTER - MAP -->
         <div class="col-lg-6 col-md-8">
-            <div id="mapView" class="shadow-sm rounded" style="height:600px;"></div>
+            <div id="mapView" class="shadow-sm rounded theme-surface" style="height:600px;"></div>
 
-            <div id="comparisonPanel" class="card mt-3 d-none">
-                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <div id="comparisonPanel" class="card mt-3 d-none theme-card">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center theme-card-header">
                     <strong>📊 Comparison Results</strong>
                     <button id="btnCloseComparison" class="btn-close"></button>
                 </div>
-                <div class="card-body comparison-panel">
+                <div class="card-body comparison-panel theme-panel">
                     <div id="comparisonContent"></div>
                 </div>
             </div>
@@ -106,39 +106,39 @@
 
         <!-- RIGHT SIDEBAR -->
         <div class="col-lg-3 col-md-12">
-            <div class="card shadow-sm mb-3">
-                <div class="card-header"><strong>📍 State Details</strong></div>
-                <div class="card-body" id="featureDetails">
-                    <p class="text-muted text-center small">Click a state on the map to view details</p>
+            <div class="card shadow-sm mb-3 theme-card">
+                <div class="card-header theme-card-header"><strong>📍 State Details</strong></div>
+                <div class="card-body theme-body" id="featureDetails">
+                    <p class="text-muted text-center small theme-text-muted">Click a state on the map to view details</p>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header"><strong>📈 Statistics</strong></div>
-                <div class="card-body">
+            <div class="card shadow-sm theme-card">
+                <div class="card-header theme-card-header"><strong>📈 Statistics</strong></div>
+                <div class="card-body theme-body">
                     <div id="statsPanel" class="row text-center g-2">
                         <div class="col-6">
-                            <div class="border rounded p-3">
+                            <div class="border rounded p-3 theme-stat">
                                 <div id="statTotal" class="h4 mb-0">0</div>
-                                <small class="text-muted">Total States</small>
+                                <small class="text-muted theme-text-muted">Total States</small>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="border rounded p-3">
+                            <div class="border rounded p-3 theme-stat">
                                 <div id="statSaved" class="h4 mb-0 text-success">0</div>
-                                <small class="text-muted">Saved</small>
+                                <small class="text-muted theme-text-muted">Saved</small>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="border rounded p-3">
+                            <div class="border rounded p-3 theme-stat">
                                 <div id="statSelected" class="h4 mb-0 text-primary">0</div>
-                                <small class="text-muted">Selected</small>
+                                <small class="text-muted theme-text-muted">Selected</small>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="border rounded p-3">
+                            <div class="border rounded p-3 theme-stat">
                                 <div id="statComparing" class="h4 mb-0 text-warning">0</div>
-                                <small class="text-muted">Comparing</small>
+                                <small class="text-muted theme-text-muted">Comparing</small>
                             </div>
                         </div>
                     </div>
@@ -152,12 +152,12 @@
 <!-- Save Feature Modal -->
 <div class="modal fade" id="saveFeatureModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content theme-modal">
+            <div class="modal-header theme-modal-header">
                 <h5 class="modal-title">Save State</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body theme-body">
                 <input type="hidden" id="modalFeatureId" />
                 <div class="mb-3">
                     <label class="form-label">State Name</label>
@@ -174,9 +174,9 @@
                     </select>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>/US
-                <button type="button" id="btnConfirmSave" class="btn btn-primary">Save State</button>
+            <div class="modal-footer theme-modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="btnConfirmSave" class="btn btn-primary theme-btn">Save State</button>
             </div>
         </div>
     </div>
@@ -185,17 +185,17 @@
 <!-- View Saved State Modal -->
 <div class="modal fade" id="viewSavedModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content theme-modal">
+            <div class="modal-header theme-modal-header">
                 <h5 class="modal-title" id="viewSavedTitle">Saved State</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div id="viewSavedMeta" class="mb-2 text-muted small"></div>
+            <div class="modal-body theme-body">
+                <div id="viewSavedMeta" class="mb-2 text-muted small theme-text-muted"></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" id="btnViewZoom" class="btn btn-outline-secondary">Zoom</button>
-                <button type="button" id="btnViewRemove" class="btn btn-outline-danger">Remove</button>
+            <div class="modal-footer theme-modal-footer">
+                <button type="button" id="btnViewZoom" class="btn btn-outline-secondary theme-btn">Zoom</button>
+                <button type="button" id="btnViewRemove" class="btn btn-outline-danger theme-btn">Remove</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -204,12 +204,12 @@
 
 <!-- Toast Container -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="toast" class="toast" role="alert">
-        <div class="toast-header">
+    <div id="toast" class="toast theme-toast" role="alert">
+        <div class="toast-header theme-toast-header">
             <strong id="toastTitle" class="me-auto">Notification</strong>
             <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
         </div>
-        <div id="toastMessage" class="toast-body"></div>
+        <div id="toastMessage" class="toast-body theme-toast-body"></div>
     </div>
 </div>
 

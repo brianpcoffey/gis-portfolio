@@ -11,6 +11,7 @@ namespace Portfolio.Repositories.Mappings
             builder.ToTable("SavedFeatures");
             builder.HasKey(f => f.Id);
 
+            builder.Property(f => f.UserId).IsRequired();
             builder.Property(f => f.LayerId).IsRequired();
             builder.Property(f => f.FeatureId).IsRequired();
             builder.Property(f => f.Name).IsRequired().HasMaxLength(200);
@@ -24,8 +25,9 @@ namespace Portfolio.Repositories.Mappings
                    .OnDelete(DeleteBehavior.SetNull);
 
             builder.Property(f => f.DateSaved).IsRequired();
-            builder.Property(f => f.LastModified).IsRequired();
-            builder.HasIndex(f => new { f.LayerId, f.FeatureId }).IsUnique();
+            builder.Property(f => f.LastModified);
+
+            builder.HasIndex(f => new { f.UserId, f.LayerId, f.FeatureId }).IsUnique();
         }
     }
 }
