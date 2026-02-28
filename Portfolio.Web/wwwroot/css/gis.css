@@ -42,10 +42,6 @@
     background: transparent;
 }
 
-.note-item {
-    border-left: 3px solid var(--text-muted, #6c757d);
-}
-
 .input-group {
     position: relative;
 }

@@ -8,16 +8,13 @@ namespace Portfolio.Services.Services
     public class SavedFeatureService : ISavedFeatureService
     {
         private readonly ISavedFeatureRepository _repo;
-        private readonly IUserNoteRepository _noteRepo;
         private readonly IUserProfileService _userProfileService;
 
         public SavedFeatureService(
             ISavedFeatureRepository repo,
-            IUserNoteRepository noteRepo,
             IUserProfileService userProfileService)
         {
             _repo = repo;
-            _noteRepo = noteRepo;
             _userProfileService = userProfileService;
         }
 
@@ -62,18 +59,6 @@ namespace Portfolio.Services.Services
             };
 
             var saved = await _repo.AddAsync(entity, cancellationToken);
-
-            if (!string.IsNullOrWhiteSpace(dto.Description))
-            {
-                var note = new UserNote
-                {
-                    UserId = userId,
-                    SavedFeatureId = saved.Id,
-                    Note = dto.Description,
-                    CreatedAt = DateTime.UtcNow
-                };
-                await _noteRepo.AddAsync(note, cancellationToken);
-            }
 
             return MapToDto(saved);
         }

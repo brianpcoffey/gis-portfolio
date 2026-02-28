@@ -174,39 +174,6 @@ body.dark-mode .theme-toggle-btn {
 }
 
 /* ======================================
-   Google Login Button
-   ====================================== */
-.btn-google {
-    background-color: #fff;
-    color: #444;
-    border: 1px solid #ddd;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    transition: box-shadow var(--transition);
-}
-
-.btn-google:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    color: #333;
-}
-
-.btn-google-logo {
-    width: 20px;
-    height: 20px;
-}
-
-/* Dark mode adjustments for Google button */
-body.dark-mode .btn-google {
-    background-color: #fff;
-    color: #444;
-    border-color: #ddd;
-}
-
-/* ======================================
    Login Card
    ====================================== */
 .login-card {
