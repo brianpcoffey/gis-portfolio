@@ -170,14 +170,17 @@ builder.Services.AddSwaggerGen(options =>
 // --------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Force SSL + IPv4 for Supabase on Render
+// Build Npgsql connection string with SSL and IPv4 enforcement
 var npgsqlBuilder = new NpgsqlConnectionStringBuilder(connectionString)
 {
     SslMode = SslMode.Require,
-    TrustServerCertificate = true,
 };
 
-// Add DbContext
+if (npgsqlBuilder.Host == "[::1]")
+{
+    npgsqlBuilder.Host = "127.0.0.1";
+}
+
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
     options.UseNpgsql(npgsqlBuilder.ConnectionString));
 
