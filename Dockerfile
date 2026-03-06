@@ -1,4 +1,6 @@
+# --------------------------
 # Build stage
+# --------------------------
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
@@ -13,13 +15,21 @@ RUN dotnet restore Portfolio.Web/Portfolio.Web.csproj
 COPY . .
 RUN dotnet publish Portfolio.Web/Portfolio.Web.csproj -c Release -o /app/publish --no-restore
 
+# --------------------------
 # Runtime stage
+# --------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
+
+# Create folder for DataProtection keys
+RUN mkdir -p /app/DataProtection-Keys
+
+# Copy published app from build stage
 COPY --from=build /app/publish .
 
 # Render.com uses PORT env var
 ENV ASPNETCORE_URLS=http://+:${PORT:-10000}
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_RUNNING_IN_CONTAINER=true
 
 ENTRYPOINT ["dotnet", "Portfolio.Web.dll"]
