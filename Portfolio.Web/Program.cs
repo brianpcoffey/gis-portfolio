@@ -58,6 +58,8 @@ builder.Services.AddAuthentication(options =>
     options.LogoutPath = "/Logout";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
 
     options.Events = new CookieAuthenticationEvents
     {
@@ -118,6 +120,10 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Authenticated", policy =>
         policy.RequireAuthenticatedUser());
+
+    options.AddPolicy("Admin", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireClaim("role", "admin"));
 });
 
 builder.Services.AddControllers();
