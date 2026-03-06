@@ -172,24 +172,7 @@ var databaseUrl = builder.Configuration.GetConnectionString("DefaultConnection")
                   ?? Environment.GetEnvironmentVariable("DATABASE_URL")
                   ?? throw new InvalidOperationException("Database connection string not set.");
 
-// Parse URI format (postgres://user:pass@host:port/db)
-var uri = new Uri(databaseUrl);
-var userInfo = uri.UserInfo.Split(':', 2);
-
-var npgsqlBuilder = new NpgsqlConnectionStringBuilder
-{
-    Host = uri.Host,
-    Port = uri.Port,
-    Username = userInfo[0],
-    Password = userInfo[1],
-    Database = uri.AbsolutePath.TrimStart('/'),
-    SslMode = SslMode.Require,
-    TrustServerCertificate = true, // Needed on Render / self-signed SSL
-};
-
-// Fix for IPv6 localhost if ever used
-if (npgsqlBuilder.Host == "[::1]")
-    npgsqlBuilder.Host = "127.0.0.1";
+var npgsqlBuilder = ParsePostgresConnectionString(databaseUrl);
 
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
     options.UseNpgsql(npgsqlBuilder.ConnectionString));
@@ -258,3 +241,76 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// --------------------------
+// Helper: Parse postgres:// URI or standard connection string
+// --------------------------
+static NpgsqlConnectionStringBuilder ParsePostgresConnectionString(string connectionString)
+{
+    // If it's already a standard connection string (contains "Host="), use it directly
+    if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
+    {
+        return new NpgsqlConnectionStringBuilder(connectionString);
+    }
+
+    // Parse URI format: postgres://user:pass@host:port/db or postgresql://user:pass@host/db
+    if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+    {
+        throw new ArgumentException($"Invalid connection string format: {connectionString}");
+    }
+
+    if (uri.Scheme is not ("postgres" or "postgresql"))
+    {
+        throw new ArgumentException($"Unsupported URI scheme: {uri.Scheme}. Expected 'postgres' or 'postgresql'.");
+    }
+
+    // Parse user info (user:password)
+    var userInfo = uri.UserInfo.Split(':', 2);
+    if (userInfo.Length < 2 || string.IsNullOrEmpty(userInfo[0]))
+    {
+        throw new ArgumentException("Connection string must include username and password.");
+    }
+
+    // URL-decode username and password (handles special characters like @ or %)
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password = Uri.UnescapeDataString(userInfo[1]);
+
+    // Default port to 5432 if not specified (uri.Port returns -1 when missing)
+    var port = uri.Port > 0 ? uri.Port : 5432;
+
+    // Handle IPv6 localhost
+    var host = uri.Host;
+    if (host == "[::1]")
+    {
+        host = "127.0.0.1";
+    }
+
+    // Extract database name from path
+    var database = uri.AbsolutePath.TrimStart('/');
+    if (string.IsNullOrEmpty(database))
+    {
+        throw new ArgumentException("Database name is required in the connection string.");
+    }
+
+    // Parse query string for additional options (e.g., ?sslmode=require)
+    var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+    var npgsqlBuilder = new NpgsqlConnectionStringBuilder
+    {
+        Host = host,
+        Port = port,
+        Username = username,
+        Password = password,
+        Database = database,
+        SslMode = SslMode.Require
+    };
+
+    // Override SSL mode if specified in query string
+    if (queryParams["sslmode"] is string sslModeValue &&
+        Enum.TryParse<SslMode>(sslModeValue, ignoreCase: true, out var sslMode))
+    {
+        npgsqlBuilder.SslMode = sslMode;
+    }
+
+    return npgsqlBuilder;
+}
