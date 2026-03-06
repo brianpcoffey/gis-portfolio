@@ -12,7 +12,7 @@ using Portfolio.Repositories;
 namespace Portfolio.Repositories.Migrations
 {
     [DbContext(typeof(PortfolioDbContext))]
-    [Migration("20260306214530_InitialPostgres")]
+    [Migration("20260306232837_InitialPostgres")]
     partial class InitialPostgres
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace Portfolio.Repositories.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.9")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);

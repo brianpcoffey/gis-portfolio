@@ -10,11 +10,14 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
-    <PackageReference Include="Microsoft.AspNetCore.Http" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Moq" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +28,17 @@
     <ProjectReference Include="..\Portfolio.Common\Portfolio.Common.csproj" />
     <ProjectReference Include="..\Portfolio.Repositories\Portfolio.Repositories.csproj" />
     <ProjectReference Include="..\Portfolio.Services\Portfolio.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.EntityFrameworkCore" />
+    <Using Include="Microsoft.EntityFrameworkCore.Metadata.Builders" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.EntityFrameworkCore.Migrations" />
+    <Using Include="Npgsql.EntityFrameworkCore.PostgreSQL.Metadata" />
+    <Using Include="Microsoft.EntityFrameworkCore.Storage.ValueConversion" />
   </ItemGroup>
 
 </Project>
