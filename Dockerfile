@@ -2,24 +2,24 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy everything
-COPY . .
-
-# Restore only the web project
+# Copy all csproj files and restore
+COPY Portfolio.Common/Portfolio.Common.csproj Portfolio.Common/
+COPY Portfolio.Repositories/Portfolio.Repositories.csproj Portfolio.Repositories/
+COPY Portfolio.Services/Portfolio.Services.csproj Portfolio.Services/
+COPY Portfolio.Web/Portfolio.Web.csproj Portfolio.Web/
 RUN dotnet restore Portfolio.Web/Portfolio.Web.csproj
 
-# Publish the web project
-RUN dotnet publish Portfolio.Web/Portfolio.Web.csproj -c Release -o /app/publish
+# Copy everything and publish
+COPY . .
+RUN dotnet publish Portfolio.Web/Portfolio.Web.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-
 COPY --from=build /app/publish .
 
+# Render.com uses PORT env var
+ENV ASPNETCORE_URLS=http://+:${PORT:-10000}
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
-
-EXPOSE 10000
 
 ENTRYPOINT ["dotnet", "Portfolio.Web.dll"]
