@@ -43,18 +43,12 @@ function initStickyNavbar() {
     const navbar = document.getElementById('mainNav');
     if (!navbar) return;
 
-    let lastScroll = 0;
-
     window.addEventListener('scroll', () => {
-        const currentScroll = window.scrollY;
-
-        if (currentScroll > 100) {
+        if (window.scrollY > 100) {
             navbar.classList.add('navbar-scrolled');
         } else {
             navbar.classList.remove('navbar-scrolled');
         }
-
-        lastScroll = currentScroll;
     });
 }
 

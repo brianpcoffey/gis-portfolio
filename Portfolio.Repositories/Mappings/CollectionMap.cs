@@ -13,8 +13,7 @@ namespace Portfolio.Repositories.Mappings
             builder.HasKey(c => c.Id);
 
             builder.Property(c => c.OwnerId)
-                .IsRequired()
-                .HasMaxLength(450);
+                .IsRequired();
 
             builder.Property(c => c.Name)
                 .IsRequired()
@@ -29,7 +28,6 @@ namespace Portfolio.Repositories.Mappings
 
             builder.Property(c => c.LastModified);
 
-            // Optional unique constraint per owner to avoid duplicate names
             builder.HasIndex(c => new { c.OwnerId, c.Name }).IsUnique();
         }
     }

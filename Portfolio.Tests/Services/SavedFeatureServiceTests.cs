@@ -1,102 +1,114 @@
 using Moq;
-using Portfolio.Common.Models;
 using Portfolio.Common.DTOs;
+using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {
     public class SavedFeatureServiceTests
     {
-        private readonly Mock<ISavedFeatureRepository> _repositoryMock;
+        private readonly Mock<ISavedFeatureRepository> _repoMock;
         private readonly Mock<IUserProfileService> _userProfileServiceMock;
         private readonly SavedFeatureService _service;
         private readonly Guid _testUserId = Guid.NewGuid();
 
         public SavedFeatureServiceTests()
         {
-            _repositoryMock = new Mock<ISavedFeatureRepository>();
+            _repoMock = new Mock<ISavedFeatureRepository>();
             _userProfileServiceMock = new Mock<IUserProfileService>();
+            _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns(_testUserId);
 
-            _userProfileServiceMock.Setup(s => s.GetCurrentUserId()).Returns(_testUserId);
-
-            _service = new SavedFeatureService(
-                _repositoryMock.Object,
-                _userProfileServiceMock.Object);
+            _service = new SavedFeatureService(_repoMock.Object, _userProfileServiceMock.Object, TimeProvider.System);
         }
 
         [Fact]
-        public async Task GetAllAsync_ReturnsAllFeatures()
+        public async Task GetAllAsync_ReturnsMappedDtos()
         {
-            // Arrange
             var features = new List<SavedFeature>
             {
-                new() { Id = 1, UserId = _testUserId, LayerId = "1", FeatureId = "100", Name = "Test Feature" }
+                new()
+                {
+                    Id = 1, UserId = _testUserId, LayerId = "3", FeatureId = "42",
+                    Name = "Colorado", GeometryJson = "{}", DateSaved = DateTime.UtcNow
+                },
+                new()
+                {
+                    Id = 2, UserId = _testUserId, LayerId = "3", FeatureId = "43",
+                    Name = "Texas", GeometryJson = "{}", DateSaved = DateTime.UtcNow
+                }
             };
-            _repositoryMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(features);
+            _repoMock
+                .Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(features);
 
-            // Act
             var result = await _service.GetAllAsync();
 
-            // Assert
-            Assert.Single(result);
-            Assert.Equal("Test Feature", result[0].Name);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Colorado", result[0].Name);
+            Assert.Equal("Texas", result[1].Name);
         }
 
         [Fact]
-        public async Task CreateAsync_WhenFeatureExists_ThrowsInvalidOperationException()
+        public async Task GetAllAsync_WhenNoUser_ThrowsInvalidOperationException()
         {
-            // Arrange
-            var dto = new CreateSavedFeatureDto
-            {
-                LayerId = "1",
-                FeatureId = "100",
-                Name = "Test",
-                GeometryJson = "{}"
-            };
-            _repositoryMock.Setup(r => r.GetByLayerAndFeatureIdAsync("1", "100", _testUserId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new SavedFeature { Id = 1 });
+            _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
+            var service = new SavedFeatureService(_repoMock.Object, _userProfileServiceMock.Object, TimeProvider.System);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => _service.CreateAsync(dto));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetAllAsync());
         }
 
         [Fact]
-        public async Task CreateAsync_WithValidData_ReturnsCreatedFeature()
+        public async Task CreateAsync_WithValidDto_ReturnsDto()
         {
-            // Arrange
             var dto = new CreateSavedFeatureDto
             {
-                LayerId = "1",
-                FeatureId = "100",
-                Name = "Test",
-                GeometryJson = "{}"
+                LayerId = "3",
+                FeatureId = "42",
+                Name = "Colorado",
+                GeometryJson = "{}",
+                Description = "A state"
             };
-            _repositoryMock.Setup(r => r.GetByLayerAndFeatureIdAsync("1", "100", _testUserId, It.IsAny<CancellationToken>()))
+            _repoMock
+                .Setup(r => r.GetByLayerAndFeatureIdAsync("3", "42", _testUserId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((SavedFeature?)null);
-            _repositoryMock.Setup(r => r.AddAsync(It.IsAny<SavedFeature>(), It.IsAny<CancellationToken>()))
+            _repoMock
+                .Setup(r => r.AddAsync(It.IsAny<SavedFeature>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((SavedFeature f, CancellationToken _) => { f.Id = 1; return f; });
 
-            // Act
             var result = await _service.CreateAsync(dto);
 
-            // Assert
             Assert.Equal(1, result.Id);
-            Assert.Equal("Test", result.Name);
+            Assert.Equal("Colorado", result.Name);
+            Assert.Equal("3", result.LayerId);
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenDuplicate_ThrowsInvalidOperationException()
+        {
+            var dto = new CreateSavedFeatureDto
+            {
+                LayerId = "3",
+                FeatureId = "42",
+                Name = "Colorado",
+                GeometryJson = "{}"
+            };
+            _repoMock
+                .Setup(r => r.GetByLayerAndFeatureIdAsync("3", "42", _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new SavedFeature { Id = 1 });
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateAsync(dto));
         }
 
         [Theory]
-        [InlineData("", "100", "Name", "{}")]
-        [InlineData("1", "", "Name", "{}")]
-        [InlineData("1", "100", "", "{}")]
-        [InlineData("1", "100", "Name", "")]
-        public async Task CreateAsync_WithMissingFields_ThrowsArgumentException(
+        [InlineData("", "42", "Name", "{}")]
+        [InlineData("3", "", "Name", "{}")]
+        [InlineData("3", "42", "", "{}")]
+        [InlineData("3", "42", "Name", "")]
+        public async Task CreateAsync_WithMissingRequiredFields_ThrowsArgumentException(
             string layerId, string featureId, string name, string geometryJson)
         {
-            // Arrange
             var dto = new CreateSavedFeatureDto
             {
                 LayerId = layerId,
@@ -105,8 +117,59 @@ namespace Portfolio.Tests.Services
                 GeometryJson = geometryJson
             };
 
-            // Act & Assert
             await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+        }
+
+        [Fact]
+        public async Task DeleteByDbIdAsync_WhenExists_ReturnsTrue()
+        {
+            _repoMock
+                .Setup(r => r.DeleteAsync(1, _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var result = await _service.DeleteByDbIdAsync(1);
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task DeleteByDbIdAsync_WhenNotExists_ReturnsFalse()
+        {
+            _repoMock
+                .Setup(r => r.DeleteAsync(999, _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var result = await _service.DeleteByDbIdAsync(999);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task DeleteByFeatureKeyAsync_WhenExists_ReturnsTrue()
+        {
+            var feature = new SavedFeature { Id = 5, UserId = _testUserId };
+            _repoMock
+                .Setup(r => r.GetByFeatureKeyAsync("3-42", _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(feature);
+            _repoMock
+                .Setup(r => r.DeleteAsync(5, _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var result = await _service.DeleteByFeatureKeyAsync("3-42");
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task DeleteByFeatureKeyAsync_WhenNotFound_ReturnsFalse()
+        {
+            _repoMock
+                .Setup(r => r.GetByFeatureKeyAsync("none", _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SavedFeature?)null);
+
+            var result = await _service.DeleteByFeatureKeyAsync("none");
+
+            Assert.False(result);
         }
     }
 }

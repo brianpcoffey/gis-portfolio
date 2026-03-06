@@ -9,7 +9,6 @@
 
     if (isAuthenticated)
     {
-        // Prefer user-set display_name, fall back to Google name
         displayName = await ProfileService.GetClaimAsync(ProfileClaimTypes.DisplayName);
         if (string.IsNullOrEmpty(displayName))
         {
@@ -43,9 +42,11 @@
             </li>
             <li><hr class="dropdown-divider" /></li>
             <li>
-                <a class="dropdown-item" href="/Logout">
-                    <i class="fa-solid fa-right-from-bracket me-2"></i>Sign Out
-                </a>
+                <form method="post" asp-page="/Logout">
+                    <button type="submit" class="dropdown-item">
+                        <i class="fa-solid fa-right-from-bracket me-2"></i>Sign Out
+                    </button>
+                </form>
             </li>
         </ul>
     </li>

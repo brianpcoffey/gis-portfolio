@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
-namespace Portfolio.Web.Controllers
+namespace Portfolio.Web.Controllers.Api
 {
     /// <summary>
     /// API endpoints for managing saved features.

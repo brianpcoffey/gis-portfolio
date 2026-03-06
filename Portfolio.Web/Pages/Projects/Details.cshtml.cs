@@ -15,14 +15,16 @@ public class DetailsModel : PageModel
         _userProfileService = userProfileService;
     }
 
+    public Guid UserId { get; private set; }
+
     public async Task<IActionResult> OnGetAsync(string projectId, CancellationToken cancellationToken)
     {
-        // The UserId is guaranteed available for authenticated users
-        var userId = _userProfileService.GetCurrentUserId();
+        var userId = _userProfileService.GetCurrentUserId()
+            ?? throw new InvalidOperationException("User not available.");
 
-        // Load project, features, etc. using userId to scope data
-        // ...
+        UserId = userId;
 
+        // TODO: Load project data by projectId scoped to userId
         return Page();
     }
 }

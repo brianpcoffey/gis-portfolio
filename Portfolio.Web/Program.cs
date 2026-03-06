@@ -1,9 +1,8 @@
-using System.Reflection;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
+using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Repositories;
 using Portfolio.Repositories.Interfaces;
@@ -11,6 +10,8 @@ using Portfolio.Repositories.Repositories;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 using Portfolio.Web.Middleware;
+using System.Reflection;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,13 +20,13 @@ var builder = WebApplication.CreateBuilder(args);
 // --------------------------
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // --------------------------
 // Dependency Injection
 // --------------------------
 builder.Services.AddScoped<ISavedFeatureRepository, SavedFeatureRepository>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
-builder.Services.AddScoped<IArcGisService, ArcGisService>();
 builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
 builder.Services.AddScoped<ICollectionRepository, CollectionRepository>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
@@ -58,7 +59,6 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
 
-    // --- Profile upsert on Google sign-in ---
     options.Events = new CookieAuthenticationEvents
     {
         OnSignedIn = async context =>
@@ -86,7 +86,6 @@ builder.Services.AddAuthentication(options =>
                 Picture = picture
             });
 
-            // Sync the AnonUserId cookie so the middleware picks up the correct profile
             context.HttpContext.Response.Cookies.Append("AnonUserId", userId.ToString(), new CookieOptions
             {
                 HttpOnly = true,
@@ -96,7 +95,6 @@ builder.Services.AddAuthentication(options =>
                 IsEssential = true
             });
 
-            // Also set HttpContext.Items so the current request has it immediately
             context.HttpContext.Items["AnonUserId"] = userId;
         }
     };
@@ -130,13 +128,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // Enable XML comments for controllers and models
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
         options.IncludeXmlComments(xmlPath);
 
-    // Add security definition for cookie authentication
     options.AddSecurityDefinition("cookieAuth", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Cookie",
@@ -183,21 +179,22 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 
-// Authentication FIRST so claims are populated
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Anonymous user middleware AFTER auth — can now check if user is Google-authenticated
 app.UseMiddleware<AnonymousUserMiddleware>();
 
 // --------------------------
 // Swagger UI
 // --------------------------
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Portfolio API V1");
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Portfolio API V1");
+    });
+}
 
 // --------------------------
 // Map endpoints
