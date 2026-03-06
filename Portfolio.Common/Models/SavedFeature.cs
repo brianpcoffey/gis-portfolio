@@ -13,6 +13,5 @@ namespace Portfolio.Common.Models
         public Collection? Collection { get; set; }
         public DateTime DateSaved { get; set; }
         public DateTime? LastModified { get; set; }
-        public ICollection<UserNote> UserNotes { get; set; } = new List<UserNote>();
     }
 }

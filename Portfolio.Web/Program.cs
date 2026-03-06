@@ -1,8 +1,10 @@
 using System.Reflection;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
+using Portfolio.Common.DTOs;
 using Portfolio.Repositories;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Repositories.Repositories;
@@ -22,7 +24,6 @@ builder.Services.AddHttpContextAccessor();
 // Dependency Injection
 // --------------------------
 builder.Services.AddScoped<ISavedFeatureRepository, SavedFeatureRepository>();
-builder.Services.AddScoped<IUserNoteRepository, UserNoteRepository>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<IArcGisService, ArcGisService>();
 builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
@@ -55,7 +56,50 @@ builder.Services.AddAuthentication(options =>
     options.LoginPath = "/Login";
     options.LogoutPath = "/Logout";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+
+    // --- Profile upsert on Google sign-in ---
+    options.Events = new CookieAuthenticationEvents
+    {
+        OnSignedIn = async context =>
+        {
+            var principal = context.Principal;
+            if (principal?.Identity?.IsAuthenticated != true)
+                return;
+
+            var googleId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var email = principal.FindFirstValue(ClaimTypes.Email);
+            var name = principal.FindFirstValue(ClaimTypes.Name);
+            var picture = principal.FindFirstValue("picture");
+
+            if (string.IsNullOrEmpty(googleId))
+                return;
+
+            var profileService = context.HttpContext.RequestServices
+                .GetRequiredService<IUserProfileService>();
+
+            var userId = await profileService.CreateOrUpdateFromGoogleAsync(new GoogleProfileDto
+            {
+                GoogleId = googleId,
+                Email = email ?? string.Empty,
+                Name = name ?? string.Empty,
+                Picture = picture
+            });
+
+            // Sync the AnonUserId cookie so the middleware picks up the correct profile
+            context.HttpContext.Response.Cookies.Append("AnonUserId", userId.ToString(), new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddYears(1),
+                IsEssential = true
+            });
+
+            // Also set HttpContext.Items so the current request has it immediately
+            context.HttpContext.Items["AnonUserId"] = userId;
+        }
+    };
 })
 .AddGoogle(options =>
 {
@@ -76,7 +120,6 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Authenticated", policy =>
         policy.RequireAuthenticatedUser());
-    // Add more policies as needed
 });
 
 builder.Services.AddControllers();
@@ -140,11 +183,12 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 
-// Insert anonymous user middleware BEFORE controllers/pages so the profile is available
-app.UseMiddleware<AnonymousUserMiddleware>();
-
+// Authentication FIRST so claims are populated
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Anonymous user middleware AFTER auth — can now check if user is Google-authenticated
+app.UseMiddleware<AnonymousUserMiddleware>();
 
 // --------------------------
 // Swagger UI

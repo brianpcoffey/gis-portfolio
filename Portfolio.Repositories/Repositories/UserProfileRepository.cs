@@ -18,6 +18,20 @@ namespace Portfolio.Repositories.Repositories
             return await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
         }
 
+        /// <summary>
+        /// Finds a UserProfile that has a specific claim type/value pair.
+        /// Used to locate profiles by GoogleId without knowing the internal UserId.
+        /// </summary>
+        public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string claimValue, CancellationToken cancellationToken = default)
+        {
+            var claim = await _db.UserClaims
+                .AsNoTracking()
+                .Include(c => c.UserProfile)
+                .FirstOrDefaultAsync(c => c.ClaimType == claimType && c.ClaimValue == claimValue, cancellationToken);
+
+            return claim?.UserProfile;
+        }
+
         public async Task<UserProfile> AddOrUpdateProfileAsync(UserProfile profile, CancellationToken cancellationToken = default)
         {
             var existing = await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == profile.UserId, cancellationToken);

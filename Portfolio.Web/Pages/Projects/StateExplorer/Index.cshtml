@@ -184,22 +184,57 @@
 
 <!-- View Saved State Modal -->
 <div class="modal fade" id="viewSavedModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content theme-modal">
-            <div class="modal-header theme-modal-header">
-                <h5 class="modal-title" id="viewSavedTitle">Saved State</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body theme-body">
-                <div id="viewSavedMeta" class="mb-2 text-muted small theme-text-muted"></div>
-            </div>
-            <div class="modal-footer theme-modal-footer">
-                <button type="button" id="btnViewZoom" class="btn btn-outline-secondary theme-btn">Zoom</button>
-                <button type="button" id="btnViewRemove" class="btn btn-outline-danger theme-btn">Remove</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="viewSavedTitle" class="modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewSavedMeta"></div>
+      </div>
+      <div class="modal-footer">
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Example Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Modal title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Long content here will scroll -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Modal -->
+<div class="modal fade" id="customModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content custom-modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Modal title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body custom-modal-body">
+        <!-- Long content here will scroll -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Save changes</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast Container -->

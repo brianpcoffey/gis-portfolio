@@ -16,10 +16,9 @@ namespace Portfolio.Repositories
         public async Task<List<SavedFeature>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return await _db.SavedFeatures
-                .Where(sf => sf.UserId == userId)
-                .Include(sf => sf.Collection)
-                .Include(sf => sf.UserNotes)
                 .AsNoTracking()
+                .Include(s => s.Collection)
+                .Where(s => s.UserId == userId)
                 .ToListAsync(cancellationToken);
         }
 
@@ -27,7 +26,6 @@ namespace Portfolio.Repositories
         {
             return await _db.SavedFeatures
                 .Include(sf => sf.Collection)
-                .Include(sf => sf.UserNotes)
                 .FirstOrDefaultAsync(sf => sf.Id == id && sf.UserId == userId, cancellationToken);
         }
 
@@ -41,7 +39,6 @@ namespace Portfolio.Repositories
         {
             return await _db.SavedFeatures
                 .Include(sf => sf.Collection)
-                .Include(sf => sf.UserNotes)
                 .FirstOrDefaultAsync(sf => sf.FeatureId == featureKey && sf.UserId == userId, cancellationToken);
         }
 
@@ -50,7 +47,6 @@ namespace Portfolio.Repositories
             _db.SavedFeatures.Add(feature);
             await _db.SaveChangesAsync(cancellationToken);
             await _db.Entry(feature).Reference(f => f.Collection).LoadAsync(cancellationToken);
-            await _db.Entry(feature).Collection(f => f.UserNotes).LoadAsync(cancellationToken);
             return feature;
         }
 

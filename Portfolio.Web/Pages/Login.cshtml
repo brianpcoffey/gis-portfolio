@@ -7,7 +7,7 @@
 
 <div class="container py-5 text-center">
     <h2 class="mb-4">Sign in</h2>
-    <a class="btn btn-google btn-lg" href="/Login?handler=Google">
+    <a class="btn btn-google btn-lg" href="/Login?handler=Google&ReturnUrl=@Uri.EscapeDataString(Model.ReturnUrl ?? "/")">
         <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" class="btn-google-logo" />
         Sign in with Google
     </a>

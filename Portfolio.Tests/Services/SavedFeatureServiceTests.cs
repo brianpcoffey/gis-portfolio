@@ -11,7 +11,6 @@ namespace Portfolio.Tests.Services
     public class SavedFeatureServiceTests
     {
         private readonly Mock<ISavedFeatureRepository> _repositoryMock;
-        private readonly Mock<IUserNoteRepository> _noteRepositoryMock;
         private readonly Mock<IUserProfileService> _userProfileServiceMock;
         private readonly SavedFeatureService _service;
         private readonly Guid _testUserId = Guid.NewGuid();
@@ -19,14 +18,12 @@ namespace Portfolio.Tests.Services
         public SavedFeatureServiceTests()
         {
             _repositoryMock = new Mock<ISavedFeatureRepository>();
-            _noteRepositoryMock = new Mock<IUserNoteRepository>();
             _userProfileServiceMock = new Mock<IUserProfileService>();
 
             _userProfileServiceMock.Setup(s => s.GetCurrentUserId()).Returns(_testUserId);
 
             _service = new SavedFeatureService(
                 _repositoryMock.Object,
-                _noteRepositoryMock.Object,
                 _userProfileServiceMock.Object);
         }
 
