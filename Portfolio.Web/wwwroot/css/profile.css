@@ -66,6 +66,14 @@ body:not(.dark-mode) .profile-card--danger .profile-card-header h5 {
     color: #c53030;
 }
 
+.profile-card--danger .header-icon {
+    color: inherit;
+}
+
+.profile-card--danger .form-text {
+    margin-top: 0;
+}
+
 /* --- Profile header (avatar + name) --- */
 .profile-header {
     display: flex;

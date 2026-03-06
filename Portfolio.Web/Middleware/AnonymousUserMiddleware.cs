@@ -6,8 +6,8 @@ namespace Portfolio.Web.Middleware
 {
     /// <summary>
     /// Ensures every visitor has a UserProfile identity stored in HttpContext.Items["AnonUserId"].
-    /// For Google-authenticated users: the OnSignedIn event has already set the cookie and Items key.
-    /// For anonymous users: validates/reuses the AnonUserId cookie, or creates a new profile.
+    /// For Google-authenticated users the OnSignedIn event has already set the cookie and Items key.
+    /// For anonymous users this validates/reuses the AnonUserId cookie, or creates a new profile.
     /// </summary>
     public class AnonymousUserMiddleware
     {
@@ -20,18 +20,17 @@ namespace Portfolio.Web.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db)
+        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider)
         {
-            // If the OnSignedIn event already resolved the user for this request, skip
             if (context.Items.ContainsKey(HttpContextItemKey))
             {
                 await _next(context);
                 return;
             }
 
+            var now = timeProvider.GetUtcNow().UtcDateTime;
             Guid userId;
 
-            // Try read cookie
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
                 var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
@@ -40,15 +39,15 @@ namespace Portfolio.Web.Middleware
                     profile = new UserProfile
                     {
                         UserId = userId,
-                        CreatedDate = DateTime.UtcNow,
-                        LastActiveDate = DateTime.UtcNow
+                        CreatedDate = now,
+                        LastActiveDate = now
                     };
                     db.UserProfiles.Add(profile);
                     await db.SaveChangesAsync();
                 }
                 else
                 {
-                    profile.LastActiveDate = DateTime.UtcNow;
+                    profile.LastActiveDate = now;
                     await db.SaveChangesAsync();
                 }
             }
@@ -59,8 +58,8 @@ namespace Portfolio.Web.Middleware
                 var profile = new UserProfile
                 {
                     UserId = userId,
-                    CreatedDate = DateTime.UtcNow,
-                    LastActiveDate = DateTime.UtcNow
+                    CreatedDate = now,
+                    LastActiveDate = now
                 };
 
                 db.UserProfiles.Add(profile);
@@ -71,7 +70,7 @@ namespace Portfolio.Web.Middleware
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.Lax,
-                    Expires = DateTimeOffset.UtcNow.AddYears(1),
+                    Expires = timeProvider.GetUtcNow().AddYears(1),
                     IsEssential = true
                 };
 

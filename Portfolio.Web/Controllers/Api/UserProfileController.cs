@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
@@ -58,8 +59,6 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]
-        [ProducesResponseType(typeof(ProfileDto), 200)]
-        [ProducesResponseType(404)]
         public async Task<IActionResult> GetById(Guid userId, CancellationToken cancellationToken)
         {
             var profile = await _profileService.GetProfileByIdAsync(userId, cancellationToken);
@@ -74,8 +73,6 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("google/{googleId}")]
         [Authorize(Policy = "Authenticated")]
-        [ProducesResponseType(typeof(ProfileDto), 200)]
-        [ProducesResponseType(404)]
         public async Task<IActionResult> GetByGoogleId(string googleId, CancellationToken cancellationToken)
         {
             var profile = await _profileService.GetProfileByGoogleIdAsync(googleId, cancellationToken);
@@ -107,6 +104,18 @@ namespace Portfolio.Web.Controllers.Api
             if (string.IsNullOrWhiteSpace(dto.Type) || dto.Value is null)
                 return BadRequest(new { error = "Type and Value are required." });
 
+            // Prevent overwriting Google-sourced identity claims
+            HashSet<string> protectedTypes = new(StringComparer.OrdinalIgnoreCase)
+            {
+                ProfileClaimTypes.GoogleId,
+                ProfileClaimTypes.Email,
+                ProfileClaimTypes.Name,
+                ProfileClaimTypes.Picture
+            };
+
+            if (protectedTypes.Contains(dto.Type))
+                return BadRequest(new { error = $"Claim type '{dto.Type}' is managed by Google OAuth and cannot be set manually." });
+
             await _profileService.SetClaimAsync(dto.Type, dto.Value, cancellationToken);
             return NoContent();
         }
@@ -134,9 +143,14 @@ namespace Portfolio.Web.Controllers.Api
         [HttpDelete("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]
+        [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Delete(Guid userId, CancellationToken cancellationToken)
         {
+            var currentUserId = _profileService.GetCurrentUserId();
+            if (currentUserId != userId)
+                return Forbid();
+
             var deleted = await _profileService.DeleteProfileAsync(userId, cancellationToken);
             return deleted ? NoContent() : NotFound();
         }

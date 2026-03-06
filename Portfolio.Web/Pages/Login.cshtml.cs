@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
+namespace Portfolio.Web.Pages;
+
 public class LoginModel : PageModel
 {
     [BindProperty(SupportsGet = true)]

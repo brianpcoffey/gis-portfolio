@@ -1,6 +1,4 @@
-﻿@using System.Security.Claims
-@inject IHttpContextAccessor HttpContextAccessor
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -85,12 +83,5 @@
     <script src="~/js/animations.js"></script>
 
     @RenderSection("Scripts", required: false)
-
-    <script>
-        function copyEmail() {
-            navigator.clipboard.writeText('brian.coffey@email.com')
-                .then(() => alert('Email copied to clipboard!'));
-        }
-    </script>
 </body>
 </html>

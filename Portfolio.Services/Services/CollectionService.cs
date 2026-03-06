@@ -1,113 +1,72 @@
-using Microsoft.AspNetCore.Http;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
-using System.Security.Claims;
 
 namespace Portfolio.Services.Services
 {
     public class CollectionService : ICollectionService
     {
         private readonly ICollectionRepository _repository;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IUserProfileService _userProfileService;
+        private readonly TimeProvider _timeProvider;
 
         public CollectionService(
             ICollectionRepository repository,
-            IHttpContextAccessor httpContextAccessor)
+            IUserProfileService userProfileService,
+            TimeProvider timeProvider)
         {
             _repository = repository
                 ?? throw new ArgumentNullException(nameof(repository));
-
-            _httpContextAccessor = httpContextAccessor
-                ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _userProfileService = userProfileService
+                ?? throw new ArgumentNullException(nameof(userProfileService));
+            _timeProvider = timeProvider
+                ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
-        private string CurrentUserId
-        {
-            get
-            {
-                var userId = _httpContextAccessor
-                    .HttpContext?
-                    .User?
-                    .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (string.IsNullOrEmpty(userId))
-                    throw new UnauthorizedAccessException("User not authenticated.");
-
-                return userId;
-            }
-        }
+        private Guid CurrentUserId =>
+            _userProfileService.GetCurrentUserId()
+                ?? throw new UnauthorizedAccessException("User not identified.");
 
         public async Task<List<CollectionDto>> GetAllAsync(
             CancellationToken cancellationToken = default)
         {
-            var ownerId = CurrentUserId;
-
-            var items = await _repository.GetAllAsync(
-                ownerId,
-                cancellationToken);
-
-            return items
-                .Select(MapToDto)
-                .ToList();
+            var items = await _repository.GetAllAsync(CurrentUserId, cancellationToken);
+            return items.Select(MapToDto).ToList();
         }
 
         public async Task<CollectionDto?> GetByIdAsync(
             int id,
             CancellationToken cancellationToken = default)
         {
-            var ownerId = CurrentUserId;
-
-            var entity = await _repository.GetByIdAsync(
-                id,
-                ownerId,
-                cancellationToken);
-
-            return entity == null
-                ? null
-                : MapToDto(entity);
+            var entity = await _repository.GetByIdAsync(id, CurrentUserId, cancellationToken);
+            return entity == null ? null : MapToDto(entity);
         }
 
         public async Task<CollectionDto> CreateAsync(
             CollectionCreateDto dto,
             CancellationToken cancellationToken = default)
         {
-            if (dto == null)
-                throw new ArgumentNullException(nameof(dto));
+            ArgumentNullException.ThrowIfNull(dto);
 
             if (string.IsNullOrWhiteSpace(dto.Name))
-                throw new ArgumentException(
-                    "Collection name is required.",
-                    nameof(dto.Name));
+                throw new ArgumentException("Collection name is required.", nameof(dto));
 
             var ownerId = CurrentUserId;
-
             var name = dto.Name.Trim();
 
-            if (await _repository.ExistsAsync(
-                    ownerId,
-                    name,
-                    cancellationToken))
-            {
-                throw new InvalidOperationException(
-                    "A collection with this name already exists.");
-            }
+            if (await _repository.ExistsAsync(ownerId, name, cancellationToken))
+                throw new InvalidOperationException("A collection with this name already exists.");
 
             var entity = new Collection
             {
                 OwnerId = ownerId,
                 Name = name,
-                Color = string.IsNullOrWhiteSpace(dto.Color)
-                    ? "#6c757d"
-                    : dto.Color.Trim(),
-                CreatedAt = DateTime.UtcNow
+                Color = string.IsNullOrWhiteSpace(dto.Color) ? "#6c757d" : dto.Color.Trim(),
+                CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
             };
 
-            var created = await _repository.AddAsync(
-                entity,
-                cancellationToken);
-
+            var created = await _repository.AddAsync(entity, cancellationToken);
             return MapToDto(created);
         }
 
@@ -116,48 +75,28 @@ namespace Portfolio.Services.Services
             CollectionUpdateDto dto,
             CancellationToken cancellationToken = default)
         {
-            if (dto == null)
-                throw new ArgumentNullException(nameof(dto));
+            ArgumentNullException.ThrowIfNull(dto);
 
             var ownerId = CurrentUserId;
-
-            var entity = await _repository.GetByIdAsync(
-                id,
-                ownerId,
-                cancellationToken)
-                ?? throw new KeyNotFoundException(
-                    $"Collection {id} not found.");
+            var entity = await _repository.GetByIdAsync(id, ownerId, cancellationToken)
+                ?? throw new KeyNotFoundException($"Collection {id} not found.");
 
             if (!string.IsNullOrWhiteSpace(dto.Name))
             {
                 var newName = dto.Name.Trim();
-
-                if (!string.Equals(newName, entity.Name, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(newName, entity.Name, StringComparison.OrdinalIgnoreCase)
+                    && await _repository.ExistsAsync(ownerId, newName, cancellationToken))
                 {
-                    if (await _repository.ExistsAsync(
-                            ownerId,
-                            newName,
-                            cancellationToken))
-                    {
-                        throw new InvalidOperationException(
-                            "A collection with this name already exists.");
-                    }
+                    throw new InvalidOperationException("A collection with this name already exists.");
                 }
-
                 entity.Name = newName;
             }
 
             if (!string.IsNullOrWhiteSpace(dto.Color))
-            {
                 entity.Color = dto.Color.Trim();
-            }
 
-            entity.LastModified = DateTime.UtcNow;
-
-            var updated = await _repository.UpdateAsync(
-                entity,
-                cancellationToken);
-
+            entity.LastModified = _timeProvider.GetUtcNow().UtcDateTime;
+            var updated = await _repository.UpdateAsync(entity, cancellationToken);
             return MapToDto(updated);
         }
 
@@ -165,24 +104,16 @@ namespace Portfolio.Services.Services
             int id,
             CancellationToken cancellationToken = default)
         {
-            var ownerId = CurrentUserId;
-
-            return await _repository.DeleteAsync(
-                id,
-                ownerId,
-                cancellationToken);
+            return await _repository.DeleteAsync(id, CurrentUserId, cancellationToken);
         }
 
-        private static CollectionDto MapToDto(Collection c)
+        private static CollectionDto MapToDto(Collection c) => new()
         {
-            return new CollectionDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Color = c.Color,
-                CreatedAt = c.CreatedAt,
-                LastModified = c.LastModified
-            };
-        }
+            Id = c.Id,
+            Name = c.Name,
+            Color = c.Color,
+            CreatedAt = c.CreatedAt,
+            LastModified = c.LastModified
+        };
     }
 }

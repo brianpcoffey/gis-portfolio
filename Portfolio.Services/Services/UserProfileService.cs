@@ -10,23 +10,23 @@ namespace Portfolio.Services.Services
     /// <summary>
     /// Manages user profiles and claims.
     /// Resolves the current user from HttpContext.Items["AnonUserId"] (set by middleware).
-    /// Never accepts user-supplied UserId on mutating operations scoped to "current user".
     /// </summary>
     public class UserProfileService : IUserProfileService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IUserProfileRepository _repo;
+        private readonly TimeProvider _timeProvider;
         private const string HttpContextItemKey = "AnonUserId";
 
-        public UserProfileService(IHttpContextAccessor httpContextAccessor, IUserProfileRepository repo)
+        public UserProfileService(
+            IHttpContextAccessor httpContextAccessor,
+            IUserProfileRepository repo,
+            TimeProvider timeProvider)
         {
             _httpContextAccessor = httpContextAccessor;
             _repo = repo;
+            _timeProvider = timeProvider;
         }
-
-        // ---------------------------------------------------------------
-        // Identity resolution
-        // ---------------------------------------------------------------
 
         public Guid? GetCurrentUserId()
         {
@@ -35,10 +35,6 @@ namespace Portfolio.Services.Services
             if (ctx.Items.TryGetValue(HttpContextItemKey, out var o) && o is Guid g) return g;
             return null;
         }
-
-        // ---------------------------------------------------------------
-        // Claims CRUD (scoped to current user)
-        // ---------------------------------------------------------------
 
         public async Task<List<ClaimDto>> GetClaimsAsync(CancellationToken cancellationToken = default)
         {
@@ -68,10 +64,6 @@ namespace Portfolio.Services.Services
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
             return await _repo.RemoveClaimAsync(userId, type, cancellationToken);
         }
-
-        // ---------------------------------------------------------------
-        // Profile CRUD
-        // ---------------------------------------------------------------
 
         public async Task<ProfileDto?> GetProfileByIdAsync(Guid userId, CancellationToken cancellationToken = default)
         {
@@ -108,18 +100,15 @@ namespace Portfolio.Services.Services
             ArgumentNullException.ThrowIfNull(dto);
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
 
-            // Update the editable display_name claim
             if (!string.IsNullOrWhiteSpace(dto.DisplayName))
             {
                 await _repo.SetClaimAsync(userId, ProfileClaimTypes.DisplayName, dto.DisplayName.Trim(), cancellationToken);
             }
             else
             {
-                // Clear custom display name — will fall back to Google name
                 await _repo.RemoveClaimAsync(userId, ProfileClaimTypes.DisplayName, cancellationToken);
             }
 
-            // Return the updated profile
             var profile = await _repo.GetProfileAsync(userId, cancellationToken)
                 ?? throw new InvalidOperationException($"Profile not found for {userId}");
             var claims = await _repo.GetClaimsAsync(userId, cancellationToken);
@@ -131,15 +120,13 @@ namespace Portfolio.Services.Services
             return await _repo.DeleteProfileAsync(userId, cancellationToken);
         }
 
-        // ---------------------------------------------------------------
-        // Google OAuth integration
-        // ---------------------------------------------------------------
-
         public async Task<Guid> CreateOrUpdateFromGoogleAsync(GoogleProfileDto google, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(google);
             if (string.IsNullOrWhiteSpace(google.GoogleId))
                 throw new ArgumentException("GoogleId is required", nameof(google));
+
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
 
             var existing = await _repo.GetProfileByClaimAsync(
                 ProfileClaimTypes.GoogleId, google.GoogleId, cancellationToken);
@@ -148,14 +135,12 @@ namespace Portfolio.Services.Services
 
             if (existing != null)
             {
-                // Returning user — update timestamps and refresh claims
                 userId = existing.UserId;
-                existing.LastActiveDate = DateTime.UtcNow;
+                existing.LastActiveDate = now;
                 await _repo.AddOrUpdateProfileAsync(existing, cancellationToken);
             }
             else
             {
-                // New user — check if there's an anonymous profile to promote
                 var ctx = _httpContextAccessor.HttpContext;
                 Guid? anonId = null;
                 if (ctx != null &&
@@ -169,29 +154,25 @@ namespace Portfolio.Services.Services
 
                 if (anonId.HasValue)
                 {
-                    // Promote anonymous profile to Google-linked
                     userId = anonId.Value;
                     var profile = (await _repo.GetProfileAsync(userId, cancellationToken))!;
-                    profile.LastActiveDate = DateTime.UtcNow;
+                    profile.LastActiveDate = now;
                     await _repo.AddOrUpdateProfileAsync(profile, cancellationToken);
                 }
                 else
                 {
-                    // Create brand new profile
                     userId = Guid.NewGuid();
                     await _repo.AddOrUpdateProfileAsync(new UserProfile
                     {
                         UserId = userId,
-                        CreatedDate = DateTime.UtcNow,
-                        LastActiveDate = DateTime.UtcNow
+                        CreatedDate = now,
+                        LastActiveDate = now
                     }, cancellationToken);
                 }
 
-                // Set the GoogleId claim (only on first link)
                 await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, cancellationToken);
             }
 
-            // 2. Always refresh mutable Google profile data
             await _repo.SetClaimAsync(userId, ProfileClaimTypes.Email, google.Email, cancellationToken);
             await _repo.SetClaimAsync(userId, ProfileClaimTypes.Name, google.Name, cancellationToken);
             if (!string.IsNullOrEmpty(google.Picture))
@@ -199,10 +180,6 @@ namespace Portfolio.Services.Services
 
             return userId;
         }
-
-        // ---------------------------------------------------------------
-        // Convenience helpers
-        // ---------------------------------------------------------------
 
         public async Task<bool> IsGoogleLinkedAsync(CancellationToken cancellationToken = default)
         {
@@ -213,17 +190,10 @@ namespace Portfolio.Services.Services
             return claim != null;
         }
 
-        // ---------------------------------------------------------------
-        // Mapping
-        // ---------------------------------------------------------------
-
-        private static ProfileDto ToDto(UserProfile profile, List<UserClaim> claims)
+        private static ProfileDto ToDto(UserProfile profile, List<UserClaim> claims) => new()
         {
-            return new ProfileDto
-            {
-                UserId = profile.UserId,
-                Claims = claims.Select(c => new ClaimDto { Type = c.ClaimType, Value = c.ClaimValue })
-            };
-        }
+            UserId = profile.UserId,
+            Claims = claims.Select(c => new ClaimDto { Type = c.ClaimType, Value = c.ClaimValue })
+        };
     }
 }

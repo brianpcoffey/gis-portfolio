@@ -46,6 +46,9 @@ body {
     color: var(--text);
     transition: background-color var(--transition), color var(--transition);
     line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 a {

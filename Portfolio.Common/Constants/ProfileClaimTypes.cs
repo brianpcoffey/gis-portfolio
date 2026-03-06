@@ -14,5 +14,16 @@ namespace Portfolio.Common.Constants
         /// User-editable display name that overrides the Google-sourced name.
         /// </summary>
         public const string DisplayName = "display_name";
+
+        /// <summary>
+        /// Claim types that are managed by Google OAuth and must not be set manually.
+        /// </summary>
+        public static readonly HashSet<string> Protected = new(StringComparer.OrdinalIgnoreCase)
+        {
+            GoogleId,
+            Email,
+            Name,
+            Picture
+        };
     }
 }

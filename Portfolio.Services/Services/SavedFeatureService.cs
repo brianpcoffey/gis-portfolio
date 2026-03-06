@@ -9,13 +9,16 @@ namespace Portfolio.Services.Services
     {
         private readonly ISavedFeatureRepository _repo;
         private readonly IUserProfileService _userProfileService;
+        private readonly TimeProvider _timeProvider;
 
         public SavedFeatureService(
             ISavedFeatureRepository repo,
-            IUserProfileService userProfileService)
+            IUserProfileService userProfileService,
+            TimeProvider timeProvider)
         {
             _repo = repo;
             _userProfileService = userProfileService;
+            _timeProvider = timeProvider;
         }
 
         private Guid CurrentUserId =>
@@ -45,6 +48,7 @@ namespace Portfolio.Services.Services
             if (existing != null)
                 throw new InvalidOperationException("Feature already saved");
 
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
             var entity = new SavedFeature
             {
                 UserId = userId,
@@ -54,8 +58,8 @@ namespace Portfolio.Services.Services
                 GeometryJson = dto.GeometryJson ?? string.Empty,
                 Description = dto.Description,
                 CollectionId = dto.CollectionId,
-                DateSaved = DateTime.UtcNow,
-                LastModified = DateTime.UtcNow
+                DateSaved = now,
+                LastModified = now
             };
 
             var saved = await _repo.AddAsync(entity, cancellationToken);
@@ -74,21 +78,18 @@ namespace Portfolio.Services.Services
             return await _repo.DeleteAsync(sf.Id, CurrentUserId, cancellationToken);
         }
 
-        private static SavedFeatureDto MapToDto(SavedFeature sf)
+        private static SavedFeatureDto MapToDto(SavedFeature sf) => new()
         {
-            return new SavedFeatureDto
-            {
-                Id = sf.Id,
-                LayerId = sf.LayerId,
-                FeatureId = sf.FeatureId,
-                Name = sf.Name,
-                GeometryJson = sf.GeometryJson,
-                Description = sf.Description,
-                CollectionId = sf.CollectionId,
-                CollectionName = sf.Collection?.Name,
-                DateSaved = sf.DateSaved,
-                LastModified = sf.LastModified
-            };
-        }
+            Id = sf.Id,
+            LayerId = sf.LayerId,
+            FeatureId = sf.FeatureId,
+            Name = sf.Name,
+            GeometryJson = sf.GeometryJson,
+            Description = sf.Description,
+            CollectionId = sf.CollectionId,
+            CollectionName = sf.Collection?.Name,
+            DateSaved = sf.DateSaved,
+            LastModified = sf.LastModified
+        };
     }
 }
