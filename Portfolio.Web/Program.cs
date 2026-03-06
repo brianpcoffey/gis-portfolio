@@ -166,20 +166,30 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // --------------------------
-// Database Context (PostgreSQL via Supabase)
+// Database Context (PostgreSQL via Render / Supabase)
 // --------------------------
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var databaseUrl = builder.Configuration.GetConnectionString("DefaultConnection")
+                  ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+                  ?? throw new InvalidOperationException("Database connection string not set.");
 
-// Build Npgsql connection string with SSL and IPv4 enforcement
-var npgsqlBuilder = new NpgsqlConnectionStringBuilder(connectionString)
+// Parse URI format (postgres://user:pass@host:port/db)
+var uri = new Uri(databaseUrl);
+var userInfo = uri.UserInfo.Split(':', 2);
+
+var npgsqlBuilder = new NpgsqlConnectionStringBuilder
 {
+    Host = uri.Host,
+    Port = uri.Port,
+    Username = userInfo[0],
+    Password = userInfo[1],
+    Database = uri.AbsolutePath.TrimStart('/'),
     SslMode = SslMode.Require,
+    TrustServerCertificate = true, // Needed on Render / self-signed SSL
 };
 
+// Fix for IPv6 localhost if ever used
 if (npgsqlBuilder.Host == "[::1]")
-{
     npgsqlBuilder.Host = "127.0.0.1";
-}
 
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
     options.UseNpgsql(npgsqlBuilder.ConnectionString));
@@ -244,7 +254,6 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"Database migration failed: {ex.Message}");
-        // Optional: throw; // Uncomment to fail startup
     }
 }
 
