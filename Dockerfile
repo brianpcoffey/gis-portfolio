@@ -2,20 +2,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 
-# Copy solution and project files
-COPY *.sln ./
-COPY Portfolio.Web/*.csproj ./Portfolio.Web/
+# Copy everything
+COPY . .
 
-# Restore dependencies
-RUN dotnet restore
+# Restore only the web project
+RUN dotnet restore Portfolio.Web/Portfolio.Web.csproj
 
-# Copy remaining source code
-COPY Portfolio.Web/. ./Portfolio.Web/
-
-WORKDIR /src/Portfolio.Web
-
-# Publish app
-RUN dotnet publish -c Release -o /app/publish
+# Publish the web project
+RUN dotnet publish Portfolio.Web/Portfolio.Web.csproj -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:7.0
@@ -23,10 +17,7 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-# Production environment
 ENV ASPNETCORE_ENVIRONMENT=Production
-
-# Bind to Render's assigned port
 ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
 
 EXPOSE 10000
