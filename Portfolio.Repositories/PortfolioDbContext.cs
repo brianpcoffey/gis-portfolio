@@ -8,7 +8,6 @@ namespace Portfolio.Repositories
     {
         public PortfolioDbContext(DbContextOptions<PortfolioDbContext> options) : base(options) { }
 
-        public DbSet<UserNote> UserNotes { get; set; }
         public DbSet<SavedFeature> SavedFeatures { get; set; }
         public DbSet<Collection> Collections { get; set; }
 
@@ -18,7 +17,6 @@ namespace Portfolio.Repositories
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfiguration(new SavedFeatureMap());
-            modelBuilder.ApplyConfiguration(new UserNoteMap());
             modelBuilder.ApplyConfiguration(new CollectionMap());
             modelBuilder.Entity<UserProfile>(b =>
             {

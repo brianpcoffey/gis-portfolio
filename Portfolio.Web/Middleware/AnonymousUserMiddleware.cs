@@ -5,12 +5,9 @@ using Portfolio.Repositories;
 namespace Portfolio.Web.Middleware
 {
     /// <summary>
-    /// Ensures every visitor has an anonymous GUID-based identity stored in a secure cookie.
-    /// Responsibility:
-    ///  - Validate/reuse cookie
-    ///  - If missing/invalid, create new UserProfile and set cookie
-    ///  - Load profile and update LastActiveDate
-    ///  - Place the current UserId into HttpContext.Items["AnonUserId"]
+    /// Ensures every visitor has a UserProfile identity stored in HttpContext.Items["AnonUserId"].
+    /// For Google-authenticated users: the OnSignedIn event has already set the cookie and Items key.
+    /// For anonymous users: validates/reuses the AnonUserId cookie, or creates a new profile.
     /// </summary>
     public class AnonymousUserMiddleware
     {
@@ -25,12 +22,18 @@ namespace Portfolio.Web.Middleware
 
         public async Task InvokeAsync(HttpContext context, PortfolioDbContext db)
         {
+            // If the OnSignedIn event already resolved the user for this request, skip
+            if (context.Items.ContainsKey(HttpContextItemKey))
+            {
+                await _next(context);
+                return;
+            }
+
             Guid userId;
 
-            // 1. Try read cookie
+            // Try read cookie
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
-                // Load profile; if missing on DB side, recreate profile
                 var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
                 if (profile == null)
                 {
@@ -45,14 +48,12 @@ namespace Portfolio.Web.Middleware
                 }
                 else
                 {
-                    // update last active
                     profile.LastActiveDate = DateTime.UtcNow;
                     await db.SaveChangesAsync();
                 }
             }
             else
             {
-                // Cookie missing or invalid -> generate new GUID, create profile, set cookie
                 userId = Guid.NewGuid();
 
                 var profile = new UserProfile
@@ -65,7 +66,6 @@ namespace Portfolio.Web.Middleware
                 db.UserProfiles.Add(profile);
                 await db.SaveChangesAsync();
 
-                // Set secure cookie
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
@@ -78,7 +78,6 @@ namespace Portfolio.Web.Middleware
                 context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
             }
 
-            // Store in HttpContext.Items so services/controllers can read it (never accept UserId from clients).
             context.Items[HttpContextItemKey] = userId;
 
             await _next(context);

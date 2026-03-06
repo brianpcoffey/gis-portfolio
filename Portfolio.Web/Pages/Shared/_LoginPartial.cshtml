@@ -1,0 +1,61 @@
+@using Portfolio.Common.Constants
+@using Portfolio.Services.Interfaces
+@inject IUserProfileService ProfileService
+
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    string? displayName = null;
+    string? picture = null;
+
+    if (isAuthenticated)
+    {
+        // Prefer user-set display_name, fall back to Google name
+        displayName = await ProfileService.GetClaimAsync(ProfileClaimTypes.DisplayName);
+        if (string.IsNullOrEmpty(displayName))
+        {
+            displayName = await ProfileService.GetClaimAsync(ProfileClaimTypes.Name);
+        }
+        picture = await ProfileService.GetClaimAsync(ProfileClaimTypes.Picture);
+    }
+}
+
+@if (isAuthenticated)
+{
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 p-0"
+           href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+           id="userDropdown">
+            @if (!string.IsNullOrEmpty(picture))
+            {
+                <img src="@picture" alt="Profile" class="profile-img" referrerpolicy="no-referrer" />
+            }
+            else
+            {
+                <i class="fa-solid fa-user-circle fa-lg"></i>
+            }
+            <span class="d-none d-lg-inline">@displayName</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li>
+                <a class="dropdown-item" href="/Account/Profile">
+                    <i class="fa-solid fa-user me-2"></i>My Profile
+                </a>
+            </li>
+            <li><hr class="dropdown-divider" /></li>
+            <li>
+                <a class="dropdown-item" href="/Logout">
+                    <i class="fa-solid fa-right-from-bracket me-2"></i>Sign Out
+                </a>
+            </li>
+        </ul>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link d-flex align-items-center gap-1" href="/Login?ReturnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Sign In</span>
+        </a>
+    </li>
+}

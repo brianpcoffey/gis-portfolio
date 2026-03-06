@@ -252,3 +252,22 @@ body.dark-mode .btn-google {
     background-color: var(--background);
     color: var(--accent);
 }
+
+/* Limit the height of the View Saved modal and add a vertical scrollbar if needed */
+#viewSavedModal .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Flexbox modal content for scrollable body and fixed header/footer */
+.custom-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh; /* Never exceed 90% of viewport height */
+}
+
+.custom-modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0; /* Required for flexbox scrolling */
+}

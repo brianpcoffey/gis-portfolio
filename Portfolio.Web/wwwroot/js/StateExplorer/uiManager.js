@@ -469,7 +469,7 @@ export const UI = {
             query("viewSavedMeta").innerHTML = "";
         } else {
             const title = saved.Name || saved.displayName || saved.name || `State ${saved.FeatureId || saved.featureId || ""}`;
-            const desc = (saved.Description || saved.description || saved.UserNotes?.map(n=>n.Text).join("\n") || "").toString();
+            const desc = (saved.Description || saved.description || "").toString();
             query("viewSavedTitle").textContent = title;
 
             // metadata

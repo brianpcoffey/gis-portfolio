@@ -5,6 +5,7 @@ namespace Portfolio.Repositories.Interfaces
     public interface IUserProfileRepository
     {
         Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default);
+        Task<UserProfile?> GetProfileByClaimAsync(string claimType, string claimValue, CancellationToken cancellationToken = default);
         Task<UserProfile> AddOrUpdateProfileAsync(UserProfile profile, CancellationToken cancellationToken = default);
         Task<bool> DeleteProfileAsync(Guid userId, CancellationToken cancellationToken = default);
         Task<List<UserClaim>> GetClaimsAsync(Guid userId, CancellationToken cancellationToken = default);
