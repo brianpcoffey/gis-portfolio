@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 
-namespace Portfolio.Repositories
+namespace Portfolio.Repositories.Repositories
 {
     public class SavedFeatureRepository : ISavedFeatureRepository
     {
