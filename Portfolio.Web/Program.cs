@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Repositories;
@@ -166,8 +168,25 @@ builder.Services.AddSwaggerGen(options =>
 // --------------------------
 // Database Context (PostgreSQL via Supabase)
 // --------------------------
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Force SSL + IPv4 for Supabase on Render
+var npgsqlBuilder = new NpgsqlConnectionStringBuilder(connectionString)
+{
+    SslMode = SslMode.Require,
+    TrustServerCertificate = true,
+};
+
+// Add DbContext
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
-      options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(npgsqlBuilder.ConnectionString));
+
+// --------------------------
+// Data Protection Keys Folder (for Docker / Render)
+// --------------------------
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/app/DataProtection-Keys"))
+    .SetApplicationName("PortfolioApp");
 
 var app = builder.Build();
 
@@ -208,10 +227,22 @@ if (app.Environment.IsDevelopment())
 app.MapControllers();
 app.MapRazorPages();
 
+// --------------------------
+// Apply Migrations Safely
+// --------------------------
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<PortfolioDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<PortfolioDbContext>();
+        db.Database.Migrate();
+        Console.WriteLine("Database migration successful.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database migration failed: {ex.Message}");
+        // Optional: throw; // Uncomment to fail startup
+    }
 }
 
 app.Run();
