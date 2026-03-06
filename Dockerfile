@@ -1,32 +1,34 @@
-# Use the official .NET 7 SDK image for build
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
-WORKDIR /app
+WORKDIR /src
 
-# Copy csproj and restore as distinct layers
+# Copy solution and project files
 COPY *.sln ./
 COPY Portfolio.Web/*.csproj ./Portfolio.Web/
+
+# Restore dependencies
 RUN dotnet restore
 
-# Copy the rest of the source code
+# Copy remaining source code
 COPY Portfolio.Web/. ./Portfolio.Web/
-WORKDIR /app/Portfolio.Web
 
-# Publish the app to the /out directory
-RUN dotnet publish -c Release -o /out
+WORKDIR /src/Portfolio.Web
 
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS runtime
+# Publish app
+RUN dotnet publish -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
 WORKDIR /app
-COPY --from=build /out ./
 
-# Set environment variables for production
+COPY --from=build /app/publish .
+
+# Production environment
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-# Bind to the port provided by Render.com
+# Bind to Render's assigned port
 ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
 
-# Expose the port (Render sets $PORT, but EXPOSE is good practice)
 EXPOSE 10000
 
-# Start the app
 ENTRYPOINT ["dotnet", "Portfolio.Web.dll"]
