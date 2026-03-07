@@ -27,13 +27,20 @@ builder.Services.AddSingleton(TimeProvider.System);
 // --------------------------
 // Dependency Injection
 // --------------------------
-builder.Services.AddScoped<ISavedFeatureRepository, SavedFeatureRepository>();
-builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
-builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
+
+// Repositories
 builder.Services.AddScoped<ICollectionRepository, CollectionRepository>();
-builder.Services.AddScoped<ICollectionService, CollectionService>();
+builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
+builder.Services.AddScoped<ISavedFeatureRepository, SavedFeatureRepository>();
+builder.Services.AddScoped<ISavedSearchRepository, SavedSearchRepository>();
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+
+// Services
+builder.Services.AddScoped<ICollectionService, CollectionService>();
+builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
+builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
 
 // --------------------------
 // Session
