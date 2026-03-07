@@ -130,93 +130,136 @@ body.dark-mode .toast {
     border: 1px solid var(--border) !important;
 }
 
-/* ======================================
-   Weight Bars — Responsive & Animated
-   ====================================== */
+/* ============================================================
+   Weight Budget Ring
+   ============================================================ */
+
+.weight-budget-ring {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.weight-budget-ring svg {
+    display: block;
+}
+
+.weight-budget-ring .ring-label {
+    position: absolute;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--bs-body-color, #fff);
+    pointer-events: none;
+}
+
+/* Ring stroke colors by state */
+#budgetRing {
+    transition: stroke-dashoffset 0.35s ease, stroke 0.35s ease;
+}
+
+#budgetRing.ring-valid {
+    stroke: var(--bs-success, #198754);
+}
+
+#budgetRing.ring-under {
+    stroke: var(--bs-warning, #ffc107);
+}
+
+#budgetRing.ring-over {
+    stroke: var(--bs-danger, #dc3545);
+}
+
+/* ============================================================
+   Weight Bar Enhancements
+   ============================================================ */
+
 .weight-bar-container {
-    width: 100%;
-    height: 6px;
-    background-color: var(--border);
+    height: 5px;
+    background: var(--bs-border-color, rgba(255, 255, 255, 0.08));
     border-radius: 3px;
     overflow: hidden;
     margin-top: 2px;
-    margin-bottom: 8px;
 }
 
 .weight-bar-fill {
     height: 100%;
-    min-width: 0;
-    max-width: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    background: var(--bs-accent, #0d6efd);
     border-radius: 3px;
-    transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    /* width is set dynamically via inline style or JS */
-    width: 0%;
-}
-
-/* Color coding: warn when a single weight is very high */
-.weight-bar-fill[data-weight-level="high"] {
-    background: linear-gradient(90deg, #e53e3e, #fc8181);
+    transition: width 0.3s ease, background-color 0.3s ease;
 }
 
 .weight-bar-fill[data-weight-level="medium"] {
-    background: linear-gradient(90deg, #dd6b20, #fbd38d);
+    background: var(--bs-warning, #ffc107);
 }
 
-/* Dark mode weight bar track */
-body.dark-mode .weight-bar-container {
-    background-color: #4a5568;
+.weight-bar-fill[data-weight-level="high"] {
+    background: var(--bs-danger, #dc3545);
 }
 
-/* ======================================
-   Score Bars (Result Cards)
-   ====================================== */
+/* Slider max-clamped visual hint — dims the slider when at 0 max */
+input.weight-slider[max="0"] {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+/* ============================================================
+   Toast Slide Animations
+   ============================================================ */
+
+.toast {
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.toast-slide-in {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.toast-slide-out {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+/* ============================================================
+   Score Bar (Results Panel)
+   ============================================================ */
+
 .score-bar-container {
-    width: 100%;
-    height: 8px;
-    background-color: var(--border);
-    border-radius: 4px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
     overflow: hidden;
     margin-top: 4px;
 }
 
 .score-bar-fill {
     height: 100%;
-    border-radius: 4px;
-    transition: width 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-    width: 0%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
 }
 
-/* Score color tiers */
 .score-bar-fill.score-excellent {
-    background: linear-gradient(90deg, #38a169, #48bb78);
+    background: var(--bs-success, #198754);
 }
 
 .score-bar-fill.score-good {
-    background: linear-gradient(90deg, #d69e2e, #ecc94b);
+    background: var(--bs-warning, #ffc107);
 }
 
 .score-bar-fill.score-fair {
-    background: linear-gradient(90deg, #e53e3e, #fc8181);
+    background: var(--bs-danger, #dc3545);
 }
 
-body.dark-mode .score-bar-container {
-    background-color: #4a5568;
-}
+/* ============================================================
+   Responsive — Collapse weights section on small screens
+   ============================================================ */
 
-/* ======================================
-   Result card hover & accessibility
-   ====================================== */
-#resultsPanel .card[data-property-id] {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-#resultsPanel .card[data-property-id]:hover {
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px var(--shadow);
-}
-
-#resultsPanel .card[data-property-id]:focus-visible {
-    outline: 3px solid rgba(56, 161, 105, 0.3);
-    outline-offset: 2px;
+@media (max-width: 767.98px) {
+    .weight-budget-ring svg {
+        width: 40px;
+        height: 40px;
+    }
 }
