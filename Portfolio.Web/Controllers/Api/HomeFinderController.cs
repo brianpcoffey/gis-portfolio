@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
-using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
 using System.Text.Json;
 
@@ -15,16 +14,16 @@ public class HomeFinderController : ControllerBase
 {
     private readonly IHomeScoringService _scoring;
     private readonly IUserProfileService _profileService;
-    private readonly ISavedSearchRepository _savedSearchRepo;
+    private readonly ISavedSearchService _savedSearchService;
 
     public HomeFinderController(
         IHomeScoringService scoring,
         IUserProfileService profileService,
-        ISavedSearchRepository savedSearchRepo)
+        ISavedSearchService savedSearchService)
     {
         _scoring = scoring;
         _profileService = profileService;
-        _savedSearchRepo = savedSearchRepo;
+        _savedSearchService = savedSearchService;
     }
 
     /// <summary>
@@ -69,6 +68,7 @@ public class HomeFinderController : ControllerBase
     [ProducesResponseType(typeof(SavedSearchDto), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
+    [ProducesResponseType(409)]
     public async Task<IActionResult> SaveSearch(
         [FromBody] SaveSearchRequest request,
         CancellationToken cancellationToken)
@@ -85,8 +85,15 @@ public class HomeFinderController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        var saved = await _savedSearchRepo.AddAsync(entity, cancellationToken);
-        return CreatedAtAction(nameof(GetSearch), new { id = saved.Id }, ToDto(saved));
+        try
+        {
+            var saved = await _savedSearchService.CreateSavedSearchAsync(entity, cancellationToken);
+            return CreatedAtAction(nameof(GetSearch), new { id = saved.Id }, ToDto(saved));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
     }
 
     /// <summary>
@@ -100,7 +107,7 @@ public class HomeFinderController : ControllerBase
         var userId = _profileService.GetCurrentUserId();
         if (userId is null) return Unauthorized();
 
-        var searches = await _savedSearchRepo.GetAllAsync(userId.Value, cancellationToken);
+        var searches = await _savedSearchService.GetSavedSearchesAsync(userId.Value, cancellationToken);
         return Ok(searches.Select(ToDto).ToList());
     }
 
@@ -116,7 +123,8 @@ public class HomeFinderController : ControllerBase
         var userId = _profileService.GetCurrentUserId();
         if (userId is null) return Unauthorized();
 
-        var search = await _savedSearchRepo.GetByIdAsync(id, userId.Value, cancellationToken);
+        var searches = await _savedSearchService.GetSavedSearchesAsync(userId.Value, cancellationToken);
+        var search = searches.FirstOrDefault(s => s.Id == id);
         if (search is null) return NotFound();
 
         return Ok(ToDto(search));
@@ -134,8 +142,15 @@ public class HomeFinderController : ControllerBase
         var userId = _profileService.GetCurrentUserId();
         if (userId is null) return Unauthorized();
 
-        var deleted = await _savedSearchRepo.DeleteAsync(id, userId.Value, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        try
+        {
+            await _savedSearchService.DeleteSavedSearchAsync(id, cancellationToken);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     // ===== Helpers =====

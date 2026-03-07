@@ -40,7 +40,9 @@ builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
 builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
+
 
 // --------------------------
 // Session
