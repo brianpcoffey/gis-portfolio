@@ -1,5 +1,42 @@
-// app.js — Smart Home Finder orchestration
+ï»¿// app.js â€” Smart Home Finder orchestration
 const API_BASE = "/api/homefinder";
+
+// ============================================================
+// OAuth-Aware Fetch Helper
+// ============================================================
+// The /api/* endpoints return 401 when the user is not authenticated
+// (instead of a 302 redirect to Google OAuth, which would cause CORS
+// errors from fetch/XHR). This helper detects 401 responses and
+// triggers a full-page redirect to the Google OAuth challenge endpoint.
+// After successful OAuth login, /signin-google sets the auth cookie
+// and the user is redirected back to the current page to resume.
+// ============================================================
+
+/**
+ * Wraps fetch() with automatic 401 â†’ OAuth redirect handling.
+ * If the server returns 401 (unauthenticated), we redirect the
+ * entire page to the login flow instead of failing silently.
+ *
+ * @param {string} url - The request URL.
+ * @param {RequestInit} [options] - Standard fetch options.
+ * @returns {Promise<Response>} The fetch response (if authenticated).
+ */
+async function apiFetch(url, options = {}) {
+    const res = await fetch(url, options);
+
+    if (res.status === 401) {
+        // Full-page redirect to Google OAuth challenge.
+        // returnUrl ensures the user comes back here after login.
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/Login?returnUrl=${returnUrl}`;
+
+        // Return a never-resolving promise so calling code doesn't
+        // continue executing while the redirect is in progress.
+        return new Promise(() => {});
+    }
+
+    return res;
+}
 
 let mapView = null;
 let mapInstance = null;
@@ -64,7 +101,7 @@ function getPreferences() {
 }
 
 // ============================================================
-// Weight Engine — Dynamic Clamping
+// Weight Engine â€” Dynamic Clamping
 // ============================================================
 
 /** Returns the integer sum of all weight sliders. */
@@ -148,7 +185,7 @@ function updateAllWeightBars() {
 }
 
 /**
- * Master status update — shows total, remaining, and gates the Search button.
+ * Master status update â€” shows total, remaining, and gates the Search button.
  * Also updates the circular/arc remaining-budget indicator.
  */
 function updateWeightStatus() {
@@ -211,7 +248,7 @@ function wireSliders() {
             lbl.textContent = el.value;
 
             if (cfg.divisor) {
-                // Weight slider — enforce budget, then update visuals
+                // Weight slider â€” enforce budget, then update visuals
                 enforceWeightBudget(sliderId);
                 updateWeightBar(sliderId);
                 updateWeightStatus();
@@ -232,7 +269,7 @@ function wireSliders() {
 }
 
 // ============================================================
-// Persistence — Save/Load slider state via localStorage
+// Persistence â€” Save/Load slider state via localStorage
 // ============================================================
 
 const PREFS_STORAGE_KEY = "homeFinderPrefs";
@@ -242,7 +279,7 @@ function persistPreferences() {
     try {
         const prefs = getPreferences();
         localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
-    } catch { /* quota exceeded / private browsing — silently ignore */ }
+    } catch { /* quota exceeded / private browsing â€” silently ignore */ }
 }
 
 /** Restores slider values from localStorage if present. Returns true if restored. */
@@ -307,7 +344,7 @@ function wireBasemapSelect() {
 }
 
 // ============================================================
-// Map — Plot Results
+// Map â€” Plot Results
 // ============================================================
 
 function plotResults(results) {
@@ -448,8 +485,8 @@ async function performSearch() {
         const diff = 100 - total;
         showToast(
             diff > 0
-                ? `Weights are ${diff}% under — adjust sliders to total 100%.`
-                : `Weights are ${Math.abs(diff)}% over — reduce sliders to total 100%.`,
+                ? `Weights are ${diff}% under \u2014 adjust sliders to total 100%.`
+                : `Weights are ${Math.abs(diff)}% over \u2014 reduce sliders to total 100%.`,
             "warning"
         );
         return;
@@ -461,7 +498,12 @@ async function performSearch() {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Searching\u2026';
 
     try {
-        const res = await fetch(`${API_BASE}/search`, {
+        // Use apiFetch instead of raw fetch so that a 401 response
+        // triggers a full-page redirect to Google OAuth login.
+        // This avoids the CORS error that would occur if the browser
+        // tried to follow a 302 redirect to accounts.google.com
+        // from within a fetch() call.
+        const res = await apiFetch(`${API_BASE}/search`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(prefs)
@@ -509,7 +551,7 @@ async function saveSearch() {
     if (!name) return;
 
     try {
-        const res = await fetch(`${API_BASE}/searches`, {
+        const res = await apiFetch(`${API_BASE}/searches`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -536,7 +578,7 @@ async function loadSavedSearches() {
     body.innerHTML = '<p class="text-muted text-center small">Loading\u2026</p>';
 
     try {
-        const res = await fetch(`${API_BASE}/searches`);
+        const res = await apiFetch(`${API_BASE}/searches`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const searches = await res.json();
 
@@ -580,7 +622,7 @@ async function loadSavedSearches() {
                 const id = btn.dataset.searchId;
                 if (!confirm("Delete this saved search?")) return;
                 try {
-                    const res = await fetch(`${API_BASE}/searches/${id}`, { method: "DELETE" });
+                    const res = await apiFetch(`${API_BASE}/searches/${id}`, { method: "DELETE" });
                     if (res.ok) {
                         btn.closest(".card").remove();
                         showToast("Search deleted.", "success");
@@ -599,7 +641,7 @@ async function loadSavedSearches() {
 
 async function applySavedSearch(searchId) {
     try {
-        const res = await fetch(`${API_BASE}/searches/${searchId}`);
+        const res = await apiFetch(`${API_BASE}/searches/${searchId}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const saved = await res.json();
 

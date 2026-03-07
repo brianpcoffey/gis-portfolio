@@ -74,6 +74,38 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new CookieAuthenticationEvents
     {
+        // -------------------------------------------------------
+        // Return 401 for unauthenticated API requests instead of
+        // a 302 redirect to the login page. This prevents fetch/XHR
+        // calls from silently following a redirect to Google OAuth,
+        // which causes CORS errors because accounts.google.com
+        // does not include the caller's origin in its CORS headers.
+        //
+        // Non-API (Razor Pages) requests still get the normal 302
+        // redirect so full-page navigation to Google OAuth works.
+        // -------------------------------------------------------
+        OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        },
+        OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        },
         OnSignedIn = async context =>
         {
             var principal = context.Principal;
