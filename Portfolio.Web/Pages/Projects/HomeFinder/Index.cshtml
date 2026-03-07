@@ -1,0 +1,199 @@
+﻿@page
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Redlands Smart Home Finder";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+<link rel="stylesheet" href="~/css/homefinder.css" />
+
+<div class="container-fluid py-3 theme-root">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="theme-surface shadow-sm rounded p-3">
+                <h2 class="mb-1"><i class="fa-solid fa-house-chimney me-2"></i>Redlands Smart Home Finder</h2>
+                <p class="text-muted theme-text-muted small mb-0">
+                    Discover the top 10 homes in Redlands, CA that match your preferences.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left: Preferences Panel -->
+        <div class="col-lg-3 col-md-4 mb-3">
+            <div class="theme-surface shadow-sm rounded p-3">
+                <h5 class="mb-3"><i class="fa-solid fa-sliders me-1"></i>Preferences</h5>
+
+                <div class="mb-3">
+                    <label class="form-label small" for="sliderMaxPrice"><i class="fa-solid fa-dollar-sign me-1"></i>Max Price: $<span id="lblMaxPrice">800000</span></label>
+                    <input type="range" class="form-range" id="sliderMaxPrice" min="100000" max="2000000" step="25000" value="800000" aria-label="Maximum price">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small" for="sliderMonthlyBudget"><i class="fa-solid fa-calendar-check me-1"></i>Max Monthly Budget: $<span id="lblMonthlyBudget">4000</span></label>
+                    <input type="range" class="form-range" id="sliderMonthlyBudget" min="1000" max="10000" step="100" value="4000" aria-label="Maximum monthly budget">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small" for="sliderMinBed"><i class="fa-solid fa-bed me-1"></i>Min Bedrooms: <span id="lblMinBed">2</span></label>
+                    <input type="range" class="form-range" id="sliderMinBed" min="1" max="6" step="1" value="2" aria-label="Minimum bedrooms">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small" for="sliderMinBath"><i class="fa-solid fa-bath me-1"></i>Min Bathrooms: <span id="lblMinBath">1</span></label>
+                    <input type="range" class="form-range" id="sliderMinBath" min="1" max="5" step="1" value="1" aria-label="Minimum bathrooms">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small"><i class="fa-solid fa-ruler-combined me-1"></i>Min Sq Ft: <span id="lblMinSqft">800</span></label>
+                    <input type="range" class="form-range" id="sliderMinSqft" min="400" max="5000" step="100" value="800">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small"><i class="fa-solid fa-car me-1"></i>Max Commute (min): <span id="lblMaxCommute">45</span></label>
+                    <input type="range" class="form-range" id="sliderMaxCommute" min="5" max="90" step="5" value="45">
+                </div>
+
+                <hr>
+                <h6 class="mb-2"><i class="fa-solid fa-weight-scale me-1"></i>Weights</h6>
+
+                <!-- Weight validation indicator -->
+                <div id="weightStatus" class="alert alert-success small py-1 px-2 mb-2" role="alert">
+                    <i class="fa-solid fa-circle-check me-1"></i>Total: <strong id="weightTotal">100</strong>% <span class="text-muted">— must equal 100%</span>
+                </div>
+
+                <!-- Each weight slider now has a visual bar beneath it -->
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-piggy-bank me-1"></i>Affordability: <span id="lblWAfford">20</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWAfford" min="0" max="100" step="5" value="20">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWAfford" style="width: 20%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-people-roof me-1"></i>Neighborhood: <span id="lblWNeighbor">15</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWNeighbor" min="0" max="100" step="5" value="15">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWNeighbor" style="width: 15%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-expand me-1"></i>Size: <span id="lblWSize">10</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWSize" min="0" max="100" step="5" value="10">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWSize" style="width: 10%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-chart-line me-1"></i>Appreciation: <span id="lblWAppreciation">10</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWAppreciation" min="0" max="100" step="5" value="10">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWAppreciation" style="width: 10%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-wrench me-1"></i>Condition: <span id="lblWCondition">10</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWCondition" min="0" max="100" step="5" value="10">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWCondition" style="width: 10%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-road me-1"></i>Commute: <span id="lblWCommute">10</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWCommute" min="0" max="100" step="5" value="10">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWCommute" style="width: 10%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-store me-1"></i>Amenities: <span id="lblWAmenities">10</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWAmenities" min="0" max="100" step="5" value="10">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWAmenities" style="width: 10%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Low Tax/Util: <span id="lblWTax">5</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWTax" min="0" max="100" step="5" value="5">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWTax" style="width: 5%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-tags me-1"></i>Resale: <span id="lblWResale">5</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWResale" min="0" max="100" step="5" value="5">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWResale" style="width: 5%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small"><i class="fa-solid fa-leaf me-1"></i>Environment: <span id="lblWEnv">5</span>%</label>
+                    <input type="range" class="form-range weight-slider" id="sliderWEnv" min="0" max="100" step="5" value="5">
+                    <div class="weight-bar-container" aria-hidden="true">
+                        <div class="weight-bar-fill" id="barWEnv" style="width: 5%;"></div>
+                    </div>
+                </div>
+
+                <button id="btnSearch" class="btn btn-accent w-100 mt-3">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i>Find Homes
+                </button>
+                <button id="btnSaveSearch" class="btn btn-outline-accent w-100 mt-2" disabled>
+                    <i class="fa-solid fa-bookmark me-1"></i>Save Search
+                </button>
+                <button id="btnLoadSearches" class="btn btn-outline-secondary w-100 mt-2">
+                    <i class="fa-solid fa-folder-open me-1"></i>Load Saved Searches
+                </button>
+            </div>
+        </div>
+
+        <!-- Center: Map + View Switcher -->
+        <div class="col-lg-6 col-md-8 mb-3">
+            <div class="theme-surface shadow-sm rounded overflow-hidden position-relative" style="height: 600px;">
+                <!-- Basemap Switcher Toolbar -->
+                <div id="mapToolbar" class="position-absolute top-0 end-0 m-2 z-3">
+                    <select id="basemapSelect" class="form-select form-select-sm basemap-select" aria-label="Select basemap view">
+                        <option value="dark-gray-vector" selected>Dark Gray</option>
+                        <option value="satellite">Satellite</option>
+                        <option value="hybrid">Hybrid</option>
+                        <option value="streets-navigation-vector">Streets</option>
+                        <option value="topo-vector">Topographic</option>
+                        <option value="osm">OpenStreetMap</option>
+                    </select>
+                </div>
+                <div id="homeFinderMap" style="width: 100%; height: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Right: Results Panel -->
+        <div class="col-lg-3 col-md-12">
+            <div class="theme-surface shadow-sm rounded p-3">
+                <h5 class="mb-3"><i class="fa-solid fa-trophy me-1"></i>Top 10 Results</h5>
+                <div id="resultsPanel">
+                    <p class="text-muted text-center small">Adjust preferences and click "Find Homes"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Saved Searches Modal -->
+<div class="modal fade" id="savedSearchesModal" tabindex="-1" aria-labelledby="savedSearchesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content theme-modal">
+            <div class="modal-header theme-modal-header">
+                <h5 class="modal-title" id="savedSearchesModalLabel"><i class="fa-solid fa-bookmark me-1"></i>Saved Searches</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="savedSearchesBody">
+                <p class="text-muted text-center small">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/dark/main.css">
+    <script src="https://js.arcgis.com/4.29/"></script>
+    <script src="~/js/HomeFinder/app.js"></script>
+}

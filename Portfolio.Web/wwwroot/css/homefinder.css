@@ -1,0 +1,265 @@
+/* ======================================
+   Home Finder — Dark Mode Contrast Fixes
+   ====================================== */
+
+/* Weight status alert in dark mode */
+body.dark-mode #weightStatus {
+    background-color: rgba(40, 167, 69, 0.15) !important;
+    color: #a3e4b8 !important;
+    border-color: rgba(40, 167, 69, 0.3) !important;
+}
+
+body.dark-mode #weightStatus.alert-danger {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+    color: #f5a9b3 !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+}
+
+body.dark-mode #weightStatus .text-muted {
+    color: #a0aec0 !important;
+}
+
+/* Slider labels in dark mode — high contrast */
+body.dark-mode .form-label.small,
+body.dark-mode .form-label {
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .form-label .fa-solid {
+    color: #90cdf4 !important;
+}
+
+/* Preferences panel heading */
+body.dark-mode h5,
+body.dark-mode h6 {
+    color: #f7fafc !important;
+}
+
+/* Horizontal rule contrast */
+body.dark-mode hr {
+    border-color: #4a5568 !important;
+    opacity: 0.5;
+}
+
+/* Results cards in dark mode */
+body.dark-mode #resultsPanel .card,
+body.dark-mode #resultsPanel .theme-card {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+body.dark-mode #resultsPanel .card .text-muted,
+body.dark-mode #resultsPanel .card .theme-text-muted {
+    color: #cbd5e0 !important;
+}
+
+/* Saved searches modal in dark mode */
+body.dark-mode #savedSearchesBody .card {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+body.dark-mode #savedSearchesBody .theme-text-muted {
+    color: #a0aec0 !important;
+}
+
+/* Basemap select dropdown */
+.basemap-select {
+    min-width: 160px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px var(--shadow);
+    opacity: 0.92;
+    transition: opacity 0.2s ease;
+}
+
+.basemap-select:hover {
+    opacity: 1;
+}
+
+body.dark-mode .basemap-select {
+    background: #2d3748 !important;
+    color: #f7fafc !important;
+    border-color: #4a5568 !important;
+}
+
+body.dark-mode .basemap-select option {
+    background: #2d3748;
+    color: #f7fafc;
+}
+
+/* Map popup in dark mode (ArcGIS overrides) */
+body.dark-mode .esri-popup__main-container {
+    background: #2d3748 !important;
+    color: #f7fafc !important;
+    border-color: #4a5568 !important;
+}
+
+body.dark-mode .esri-popup__header-title {
+    color: #f7fafc !important;
+}
+
+body.dark-mode .esri-popup__content {
+    color: #e2e8f0 !important;
+}
+
+/* Range slider track in dark mode */
+body.dark-mode .form-range::-webkit-slider-runnable-track {
+    background: #4a5568;
+}
+
+body.dark-mode .form-range::-moz-range-track {
+    background: #4a5568;
+}
+
+body.dark-mode .form-range::-webkit-slider-thumb {
+    background: var(--accent);
+}
+
+body.dark-mode .form-range::-moz-range-thumb {
+    background: var(--accent);
+}
+
+/* Toast container in dark mode */
+body.dark-mode .toast {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* ============================================================
+   Weight Budget Ring
+   ============================================================ */
+
+.weight-budget-ring {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.weight-budget-ring svg {
+    display: block;
+}
+
+.weight-budget-ring .ring-label {
+    position: absolute;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--bs-body-color, #fff);
+    pointer-events: none;
+}
+
+/* Ring stroke colors by state */
+#budgetRing {
+    transition: stroke-dashoffset 0.35s ease, stroke 0.35s ease;
+}
+
+#budgetRing.ring-valid {
+    stroke: var(--bs-success, #198754);
+}
+
+#budgetRing.ring-under {
+    stroke: var(--bs-warning, #ffc107);
+}
+
+#budgetRing.ring-over {
+    stroke: var(--bs-danger, #dc3545);
+}
+
+/* ============================================================
+   Weight Bar Enhancements
+   ============================================================ */
+
+.weight-bar-container {
+    height: 5px;
+    background: var(--bs-border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 2px;
+}
+
+.weight-bar-fill {
+    height: 100%;
+    background: var(--bs-accent, #0d6efd);
+    border-radius: 3px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.weight-bar-fill[data-weight-level="medium"] {
+    background: var(--bs-warning, #ffc107);
+}
+
+.weight-bar-fill[data-weight-level="high"] {
+    background: var(--bs-danger, #dc3545);
+}
+
+/* Slider max-clamped visual hint — dims the slider when at 0 max */
+input.weight-slider[max="0"] {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+/* ============================================================
+   Toast Slide Animations
+   ============================================================ */
+
+.toast {
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.toast-slide-in {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.toast-slide-out {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+/* ============================================================
+   Score Bar (Results Panel)
+   ============================================================ */
+
+.score-bar-container {
+    height: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.score-bar-fill.score-excellent {
+    background: var(--bs-success, #198754);
+}
+
+.score-bar-fill.score-good {
+    background: var(--bs-warning, #ffc107);
+}
+
+.score-bar-fill.score-fair {
+    background: var(--bs-danger, #dc3545);
+}
+
+/* ============================================================
+   Responsive — Collapse weights section on small screens
+   ============================================================ */
+
+@media (max-width: 767.98px) {
+    .weight-budget-ring svg {
+        width: 40px;
+        height: 40px;
+    }
+}
