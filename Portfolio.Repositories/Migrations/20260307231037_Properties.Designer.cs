@@ -12,8 +12,8 @@ using Portfolio.Repositories;
 namespace Portfolio.Repositories.Migrations
 {
     [DbContext(typeof(PortfolioDbContext))]
-    [Migration("20260307174608_HomeSearch")]
-    partial class HomeSearch
+    [Migration("20260307231037_Properties")]
+    partial class Properties
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
