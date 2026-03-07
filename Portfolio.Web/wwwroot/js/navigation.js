@@ -18,6 +18,9 @@ function initSmoothScroll() {
             const targetId = this.getAttribute('href');
             if (targetId === '#') return;
 
+            // Skip dropdown toggles — they are handled by Bootstrap
+            if (this.classList.contains('dropdown-toggle')) return;
+
             const target = document.querySelector(targetId);
             if (target) {
                 e.preventDefault();
@@ -53,12 +56,22 @@ function initStickyNavbar() {
 }
 
 /**
- * Handle mobile menu close on link click
+ * Handle mobile menu close on link click.
+ * Excludes dropdown toggles so the profile dropdown can open on mobile.
  */
 function initMobileMenu() {
     const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
     navLinks.forEach(link => {
+        // Don't close the mobile menu when tapping a dropdown toggle
+        if (link.classList.contains('dropdown-toggle')) return;
+
         link.addEventListener('click', closeMobileMenu);
+    });
+
+    // Close mobile menu when a dropdown *item* is clicked (e.g., "My Profile")
+    const dropdownItems = document.querySelectorAll('.navbar-nav .dropdown-item');
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', closeMobileMenu);
     });
 }
 
