@@ -9,36 +9,41 @@
         <h1 class="section-title text-center mb-5">All Projects</h1>
 
         <div class="row g-4">
+            <!-- US State Explorer -->
             <div class="col-12 col-md-6 col-lg-4">
-                <article class="project-card h-100" aria-labelledby="stateExplorerTitle">
-                    <div class="project-image" aria-hidden="true"><i class="fa-solid fa-map fa-3x"></i></div>
-                    <div class="project-info">
+                <article class="project-card h-100 d-flex flex-column" aria-labelledby="stateExplorerTitle">
+                    <div class="project-image mb-3 text-center" aria-hidden="true">
+                        <i class="fa-solid fa-map fa-3x"></i>
+                    </div>
+                    <div class="project-info flex-grow-1 d-flex flex-column">
                         <h3 id="stateExplorerTitle" class="project-title">US State Explorer</h3>
-                        <p class="project-desc">Explore, compare, and analyze U.S. states with an interactive ArcGIS-powered dashboard and ASP.NET Core backend.</p>
-                        <div class="project-stack"><span>ArcGIS JS</span><span>ASP.NET Core</span></div>
-                        <div class="mt-3">
+                        <p class="project-desc flex-grow-1">Explore, compare, and analyze U.S. states with an interactive ArcGIS-powered dashboard and ASP.NET Core backend.</p>
+                        <div class="project-stack mb-3"><span>ArcGIS JS</span> <span>ASP.NET Core</span></div>
+                        <div>
                             <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/StateExplorer/Index">Demo</a>
                             <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
                         </div>
                     </div>
                 </article>
             </div>
-        </div>
 
-        <div class="col-12 col-md-6 col-lg-4">
-            <article class="project-card h-100" aria-labelledby="homeFinderTitle">
-                <div class="project-image" aria-hidden="true"><i class="fa-solid fa-house fa-3x"></i></div>
-                <div class="project-info">
-                    <h3 id="homeFinderTitle" class="project-title">Redlands Smart Home Finder</h3>
-                    <p class="project-desc">GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.</p>
-                    <div class="project-stack"><span>ArcGIS JS</span><span>ASP.NET Core</span><span>PostgreSQL</span></div>
-                    <div class="mt-3">
-                        <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/HomeFinder/Index">Demo</a>
-                        <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio_v2" target="_blank" rel="noopener">GitHub</a>
+            <!-- Redlands Smart Home Finder -->
+            <div class="col-12 col-md-6 col-lg-4">
+                <article class="project-card h-100 d-flex flex-column" aria-labelledby="homeFinderTitle">
+                    <div class="project-image mb-3 text-center" aria-hidden="true">
+                        <i class="fa-solid fa-house fa-3x"></i>
                     </div>
-                </div>
-            </article>
+                    <div class="project-info flex-grow-1 d-flex flex-column">
+                        <h3 id="homeFinderTitle" class="project-title">Redlands Smart Home Finder</h3>
+                        <p class="project-desc flex-grow-1">GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.</p>
+                        <div class="project-stack mb-3"><span>ArcGIS JS</span> <span>ASP.NET Core</span> <span>PostgreSQL</span></div>
+                        <div>
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/HomeFinder/Index">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio_v2" target="_blank" rel="noopener">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+            </div>
         </div>
-
     </div>
 </section>
