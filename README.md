@@ -1,68 +1,57 @@
 # Brian Patrick Coffey – Software Engineering Portfolio
 
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-8.0-512BD4?style=flat&logo=dotnet&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=flat&logo=bootstrap&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon.tech-4169E1?style=flat&logo=postgresql&logoColor=white)
+![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
+
 ## Overview
 
-This is a portfolio web application showcasing the work and expertise of **Brian Patrick Coffey**, a software engineer focused on creating innovative solutions for the **United States Air Force**. The portfolio demonstrates projects across **financial systems, administrative automation, and geographic information systems (GIS)**, highlighting modern web development skills, secure authentication, and responsive design.
+A modern software engineering portfolio showcasing projects in geographic information systems (GIS), smart home data applications, and interactive state-level tools. Built with an emphasis on secure authentication, responsive design, and cloud deployment.
 
-Built with **ASP.NET Core 8**, **Razor Pages**, and **Bootstrap 5**, the portfolio includes **Google authentication integration**, **dark/light mode toggle**, and **responsive layouts** suitable for both desktop and mobile devices.
+The portfolio is built with **ASP.NET Core 8**, **Razor Pages**, and **Bootstrap 5**, featuring Google OAuth authentication, dark/light mode toggle, and layouts optimized for desktop and mobile. It is hosted on **Render**, with a **Neon.tech PostgreSQL** database powering project data and backend functionality.
 
 ---
 
 ## Features
 
 ### Authentication
-
-* **Google OAuth 2.0 Sign-In**
-
-  * Secure login using Google accounts
-  * Automatically retrieves basic profile information (name, email, profile picture)
-  * Forced login modal ensures users authenticate before accessing content
-* **Cookie-based session management**
-* **Sign-out functionality** with seamless redirection
+- **Google OAuth 2.0 Sign-In** — secure login using Google accounts
+- Retrieves basic profile information (name, email, profile picture)
+- Login modal ensures authentication before accessing content
+- Cookie-based session management
+- Sign-out functionality with smooth redirection
 
 ### UI & UX
+- Fully responsive design with Bootstrap 5
+- Dark/Light mode toggle with preference persistence
+- Profile avatar dropdown with compact logout menu
+- Card-based project showcase with icons, titles, and descriptions
+- About Me section with professional summary and dark/light mode styling
 
-* **Responsive design** with Bootstrap 5
-* **Dark/Light mode toggle** with localStorage persistence
-* **Sleek profile avatar dropdown**
+---
 
-  * No extra dropdown arrows
-  * Compact logout menu
-* **Card-based project showcase**
+## Projects Highlighted
 
-  * Icons, titles, and descriptions for each project
-* **About Me section**
+### 🗺️ US State Explorer
+An interactive state-level data exploration tool using GIS mapping and visualization techniques. PostgreSQL (Neon.tech) backend stores state and demographic data.
 
-  * Professional summary with card-like styling
-  * Fully readable in light and dark mode
-
-### Projects Highlighted
-
-* **Geographic Information Systems (GIS)**
-
-  * Mini-projects leveraging GIS software for Air Force operational analysis
-* **Financial Systems**
-
-  * Secure, efficient applications for budgeting, reporting, and resource management
-* **Administrative Automation**
-
-  * Tools to automate routine administrative tasks, improving productivity
-
-### Additional
-
-* Google Sign-In button styled similar to native Google UI
-* Accessible and semantic markup
-* Fully mobile-responsive
+### 🏠 Redlands Smart Home Finder
+An application for locating and comparing smart home devices in Redlands. Filters and sorts devices based on features and pricing, connected to a Neon.tech PostgreSQL database for real-time inventory.
 
 ---
 
 ## Technology Stack
 
-* **Backend:** ASP.NET Core 8, Razor Pages
-* **Frontend:** Bootstrap 5, Font Awesome, Vanilla JavaScript
-* **Authentication:** Google OAuth 2.0, Cookie Authentication
-* **Styling:** Custom CSS with dark/light mode support
-* **Documentation:** Swagger/OpenAPI integration
+| Layer | Technology |
+|---|---|
+| Backend | ASP.NET Core 8, C# |
+| Frontend | Bootstrap 5, Font Awesome, Vanilla JavaScript, Razor Pages |
+| Database | PostgreSQL (Neon.tech) |
+| Authentication | Google OAuth 2.0, Cookie Authentication |
+| Styling | Custom CSS with dark/light mode support |
+| Containerization | Docker |
+| Hosting | Render |
 
 ---
 
@@ -70,42 +59,53 @@ Built with **ASP.NET Core 8**, **Razor Pages**, and **Bootstrap 5**, the portfol
 
 ### Prerequisites
 
-* [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-* A Google Developer Console project with **OAuth 2.0 credentials**
-* IDE or code editor (Visual Studio, VS Code, etc.)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- A [Google Developer Console](https://console.developers.google.com/) project with OAuth 2.0 credentials
+- Access to a [Neon.tech](https://neon.tech/) PostgreSQL database
+- IDE or code editor (Visual Studio, VS Code, etc.)
 
 ### Setup
 
-1. Clone the repository:
-
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/username/portfolio.git
    ```
-2. Navigate to the project folder:
 
+2. **Navigate to the project folder:**
    ```bash
    cd portfolio
    ```
-3. Add your **Google OAuth Client ID** and **Client Secret** to `appsettings.json`:
 
+3. **Add your credentials to `appsettings.json`:**
    ```json
    "Authentication": {
        "Google": {
            "ClientId": "YOUR_CLIENT_ID",
            "ClientSecret": "YOUR_CLIENT_SECRET"
        }
+   },
+   "Database": {
+       "ConnectionString": "Host=your_neon_host;Port=5432;Database=your_db;Username=your_user;Password=your_password;"
    }
    ```
-4. Restore dependencies and run the application:
 
+4. **Restore dependencies and run the application:**
    ```bash
    dotnet restore
    dotnet run
    ```
-5. Open your browser at `https://localhost:5001` to view the portfolio.
+
+5. Open your browser at `https://localhost:5001` (or your Render URL) to view the portfolio.
+
+---
+
+## Deployment
+
+- Hosted on **Render** with continuous deployment from GitHub.
+- Database hosted on **Neon.tech**, ensuring cloud scalability and performance.
 
 ---
 
 ## License
 
-This project is public. Feel free to use or adapt it for personal portfolios.
+This project is public. You may use or adapt it for personal portfolios or learning purposes.
