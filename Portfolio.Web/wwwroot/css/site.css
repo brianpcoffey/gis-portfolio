@@ -1,3 +1,13 @@
+﻿/* ======================================
+   Portfolio – CSS Entry Point
+   Import order: base → layout → components → sections → utilities
+   ====================================== */
+@import url('base.css');
+@import url('layout.css');
+@import url('components.css');
+@import url('contact.css');
+@import url('utilities.css');
+
 /* ======================================
    CSS Variables - GIS-Inspired Palette
    ====================================== */
@@ -174,6 +184,41 @@ body.dark-mode .theme-toggle-btn {
 .profile-avatar:hover .profile-img {
     transform: scale(1.05);
     border-color: var(--accent-light);
+}
+
+/* ======================================
+   User Dropdown - Mobile Touch Target & Positioning
+   ====================================== */
+.user-dropdown-toggle {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* On mobile, prevent dropdown from going off-screen */
+@media (max-width: 991.98px) {
+    .nav-item.dropdown .dropdown-menu {
+        position: static !important;
+        float: none;
+        width: 100%;
+        margin-top: 0.25rem;
+        border: none;
+        box-shadow: none;
+        background-color: var(--surface);
+    }
+
+    .user-dropdown-toggle {
+        justify-content: flex-start;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .user-dropdown-toggle .d-none.d-lg-inline {
+        display: inline !important;
+    }
 }
 
 /* ======================================
