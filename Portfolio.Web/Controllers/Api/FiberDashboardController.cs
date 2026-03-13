@@ -16,7 +16,15 @@ public class FiberDashboardController : ControllerBase
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
     {
-        var result = await _dashboardService.GetDashboardAsync(cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _dashboardService.GetDashboardAsync(cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            // Log the error (for now, return details in response)
+            return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+        }
     }
 }
