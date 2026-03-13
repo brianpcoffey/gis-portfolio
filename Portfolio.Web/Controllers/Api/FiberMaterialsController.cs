@@ -17,15 +17,29 @@ public class FiberMaterialsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var result = await _materialService.GetAllAsync(cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _materialService.GetAllAsync(cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+        }
     }
 
     [HttpPost("{id}/receive")]
     public async Task<IActionResult> ReceiveStock(int id, [FromBody] ReceiveStockDto dto, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        var result = await _materialService.ReceiveStockAsync(id, dto, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _materialService.ReceiveStockAsync(id, dto, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+        }
     }
 }
