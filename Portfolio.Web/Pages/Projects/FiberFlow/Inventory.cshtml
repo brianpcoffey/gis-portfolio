@@ -1,0 +1,18 @@
+@page
+@attribute [Authorize]
+@model Portfolio.Web.Pages.Projects.FiberFlow.InventoryModel
+@{
+    ViewData["Title"] = "FiberFlow Inventory";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+<link rel="stylesheet" href="/css/fiberflow.css" />
+<div class="theme-root">
+    <div class="mb-3" id="fiberInventorySummary"></div>
+    <div id="fiberInventoryGrid"></div>
+</div>
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://kendo.cdn.telerik.com/2024.1.1112/styles/kendo.bootstrap-v4.min.css" />
+    <script src="https://kendo.cdn.telerik.com/2024.1.1112/js/kendo.all.min.js"></script>
+    <script src="/js/fiberflow-inventory.js"></script>
+}

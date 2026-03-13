@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Scalar.AspNetCore;
 using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Repositories;
@@ -12,7 +13,6 @@ using Portfolio.Repositories.Repositories;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 using Portfolio.Web.Middleware;
-using System.Reflection;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +29,12 @@ builder.Services.AddSingleton(TimeProvider.System);
 // --------------------------
 
 // Repositories
+
+builder.Services.AddScoped<IFiberClientRepository, FiberClientRepository>();
+builder.Services.AddScoped<IFiberOrderRepository, FiberOrderRepository>();
+builder.Services.AddScoped<IFiberShipmentRepository, FiberShipmentRepository>();
+builder.Services.AddScoped<IFiberMaterialRepository, FiberMaterialRepository>();
+builder.Services.AddScoped<IFiberInventoryTransactionRepository, FiberInventoryTransactionRepository>();
 builder.Services.AddScoped<ICollectionRepository, CollectionRepository>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<ISavedFeatureRepository, SavedFeatureRepository>();
@@ -36,6 +42,12 @@ builder.Services.AddScoped<ISavedSearchRepository, SavedSearchRepository>();
 builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
 // Services
+
+builder.Services.AddScoped<IFiberOrderService, FiberOrderService>();
+builder.Services.AddScoped<IFiberShipmentService, FiberShipmentService>();
+builder.Services.AddScoped<IFiberMaterialService, FiberMaterialService>();
+builder.Services.AddScoped<IFiberDashboardService, FiberDashboardService>();
+builder.Services.AddScoped<IFiberSeedService, FiberSeedService>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
@@ -170,41 +182,10 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddControllers();
-
 // --------------------------
 // Swagger / API Explorer
 // --------------------------
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-        options.IncludeXmlComments(xmlPath);
-
-    options.AddSecurityDefinition("cookieAuth", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Name = "Cookie",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        In = Microsoft.OpenApi.Models.ParameterLocation.Cookie,
-        Description = "Cookie-based authentication"
-    });
-
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "cookieAuth"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
 
 // --------------------------
 // Database Context (PostgreSQL via Render / Supabase)
@@ -249,13 +230,12 @@ app.UseMiddleware<AnonymousUserMiddleware>();
 // --------------------------
 // Swagger UI
 // --------------------------
+
+// OpenAPI & Scalar UI in development
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Portfolio API V1");
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 // --------------------------
