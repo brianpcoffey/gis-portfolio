@@ -98,34 +98,3 @@
     }
 
 })();
-            columns: [
-                { field: "sku", title: "SKU", width: 110 },
-                { field: "name", title: "Material" },
-                { field: "unitOfMeasure", title: "UOM", width: 70 },
-                { field: "qtyOnHand", title: "Qty On Hand", width: 110 },
-                { field: "reorderPoint", title: "Reorder Pt", width: 100 },
-                { field: "unitCost", title: "Unit Cost", format: "{0:c2}", width: 100 },
-                { field: "totalValue", title: "Total Value", format: "{0:c2}", width: 120 },
-                { field: "supplier", title: "Supplier" },
-                { field: "warehouseLocation", title: "Location", width: 90 },
-                { command: [{ name: "receive", text: "Receive Stock", click: function(e) {
-                    e.preventDefault();
-                    var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
-                    receiveStockDialog(dataItem);
-                }}], title: "", width: 130 }
-            ],
-            sortable: true,
-            filterable: true,
-            pageable: { pageSize: 15 },
-            dataBound: function() {
-                var grid = this;
-                grid.tbody.find("tr").each(function() {
-                    var dataItem = grid.dataItem($(this));
-                    if (dataItem && dataItem.isLowStock) {
-                        $(this).addClass("fiber-low-stock");
-                    }
-                });
-            }
-        });
-    }
-})();

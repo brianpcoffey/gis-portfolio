@@ -4,6 +4,12 @@
     Layout = "/Pages/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="/css/fiberflow.css" />
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+<script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css" />
+<script src="https://js.arcgis.com/4.30/"></script>
 <div class="container fiberflow-index">
     <h1 class="display-5 mb-1">FiberFlow Operations System</h1>
     <p class="lead mb-4">Industrial plant operations dashboard for fiberglass duct manufacturing.</p>
@@ -32,12 +38,6 @@
                 </div>
             </div>
         </div>
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-        <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
-        <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
-        <script src="https://d3js.org/d3.v7.min.js"></script>
-        <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css" />
-        <script src="https://js.arcgis.com/4.30/"></script>
         <script src="~/js/FiberFlow/fiberflow-dashboard.js"></script>
     </div>
     <div id="tabpanel-orders" role="tabpanel" aria-labelledby="tab-orders" hidden>
@@ -45,11 +45,6 @@
             <div id="fiberOrdersGrid"></div>
             <div class="fiber-order-drawer" id="fiberOrderDrawer"></div>
         </div>
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-        <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
-        <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
-        <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css" />
-        <script src="https://js.arcgis.com/4.30/"></script>
         <script src="~/js/FiberFlow/fiberflow-orders.js"></script>
     </div>
     <div id="tabpanel-shipments" role="tabpanel" aria-labelledby="tab-shipments" hidden>
@@ -61,11 +56,6 @@
                 <div id="fiberShipmentMap"></div>
             </div>
         </div>
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-        <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
-        <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
-        <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css" />
-        <script src="https://js.arcgis.com/4.30/"></script>
         <script src="~/js/FiberFlow/fiberflow-shipments.js"></script>
     </div>
     <div id="tabpanel-inventory" role="tabpanel" aria-labelledby="tab-inventory" hidden>
@@ -73,9 +63,6 @@
             <div class="mb-3" id="fiberInventorySummary"></div>
             <div id="fiberInventoryGrid"></div>
         </div>
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-        <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
-        <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
         <script src="~/js/FiberFlow/fiberflow-inventory.js"></script>
     </div>
 </div>
