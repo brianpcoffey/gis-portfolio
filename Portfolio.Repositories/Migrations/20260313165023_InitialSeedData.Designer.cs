@@ -12,15 +12,15 @@ using Portfolio.Repositories;
 namespace Portfolio.Repositories.Migrations
 {
     [DbContext(typeof(PortfolioDbContext))]
-    [Migration("20260313152406_AddFiberFlow")]
-    partial class AddFiberFlow
+    [Migration("20260313165023_InitialSeedData")]
+    partial class InitialSeedData
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
