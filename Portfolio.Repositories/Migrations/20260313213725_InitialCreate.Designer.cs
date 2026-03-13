@@ -12,8 +12,8 @@ using Portfolio.Repositories;
 namespace Portfolio.Repositories.Migrations
 {
     [DbContext(typeof(PortfolioDbContext))]
-    [Migration("20260313165023_InitialSeedData")]
-    partial class InitialSeedData
+    [Migration("20260313213725_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
