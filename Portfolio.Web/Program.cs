@@ -47,7 +47,6 @@ builder.Services.AddScoped<IFiberOrderService, FiberOrderService>();
 builder.Services.AddScoped<IFiberShipmentService, FiberShipmentService>();
 builder.Services.AddScoped<IFiberMaterialService, FiberMaterialService>();
 builder.Services.AddScoped<IFiberDashboardService, FiberDashboardService>();
-builder.Services.AddScoped<IFiberSeedService, FiberSeedService>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
