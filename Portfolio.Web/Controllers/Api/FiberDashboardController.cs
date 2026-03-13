@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Services.Interfaces;
 
-namespace Portfolio.Web.Controllers;
+namespace Portfolio.Web.Controllers.Api;
 
 [ApiController]
 [Route("api/[controller]")]
