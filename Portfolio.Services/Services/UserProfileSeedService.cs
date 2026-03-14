@@ -21,10 +21,6 @@ public class UserProfileSeedService
         // FIBER CLIENTS
         // ===================================================
 
-        // =================================================== 
-        // FIBER CLIENTS
-        // ===================================================
-
         if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Gulf Coast Chemical"))
         {
             _db.FiberClients.Add(new FiberClient

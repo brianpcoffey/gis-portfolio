@@ -172,7 +172,6 @@ namespace Portfolio.Services.Services
                         CreatedDate = now,
                         LastActiveDate = now
                     }, cancellationToken);
-                    // Seed related data for this new user
                     await _seedService.SeedForUserAsync(userId);
                 }
 
