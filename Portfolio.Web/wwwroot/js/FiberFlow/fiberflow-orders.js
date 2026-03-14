@@ -27,6 +27,10 @@
     }
 
     function initOrdersTable() {
+        if (typeof $.fn.DataTable === 'undefined') {
+            console.error('DataTables not loaded');
+            return;
+        }
         if ($.fn.DataTable.isDataTable('#fiberOrdersGrid')) {
             $('#fiberOrdersGrid').DataTable().destroy();
             $('#fiberOrdersGrid').empty();
@@ -110,7 +114,15 @@
         $drawer.on('click', '#drawerCloseBtn', function() { $drawer.removeClass('open'); });
         // ArcGIS mini-map
         if (order.clientLat && order.clientLng) {
-            loadMiniMap(order.clientLat, order.clientLng);
+            waitForRequireAndLoadMiniMap(order.clientLat, order.clientLng);
+        }
+    }
+
+    function waitForRequireAndLoadMiniMap(lat, lng) {
+        if (typeof window.require === 'function') {
+            loadMiniMap(lat, lng);
+        } else {
+            setTimeout(function() { waitForRequireAndLoadMiniMap(lat, lng); }, 50);
         }
     }
 

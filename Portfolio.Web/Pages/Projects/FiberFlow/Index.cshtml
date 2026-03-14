@@ -3,91 +3,168 @@
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
 }
+
 <link rel="stylesheet" href="/css/fiberflow.css" />
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
-<script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css" />
-<script src="https://js.arcgis.com/4.30/"></script>
+
 <div class="container fiberflow-index">
+
     <h1 class="display-5 mb-1">FiberFlow Operations System</h1>
-    <p class="lead mb-4">Industrial plant operations dashboard for fiberglass duct manufacturing.</p>
+    <p class="lead mb-4">
+        Industrial plant operations dashboard for fiberglass duct manufacturing.
+    </p>
+
     <div role="tablist" aria-label="FiberFlow Sections" class="mb-4">
-        <button class="btn btn-outline-primary me-2" id="tab-dashboard" role="tab" aria-selected="true" aria-controls="tabpanel-dashboard" tabindex="0">Dashboard</button>
-        <button class="btn btn-outline-primary me-2" id="tab-orders" role="tab" aria-selected="false" aria-controls="tabpanel-orders" tabindex="-1">Orders</button>
-        <button class="btn btn-outline-primary me-2" id="tab-shipments" role="tab" aria-selected="false" aria-controls="tabpanel-shipments" tabindex="-1">Shipments</button>
-        <button class="btn btn-outline-primary" id="tab-inventory" role="tab" aria-selected="false" aria-controls="tabpanel-inventory" tabindex="-1">Inventory</button>
+
+        <button class="btn btn-outline-primary me-2"
+                id="tab-dashboard"
+                role="tab"
+                aria-selected="true"
+                aria-controls="tabpanel-dashboard"
+                tabindex="0">
+            Dashboard
+        </button>
+
+        <button class="btn btn-outline-primary me-2"
+                id="tab-orders"
+                role="tab"
+                aria-selected="false"
+                aria-controls="tabpanel-orders"
+                tabindex="-1">
+            Orders
+        </button>
+
+        <button class="btn btn-outline-primary me-2"
+                id="tab-shipments"
+                role="tab"
+                aria-selected="false"
+                aria-controls="tabpanel-shipments"
+                tabindex="-1">
+            Shipments
+        </button>
+
+        <button class="btn btn-outline-primary"
+                id="tab-inventory"
+                role="tab"
+                aria-selected="false"
+                aria-controls="tabpanel-inventory"
+                tabindex="-1">
+            Inventory
+        </button>
+
     </div>
+
+    <!-- Dashboard -->
     <div id="tabpanel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+
         <div class="theme-root">
+
             <div class="row mb-4">
+
                 <div class="col fiber-kpi-card" id="fiber-kpi-active-shipments"></div>
                 <div class="col fiber-kpi-card" id="fiber-kpi-open-orders"></div>
                 <div class="col fiber-kpi-card" id="fiber-kpi-low-stock"></div>
                 <div class="col fiber-kpi-card" id="fiber-kpi-mtd-revenue"></div>
+
             </div>
+
             <div class="row">
+
                 <div class="col-7">
                     <div id="fiberDashboardMap" class="theme-surface"></div>
                 </div>
+
                 <div class="col-5">
                     <div id="revenueChart"></div>
                     <div id="statusChart"></div>
                     <div id="topClientsChart"></div>
                 </div>
+
             </div>
+
         </div>
-        <script src="~/js/FiberFlow/fiberflow-dashboard.js"></script>
     </div>
+
+    <!-- Orders -->
     <div id="tabpanel-orders" role="tabpanel" aria-labelledby="tab-orders" hidden>
+
         <div class="theme-root">
             <div id="fiberOrdersGrid"></div>
             <div class="fiber-order-drawer" id="fiberOrderDrawer"></div>
         </div>
-        <script src="~/js/FiberFlow/fiberflow-orders.js"></script>
+
     </div>
+
+    <!-- Shipments -->
     <div id="tabpanel-shipments" role="tabpanel" aria-labelledby="tab-shipments" hidden>
+
         <div class="theme-root d-flex" style="height:100vh;">
+
             <div class="p-3" style="width:35%;">
                 <div id="fiberShipmentsGrid"></div>
             </div>
+
             <div style="width:65%;">
                 <div id="fiberShipmentMap"></div>
             </div>
+
         </div>
-        <script src="~/js/FiberFlow/fiberflow-shipments.js"></script>
+
     </div>
+
+    <!-- Inventory -->
     <div id="tabpanel-inventory" role="tabpanel" aria-labelledby="tab-inventory" hidden>
+
         <div class="theme-root">
             <div class="mb-3" id="fiberInventorySummary"></div>
             <div id="fiberInventoryGrid"></div>
         </div>
-        <script src="~/js/FiberFlow/fiberflow-inventory.js"></script>
+
     </div>
+
 </div>
-<script>
-// Simple tab switching logic with ARIA updates
-const tabs = [
-    { btn: 'tab-dashboard', panel: 'tabpanel-dashboard' },
-    { btn: 'tab-orders', panel: 'tabpanel-orders' },
-    { btn: 'tab-shipments', panel: 'tabpanel-shipments' },
-    { btn: 'tab-inventory', panel: 'tabpanel-inventory' }
-];
-tabs.forEach((tab, idx) => {
-    document.getElementById(tab.btn).addEventListener('click', function() {
-        tabs.forEach((t, i) => {
-            document.getElementById(t.btn).setAttribute('aria-selected', i === idx ? 'true' : 'false');
-            document.getElementById(t.btn).setAttribute('tabindex', i === idx ? '0' : '-1');
-            document.getElementById(t.panel).hidden = i !== idx;
+
+@section Scripts {
+    <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/dark/main.css" />
+    <script>
+        // Prevent Dojo from trying to define jQuery again if it's already loaded
+        window.jQuery && (window.define = window.define || function() {});
+        var dojoConfig = {
+            has: { "dojo-built": 1 },
+            async: true
+        };
+    </script>
+    <script src="https://js.arcgis.com/4.30/"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"
+            integrity="sha512-vc58qvvBdrDR4etbxMdlTt4GBQk1qjvyORR2nrsPsFPyrs+/u5c3+1Ct6upOgdZoIl7eq6k3a1UPDSNAQi/32A=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
+    <script src="~/js/FiberFlow/fiberflow-dashboard.js"></script>
+    <script src="~/js/FiberFlow/fiberflow-orders.js"></script>
+    <script src="~/js/FiberFlow/fiberflow-shipments.js"></script>
+    <script src="~/js/FiberFlow/fiberflow-inventory.js"></script>
+    <script>
+    const tabs = [
+        { btn: 'tab-dashboard', panel: 'tabpanel-dashboard' },
+        { btn: 'tab-orders', panel: 'tabpanel-orders' },
+        { btn: 'tab-shipments', panel: 'tabpanel-shipments' },
+        { btn: 'tab-inventory', panel: 'tabpanel-inventory' }
+    ];
+    tabs.forEach((tab, idx) => {
+        document.getElementById(tab.btn).addEventListener('click', function() {
+            tabs.forEach((t, i) => {
+                document.getElementById(t.btn).setAttribute('aria-selected', i === idx ? 'true' : 'false');
+                document.getElementById(t.btn).setAttribute('tabindex', i === idx ? '0' : '-1');
+                document.getElementById(t.panel).hidden = i !== idx;
+            });
         });
     });
-});
-// Keyboard navigation
-document.querySelectorAll('[role=tab]').forEach((el, idx, arr) => {
-    el.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowRight') arr[(idx+1)%arr.length].focus();
-        if (e.key === 'ArrowLeft') arr[(idx-1+arr.length)%arr.length].focus();
+    document.querySelectorAll('[role=tab]').forEach((el, idx, arr) => {
+        el.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight') arr[(idx+1)%arr.length].focus();
+            if (e.key === 'ArrowLeft') arr[(idx-1+arr.length)%arr.length].focus();
+        });
     });
-});
-</script>
+    </script>
+}

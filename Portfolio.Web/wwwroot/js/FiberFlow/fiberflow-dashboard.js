@@ -101,46 +101,64 @@
         svg.append("text").attr("transform", "rotate(-90)").attr("x", -height/2).attr("y", -100).attr("text-anchor", "middle").text("Client");
     }
 
-    // ArcGIS Map (unchanged)
+    // ArcGIS Map (robust retry with max attempts)
     function initMap() {
-        require([
-            "esri/Map", "esri/views/MapView", "esri/Graphic", "esri/layers/GraphicsLayer", "esri/geometry/Polyline", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleMarkerSymbol", "esri/PopupTemplate"
-        ], function(Map, MapView, Graphic, GraphicsLayer, Polyline, SimpleLineSymbol, SimpleMarkerSymbol, PopupTemplate) {
-            var map = new Map({ basemap: "dark-gray-vector" });
-            var view = new MapView({
-                container: "fiberDashboardMap",
-                map: map,
-                center: [-95.3698, 29.7604],
-                zoom: 5
-            });
-            var graphicsLayer = new GraphicsLayer();
-            map.add(graphicsLayer);
-            // Plant marker
-            var plantMarker = new Graphic({
-                geometry: { type: "point", longitude: -95.3698, latitude: 29.7604 },
-                symbol: new SimpleMarkerSymbol({ style: "diamond", color: [249, 115, 22], size: 18, outline: { color: [0,0,0], width: 1 } }),
-                popupTemplate: { title: "FiberFlow Plant", content: "Houston, TX — Manufacturing Facility" }
-            });
-            graphicsLayer.add(plantMarker);
-            // Fetch shipments
-            fetch("/api/fibershipments").then(function(res) {
-                if (!res.ok) throw new Error("Failed to load shipments");
-                return res.json();
-            }).then(function(shipments) {
-                shipments.forEach(function(s) {
-                    if (!s.route || !Array.isArray(s.route)) return;
-                    var polyline = new Polyline({ paths: [s.route.map(pt => [pt.lng, pt.lat])] });
-                    var lineSymbol = new SimpleLineSymbol({ color: [59, 130, 246], width: 3 });
-                    var graphic = new Graphic({ geometry: polyline, symbol: lineSymbol, popupTemplate: new PopupTemplate({ title: s.trackingNumber, content: s.status }) });
-                    graphicsLayer.add(graphic);
+        var maxAttempts = 50; // 5 seconds total
+        var attempts = 0;
+
+        function tryInit() {
+            if (typeof require !== 'undefined') {
+                require([
+                    "esri/Map", "esri/views/MapView", "esri/Graphic",
+                    "esri/layers/GraphicsLayer", "esri/geometry/Polyline",
+                    "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleMarkerSymbol",
+                    "esri/PopupTemplate"
+                ], function(Map, MapView, Graphic, GraphicsLayer,
+                            Polyline, SimpleLineSymbol, SimpleMarkerSymbol, PopupTemplate) {
+                    var map = new Map({ basemap: "dark-gray-vector" });
+                    var view = new MapView({
+                        container: "fiberDashboardMap",
+                        map: map,
+                        center: [-95.3698, 29.7604],
+                        zoom: 5
+                    });
+                    var graphicsLayer = new GraphicsLayer();
+                    map.add(graphicsLayer);
+                    // Plant marker
+                    var plantMarker = new Graphic({
+                        geometry: { type: "point", longitude: -95.3698, latitude: 29.7604 },
+                        symbol: new SimpleMarkerSymbol({ style: "diamond", color: [249, 115, 22], size: 18, outline: { color: [0,0,0], width: 1 } }),
+                        popupTemplate: { title: "FiberFlow Plant", content: "Houston, TX — Manufacturing Facility" }
+                    });
+                    graphicsLayer.add(plantMarker);
+                    // Fetch shipments
+                    fetch("/api/fibershipments").then(function(res) {
+                        if (!res.ok) throw new Error("Failed to load shipments");
+                        return res.json();
+                    }).then(function(shipments) {
+                        shipments.forEach(function(s) {
+                            if (!s.route || !Array.isArray(s.route)) return;
+                            var polyline = new Polyline({ paths: [s.route.map(pt => [pt.lng, pt.lat])] });
+                            var lineSymbol = new SimpleLineSymbol({ color: [59, 130, 246], width: 3 });
+                            var graphic = new Graphic({ geometry: polyline, symbol: lineSymbol, popupTemplate: new PopupTemplate({ title: s.trackingNumber, content: s.status }) });
+                            graphicsLayer.add(graphic);
+                        });
+                    });
                 });
-            });
-        });
+            } else if (attempts++ < maxAttempts) {
+                setTimeout(tryInit, 100);
+            } else {
+                console.warn("ArcGIS failed to load — map unavailable. " +
+                             "Check if js.arcgis.com is being blocked by tracking prevention.");
+            }
+        }
+
+        tryInit();
     }
 
-    $(function() {
+    $(function () {
         loadKpiCards();
-        initMap();
+        initMap(); // just call it directly — tryInit handles the timing
     });
 
 })();

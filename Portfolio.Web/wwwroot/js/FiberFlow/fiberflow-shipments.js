@@ -8,8 +8,15 @@
     let shipmentData = [];
     let mapView, graphicsLayer, routeGraphics = {};
 
-    $(function() {
+    $(function () {
         loadShipments();
+        var arcgisScript = document.querySelector('script[src*="js.arcgis.com"]');
+        arcgisScript && arcgisScript.addEventListener('load', function () {
+            if (typeof shipmentData !== 'undefined') initMap();
+        });
+        if (typeof require !== 'undefined') {
+            if (typeof shipmentData !== 'undefined') initMap();
+        }
     });
 
     async function loadShipments() {
@@ -18,7 +25,6 @@
             if (!res.ok) throw new Error('Failed to load shipments');
             shipmentData = await res.json();
             renderTable();
-            initMap();
         } catch (err) {
             alert(err.message);
         }
@@ -71,11 +77,11 @@
     function openUpdateDialog(dataItem, dt) {
         const $dialog = $('<div class="fiber-update-dialog"></div>');
         $dialog.append('<label>Status</label>');
-        $dialog.append('<select id="shipmentStatusSelect" class="form-control mb-2">
-            <option>Delivered</option>
-            <option>In Transit</option>
-            <option>Delayed</option>
-        </select>');
+        $dialog.append('<select id="shipmentStatusSelect" class="form-control mb-2">'
+            + '<option>Delivered</option>'
+            + '<option>In Transit</option>'
+            + '<option>Delayed</option>'
+            + '</select>');
         $dialog.append('<button id="updateStatusBtn" class="btn btn-success">Update</button> <button id="cancelStatusBtn" class="btn btn-secondary">Cancel</button>');
         $("body").append($dialog);
         $dialog.css({ position: 'fixed', top: '30%', left: '50%', transform: 'translate(-50%, -30%)', background: '#fff', padding: '24px', borderRadius: '8px', zIndex: 2000, boxShadow: '0 2px 16px #0002' });
@@ -114,16 +120,16 @@
     function initMap() {
         require([
             "esri/Map", "esri/views/MapView", "esri/Graphic", "esri/layers/GraphicsLayer", "esri/geometry/Polyline", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleMarkerSymbol", "esri/PopupTemplate"
-        ], function(Map, MapView, Graphic, GraphicsLayer, Polyline, SimpleLineSymbol, SimpleMarkerSymbol, PopupTemplate) {
-            const map = new Map({ basemap: "dark-gray-vector" });
+        ], function(EsriMap, MapView, Graphic, GraphicsLayer, Polyline, SimpleLineSymbol, SimpleMarkerSymbol, PopupTemplate) {
+            const esriMap = new EsriMap({ basemap: "dark-gray-vector" });
             mapView = new MapView({
                 container: "fiberShipmentMap",
-                map: map,
+                map: esriMap,
                 center: [-95.3698, 29.7604],
                 zoom: 5
             });
             graphicsLayer = new GraphicsLayer();
-            map.add(graphicsLayer);
+            esriMap.add(graphicsLayer);
             // Plant marker
             const plantMarker = new Graphic({
                 geometry: { type: "point", longitude: -95.3698, latitude: 29.7604 },
@@ -144,9 +150,6 @@
                 routeGraphics[s.id] = graphic;
             });
         });
-    }
-
-})();
     }
 
 })();

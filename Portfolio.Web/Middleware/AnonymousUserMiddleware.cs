@@ -20,7 +20,7 @@ namespace Portfolio.Web.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider)
+        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider, Portfolio.Services.Services.UserProfileSeedService seedService)
         {
             if (context.Items.ContainsKey(HttpContextItemKey))
             {
@@ -52,6 +52,7 @@ namespace Portfolio.Web.Middleware
                 }
             }
             else
+
             {
                 userId = Guid.NewGuid();
 
@@ -64,6 +65,9 @@ namespace Portfolio.Web.Middleware
 
                 db.UserProfiles.Add(profile);
                 await db.SaveChangesAsync();
+
+                // Seed data for this new anonymous user
+                await seedService.SeedForUserAsync(userId);
 
                 var cookieOptions = new CookieOptions
                 {
