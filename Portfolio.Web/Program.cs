@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Scalar.AspNetCore;
 using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Repositories;
@@ -13,10 +12,11 @@ using Portfolio.Repositories.Repositories;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 using Portfolio.Web.Middleware;
+using Scalar.AspNetCore;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
-
+Console.WriteLine("EF Core Connection String: " + builder.Configuration.GetConnectionString("DefaultConnection"));
 // --------------------------
 // Razor Pages & Services
 // --------------------------
@@ -50,10 +50,10 @@ builder.Services.AddScoped<IFiberDashboardService, FiberDashboardService>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
+builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
 builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
-
 
 // --------------------------
 // Session
@@ -196,8 +196,7 @@ var databaseUrl = builder.Configuration.GetConnectionString("DefaultConnection")
 var npgsqlBuilder = ParsePostgresConnectionString(databaseUrl);
 
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
-    options.UseNpgsql(npgsqlBuilder.ConnectionString));
-
+    options.UseNpgsql(databaseUrl));
 // --------------------------
 // Data Protection Keys Folder (for Docker / Render)
 // --------------------------
