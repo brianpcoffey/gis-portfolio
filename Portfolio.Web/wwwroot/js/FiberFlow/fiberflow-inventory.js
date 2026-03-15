@@ -19,7 +19,7 @@ $(document).ready(function () {
 
 function loadInventoryTable() {
     $('#inventoryTableSpinner').removeClass('d-none');
-    fetch('/api/FiberMaterials')
+    fetchWithAuth('/api/FiberMaterials')
         .then(r => r.json())
         .then(data => {
             if (inventoryTable) {

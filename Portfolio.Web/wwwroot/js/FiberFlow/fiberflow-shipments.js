@@ -16,7 +16,7 @@ function loadShipmentsTable() {
         fiberflowToast('DataTables library is not loaded. Please check your script order.', 'error');
         return;
     }
-    fetch('/api/FiberShipments')
+    fetchWithAuth('/api/FiberShipments')
         .then(r => r.json())
         .then(data => {
             if (shipmentsTable) {
