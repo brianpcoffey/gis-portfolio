@@ -11,7 +11,6 @@ namespace Portfolio.Web.Controllers.Api
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [AllowAnonymous]
     public class ProfileController : ControllerBase
     {
         private readonly IUserProfileService _profileService;
@@ -39,6 +38,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Gets the anonymous user profile and claims.
         /// </summary>
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ProfileDto), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<ProfileDto>> Get(CancellationToken cancellationToken)
@@ -55,6 +55,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Sets or updates a claim for the anonymous user.
         /// </summary>
         [HttpPost("claims")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ClaimDto), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> SetClaim([FromBody] ClaimCreateDto claim, CancellationToken cancellationToken)
@@ -76,6 +77,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Removes a claim for the anonymous user.
         /// </summary>
         [HttpDelete("claims/{type}")]
+        [AllowAnonymous]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]

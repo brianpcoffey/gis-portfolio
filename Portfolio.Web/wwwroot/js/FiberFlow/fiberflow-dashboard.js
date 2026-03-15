@@ -51,15 +51,116 @@ function createToastContainer() {
 }
 
 // Provide legacy alias used by existing FiberFlow scripts
-window.fiberflowToast = function (message, type) {
+function fiberflowToast(message, type) {
     const mapped = type === 'error' ? 'danger' : type;
     showToast(message, mapped);
-};
+}
+window.fiberflowToast = fiberflowToast;
+
+// Simple auth-aware fetch helper: if API responds 401, redirect to login flow
+async function fetchWithAuth(url, options = {}) {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/Login?returnUrl=${returnUrl}`;
+        return new Promise(() => {});
+    }
+    return res;
+}
 
 
 // Ensure loadFiberflowMap is always defined to avoid ReferenceError
+// Implement map loader: initializes ArcGIS map and plots shipments
 if (typeof loadFiberflowMap !== 'function') {
-    window.loadFiberflowMap = function () {};
+    window.loadFiberflowMap = async function () {
+        const mapContainer = document.getElementById('fiberflowMap');
+        if (!mapContainer || typeof require !== 'function') {
+            return;
+        }
+
+        // show spinner (already present in markup)
+        const spinner = mapContainer.querySelector('.fiberflow-spinner');
+        if (spinner) spinner.classList.remove('d-none');
+
+        await new Promise((resolve) => {
+            require([
+                'esri/Map',
+                'esri/views/MapView',
+                'esri/layers/GraphicsLayer',
+                'esri/Graphic',
+                'esri/geometry/Point',
+                'esri/symbols/SimpleMarkerSymbol',
+                'esri/PopupTemplate'
+            ], async (Map, MapView, GraphicsLayer, Graphic, Point, SimpleMarkerSymbol, PopupTemplate) => {
+                try {
+                    const map = new Map({ basemap: 'dark-gray-vector' });
+                    const graphicsLayer = new GraphicsLayer();
+                    map.add(graphicsLayer);
+
+                    const view = new MapView({
+                        container: 'fiberflowMap',
+                        map: map,
+                        center: [-95.3698, 29.7604], // default to Houston
+                        zoom: 6
+                    });
+
+                    // fetch shipments and plot
+                    try {
+                        const res = await fetch('/api/FiberShipments');
+                        if (!res.ok) throw new Error('Failed to load shipments');
+                        const shipments = await res.json();
+
+                        graphicsLayer.removeAll();
+                        shipments.forEach(s => {
+                            // ensure numeric coords
+                            const lon = Number(s.destinationLng ?? s.destinationLng ?? s.destinationLng);
+                            const lat = Number(s.destinationLat ?? s.destinationLat ?? s.destinationLat);
+                            const hasCoords = !Number.isNaN(lat) && !Number.isNaN(lon);
+                            const point = hasCoords ? new Point({ longitude: lon, latitude: lat }) : null;
+
+                            const color = s.status && s.status.toLowerCase().includes('in transit')
+                                ? [76, 175, 80, 0.9]
+                                : s.status && s.status.toLowerCase().includes('deliv')
+                                    ? [33, 150, 243, 0.9]
+                                    : [255, 193, 7, 0.9];
+
+                            const symbol = new SimpleMarkerSymbol({
+                                color: color,
+                                size: 12,
+                                outline: { color: [255, 255, 255], width: 1 }
+                            });
+
+                            const popup = new PopupTemplate({
+                                title: `${s.trackingNumber || ''} — ${s.carrierName || ''}`,
+                                content: `Status: ${s.status || ''}<br/>Dest: ${s.destinationCity || ''}, ${s.destinationState || ''}`
+                            });
+
+                            if (point) {
+                                const graphic = new Graphic({ geometry: point, symbol: symbol, attributes: s, popupTemplate: popup });
+                                graphicsLayer.add(graphic);
+                            }
+                        });
+
+                        if (shipments.length > 0) {
+                            const points = graphicsLayer.graphics.toArray();
+                            if (points.length) view.goTo(points, { padding: 50 });
+                        }
+                    } catch (err) {
+                        console.error('Failed to fetch/plot shipments', err);
+                    }
+
+                    view.when(() => resolve());
+                } catch (err) {
+                    console.error('ArcGIS init failed', err);
+                    resolve();
+                }
+            });
+        });
+
+        // hide spinner if present
+        const spinner2 = document.querySelector('#fiberflowMap .fiberflow-spinner');
+        if (spinner2) spinner2.classList.add('d-none');
+    };
 }
 
 $(document).ready(function () {
@@ -69,7 +170,7 @@ $(document).ready(function () {
 
 function loadDashboardStats() {
     $('#fiberflowRevenueChart .fiberflow-spinner').removeClass('d-none');
-    fetch('/api/FiberDashboard/stats')
+    fetchWithAuth('/api/FiberDashboard/stats')
         .then(r => r.json())
         .then(data => {
             updateDashboardBadges(data);
@@ -133,11 +234,8 @@ function renderRevenueChart(revenueByMonth) {
         .attr('class', 'bar')
         .attr('x', d => x(d.month))
         .attr('y', d => y(d.revenue))
-        .attr('fill', 'var(--accent)');
-
-    // color fill already set above; keep for clarity
         .attr('width', x.bandwidth())
-        .attr('height', d => height - y(d.Revenue))
+        .attr('height', d => height - y(d.revenue))
         .attr('fill', 'var(--accent)');
 
     svg.append('text')

@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  portfolio:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      # Persist DataProtection keys so encrypted cookies and other protected data
+      # remain valid across container restarts. Map a host folder to /app/DataProtection-Keys
+      - ./data/dataprotection:/app/DataProtection-Keys
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # Example of passing DATABASE_URL as env var if needed
+      # - DATABASE_URL=postgresql://user:pass@host/dbname?sslmode=require
