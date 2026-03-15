@@ -25,19 +25,19 @@ function loadShipmentsTable() {
             }
             shipmentsTable = $('#fiberflowShipmentsTable').DataTable({
                 data: data,
-                columns: [
-                    { title: 'Tracking #', data: 'TrackingNumber' },
-                    { title: 'Carrier', data: 'CarrierName' },
-                    { title: 'Status', data: 'Status' },
-                    { title: 'Destination', data: null, render: d => `${d.DestinationCity}, ${d.DestinationState}` },
-                    { title: 'ETA', data: 'EstimatedArrival', render: d => d ? new Date(d).toLocaleString() : '', className: 'text-nowrap' },
+            columns: [
+                    { title: 'Tracking #', data: 'trackingNumber' },
+                    { title: 'Carrier', data: 'carrierName' },
+                    { title: 'Status', data: 'status' },
+                    { title: 'Destination', data: null, render: d => `${d.destinationCity}, ${d.destinationState}` },
+                    { title: 'ETA', data: 'estimatedArrival', render: d => d ? new Date(d).toLocaleString() : '', className: 'text-nowrap' },
                     {
                         title: '',
                         data: null,
                         orderable: false,
                         className: 'text-end',
                         render: function (data, type, row) {
-                            return `<button class="btn btn-sm btn-outline-primary" onclick="showShipmentStatusModal(${row.Id}, '${row.Status}')"><i class='fa fa-edit'></i></button>`;
+                        return `<button class="btn btn-sm btn-outline-primary" onclick="showShipmentStatusModal(${row.id}, '${row.status}')"><i class='fa fa-edit'></i></button>`;
                         }
                     }
                 ],
@@ -65,7 +65,7 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
       <form id="shipmentStatusForm">
       <div class="modal-body">
         <label class="form-label">Status</label>
-        <select class="form-select" name="Status" required>
+        <select class="form-select" name="status" required>
           ${['Draft','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${currentStatus === s ? ' selected' : ''}>${s}</option>`).join('')}
         </select>
       </div>

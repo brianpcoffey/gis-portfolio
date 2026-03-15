@@ -73,7 +73,7 @@ function loadDashboardStats() {
         .then(r => r.json())
         .then(data => {
             updateDashboardBadges(data);
-            renderRevenueChart(data.RevenueByMonth || []);
+            renderRevenueChart(data.revenueByMonth || []);
             fiberflowToast('Dashboard loaded', 'success');
         })
         .catch(() => {
@@ -86,9 +86,9 @@ function loadDashboardStats() {
 }
 
 function updateDashboardBadges(data) {
-    $('#badgeActiveShipments').text(`${data.ActiveShipments ?? 0} Active Shipments`);
-    $('#badgeOpenOrders').text(`${data.OpenOrders ?? 0} Open Orders`);
-    $('#badgeLowStock').text(`${data.LowStockAlerts ?? 0} Low Stock`);
+    $('#badgeActiveShipments').text(`${data.activeShipments ?? 0} Active Shipments`);
+    $('#badgeOpenOrders').text(`${data.openOrders ?? 0} Open Orders`);
+    $('#badgeLowStock').text(`${data.lowStockAlerts ?? 0} Low Stock`);
 }
 
 function renderRevenueChart(revenueByMonth) {
@@ -108,8 +108,8 @@ function renderRevenueChart(revenueByMonth) {
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    const months = revenueByMonth.map(d => d.Month);
-    const values = revenueByMonth.map(d => d.Revenue);
+    const months = revenueByMonth.map(d => d.month);
+    const values = revenueByMonth.map(d => d.revenue);
     const x = d3.scaleBand().domain(months).range([0, width]).padding(0.2);
     const y = d3.scaleLinear().domain([0, d3.max(values) * 1.1]).range([height, 0]);
 
@@ -131,8 +131,11 @@ function renderRevenueChart(revenueByMonth) {
         .enter()
         .append('rect')
         .attr('class', 'bar')
-        .attr('x', d => x(d.Month))
-        .attr('y', d => y(d.Revenue))
+        .attr('x', d => x(d.month))
+        .attr('y', d => y(d.revenue))
+        .attr('fill', 'var(--accent)');
+
+    // color fill already set above; keep for clarity
         .attr('width', x.bandwidth())
         .attr('height', d => height - y(d.Revenue))
         .attr('fill', 'var(--accent)');
