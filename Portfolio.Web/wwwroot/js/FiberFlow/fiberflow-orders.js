@@ -35,22 +35,22 @@ function loadOrdersTable() {
             ordersTable = $('#fiberflowOrdersTable').DataTable({
                 data: data,
                 columns: [
-                    { title: 'Order #', data: 'OrderNumber' },
-                    { title: 'Client', data: 'ClientName' },
-                    { title: 'Product', data: 'ProductName' },
-                    { title: 'Qty', data: 'Quantity', className: 'text-end' },
-                    { title: 'Unit Price', data: 'UnitPrice', render: function(d) { return formatCurrency(d); }, className: 'text-end' },
-                    { title: 'Status', data: 'Status' },
-                    { title: 'Order Date', data: 'OrderDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
-                    { title: 'Ship Date', data: 'ShipDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
+                    { title: 'Order #', data: 'orderNumber' },
+                    { title: 'Client', data: 'clientName' },
+                    { title: 'Product', data: 'productName' },
+                    { title: 'Qty', data: 'quantity', className: 'text-end' },
+                    { title: 'Unit Price', data: 'unitPrice', render: function(d) { return formatCurrency(d); }, className: 'text-end' },
+                    { title: 'Status', data: 'status' },
+                    { title: 'Order Date', data: 'orderDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
+                    { title: 'Ship Date', data: 'shipDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
                     {
                         title: '',
                         data: null,
                         orderable: false,
                         className: 'text-end',
                         render: function (data, type, row) {
-                            return `<button class="btn btn-sm btn-outline-primary me-1" onclick="showOrderModal(${row.Id})"><i class='fa fa-edit'></i></button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${row.Id})"><i class='fa fa-trash'></i></button>`;
+                            return `<button class="btn btn-sm btn-outline-primary me-1" onclick="showOrderModal(${row.id})"><i class='fa fa-edit'></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${row.id})"><i class='fa fa-trash'></i></button>`;
                         }
                     }
                 ],
@@ -96,33 +96,33 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Client Name</label>
-            <input type="text" class="form-control" name="ClientName" value="${order.ClientName || ''}" required />
+            <input type="text" class="form-control" name="clientName" value="${order.clientName || ''}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Product Name</label>
-            <input type="text" class="form-control" name="ProductName" value="${order.ProductName || ''}" required />
+            <input type="text" class="form-control" name="productName" value="${order.productName || ''}" required />
           </div>
           <div class="col-md-4">
             <label class="form-label">Quantity</label>
-            <input type="number" class="form-control" name="Quantity" value="${order.Quantity || ''}" min="1" required />
+            <input type="number" class="form-control" name="quantity" value="${order.quantity || ''}" min="1" required />
           </div>
           <div class="col-md-4">
             <label class="form-label">Unit Price</label>
-            <input type="number" class="form-control" name="UnitPrice" value="${order.UnitPrice || ''}" min="0" step="0.01" required />
+            <input type="number" class="form-control" name="unitPrice" value="${order.unitPrice || ''}" min="0" step="0.01" required />
           </div>
           <div class="col-md-4">
             <label class="form-label">Status</label>
-            <select class="form-select" name="Status" required>
-              ${['Draft','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${order.Status === s ? ' selected' : ''}>${s}</option>`).join('')}
+            <select class="form-select" name="status" required>
+              ${['Draft','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${order.status === s ? ' selected' : ''}>${s}</option>`).join('')}
             </select>
           </div>
-          <div class="col-md-6">
+            <div class="col-md-6">
             <label class="form-label">Order Date</label>
-            <input type="date" class="form-control" name="OrderDate" value="${order.OrderDate ? order.OrderDate.substring(0,10) : ''}" required />
+            <input type="date" class="form-control" name="orderDate" value="${order.orderDate ? order.orderDate.substring(0,10) : ''}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Ship Date</label>
-            <input type="date" class="form-control" name="ShipDate" value="${order.ShipDate ? order.ShipDate.substring(0,10) : ''}" required />
+            <input type="date" class="form-control" name="shipDate" value="${order.shipDate ? order.shipDate.substring(0,10) : ''}" required />
           </div>
         </div>
       </div>
@@ -138,15 +138,15 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
     let modal = new bootstrap.Modal(document.getElementById(modalId));
     modal.show();
 
-    $('#orderForm').on('submit', function (e) {
+        $('#orderForm').on('submit', function (e) {
         e.preventDefault();
         let formData = Object.fromEntries(new FormData(this).entries());
-        formData.Quantity = parseInt(formData.Quantity);
-        formData.UnitPrice = parseFloat(formData.UnitPrice);
-        formData.OrderDate = formData.OrderDate;
-        formData.ShipDate = formData.ShipDate;
+        formData.quantity = parseInt(formData.quantity);
+        formData.unitPrice = parseFloat(formData.unitPrice);
+        formData.orderDate = formData.orderDate;
+        formData.shipDate = formData.shipDate;
         let method = isEdit ? 'PUT' : 'POST';
-        let url = isEdit ? `/api/FiberOrders/${order.Id}` : '/api/FiberOrders';
+        let url = isEdit ? `/api/FiberOrders/${order.id}` : '/api/FiberOrders';
         fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },

@@ -30,24 +30,24 @@ function loadInventoryTable() {
             inventoryTable = $('#fiberflowInventoryTable').DataTable({
                 data: data,
                 columns: [
-                    { title: 'Material', data: 'Name' },
-                    { title: 'SKU', data: 'Sku' },
-                    { title: 'Qty On Hand', data: 'QtyOnHand', className: 'text-end' },
-                    { title: 'Unit Cost', data: 'UnitCost', render: $.fn.dataTable.render.number(',', '.', 2, '$'), className: 'text-end' },
-                    { title: 'Total Value', data: 'TotalValue', render: $.fn.dataTable.render.number(',', '.', 2, '$'), className: 'text-end' },
-                    { title: 'Reorder Point', data: 'ReorderPoint', className: 'text-end' },
+                    { title: 'Material', data: 'name' },
+                    { title: 'SKU', data: 'sku' },
+                    { title: 'Qty On Hand', data: 'qtyOnHand', className: 'text-end' },
+                    { title: 'Unit Cost', data: 'unitCost', render: $.fn.dataTable.render.number(',', '.', 2, '$'), className: 'text-end' },
+                    { title: 'Total Value', data: 'totalValue', render: $.fn.dataTable.render.number(',', '.', 2, '$'), className: 'text-end' },
+                    { title: 'Reorder Point', data: 'reorderPoint', className: 'text-end' },
                     {
                         title: '',
                         data: null,
                         orderable: false,
                         className: 'text-end',
                         render: function (data, type, row) {
-                            return row.IsLowStock ? '<span class="badge bg-danger fiberflow-low-stock">Low</span>' : '';
+                            return row.isLowStock ? '<span class="badge bg-danger fiberflow-low-stock">Low</span>' : '';
                         }
                     }
                 ],
                 rowCallback: function (row, data) {
-                    if (data.IsLowStock) {
+                    if (data.isLowStock) {
                         $(row).addClass('fiberflow-low-stock');
                     }
                 },
@@ -77,17 +77,17 @@ function showMaterialDetailModal(material) {
       </div>
       <div class="modal-body">
         <dl class="row mb-0">
-          <dt class="col-5">Name</dt><dd class="col-7">${material.Name}</dd>
-          <dt class="col-5">SKU</dt><dd class="col-7">${material.Sku}</dd>
-          <dt class="col-5">Qty On Hand</dt><dd class="col-7">${material.QtyOnHand}</dd>
-          <dt class="col-5">Unit Cost</dt><dd class="col-7">$${material.UnitCost.toFixed(2)}</dd>
-          <dt class="col-5">Total Value</dt><dd class="col-7">$${material.TotalValue.toFixed(2)}</dd>
-          <dt class="col-5">Reorder Point</dt><dd class="col-7">${material.ReorderPoint}</dd>
+          <dt class="col-5">Name</dt><dd class="col-7">${material.name}</dd>
+          <dt class="col-5">SKU</dt><dd class="col-7">${material.sku}</dd>
+          <dt class="col-5">Qty On Hand</dt><dd class="col-7">${material.qtyOnHand}</dd>
+          <dt class="col-5">Unit Cost</dt><dd class="col-7">$${material.unitCost.toFixed(2)}</dd>
+          <dt class="col-5">Total Value</dt><dd class="col-7">$${material.totalValue.toFixed(2)}</dd>
+          <dt class="col-5">Reorder Point</dt><dd class="col-7">${material.reorderPoint}</dd>
         </dl>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-accent theme-btn" onclick="showReceiveStockModal(${material.Id})">Receive Stock</button>
+        <button type="button" class="btn btn-accent theme-btn" onclick="showReceiveStockModal(${material.id})">Receive Stock</button>
       </div>
     </div>
   </div>
@@ -114,11 +114,11 @@ window.showReceiveStockModal = function (materialId) {
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Quantity Received</label>
-          <input type="number" class="form-control" name="Quantity" min="0.01" step="0.01" required />
+          <input type="number" class="form-control" name="quantity" min="0.01" step="0.01" required />
         </div>
         <div class="mb-3">
           <label class="form-label">Notes (optional)</label>
-          <textarea class="form-control" name="Notes" rows="2"></textarea>
+          <textarea class="form-control" name="notes" rows="2"></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -133,10 +133,10 @@ window.showReceiveStockModal = function (materialId) {
     let modal = new bootstrap.Modal(document.getElementById(modalId));
     modal.show();
 
-    $('#receiveStockForm').on('submit', function (e) {
+        $('#receiveStockForm').on('submit', function (e) {
         e.preventDefault();
         let formData = Object.fromEntries(new FormData(this).entries());
-        formData.Quantity = parseFloat(formData.Quantity);
+        formData.quantity = parseFloat(formData.quantity);
         fetch(`/api/FiberMaterials/${materialId}/receive`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
