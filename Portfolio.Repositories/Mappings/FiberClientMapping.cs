@@ -21,8 +21,5 @@ public class FiberClientMapping : IEntityTypeConfiguration<FiberClient>
         builder.Property(x => x.Latitude).HasColumnName("latitude");
         builder.Property(x => x.Longitude).HasColumnName("longitude");
         builder.Property(x => x.CreatedDate).HasColumnName("created_date");
-        builder.HasMany(x => x.Orders)
-            .WithOne(x => x.Client)
-            .HasForeignKey(x => x.ClientId);
     }
 }

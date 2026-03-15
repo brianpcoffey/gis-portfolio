@@ -1,31 +1,44 @@
-/* FiberFlow-specific styles (only loaded on FiberFlow pages) */
-.fiber-low-stock { background-color: rgba(239, 68, 68, 0.12) !important; }
-.fiber-kpi-pulse { animation: pulse 1.5s infinite; }
-.fiber-badge-draft          { background:#64748b; color:#fff; }
-.fiber-badge-confirmed      { background:#3b82f6; color:#fff; }
-.fiber-badge-inproduction   { background:#eab308; color:#000; }
-.fiber-badge-shipped        { background:#f97316; color:#fff; }
-.fiber-badge-delivered      { background:#22c55e; color:#fff; }
-.fiber-badge-intransit      { background:#f97316; color:#fff; }
-.fiber-badge-delayed        { background:#ef4444; color:#fff; }
-.fiber-order-drawer {
-    position: fixed; right: -420px; top: 0;
-    width: 420px; height: 100vh;
-    transition: right 0.3s ease; z-index: 1050; overflow-y: auto;
-}
-.fiber-order-drawer.open { right: 0; }
-#fiberDashboardMap  { height: 500px; width: 100%; }
-#fiberShipmentMap   { height: 100%; min-height: 600px; width: 100%; }
-#fiberOrderMiniMap  { height: 200px; width: 100%; }
+/* FiberFlow custom styles: Only add rules not covered by site/Bootstrap. */
 
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
-    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+/* Example: Highlight for low stock alert */
+.fiberflow-low-stock {
+    background: var(--accent-light);
+    color: var(--surface);
+    font-weight: bold;
 }
 
-#revenueChart, #statusChart, #topClientsChart {
-    height: 350px;
+/* GIS map container */
+.fiberflow-map {
+    height: 400px;
     width: 100%;
-    margin-bottom: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+/* D3 chart container */
+.fiberflow-chart {
+    min-height: 320px;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+/* ============================================================
+   Toast Slide Animations (match HomeFinder)
+   ============================================================ */
+
+.toast {
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.toast-slide-in {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.toast-slide-out {
+    opacity: 0;
+    transform: translateX(100%);
 }

@@ -16,16 +16,19 @@ namespace Portfolio.Services.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IUserProfileRepository _repo;
         private readonly TimeProvider _timeProvider;
+        private readonly UserProfileSeedService _seedService;
         private const string HttpContextItemKey = "AnonUserId";
 
         public UserProfileService(
             IHttpContextAccessor httpContextAccessor,
             IUserProfileRepository repo,
-            TimeProvider timeProvider)
+            TimeProvider timeProvider,
+            UserProfileSeedService seedService)
         {
             _httpContextAccessor = httpContextAccessor;
             _repo = repo;
             _timeProvider = timeProvider;
+            _seedService = seedService;
         }
 
         public Guid? GetCurrentUserId()
@@ -150,6 +153,7 @@ namespace Portfolio.Services.Services
                     var anonProfile = await _repo.GetProfileAsync(parsed, cancellationToken);
                     if (anonProfile != null)
                         anonId = anonProfile.UserId;
+
                 }
 
                 if (anonId.HasValue)
@@ -168,6 +172,7 @@ namespace Portfolio.Services.Services
                         CreatedDate = now,
                         LastActiveDate = now
                     }, cancellationToken);
+                    await _seedService.SeedForUserAsync(userId);
                 }
 
                 await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, cancellationToken);

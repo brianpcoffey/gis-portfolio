@@ -39,18 +39,21 @@ public class FiberShipmentService : IFiberShipmentService
     private static FiberShipmentDto MapToDto(FiberShipment s) => new()
     {
         Id = s.Id,
-        CarrierName = s.CarrierName,
         TrackingNumber = s.TrackingNumber,
+        CarrierName = s.CarrierName,
         Status = s.Status,
-        ShipDate = s.ShipDate,
-        EstimatedArrival = s.EstimatedArrival,
+        DestinationCity = s.DestinationCity,
+        DestinationState = s.DestinationState,
         OriginLat = s.OriginLat,
         OriginLng = s.OriginLng,
         DestinationLat = s.DestinationLat,
         DestinationLng = s.DestinationLng,
-        DestinationCity = s.DestinationCity,
-        DestinationState = s.DestinationState,
-        OrderId = s.OrderId,
-        ClientName = s.Order?.Client?.Name ?? string.Empty
+        EstimatedArrival = s.EstimatedArrival,
+        Route = string.IsNullOrEmpty(s.RouteJson)
+            ? new List<RoutePointDto> {
+                new RoutePointDto { Lat = s.OriginLat, Lng = s.OriginLng },
+                new RoutePointDto { Lat = s.DestinationLat, Lng = s.DestinationLng }
+            }
+            : System.Text.Json.JsonSerializer.Deserialize<List<RoutePointDto>>(s.RouteJson) ?? new List<RoutePointDto>()
     };
 }

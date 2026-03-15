@@ -1,137 +1,180 @@
-/**
- * FiberFlow — Orders
- * Depends on: jQuery, DataTables, ArcGIS JS API 4.30
- * API endpoints: GET /api/fiberorders, POST /api/fiberorders, PUT /api/fiberorders/{id}, DELETE /api/fiberorders/{id}
- */
 
-(function() {
-    $(function() {
-        initOrdersTable();
+// FiberFlow Orders JS
+// Handles DataTable for orders and CRUD modals
+
+let ordersTable;
+
+
+// Use shared toast helper (window.fiberflowToast provided by dashboard script)
+
+$(document).ready(function () {
+    loadOrdersTable();
+    $('#btnNewOrder').on('click', function () {
+        showOrderModal();
     });
+});
 
-    function statusBadge(status) {
-        const map = {
-            "Draft": "fiber-badge-draft",
-            "Confirmed": "fiber-badge-confirmed",
-            "In Production": "fiber-badge-inproduction",
-            "Shipped": "fiber-badge-shipped",
-            "Delivered": "fiber-badge-delivered"
-        };
-        return `<span class="fiber-status-badge ${map[status] || ''}">${status}</span>`;
-    }
+function formatCurrency(val) {
+    if (typeof val !== 'number') val = parseFloat(val);
+    if (isNaN(val)) return '';
+    return '$' + val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
-    function formatDate(date) {
-        if (!date) return '—';
-        const d = new Date(date);
-        return d.toLocaleDateString();
+function loadOrdersTable() {
+    if (typeof $.fn.DataTable !== 'function') {
+        fiberflowToast('DataTables library is not loaded. Please check your script order.', 'error');
+        return;
     }
-
-    function initOrdersTable() {
-        if ($.fn.DataTable.isDataTable('#fiberOrdersGrid')) {
-            $('#fiberOrdersGrid').DataTable().destroy();
-            $('#fiberOrdersGrid').empty();
-        }
-        const table = $('<table id="ordersTable" class="display" style="width:100%"></table>');
-        $('#fiberOrdersGrid').append(table);
-        const dt = table.DataTable({
-            ajax: {
-                url: '/api/fiberorders',
-                dataSrc: ''
-            },
-            columns: [
-                { data: 'orderNumber', title: 'Order #' },
-                { data: 'clientName', title: 'Client' },
-                { data: 'productName', title: 'Product' },
-                { data: 'quantity', title: 'Quantity' },
-                { data: 'unitPrice', title: 'Unit Price', render: d => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(d) },
-                { data: 'status', title: 'Status', render: statusBadge },
-                { data: 'orderDate', title: 'Order Date', render: formatDate },
-                { data: 'shipDate', title: 'Ship Date', render: formatDate },
-                { data: null, title: 'Actions', orderable: false, render: function(data, type, row) {
-                    return `<button class="btn btn-sm btn-primary fiber-edit-btn" data-id="${row.id}">Edit</button> <button class="btn btn-sm btn-danger fiber-delete-btn" data-id="${row.id}">Delete</button>`;
-                }}
-            ],
-            destroy: true
-        });
-        // Row click for drawer
-        $('#ordersTable tbody').on('click', 'tr', function() {
-            const rowData = dt.row(this).data();
-            if (rowData) openOrderDrawer(rowData);
-        });
-        // Actions
-        $('#fiberOrdersGrid').off('click').on('click', '.fiber-edit-btn', function(e) {
-            e.stopPropagation();
-            const id = $(this).data('id');
-            editOrderDialog(id, dt);
-        });
-        $('#fiberOrdersGrid').on('click', '.fiber-delete-btn', function(e) {
-            e.stopPropagation();
-            const id = $(this).data('id');
-            deleteOrder(id, dt);
-        });
-    }
-
-    // CRUD
-    async function editOrderDialog(id, dt) {
-        // For brevity, not implemented here. Should open a modal for editing/creating orders and call the API, then dt.ajax.reload().
-        alert('Order editing not implemented in this demo.');
-    }
-    async function deleteOrder(id, dt) {
-        if (!confirm('Delete this order?')) return;
-        try {
-            const res = await fetch(`/api/fiberorders/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Failed to delete order');
-            dt.ajax.reload();
-        } catch (err) {
-            alert(err.message);
-        }
-    }
-
-    // Drawer
-    function openOrderDrawer(order) {
-        const $drawer = $('#fiberOrderDrawer');
-        $drawer.empty();
-        $drawer.append(`
-            <div style="padding:24px">
-                <h4>Order #${order.orderNumber}</h4>
-                <div><b>Client:</b> ${order.clientName}</div>
-                <div><b>Product:</b> ${order.productName}</div>
-                <div><b>Quantity:</b> ${order.quantity}</div>
-                <div><b>Unit Price:</b> ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(order.unitPrice)}</div>
-                <div><b>Total:</b> ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(order.unitPrice * order.quantity)}</div>
-                <div><b>Status:</b> ${statusBadge(order.status)}</div>
-                <div><b>Order Date:</b> ${formatDate(order.orderDate)}</div>
-                <div><b>Ship Date:</b> ${formatDate(order.shipDate)}</div>
-                <div id="orderMiniMap" style="margin-top:16px;"></div>
-                <button class="btn btn-secondary mt-3" id="drawerCloseBtn">Close</button>
-            </div>
-        `);
-        $drawer.addClass('open');
-        $drawer.on('click', '#drawerCloseBtn', function() { $drawer.removeClass('open'); });
-        // ArcGIS mini-map
-        if (order.clientLat && order.clientLng) {
-            loadMiniMap(order.clientLat, order.clientLng);
-        }
-    }
-
-    function loadMiniMap(lat, lng) {
-        require([
-            "esri/Map", "esri/views/MapView", "esri/Graphic", "esri/symbols/SimpleMarkerSymbol"
-        ], function(Map, MapView, Graphic, SimpleMarkerSymbol) {
-            const map = new Map({ basemap: "dark-gray-vector" });
-            const view = new MapView({
-                container: "orderMiniMap",
-                map: map,
-                center: [lng, lat],
-                zoom: 10,
-                ui: { components: [] }
+    fetch('/api/FiberOrders')
+        .then(r => r.json())
+        .then(data => {
+            if (ordersTable) {
+                ordersTable.clear().rows.add(data).draw();
+                return;
+            }
+            ordersTable = $('#fiberflowOrdersTable').DataTable({
+                data: data,
+                columns: [
+                    { title: 'Order #', data: 'OrderNumber' },
+                    { title: 'Client', data: 'ClientName' },
+                    { title: 'Product', data: 'ProductName' },
+                    { title: 'Qty', data: 'Quantity', className: 'text-end' },
+                    { title: 'Unit Price', data: 'UnitPrice', render: function(d) { return formatCurrency(d); }, className: 'text-end' },
+                    { title: 'Status', data: 'Status' },
+                    { title: 'Order Date', data: 'OrderDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
+                    { title: 'Ship Date', data: 'ShipDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
+                    {
+                        title: '',
+                        data: null,
+                        orderable: false,
+                        className: 'text-end',
+                        render: function (data, type, row) {
+                            return `<button class="btn btn-sm btn-outline-primary me-1" onclick="showOrderModal(${row.Id})"><i class='fa fa-edit'></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${row.Id})"><i class='fa fa-trash'></i></button>`;
+                        }
+                    }
+                ],
+                order: [[6, 'desc']],
+                responsive: true,
+                autoWidth: false,
+                language: { emptyTable: 'No orders found.' }
             });
-            const marker = new Graphic({
-                geometry: { type: "point", longitude: lng, latitude: lat },
-                symbol: new SimpleMarkerSymbol({ style: "circle", color: [59, 130, 246], size: 14, outline: { color: [0,0,0], width: 1 } })
-            });
-            view.graphics.add(marker);
         });
-    }
+}
 
-})();
+// Show modal for create/edit order
+window.showOrderModal = function (orderId) {
+    let isEdit = !!orderId;
+    let modalId = 'fiberflowOrderModal';
+    let $modals = $('#fiberflowModals');
+    $modals.empty();
+    let order = null;
+    if (isEdit) {
+        // Fetch order details
+        fetch(`/api/FiberOrders/${orderId}`)
+            .then(r => r.json())
+            .then(data => {
+                order = data;
+                renderOrderModal(order, isEdit, modalId, $modals);
+            });
+    } else {
+        renderOrderModal({}, false, modalId, $modals);
+    }
+};
+
+function renderOrderModal(order, isEdit, modalId, $modals) {
+    let modalHtml = `
+<div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content theme-surface">
+      <div class="modal-header">
+        <h5 class="modal-title" id="${modalId}Label">${isEdit ? 'Edit' : 'New'} Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="orderForm">
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Client Name</label>
+            <input type="text" class="form-control" name="ClientName" value="${order.ClientName || ''}" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Product Name</label>
+            <input type="text" class="form-control" name="ProductName" value="${order.ProductName || ''}" required />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Quantity</label>
+            <input type="number" class="form-control" name="Quantity" value="${order.Quantity || ''}" min="1" required />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Unit Price</label>
+            <input type="number" class="form-control" name="UnitPrice" value="${order.UnitPrice || ''}" min="0" step="0.01" required />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="Status" required>
+              ${['Draft','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${order.Status === s ? ' selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Order Date</label>
+            <input type="date" class="form-control" name="OrderDate" value="${order.OrderDate ? order.OrderDate.substring(0,10) : ''}" required />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Ship Date</label>
+            <input type="date" class="form-control" name="ShipDate" value="${order.ShipDate ? order.ShipDate.substring(0,10) : ''}" required />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-accent theme-btn">${isEdit ? 'Save Changes' : 'Create Order'}</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>`;
+    $modals.html(modalHtml);
+    let modal = new bootstrap.Modal(document.getElementById(modalId));
+    modal.show();
+
+    $('#orderForm').on('submit', function (e) {
+        e.preventDefault();
+        let formData = Object.fromEntries(new FormData(this).entries());
+        formData.Quantity = parseInt(formData.Quantity);
+        formData.UnitPrice = parseFloat(formData.UnitPrice);
+        formData.OrderDate = formData.OrderDate;
+        formData.ShipDate = formData.ShipDate;
+        let method = isEdit ? 'PUT' : 'POST';
+        let url = isEdit ? `/api/FiberOrders/${order.Id}` : '/api/FiberOrders';
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Failed to save order');
+            return r.json();
+        })
+        .then(() => {
+            modal.hide();
+            fiberflowToast(isEdit ? 'Order updated' : 'Order created', 'success');
+            loadOrdersTable();
+        })
+        .catch(() => {
+            fiberflowToast('Failed to save order', 'error');
+        });
+    });
+}
+
+// Delete order
+window.deleteOrder = function (orderId) {
+    if (!confirm('Delete this order?')) return;
+    fetch(`/api/FiberOrders/${orderId}`, { method: 'DELETE' })
+        .then(r => {
+            if (!r.ok) throw new Error('Failed to delete order');
+            fiberflowToast('Order deleted', 'success');
+            loadOrdersTable();
+        })
+        .catch(() => fiberflowToast('Failed to delete order', 'error'));
+};

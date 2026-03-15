@@ -1,73 +1,936 @@
-/* ======================================
-   Contact Section
-   ====================================== */
-.contact-section {
-    background: var(--hero-gradient);
-    color: #fff;
+/* ============================================================
+   FiberFlow Operations System
+   Inherits site CSS variables — only layout, typography accents,
+   DataTables overrides, drawer, toasts, maps, and status badges
+   are custom. Everything else defers to Bootstrap 4 + site styles.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Barlow:wght@300;400;500;600&display=swap');
+
+/* ?? Scope + base ?????????????????????????????????????????? */
+.fiberflow-index {
+    font-family: 'Barlow', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 0 !important;
+    max-width: 100% !important;
+    background-color: var(--background);
+    color: var(--text);
 }
 
-.contact-section .section-title {
-    color: #fff;
-}
+    /* ?? Sticky header ????????????????????????????????????????? */
+    .fiberflow-index .ff-header {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 32px;
+        box-shadow: 0 1px 4px var(--shadow);
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
 
-.contact-section .section-title::after {
-    background: #fff;
-}
+    /* ?? Brand ????????????????????????????????????????????????? */
+    .fiberflow-index .ff-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
 
-.contact-section p {
-    color: rgba(255, 255, 255, 0.85);
-}
+    .fiberflow-index .ff-logo {
+        width: 32px;
+        height: 32px;
+        background: var(--primary);
+        clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 900;
+        font-size: 13px;
+        color: #fff;
+        flex-shrink: 0;
+    }
 
-/* ======================================
-   Contact Links – Flexbox centering
-   ====================================== */
-.contact-links {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-}
+    .fiberflow-index .ff-brand-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        line-height: 1;
+    }
 
-.contact-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    color: #fff;
-    font-size: 1.1rem;
-    padding: 0.75rem 1.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    transition: all var(--transition);
-    width: 100%;
-    max-width: 400px;
-}
+    .fiberflow-index .ff-brand-name {
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 900;
+        font-size: 20px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: var(--text);
+        line-height: 1;
+    }
 
-.contact-link:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+        .fiberflow-index .ff-brand-name em {
+            color: var(--accent);
+            font-style: normal;
+        }
 
-.contact-link i {
-    font-size: 1.25rem;
-    flex-shrink: 0;
-}
+    .fiberflow-index .ff-brand-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 8px;
+        letter-spacing: 3px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
 
-/* ======================================
-   Responsive – Contact
-   ====================================== */
-@media (max-width: 575.98px) {
-    .contact-link {
-        font-size: 0.95rem;
-        padding: 0.65rem 1rem;
-        max-width: 100%;
+    /* ?? System status indicator ??????????????????????????????? */
+    .fiberflow-index .ff-system-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .fiberflow-index .ff-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: ff-status-pulse 2.4s infinite;
+    }
+
+@keyframes ff-status-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(56, 161, 105, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 0 5px rgba(56, 161, 105, 0);
     }
 }
 
-@media (min-width: 768px) {
-    .contact-link {
-        max-width: 420px;
+/* ?? Tab nav bar ??????????????????????????????????????????? */
+.fiberflow-index .ff-nav {
+    position: sticky;
+    top: 60px;
+    z-index: 150;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    transition: background-color 0.3s ease;
+}
+
+.fiberflow-index .ff-tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px 22px 11px;
+    transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+}
+
+    .fiberflow-index .ff-tab-btn:hover {
+        color: var(--primary);
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+
+body.dark-mode .fiberflow-index .ff-tab-btn:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.fiberflow-index .ff-tab-btn[aria-selected="true"] {
+    color: var(--primary);
+    border-bottom-color: var(--accent);
+}
+
+body.dark-mode .fiberflow-index .ff-tab-btn[aria-selected="true"] {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+/* ?? Section header ???????????????????????????????????????? */
+.fiberflow-index .ff-section-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.fiberflow-index .ff-section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+    .fiberflow-index .ff-section-title::before {
+        content: '';
+        width: 3px;
+        height: 18px;
+        background: var(--accent);
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+
+.fiberflow-index .ff-timestamp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
+/* ?? KPI Cards ????????????????????????????????????????????? */
+.fiberflow-index .ff-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* KPI card builds on site card style */
+.fiberflow-index .ff-kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 1.1rem 1.4rem 1rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 4px var(--shadow);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+    .fiberflow-index .ff-kpi-card:hover {
+        box-shadow: 0 4px 12px var(--shadow);
+        border-color: var(--accent);
+    }
+
+    /* Accent top stripe */
+    .fiberflow-index .ff-kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--primary);
+        transition: background-color 0.3s ease;
+    }
+
+    .fiberflow-index .ff-kpi-card.accent-green::before {
+        background: var(--accent);
+    }
+
+    .fiberflow-index .ff-kpi-card.accent-danger::before {
+        background: #dc3545;
+    }
+
+.fiberflow-index .ff-kpi-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.fiberflow-index .ff-kpi-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: -1px;
+}
+
+    .fiberflow-index .ff-kpi-value.sm {
+        font-size: 1.7rem;
+    }
+
+    .fiberflow-index .ff-kpi-value.alert {
+        color: #dc3545;
+    }
+
+.fiberflow-index .ff-kpi-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.fiberflow-index .kpi-alert-pulse {
+    animation: ff-kpi-pulse 1.8s infinite;
+}
+
+@keyframes ff-kpi-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 0 5px rgba(220, 53, 69, 0.15);
+    }
+}
+
+/* ?? Dashboard grid ???????????????????????????????????????? */
+.fiberflow-index .ff-dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 1rem;
+    align-items: start;
+}
+
+.fiberflow-index .ff-dash-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ?? Card header title (mono label) ??????????????????????? */
+.fiberflow-index .ff-card-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* ?? Chart containers ?????????????????????????????????????? */
+.fiberflow-index .ff-chart-inner {
+    padding: 10px 14px 8px;
+}
+
+    .fiberflow-index .ff-chart-inner svg {
+        display: block;
+    }
+
+        /* D3 text inherits site muted color */
+        .fiberflow-index .ff-chart-inner svg text {
+            fill: var(--text-muted) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 10px !important;
+        }
+
+        .fiberflow-index .ff-chart-inner svg .domain,
+        .fiberflow-index .ff-chart-inner svg .tick line {
+            stroke: var(--border) !important;
+        }
+
+        .fiberflow-index .ff-chart-inner svg .grid line {
+            stroke: var(--border) !important;
+            stroke-opacity: 0.7 !important;
+            stroke-dasharray: 3 3 !important;
+        }
+
+/* ?? ArcGIS map sizing ????????????????????????????????????? */
+.fiberflow-index #fiberDashboardMap {
+    height: 500px;
+    width: 100%;
+}
+
+.fiberflow-index #fiberShipmentMap {
+    height: 100%;
+    min-height: 540px;
+    width: 100%;
+}
+
+.fiberflow-index #orderMiniMap {
+    height: 200px;
+    width: 100%;
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+}
+
+/* ?? Shipments split layout ???????????????????????????????? */
+.fiberflow-index .ff-shipments-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    height: calc(100vh - 132px);
+    min-height: 540px;
+}
+
+.fiberflow-index .ff-shipments-sidebar {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    background: var(--surface);
+}
+
+    .fiberflow-index .ff-shipments-sidebar .dataTables_wrapper {
+        padding: 10px;
+    }
+
+.fiberflow-index .ff-shipments-map {
+    position: relative;
+    overflow: hidden;
+    background: #1a202c; /* map is always dark */
+}
+
+/* Map legend */
+.fiberflow-index .ff-map-legend {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    padding: 10px 14px;
+    z-index: 10;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    box-shadow: 0 2px 8px var(--shadow);
+    color: var(--text-muted);
+}
+
+.fiberflow-index .ff-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+    .fiberflow-index .ff-legend-item:last-child {
+        margin-bottom: 0;
+    }
+
+.fiberflow-index .ff-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ?? Inventory summary bar ????????????????????????????????? */
+.fiberflow-index .ff-inv-summary {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px var(--shadow);
+}
+
+.fiberflow-index .ff-inv-stat {
+    flex: 1;
+    padding: 14px 20px;
+    border-right: 1px solid var(--border);
+}
+
+    .fiberflow-index .ff-inv-stat:last-child {
+        border-right: none;
+    }
+
+.fiberflow-index .ff-inv-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.fiberflow-index .ff-inv-stat-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--text);
+}
+
+    .fiberflow-index .ff-inv-stat-value.warn {
+        color: #dc3545;
+    }
+
+/* ?? Slide-in drawer ??????????????????????????????????????? */
+.fiberflow-index .ff-drawer {
+    position: fixed;
+    right: -480px;
+    top: 0;
+    width: 460px;
+    height: 100vh;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1050;
+    overflow-y: auto;
+    box-shadow: -4px 0 24px var(--shadow);
+}
+
+    .fiberflow-index .ff-drawer.open {
+        right: 0;
+    }
+
+.fiberflow-index .ff-drawer-hd {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.fiberflow-index .ff-drawer-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+/* Close button reuses site close style */
+.fiberflow-index .ff-drawer-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 30px;
+    height: 30px;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    line-height: 1;
+}
+
+    .fiberflow-index .ff-drawer-close:hover {
+        color: var(--text);
+        border-color: var(--text-muted);
+    }
+
+.fiberflow-index .ff-drawer-body {
+    padding: 22px;
+}
+
+/* Drawer detail rows */
+.fiberflow-index .ff-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+    .fiberflow-index .ff-detail-row:last-of-type {
+        border-bottom: none;
+    }
+
+.fiberflow-index .ff-detail-lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fiberflow-index .ff-detail-val {
+    font-size: 13px;
+    color: var(--text);
+    text-align: right;
+}
+
+    .fiberflow-index .ff-detail-val.mono {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+    }
+
+/* Order total highlight — uses accent green like site */
+.fiberflow-index .ff-drawer-total {
+    background: rgba(56, 161, 105, 0.07);
+    border: 1px solid rgba(56, 161, 105, 0.25);
+    border-radius: 0.25rem;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 14px 0;
+}
+
+.fiberflow-index .ff-drawer-total-lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.fiberflow-index .ff-drawer-total-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--accent);
+}
+
+/* Qty display inside receive modal */
+.fiberflow-index .ff-qty-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    padding: 10px 14px;
+    margin-bottom: 1rem;
+}
+
+.fiberflow-index .ff-qty-lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+}
+
+.fiberflow-index .ff-qty-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* ?? Bootstrap 4 button font override ????????????????????? */
+/* Only typography — colors come entirely from Bootstrap 4 */
+.fiberflow-index .btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+/* Focus ring matches site primary */
+.fiberflow-index .form-control:focus,
+.fiberflow-index .custom-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(26, 54, 93, 0.2);
+}
+
+body.dark-mode .fiberflow-index .form-control:focus,
+body.dark-mode .fiberflow-index .custom-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(56, 161, 105, 0.2);
+}
+
+/* Form controls inherit site surface in dark mode */
+body.dark-mode .fiberflow-index .form-control,
+body.dark-mode .fiberflow-index .custom-select {
+    background-color: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+/* ?? DataTables overrides ?????????????????????????????????? */
+/* Must override DataTables injected white styles to match site theme */
+.fiberflow-index .dataTables_wrapper {
+    padding: 14px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+}
+
+    .fiberflow-index .dataTables_wrapper .dataTables_filter input,
+    .fiberflow-index .dataTables_wrapper .dataTables_length select {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 0.25rem;
+        padding: 5px 10px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .fiberflow-index .dataTables_wrapper .dataTables_filter input:focus,
+        .fiberflow-index .dataTables_wrapper .dataTables_length select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(26, 54, 93, 0.15);
+        }
+
+body.dark-mode .fiberflow-index .dataTables_wrapper .dataTables_filter input:focus,
+body.dark-mode .fiberflow-index .dataTables_wrapper .dataTables_length select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(56, 161, 105, 0.15);
+}
+
+.fiberflow-index .dataTables_wrapper .dataTables_filter label,
+.fiberflow-index .dataTables_wrapper .dataTables_length label,
+.fiberflow-index .dataTables_wrapper .dataTables_info {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.fiberflow-index table.dataTable {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    font-size: 13px;
+}
+
+    .fiberflow-index table.dataTable thead th {
+        background: var(--surface) !important;
+        border-bottom: 2px solid var(--border) !important;
+        border-top: none !important;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        padding: 11px 14px;
+        font-weight: 500;
+    }
+
+    .fiberflow-index table.dataTable tbody tr {
+        border-bottom: 1px solid var(--border);
+        background: var(--surface) !important;
+        transition: background-color 0.15s ease;
+    }
+
+        .fiberflow-index table.dataTable tbody tr:hover {
+            background: var(--background) !important;
+            cursor: pointer;
+        }
+
+body.dark-mode .fiberflow-index table.dataTable tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.fiberflow-index table.dataTable tbody td {
+    padding: 10px 14px;
+    border-top: none !important;
+    vertical-align: middle;
+    color: var(--text);
+}
+
+.fiberflow-index .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text-muted) !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    border-radius: 0.25rem !important;
+    border: none !important;
+    padding: 4px 9px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+    .fiberflow-index .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: var(--background) !important;
+        color: var(--primary) !important;
+        border: none !important;
+    }
+
+    .fiberflow-index .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .fiberflow-index .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        background: var(--primary) !important;
+        color: #fff !important;
+        border: none !important;
+        font-weight: 700;
+    }
+
+/* Low stock row highlight */
+.fiberflow-index .fiber-low-stock td {
+    background: rgba(220, 53, 69, 0.06) !important;
+}
+
+.fiberflow-index .fiber-low-stock:hover td {
+    background: rgba(220, 53, 69, 0.11) !important;
+}
+
+/* ?? Status badges ????????????????????????????????????????? */
+/* Light mode colors match Bootstrap 4 contextual alert palette */
+.fiberflow-index .fiber-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px 2px 7px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+    .fiberflow-index .fiber-status-badge::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+    }
+
+/* Light mode */
+.fiberflow-index .fiber-badge-draft {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.fiberflow-index .fiber-badge-confirmed {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.fiberflow-index .fiber-badge-inproduction {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.fiberflow-index .fiber-badge-shipped {
+    background: #fde8d8;
+    color: #7a3d00;
+}
+
+.fiberflow-index .fiber-badge-delivered {
+    background: #d4edda;
+    color: #155724;
+}
+
+.fiberflow-index .fiber-badge-intransit {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.fiberflow-index .fiber-badge-delayed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Dark mode — softer tones that work on dark surface */
+body.dark-mode .fiberflow-index .fiber-badge-draft {
+    background: rgba(108,117,125,0.2);
+    color: #adb5bd;
+}
+
+body.dark-mode .fiberflow-index .fiber-badge-confirmed {
+    background: rgba(0,123,255,0.18);
+    color: #74b9ff;
+}
+
+body.dark-mode .fiberflow-index .fiber-badge-inproduction {
+    background: rgba(255,193,7,0.18);
+    color: #ffc947;
+}
+
+body.dark-mode .fiberflow-index .fiber-badge-shipped {
+    background: rgba(253,126,20,0.18);
+    color: #ffb07a;
+}
+
+body.dark-mode .fiberflow-index .fiber-badge-delivered {
+    background: rgba(40,167,69,0.18);
+    color: #55d98d;
+}
+
+body.dark-mode .fiberflow-index .fiber-badge-intransit {
+    background: rgba(0,123,255,0.18);
+    color: #74b9ff;
+}
+
+body.dark-mode .fiberflow-index .fiber-badge-delayed {
+    background: rgba(220,53,69,0.18);
+    color: #f5a9b3;
+}
+
+/* ?? Toast notification stack ?????????????????????????????? */
+/* Matches the site's .toast dark-mode overrides in utilities.css */
+#ff-toast-area {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ff-toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    border-radius: 0.25rem;
+    padding: 11px 18px;
+    font-size: 13px;
+    font-family: 'Barlow', sans-serif;
+    color: var(--text);
+    box-shadow: 0 4px 12px var(--shadow);
+    animation: ff-toast-in 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 300px;
+}
+
+    .ff-toast.success {
+        border-left-color: var(--accent);
+    }
+
+    .ff-toast.error {
+        border-left-color: #dc3545;
+    }
+
+@keyframes ff-toast-in {
+    from {
+        transform: translateX(18px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ?? Utility ??????????????????????????????????????????????? */
+[role="tabpanel"][hidden] {
+    display: none !important;
+}
+
+/* ?? Responsive ???????????????????????????????????????????? */
+@media (max-width: 1199px) {
+    .fiberflow-index .ff-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .fiberflow-index .ff-dash-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fiberflow-index .ff-shipments-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+}
+
+@media (max-width: 767px) {
+    .fiberflow-index .ff-header {
+        padding: 0 16px;
+    }
+
+    .fiberflow-index .ff-nav {
+        padding: 0 16px;
+    }
+
+    .fiberflow-index .ff-kpi-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }

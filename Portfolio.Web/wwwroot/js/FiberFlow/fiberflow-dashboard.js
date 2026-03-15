@@ -1,146 +1,155 @@
-/**
- * FiberFlow — Dashboard
- * Depends on: jQuery, D3.js, ArcGIS JS API 4.30
- * API endpoints:
- *   GET /api/fiberdashboard/stats
- *   GET /api/fibershipments
- */
 
-(function() {
-    // KPI Cards
-    async function loadKpiCards() {
-        try {
-            const res = await fetch("/api/fiberdashboard/stats");
-            if (!res.ok) throw new Error("Failed to load dashboard stats");
-            const stats = await res.json();
-            $("#fiber-kpi-active-shipments").text(stats.activeShipments);
-            $("#fiber-kpi-open-orders").text(stats.openOrders);
-            $("#fiber-kpi-low-stock").text(stats.lowStockAlerts);
-            $("#fiber-kpi-mtd-revenue").text(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.mtdRevenue));
-            if (stats.lowStockAlerts > 0) {
-                $("#fiber-kpi-low-stock").addClass("fiber-kpi-pulse");
-            }
-            // D3 Analytics
-            renderRevenueChart(stats.revenueByMonth);
-            renderStatusChart(stats.ordersByStatus);
-            renderTopClientsChart(stats.topClients);
-        } catch (err) {
-            // Optionally show error
-            console.error(err);
-        }
-    }
+// FiberFlow Dashboard JS
+// Handles dashboard stats, D3 charts, and ArcGIS map
 
-    // D3.js Revenue By Month (Bar Chart)
-    function renderRevenueChart(data) {
-        const el = d3.select("#revenueChart");
-        el.selectAll("*").remove();
-        const margin = {top: 32, right: 24, bottom: 48, left: 64}, width = el.node().clientWidth - margin.left - margin.right, height = 350 - margin.top - margin.bottom;
-        const svg = el.append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom)
-            .append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-        const x = d3.scaleBand().domain(data.map(d => d.month)).range([0, width]).padding(0.2);
-        const y = d3.scaleLinear().domain([0, d3.max(data, d => d.revenue)]).nice().range([height, 0]);
-        svg.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x)).selectAll("text").attr("dy", "1em");
-        svg.append("g").call(d3.axisLeft(y).ticks(6).tickFormat(d3.format("$,.0f")));
-        svg.append("g").attr("class", "grid").call(d3.axisLeft(y).tickSize(-width).tickFormat(""));
-        svg.selectAll(".bar").data(data).enter().append("rect")
-            .attr("class", "bar")
-            .attr("x", d => x(d.month))
-            .attr("y", d => y(d.revenue))
-            .attr("width", x.bandwidth())
-            .attr("height", d => height - y(d.revenue))
-            .attr("fill", "#f97316");
-        svg.append("text").attr("x", width/2).attr("y", height+40).attr("text-anchor", "middle").text("Month");
-        svg.append("text").attr("transform", "rotate(-90)").attr("x", -height/2).attr("y", -48).attr("text-anchor", "middle").text("Revenue");
-    }
 
-    // D3.js Orders By Status (Donut Chart)
-    function renderStatusChart(data) {
-        const el = d3.select("#statusChart");
-        el.selectAll("*").remove();
-        const width = el.node().clientWidth, height = 350, radius = Math.min(width, height) / 2 - 10;
-        const svg = el.append("svg").attr("width", width).attr("height", height)
-            .append("g").attr("transform", `translate(${width/2},${height/2})`);
-        const color = d3.scaleOrdinal(["#64748b","#3b82f6","#eab308","#f97316","#22c55e"]);
-        const pie = d3.pie().value(d => d.count);
-        const arc = d3.arc().innerRadius(radius * 0.6).outerRadius(radius);
-        const arcs = svg.selectAll("arc").data(pie(data)).enter().append("g");
-        arcs.append("path").attr("d", arc).attr("fill", (d,i) => color(i));
-        arcs.append("title").text(d => `${d.data.status}: ${d.data.count}`);
-        // Tooltip on hover
-        arcs.on("mouseover", function(e, d) {
-            const [x, y] = d3.pointer(e);
-            d3.select("body").append("div").attr("id","fiberflow-tooltip").style("position","absolute").style("left",`${e.pageX+10}px`).style("top",`${e.pageY-20}px`).style("background","#fff").style("padding","4px 8px").style("border-radius","4px").style("box-shadow","0 2px 8px #0002").style("z-index",9999).text(`${d.data.status}: ${d.data.count}`);
-        }).on("mouseout", function() { d3.select("#fiberflow-tooltip").remove(); });
-        // Legend
-        svg.append("g").attr("transform", `translate(${-width/2+20},${-height/2+20})`).selectAll("rect").data(data).enter().append("rect")
-            .attr("x", 0).attr("y", (d,i) => i*22).attr("width", 16).attr("height", 16).attr("fill", (d,i) => color(i));
-        svg.append("g").attr("transform", `translate(${-width/2+40},${-height/2+32})`).selectAll("text").data(data).enter().append("text")
-            .attr("x", 0).attr("y", (d,i) => i*22+12).text(d => d.status).style("font-size","13px");
-    }
 
-    // D3.js Top Clients (Horizontal Bar Chart)
-    function renderTopClientsChart(data) {
-        const el = d3.select("#topClientsChart");
-        el.selectAll("*").remove();
-        const margin = {top: 32, right: 24, bottom: 48, left: 120}, width = el.node().clientWidth - margin.left - margin.right, height = 350 - margin.top - margin.bottom;
-        const svg = el.append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom)
-            .append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-        const y = d3.scaleBand().domain(data.map(d => d.name)).range([0, height]).padding(0.2);
-        const x = d3.scaleLinear().domain([0, d3.max(data, d => d.revenue)]).nice().range([0, width]);
-        svg.append("g").call(d3.axisLeft(y));
-        svg.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).ticks(6).tickFormat(d3.format("$,.0f")));
-        svg.append("g").attr("class", "grid").call(d3.axisBottom(x).tickSize(-height).tickFormat("")).attr("transform", `translate(0,${height})`);
-        svg.selectAll(".bar").data(data).enter().append("rect")
-            .attr("class", "bar")
-            .attr("y", d => y(d.name))
-            .attr("x", 0)
-            .attr("height", y.bandwidth())
-            .attr("width", d => x(d.revenue))
-            .attr("fill", "#14b8a6");
-        svg.append("text").attr("x", width/2).attr("y", height+40).attr("text-anchor", "middle").text("Revenue");
-        svg.append("text").attr("transform", "rotate(-90)").attr("x", -height/2).attr("y", -100).attr("text-anchor", "middle").text("Client");
-    }
+// Shared toast helper (matches HomeFinder implementation)
+function showToast(message, type = "success") {
+    const container = document.getElementById("toastContainer") || createToastContainer();
+    const iconMap = {
+        success: "fa-circle-check",
+        danger: "fa-circle-xmark",
+        warning: "fa-triangle-exclamation",
+        info: "fa-circle-info"
+    };
+    const icon = iconMap[type] || iconMap.info;
 
-    // ArcGIS Map (unchanged)
-    function initMap() {
-        require([
-            "esri/Map", "esri/views/MapView", "esri/Graphic", "esri/layers/GraphicsLayer", "esri/geometry/Polyline", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleMarkerSymbol", "esri/PopupTemplate"
-        ], function(Map, MapView, Graphic, GraphicsLayer, Polyline, SimpleLineSymbol, SimpleMarkerSymbol, PopupTemplate) {
-            var map = new Map({ basemap: "dark-gray-vector" });
-            var view = new MapView({
-                container: "fiberDashboardMap",
-                map: map,
-                center: [-95.3698, 29.7604],
-                zoom: 5
-            });
-            var graphicsLayer = new GraphicsLayer();
-            map.add(graphicsLayer);
-            // Plant marker
-            var plantMarker = new Graphic({
-                geometry: { type: "point", longitude: -95.3698, latitude: 29.7604 },
-                symbol: new SimpleMarkerSymbol({ style: "diamond", color: [249, 115, 22], size: 18, outline: { color: [0,0,0], width: 1 } }),
-                popupTemplate: { title: "FiberFlow Plant", content: "Houston, TX — Manufacturing Facility" }
-            });
-            graphicsLayer.add(plantMarker);
-            // Fetch shipments
-            fetch("/api/fibershipments").then(function(res) {
-                if (!res.ok) throw new Error("Failed to load shipments");
-                return res.json();
-            }).then(function(shipments) {
-                shipments.forEach(function(s) {
-                    if (!s.route || !Array.isArray(s.route)) return;
-                    var polyline = new Polyline({ paths: [s.route.map(pt => [pt.lng, pt.lat])] });
-                    var lineSymbol = new SimpleLineSymbol({ color: [59, 130, 246], width: 3 });
-                    var graphic = new Graphic({ geometry: polyline, symbol: lineSymbol, popupTemplate: new PopupTemplate({ title: s.trackingNumber, content: s.status }) });
-                    graphicsLayer.add(graphic);
-                });
-            });
+    const toast = document.createElement("div");
+    toast.className = `toast align-items-center text-bg-${type} border-0 show`;
+    toast.setAttribute("role", "alert");
+    toast.setAttribute("aria-live", "assertive");
+    toast.setAttribute("aria-atomic", "true");
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fa-solid ${icon} me-1"></i>${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                    data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>`;
+    container.appendChild(toast);
+
+    // Animate in
+    requestAnimationFrame(() => toast.classList.add("toast-slide-in"));
+
+    setTimeout(() => {
+        toast.classList.add("toast-slide-out");
+        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+        // Fallback removal if transition doesn't fire
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
+}
+
+function createToastContainer() {
+    const c = document.createElement("div");
+    c.id = "toastContainer";
+    c.className = "toast-container position-fixed bottom-0 end-0 p-3";
+    c.style.zIndex = "1090";
+    document.body.appendChild(c);
+    return c;
+}
+
+// Provide legacy alias used by existing FiberFlow scripts
+window.fiberflowToast = function (message, type) {
+    const mapped = type === 'error' ? 'danger' : type;
+    showToast(message, mapped);
+};
+
+
+// Ensure loadFiberflowMap is always defined to avoid ReferenceError
+if (typeof loadFiberflowMap !== 'function') {
+    window.loadFiberflowMap = function () {};
+}
+
+$(document).ready(function () {
+    loadDashboardStats();
+    loadFiberflowMap();
+});
+
+function loadDashboardStats() {
+    $('#fiberflowRevenueChart .fiberflow-spinner').removeClass('d-none');
+    fetch('/api/FiberDashboard/stats')
+        .then(r => r.json())
+        .then(data => {
+            updateDashboardBadges(data);
+            renderRevenueChart(data.RevenueByMonth || []);
+            fiberflowToast('Dashboard loaded', 'success');
+        })
+        .catch(() => {
+            $('#fiberflowRevenueChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
+            fiberflowToast('Failed to load dashboard', 'error');
+        })
+        .finally(() => {
+            $('#fiberflowRevenueChart .fiberflow-spinner').addClass('d-none');
         });
+}
+
+function updateDashboardBadges(data) {
+    $('#badgeActiveShipments').text(`${data.ActiveShipments ?? 0} Active Shipments`);
+    $('#badgeOpenOrders').text(`${data.OpenOrders ?? 0} Open Orders`);
+    $('#badgeLowStock').text(`${data.LowStockAlerts ?? 0} Low Stock`);
+}
+
+function renderRevenueChart(revenueByMonth) {
+    const container = d3.select('#fiberflowRevenueChart');
+    container.selectAll('*:not(.fiberflow-spinner)').remove();
+    if (!revenueByMonth.length) {
+        container.append('div').attr('class', 'text-muted small').text('No revenue data.');
+        return;
     }
+    // D3 bar chart
+    const margin = { top: 24, right: 24, bottom: 40, left: 60 };
+    const width = container.node().clientWidth - margin.left - margin.right;
+    const height = 320 - margin.top - margin.bottom;
+    const svg = container.append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    $(function() {
-        loadKpiCards();
-        initMap();
-    });
+    const months = revenueByMonth.map(d => d.Month);
+    const values = revenueByMonth.map(d => d.Revenue);
+    const x = d3.scaleBand().domain(months).range([0, width]).padding(0.2);
+    const y = d3.scaleLinear().domain([0, d3.max(values) * 1.1]).range([height, 0]);
 
-})();
+    svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('class', 'small')
+        .attr('fill', 'var(--text-muted)');
+
+    svg.append('g')
+        .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format('$,.0f')))
+        .selectAll('text')
+        .attr('class', 'small')
+        .attr('fill', 'var(--text-muted)');
+
+    svg.selectAll('.bar')
+        .data(revenueByMonth)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', d => x(d.Month))
+        .attr('y', d => y(d.Revenue))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d.Revenue))
+        .attr('fill', 'var(--accent)');
+
+    svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', height + margin.bottom - 5)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-muted)')
+        .attr('class', 'small')
+        .text('Month');
+    svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', -margin.left + 16)
+        .attr('x', -height / 2)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-muted)')
+        .attr('class', 'small')
+        .text('Revenue');
+}

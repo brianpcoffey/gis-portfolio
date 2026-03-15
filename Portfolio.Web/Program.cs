@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Scalar.AspNetCore;
 using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Repositories;
@@ -13,10 +12,11 @@ using Portfolio.Repositories.Repositories;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 using Portfolio.Web.Middleware;
+using Scalar.AspNetCore;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
-
+Console.WriteLine("EF Core Connection String: " + builder.Configuration.GetConnectionString("DefaultConnection"));
 // --------------------------
 // Razor Pages & Services
 // --------------------------
@@ -50,10 +50,10 @@ builder.Services.AddScoped<IFiberDashboardService, FiberDashboardService>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
+builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
-builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
-
+builder.Services.AddHttpClient<IArcGisService, ArcGisService>();        
 
 // --------------------------
 // Session
@@ -78,7 +78,11 @@ builder.Services.AddAuthentication(options =>
 {
     options.LoginPath = "/Login";
     options.LogoutPath = "/Logout";
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    // In development allow SameAsRequest so cookies can be used over HTTP (localhost);
+    // in production require Secure.
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
@@ -145,7 +149,8 @@ builder.Services.AddAuthentication(options =>
             context.HttpContext.Response.Cookies.Append("AnonUserId", userId.ToString(), new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                // Match secure flag to the request scheme so local HTTP dev works
+                Secure = context.Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddYears(1),
                 IsEssential = true
@@ -195,9 +200,9 @@ var databaseUrl = builder.Configuration.GetConnectionString("DefaultConnection")
 
 var npgsqlBuilder = ParsePostgresConnectionString(databaseUrl);
 
+// Use the parsed/normalized connection string (handles postgres:// URI format)
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
     options.UseNpgsql(npgsqlBuilder.ConnectionString));
-
 // --------------------------
 // Data Protection Keys Folder (for Docker / Render)
 // --------------------------

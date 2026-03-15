@@ -42,21 +42,18 @@ public class FiberOrderService : IFiberOrderService
     public async Task<FiberOrderDto> CreateAsync(CreateFiberOrderDto dto, CancellationToken cancellationToken = default)
     {
         var userId = CurrentUserId;
-        var client = await _clientRepo.GetByIdAsync(dto.ClientId, userId, cancellationToken)
-            ?? throw new ArgumentException("Client not found");
+        // OrderNumber will be generated in repository or here if needed
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var order = new FiberOrder
         {
             UserId = userId,
-            ClientId = dto.ClientId,
+            ClientName = dto.ClientName,
             ProductName = dto.ProductName,
-            ProductSku = dto.ProductSku,
             Quantity = dto.Quantity,
             UnitPrice = dto.UnitPrice,
-            TotalValue = dto.UnitPrice * dto.Quantity,
             Status = dto.Status,
             OrderDate = dto.OrderDate,
-            ShipDate = dto.ShipDate
+            ShipDate = dto.ShipDate,
         };
         var created = await _orderRepo.AddAsync(order, cancellationToken);
         return MapToDto(created);
@@ -67,14 +64,15 @@ public class FiberOrderService : IFiberOrderService
         var userId = CurrentUserId;
         var order = await _orderRepo.GetByIdAsync(id, userId, cancellationToken)
             ?? throw new KeyNotFoundException($"Order {id} not found");
+        if (dto.ClientName != null) order.ClientName = dto.ClientName;
         if (dto.ProductName != null) order.ProductName = dto.ProductName;
-        if (dto.ProductSku != null) order.ProductSku = dto.ProductSku;
         if (dto.Quantity.HasValue) order.Quantity = dto.Quantity.Value;
         if (dto.UnitPrice.HasValue) order.UnitPrice = dto.UnitPrice.Value;
         if (dto.Status != null) order.Status = dto.Status;
         if (dto.OrderDate.HasValue) order.OrderDate = dto.OrderDate.Value;
         if (dto.ShipDate.HasValue) order.ShipDate = dto.ShipDate.Value;
-        order.TotalValue = order.UnitPrice * order.Quantity;
+        if (dto.ClientLat.HasValue) order.ClientLat = dto.ClientLat.Value;
+        if (dto.ClientLng.HasValue) order.ClientLng = dto.ClientLng.Value;
         var updated = await _orderRepo.UpdateAsync(order, cancellationToken);
         return MapToDto(updated);
     }
@@ -87,17 +85,15 @@ public class FiberOrderService : IFiberOrderService
     private static FiberOrderDto MapToDto(FiberOrder o) => new()
     {
         Id = o.Id,
+        OrderNumber = o.OrderNumber,
+        ClientName = o.ClientName,
         ProductName = o.ProductName,
-        ProductSku = o.ProductSku,
         Quantity = o.Quantity,
         UnitPrice = o.UnitPrice,
-        TotalValue = o.TotalValue,
         Status = o.Status,
         OrderDate = o.OrderDate,
         ShipDate = o.ShipDate,
-        ClientId = o.ClientId,
-        ClientName = o.Client?.Name ?? string.Empty,
-        ClientLat = o.Client?.Latitude ?? 0,
-        ClientLng = o.Client?.Longitude ?? 0
+        ClientLat = o.ClientLat,
+        ClientLng = o.ClientLng
     };
 }

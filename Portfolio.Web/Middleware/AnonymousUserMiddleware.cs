@@ -20,7 +20,7 @@ namespace Portfolio.Web.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider)
+        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider, Portfolio.Services.Services.UserProfileSeedService seedService)
         {
             if (context.Items.ContainsKey(HttpContextItemKey))
             {
@@ -52,6 +52,7 @@ namespace Portfolio.Web.Middleware
                 }
             }
             else
+
             {
                 userId = Guid.NewGuid();
 
@@ -65,16 +66,22 @@ namespace Portfolio.Web.Middleware
                 db.UserProfiles.Add(profile);
                 await db.SaveChangesAsync();
 
+                // Seed data for this new anonymous user
+                await seedService.SeedForUserAsync(userId);
+
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true,
+                    // Allow cookies to be set over HTTP in development by matching the request scheme.
+                    Secure = context.Request.IsHttps,
                     SameSite = SameSiteMode.Lax,
                     Expires = timeProvider.GetUtcNow().AddYears(1),
                     IsEssential = true
                 };
 
                 context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
+
+                Console.WriteLine($"[AnonymousUserMiddleware] Created anon profile and cookie for {userId} (IsHttps={context.Request.IsHttps})");
             }
 
             context.Items[HttpContextItemKey] = userId;
