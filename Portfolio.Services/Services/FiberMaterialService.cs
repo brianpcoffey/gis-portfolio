@@ -77,15 +77,10 @@ public class FiberMaterialService : IFiberMaterialService
         Id = m.Id,
         Name = m.Name,
         Sku = m.Sku,
-        UnitOfMeasure = m.UnitOfMeasure,
         QtyOnHand = m.QtyOnHand,
-        ReorderPoint = m.ReorderPoint,
-        ReorderQty = m.ReorderQty,
         UnitCost = m.UnitCost,
-        Supplier = m.Supplier,
-        WarehouseLocation = m.WarehouseLocation,
-        LastUpdated = m.LastUpdated,
         TotalValue = m.QtyOnHand * m.UnitCost,
-        IsLowStock = m.QtyOnHand < m.ReorderPoint
+        IsLowStock = m.QtyOnHand <= m.ReorderPoint,
+        ReorderPoint = m.ReorderPoint
     };
 }

@@ -184,25 +184,26 @@ namespace Portfolio.Repositories.Migrations
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    client_id = table.Column<int>(type: "integer", nullable: false),
+                    order_number = table.Column<string>(type: "text", nullable: false),
+                    client_name = table.Column<string>(type: "text", nullable: false),
                     product_name = table.Column<string>(type: "text", nullable: false),
-                    product_sku = table.Column<string>(type: "text", nullable: false),
                     quantity = table.Column<int>(type: "integer", nullable: false),
                     unit_price = table.Column<decimal>(type: "numeric", nullable: false),
-                    total_value = table.Column<decimal>(type: "numeric", nullable: false),
                     status = table.Column<string>(type: "text", nullable: false),
                     order_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ship_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    ship_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    client_lat = table.Column<double>(type: "double precision", nullable: true),
+                    client_lng = table.Column<double>(type: "double precision", nullable: true),
+                    FiberClientId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FiberOrders", x => x.id);
                     table.ForeignKey(
-                        name: "FK_FiberOrders_FiberClients_client_id",
-                        column: x => x.client_id,
+                        name: "FK_FiberOrders_FiberClients_FiberClientId",
+                        column: x => x.FiberClientId,
                         principalTable: "FiberClients",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "id");
                 });
 
             migrationBuilder.CreateTable(
@@ -259,28 +260,27 @@ namespace Portfolio.Repositories.Migrations
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    order_id = table.Column<int>(type: "integer", nullable: false),
                     carrier_name = table.Column<string>(type: "text", nullable: false),
                     tracking_number = table.Column<string>(type: "text", nullable: false),
                     status = table.Column<string>(type: "text", nullable: false),
-                    ship_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     estimated_arrival = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     origin_lat = table.Column<double>(type: "double precision", nullable: false),
                     origin_lng = table.Column<double>(type: "double precision", nullable: false),
                     destination_lat = table.Column<double>(type: "double precision", nullable: false),
                     destination_lng = table.Column<double>(type: "double precision", nullable: false),
                     destination_city = table.Column<string>(type: "text", nullable: false),
-                    destination_state = table.Column<string>(type: "text", nullable: false)
+                    destination_state = table.Column<string>(type: "text", nullable: false),
+                    route_json = table.Column<string>(type: "text", nullable: true),
+                    FiberOrderId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FiberShipments", x => x.id);
                     table.ForeignKey(
-                        name: "FK_FiberShipments_FiberOrders_order_id",
-                        column: x => x.order_id,
+                        name: "FK_FiberShipments_FiberOrders_FiberOrderId",
+                        column: x => x.FiberOrderId,
                         principalTable: "FiberOrders",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "id");
                 });
 
             migrationBuilder.CreateIndex(
@@ -295,14 +295,14 @@ namespace Portfolio.Repositories.Migrations
                 column: "material_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FiberOrders_client_id",
+                name: "IX_FiberOrders_FiberClientId",
                 table: "FiberOrders",
-                column: "client_id");
+                column: "FiberClientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FiberShipments_order_id",
+                name: "IX_FiberShipments_FiberOrderId",
                 table: "FiberShipments",
-                column: "order_id");
+                column: "FiberOrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Properties_City_ZipCode",

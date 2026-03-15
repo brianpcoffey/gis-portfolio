@@ -238,29 +238,41 @@ namespace Portfolio.Repositories.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ClientId")
-                        .HasColumnType("integer")
-                        .HasColumnName("client_id");
+                    b.Property<double?>("ClientLat")
+                        .HasColumnType("double precision")
+                        .HasColumnName("client_lat");
+
+                    b.Property<double?>("ClientLng")
+                        .HasColumnType("double precision")
+                        .HasColumnName("client_lng");
+
+                    b.Property<string>("ClientName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("client_name");
+
+                    b.Property<int?>("FiberClientId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("order_date");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("order_number");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("product_name");
 
-                    b.Property<string>("ProductSku")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("product_sku");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
-                    b.Property<DateTime?>("ShipDate")
+                    b.Property<DateTime>("ShipDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ship_date");
 
@@ -268,10 +280,6 @@ namespace Portfolio.Repositories.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("status");
-
-                    b.Property<decimal>("TotalValue")
-                        .HasColumnType("numeric")
-                        .HasColumnName("total_value");
 
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("numeric")
@@ -283,7 +291,7 @@ namespace Portfolio.Repositories.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientId");
+                    b.HasIndex("FiberClientId");
 
                     b.ToTable("FiberOrders", (string)null);
                 });
@@ -324,9 +332,8 @@ namespace Portfolio.Repositories.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("estimated_arrival");
 
-                    b.Property<int>("OrderId")
-                        .HasColumnType("integer")
-                        .HasColumnName("order_id");
+                    b.Property<int?>("FiberOrderId")
+                        .HasColumnType("integer");
 
                     b.Property<double>("OriginLat")
                         .HasColumnType("double precision")
@@ -336,9 +343,9 @@ namespace Portfolio.Repositories.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("origin_lng");
 
-                    b.Property<DateTime>("ShipDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("ship_date");
+                    b.Property<string>("RouteJson")
+                        .HasColumnType("text")
+                        .HasColumnName("route_json");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -356,7 +363,7 @@ namespace Portfolio.Repositories.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("FiberOrderId");
 
                     b.ToTable("FiberShipments", (string)null);
                 });
@@ -639,24 +646,16 @@ namespace Portfolio.Repositories.Migrations
 
             modelBuilder.Entity("Portfolio.Common.Models.FiberOrder", b =>
                 {
-                    b.HasOne("Portfolio.Common.Models.FiberClient", "Client")
+                    b.HasOne("Portfolio.Common.Models.FiberClient", null)
                         .WithMany("Orders")
-                        .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Client");
+                        .HasForeignKey("FiberClientId");
                 });
 
             modelBuilder.Entity("Portfolio.Common.Models.FiberShipment", b =>
                 {
-                    b.HasOne("Portfolio.Common.Models.FiberOrder", "Order")
+                    b.HasOne("Portfolio.Common.Models.FiberOrder", null)
                         .WithMany("Shipments")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
+                        .HasForeignKey("FiberOrderId");
                 });
 
             modelBuilder.Entity("Portfolio.Common.Models.SavedFeature", b =>

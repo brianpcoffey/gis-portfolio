@@ -13,7 +13,6 @@ public class FiberOrderRepository : IFiberOrderRepository
     {
         return await _db.FiberOrders
             .AsNoTracking()
-            .Include(o => o.Client)
             .Where(o => o.UserId == userId)
             .ToListAsync(cancellationToken);
     }
@@ -22,7 +21,6 @@ public class FiberOrderRepository : IFiberOrderRepository
     {
         return await _db.FiberOrders
             .AsNoTracking()
-            .Include(o => o.Client)
             .FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId, cancellationToken);
     }
 
@@ -30,7 +28,6 @@ public class FiberOrderRepository : IFiberOrderRepository
     {
         return await _db.FiberOrders
             .AsNoTracking()
-            .Include(o => o.Client)
             .Where(o => o.Status == status && o.UserId == userId)
             .ToListAsync(cancellationToken);
     }
@@ -39,7 +36,6 @@ public class FiberOrderRepository : IFiberOrderRepository
     {
         return await _db.FiberOrders
             .AsNoTracking()
-            .Include(o => o.Client)
             .Where(o => o.OrderDate >= start && o.OrderDate <= end && o.UserId == userId)
             .ToListAsync(cancellationToken);
     }
@@ -48,7 +44,6 @@ public class FiberOrderRepository : IFiberOrderRepository
     {
         _db.FiberOrders.Add(order);
         await _db.SaveChangesAsync(cancellationToken);
-        await _db.Entry(order).Reference(o => o.Client).LoadAsync(cancellationToken);
         return order;
     }
 
@@ -56,7 +51,6 @@ public class FiberOrderRepository : IFiberOrderRepository
     {
         _db.FiberOrders.Update(order);
         await _db.SaveChangesAsync(cancellationToken);
-        await _db.Entry(order).Reference(o => o.Client).LoadAsync(cancellationToken);
         return order;
     }
 

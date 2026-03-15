@@ -53,7 +53,7 @@ builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
-builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
+builder.Services.AddHttpClient<IArcGisService, ArcGisService>();        
 
 // --------------------------
 // Session

@@ -33,33 +33,41 @@ public class FiberDashboardService : IFiberDashboardService
         var materials = await _materialRepo.GetAllAsync(CurrentUserId, cancellationToken);
         var now = DateTime.UtcNow;
         var mtdStart = new DateTime(now.Year, now.Month, 1);
-        var mtdRevenue = orders.Where(o => o.OrderDate >= mtdStart).Sum(o => o.TotalValue);
-        var revenueByMonth = orders.GroupBy(o => o.OrderDate.ToString("yyyy-MM"))
+        var mtdRevenue = orders.Where(o => o.OrderDate >= mtdStart).Sum(o => o.UnitPrice * o.Quantity);
+        var revenueByMonth = orders
+            .GroupBy(o => o.OrderDate.ToString("MMM"))
             .Select(g => new RevenueByMonthDto
             {
                 Month = g.Key,
-                Revenue = g.Sum(x => x.TotalValue)
-            }).OrderBy(x => x.Month).ToList();
-        var ordersByStatus = orders.GroupBy(o => o.Status)
-            .Select(g => new OrdersByStatusDto
+                Revenue = g.Sum(x => x.UnitPrice * x.Quantity)
+            })
+            .OrderBy(x => DateTime.ParseExact(x.Month, "MMM", null).Month)
+            .ToList();
+        var allStatuses = new[] { "Draft", "Confirmed", "In Production", "Shipped", "Delivered" };
+        var ordersByStatus = allStatuses
+            .Select(status => new OrdersByStatusDto
             {
-                Status = g.Key,
-                Count = g.Count()
-            }).ToList();
-        var topClients = orders.GroupBy(o => o.Client?.Name ?? "")
+                Status = status,
+                Count = orders.Count(o => o.Status == status)
+            })
+            .ToList();
+        var currentYear = now.Year;
+        var topClients = orders
+            .Where(o => o.OrderDate.Year == currentYear)
+            .GroupBy(o => o.ClientName ?? "")
             .Select(g => new TopClientDto
             {
-                ClientName = g.Key,
-                TotalValue = g.Sum(x => x.TotalValue)
+                Name = g.Key,
+                Revenue = g.Sum(x => x.UnitPrice * x.Quantity)
             })
-            .OrderByDescending(x => x.TotalValue)
+            .OrderByDescending(x => x.Revenue)
             .Take(5)
             .ToList();
         return new FiberDashboardDto
         {
             ActiveShipments = shipments.Count(s => s.Status == "In Transit"),
-            OpenOrders = orders.Count(o => o.Status != "Delivered"),
-            LowStockAlerts = materials.Count(m => m.QtyOnHand < m.ReorderPoint),
+            OpenOrders = orders.Count(o => o.Status != "Delivered" && o.Status != "Shipped"),
+            LowStockAlerts = materials.Count(m => m.QtyOnHand <= m.ReorderPoint),
             MtdRevenue = mtdRevenue,
             RevenueByMonth = revenueByMonth,
             OrdersByStatus = ordersByStatus,

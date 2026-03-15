@@ -13,7 +13,6 @@ public class FiberShipmentRepository : IFiberShipmentRepository
     {
         return await _db.FiberShipments
             .AsNoTracking()
-            .Include(s => s.Order).ThenInclude(o => o.Client)
             .Where(s => s.UserId == userId)
             .ToListAsync(cancellationToken);
     }
@@ -22,7 +21,6 @@ public class FiberShipmentRepository : IFiberShipmentRepository
     {
         return await _db.FiberShipments
             .AsNoTracking()
-            .Include(s => s.Order).ThenInclude(o => o.Client)
             .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId, cancellationToken);
     }
 
@@ -30,7 +28,6 @@ public class FiberShipmentRepository : IFiberShipmentRepository
     {
         _db.FiberShipments.Add(shipment);
         await _db.SaveChangesAsync(cancellationToken);
-        await _db.Entry(shipment).Reference(s => s.Order).LoadAsync(cancellationToken);
         return shipment;
     }
 
@@ -40,7 +37,6 @@ public class FiberShipmentRepository : IFiberShipmentRepository
         if (shipment is null) throw new KeyNotFoundException($"Shipment {id} not found.");
         shipment.Status = status;
         await _db.SaveChangesAsync(cancellationToken);
-        await _db.Entry(shipment).Reference(s => s.Order).LoadAsync(cancellationToken);
         return shipment;
     }
 }

@@ -25,6 +25,6 @@ public class OrdersByStatusDto
 
 public class TopClientDto
 {
-    public string ClientName { get; set; } = string.Empty;
-    public decimal TotalValue { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal Revenue { get; set; }
 }
