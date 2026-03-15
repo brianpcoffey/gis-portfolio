@@ -1,0 +1,24 @@
+/* FiberFlow custom styles: Only add rules not covered by site/Bootstrap. */
+
+/* Example: Highlight for low stock alert */
+.fiberflow-low-stock {
+    background: var(--accent-light);
+    color: var(--surface);
+    font-weight: bold;
+}
+
+/* GIS map container */
+.fiberflow-map {
+    height: 400px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+/* D3 chart container */
+.fiberflow-chart {
+    min-height: 320px;
+    width: 100%;
+    margin-bottom: 2rem;
+}

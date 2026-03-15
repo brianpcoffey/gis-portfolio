@@ -26,7 +26,6 @@
 
   <ItemGroup>
     <Folder Include="obj\Debug\net10.0\Microsoft.AspNetCore.OpenApi.SourceGenerators\Microsoft.AspNetCore.OpenApi.SourceGenerators.XmlCommentGenerator\" />
-    <Folder Include="wwwroot\js\FiberFlow\" />
   </ItemGroup>
 
 </Project>

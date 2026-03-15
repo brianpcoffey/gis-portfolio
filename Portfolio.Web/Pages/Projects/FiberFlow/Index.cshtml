@@ -1,0 +1,121 @@
+@page
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "FiberFlow — Plant Operations Dashboard";
+}
+
+<link rel="stylesheet" href="~/css/fiberflow.css" />
+
+<div class="container-fluid py-3 theme-root">
+    <!-- Toast Container for User Feedback -->
+    <div aria-live="polite" aria-atomic="true"
+         class="position-fixed top-0 end-0 p-3"
+         style="z-index: 2000; max-width: 350px; width: 100vw;">
+        <div id="fiberflowToastContainer" class="toast-container w-100"></div>
+    </div>
+
+    <!-- DASHBOARD HEADER -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="theme-surface shadow-sm rounded p-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                <div>
+                    <h2 class="mb-1"><i class="fa-solid fa-industry me-2"></i>FiberFlow Plant Dashboard</h2>
+                    <p class="text-muted theme-text-muted small mb-0">
+                        Live operations, shipments, orders, and inventory for fiberglass ducting manufacturing.
+                    </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-success theme-badge" id="badgeActiveShipments">0 Active Shipments</span>
+                    <span class="badge bg-primary theme-badge" id="badgeOpenOrders">0 Open Orders</span>
+                    <span class="badge bg-danger theme-badge fiberflow-low-stock" id="badgeLowStock">0 Low Stock</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD ROW: CHARTS & MAP -->
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card shadow-sm theme-card mb-3">
+                <div class="card-header theme-card-header d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-accent"></i>
+                    <strong>Revenue Analytics</strong>
+                </div>
+                <div class="card-body theme-body">
+                    <div id="fiberflowRevenueChart" class="fiberflow-chart">
+                        <div class="fiberflow-spinner spinner-border text-accent" role="status" aria-label="Loading chart..."></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm theme-card mb-3">
+                <div class="card-header theme-card-header d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-route text-accent"></i>
+                    <strong>Shipment GIS Map</strong>
+                </div>
+                <div class="card-body theme-body">
+                    <div id="fiberflowMap" class="fiberflow-map">
+                        <div class="fiberflow-spinner spinner-border text-accent" role="status" aria-label="Loading map..."></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DATA GRIDS: ORDERS, SHIPMENTS, INVENTORY -->
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card shadow-sm theme-card mb-3">
+                <div class="card-header theme-card-header d-flex align-items-center gap-2 justify-content-between">
+                    <div><i class="fa-solid fa-boxes-stacked text-accent"></i> <strong>Orders</strong></div>
+                    <button class="btn btn-accent btn-sm theme-btn" id="btnNewOrder"><i class="fa-solid fa-plus me-1"></i>New Order</button>
+                </div>
+                <div class="card-body theme-body">
+                    <div class="fiberflow-spinner spinner-border text-accent d-none" id="ordersTableSpinner" role="status" aria-label="Loading orders..."></div>
+                    <table id="fiberflowOrdersTable" class="table table-striped table-hover w-100"></table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm theme-card mb-3">
+                <div class="card-header theme-card-header d-flex align-items-center gap-2 justify-content-between">
+                    <div><i class="fa-solid fa-truck-fast text-accent"></i> <strong>Shipments</strong></div>
+                </div>
+                <div class="card-body theme-body">
+                    <div class="fiberflow-spinner spinner-border text-accent d-none" id="shipmentsTableSpinner" role="status" aria-label="Loading shipments..."></div>
+                    <table id="fiberflowShipmentsTable" class="table table-striped table-hover w-100"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card shadow-sm theme-card mb-3">
+                <div class="card-header theme-card-header d-flex align-items-center gap-2 justify-content-between">
+                    <div><i class="fa-solid fa-warehouse text-accent"></i> <strong>Inventory</strong></div>
+                </div>
+                <div class="card-body theme-body">
+                    <div class="fiberflow-spinner spinner-border text-accent d-none" id="inventoryTableSpinner" role="status" aria-label="Loading inventory..."></div>
+                    <table id="fiberflowInventoryTable" class="table table-striped table-hover w-100"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS (Order CRUD, Shipment Status, Inventory Details) -->
+    <div id="fiberflowModals"></div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/d3/d3.min.js"></script>
+    <script src="https://js.arcgis.com/4.29/"></script>
+    <script src="~/js/FiberFlow/fiberflow-dashboard.js"></script>
+    <script src="~/js/FiberFlow/fiberflow-orders.js"></script>
+    <script src="~/js/FiberFlow/fiberflow-shipments.js"></script>
+    <script src="~/js/FiberFlow/fiberflow-inventory.js"></script>
+}
