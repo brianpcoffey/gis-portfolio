@@ -1416,5 +1416,6 @@ public class UserProfileSeedService
         await _db.SaveChangesAsync();
 
         await tx.CommitAsync();
+        Console.WriteLine($"[UserProfileSeedService] Seed complete for user {userId}");
     }
 }

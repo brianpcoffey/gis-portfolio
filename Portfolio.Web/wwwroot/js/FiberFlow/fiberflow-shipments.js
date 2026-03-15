@@ -5,22 +5,7 @@
 let shipmentsTable;
 
 
-// Toast utility (shared with dashboard)
-function fiberflowToast(message, type = 'info') {
-    const id = 'toast' + Date.now();
-    const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-    const bg = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-primary';
-    const html = `<div id="${id}" class="toast align-items-center text-white ${bg} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-            <div class="toast-body"><i class="fa ${icon} me-2"></i>${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    </div>`;
-    $('#fiberflowToastContainer').append(html);
-    const toast = new bootstrap.Toast(document.getElementById(id), { delay: 3500 });
-    toast.show();
-    toast._element.addEventListener('hidden.bs.toast', function () { $(this).remove(); });
-}
+// Use shared toast helper (window.fiberflowToast provided by dashboard script)
 
 $(document).ready(function () {
     loadShipmentsTable();

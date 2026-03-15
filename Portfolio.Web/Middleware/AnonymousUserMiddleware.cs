@@ -72,13 +72,16 @@ namespace Portfolio.Web.Middleware
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true,
+                    // Allow cookies to be set over HTTP in development by matching the request scheme.
+                    Secure = context.Request.IsHttps,
                     SameSite = SameSiteMode.Lax,
                     Expires = timeProvider.GetUtcNow().AddYears(1),
                     IsEssential = true
                 };
 
                 context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
+
+                Console.WriteLine($"[AnonymousUserMiddleware] Created anon profile and cookie for {userId} (IsHttps={context.Request.IsHttps})");
             }
 
             context.Items[HttpContextItemKey] = userId;

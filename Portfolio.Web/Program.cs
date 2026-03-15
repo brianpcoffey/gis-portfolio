@@ -78,7 +78,11 @@ builder.Services.AddAuthentication(options =>
 {
     options.LoginPath = "/Login";
     options.LogoutPath = "/Logout";
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    // In development allow SameAsRequest so cookies can be used over HTTP (localhost);
+    // in production require Secure.
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
@@ -145,7 +149,8 @@ builder.Services.AddAuthentication(options =>
             context.HttpContext.Response.Cookies.Append("AnonUserId", userId.ToString(), new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                // Match secure flag to the request scheme so local HTTP dev works
+                Secure = context.Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddYears(1),
                 IsEssential = true
@@ -195,8 +200,9 @@ var databaseUrl = builder.Configuration.GetConnectionString("DefaultConnection")
 
 var npgsqlBuilder = ParsePostgresConnectionString(databaseUrl);
 
+// Use the parsed/normalized connection string (handles postgres:// URI format)
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
-    options.UseNpgsql(databaseUrl));
+    options.UseNpgsql(npgsqlBuilder.ConnectionString));
 // --------------------------
 // Data Protection Keys Folder (for Docker / Render)
 // --------------------------
