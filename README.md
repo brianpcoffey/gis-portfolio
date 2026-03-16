@@ -9,7 +9,7 @@
 
 A modern software engineering portfolio showcasing projects in geographic information systems (GIS), smart home data applications, and interactive state-level tools. Built with an emphasis on secure authentication, responsive design, and cloud deployment.
 
-The portfolio is built with **ASP.NET Core 8**, **Razor Pages**, and **Bootstrap 5**, featuring Google OAuth authentication, dark/light mode toggle, and layouts optimized for desktop and mobile. It is hosted on **Render**, with a **Neon.tech PostgreSQL** database powering project data and backend functionality.
+The portfolio is built with **ASP.NET Core 10**, **Razor Pages**, and **Bootstrap 5**, featuring Google OAuth authentication, dark/light mode toggle, and layouts optimized for desktop and mobile. It is hosted on **Render**, with a **Neon.tech PostgreSQL** database powering project data and backend functionality.
 
 ---
 
