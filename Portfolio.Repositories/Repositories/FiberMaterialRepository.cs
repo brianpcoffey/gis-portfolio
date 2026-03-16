@@ -45,4 +45,26 @@ public class FiberMaterialRepository : IFiberMaterialRepository
             .Where(m => m.UserId == userId && m.QtyOnHand < m.ReorderPoint)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<FiberMaterial> UpdateAsync(int id, Portfolio.Common.DTOs.FiberMaterialDto dto, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var material = await _db.FiberMaterials.FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId, cancellationToken);
+        if (material is null) throw new KeyNotFoundException($"Material {id} not found.");
+        material.Name = dto.Name;
+        material.Sku = dto.Sku;
+        material.QtyOnHand = dto.QtyOnHand;
+        material.UnitCost = dto.UnitCost;
+        material.ReorderPoint = dto.ReorderPoint;
+        await _db.SaveChangesAsync(cancellationToken);
+        return material;
+    }
+
+    public async Task<bool> DeleteAsync(int id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var material = await _db.FiberMaterials.FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId, cancellationToken);
+        if (material is null) return false;
+        _db.FiberMaterials.Remove(material);
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
 }

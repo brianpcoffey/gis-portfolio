@@ -138,19 +138,25 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
     let modal = new bootstrap.Modal(document.getElementById(modalId));
     modal.show();
 
-        $('#orderForm').on('submit', function (e) {
+    $('#orderForm').on('submit', function (e) {
         e.preventDefault();
         let formData = Object.fromEntries(new FormData(this).entries());
-        formData.quantity = parseInt(formData.quantity);
-        formData.unitPrice = parseFloat(formData.unitPrice);
-        formData.orderDate = formData.orderDate;
-        formData.shipDate = formData.shipDate;
+        // Build payload for CreateFiberOrderDto
+        let payload = {
+            clientName: formData.clientName,
+            productName: formData.productName,
+            quantity: parseInt(formData.quantity),
+            unitPrice: parseFloat(formData.unitPrice),
+            status: formData.status,
+            orderDate: formData.orderDate ? new Date(formData.orderDate).toISOString() : null,
+            shipDate: formData.shipDate ? new Date(formData.shipDate).toISOString() : null
+        };
         let method = isEdit ? 'PUT' : 'POST';
         let url = isEdit ? `/api/FiberOrders/${order.id}` : '/api/FiberOrders';
         fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(payload)
         })
         .then(r => {
             if (!r.ok) throw new Error('Failed to save order');

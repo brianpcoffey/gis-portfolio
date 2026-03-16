@@ -1,4 +1,3 @@
-
 // FiberFlow Dashboard JS
 // Handles dashboard stats, D3 charts, and ArcGIS map
 
@@ -72,117 +71,143 @@ async function fetchWithAuth(url, options = {}) {
 // Ensure loadFiberflowMap is always defined to avoid ReferenceError
 // Implement map loader: initializes ArcGIS map and plots shipments
 if (typeof loadFiberflowMap !== 'function') {
-    window.loadFiberflowMap = async function () {
+    let fiberflowMapView = null;
+    let fiberflowMapInstance = null;
+    let fiberflowGraphicsLayer = null;
+
+    async function initFiberflowMap() {
         const mapContainer = document.getElementById('fiberflowMap');
         if (!mapContainer || typeof require !== 'function') {
+            fiberflowToast('Map container or ArcGIS library not loaded. Please check your network and script includes.', 'danger');
             return;
         }
-
-        // show spinner (already present in markup)
         const spinner = mapContainer.querySelector('.fiberflow-spinner');
-        if (spinner) spinner.classList.remove('d-none');
+        if (spinner) spinner.remove();
 
-        await new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             require([
                 'esri/Map',
                 'esri/views/MapView',
-                'esri/layers/GraphicsLayer',
-                'esri/Graphic',
-                'esri/geometry/Point',
-                'esri/symbols/SimpleMarkerSymbol',
-                'esri/PopupTemplate'
-            ], async (Map, MapView, GraphicsLayer, Graphic, Point, SimpleMarkerSymbol, PopupTemplate) => {
-                try {
-                    const map = new Map({ basemap: 'dark-gray-vector' });
-                    const graphicsLayer = new GraphicsLayer();
-                    map.add(graphicsLayer);
+                'esri/layers/GraphicsLayer'
+            ], (Map, MapView, GraphicsLayer) => {
+                // Use the same basemap options as HomeFinder
+                const basemapSelect = document.getElementById('fiberflowBasemapSelect');
+                const initialBasemap = basemapSelect ? basemapSelect.value : 'dark-gray-vector';
+                fiberflowMapInstance = new Map({ basemap: initialBasemap });
+                fiberflowGraphicsLayer = new GraphicsLayer();
+                fiberflowMapInstance.add(fiberflowGraphicsLayer);
 
-                    const view = new MapView({
-                        container: 'fiberflowMap',
-                        map: map,
-                        center: [-95.3698, 29.7604], // default to Houston
-                        zoom: 6
+                // Center for North America (approximate)
+                fiberflowMapView = new MapView({
+                    container: 'fiberflowMap',
+                    map: fiberflowMapInstance,
+                    center: [-98.5795, 39.8283], // Center of North America (USA)
+                    zoom: 4
+                });
+
+                // Wire up basemap switcher (same as HomeFinder)
+                if (basemapSelect) {
+                    basemapSelect.addEventListener('change', () => {
+                        fiberflowMapInstance.basemap = basemapSelect.value;
                     });
-
-                    // fetch shipments and plot
-                    try {
-                        const res = await fetch('/api/FiberShipments');
-                        if (!res.ok) throw new Error('Failed to load shipments');
-                        const shipments = await res.json();
-
-                        graphicsLayer.removeAll();
-                        shipments.forEach(s => {
-                            // ensure numeric coords
-                            const lon = Number(s.destinationLng ?? s.destinationLng ?? s.destinationLng);
-                            const lat = Number(s.destinationLat ?? s.destinationLat ?? s.destinationLat);
-                            const hasCoords = !Number.isNaN(lat) && !Number.isNaN(lon);
-                            const point = hasCoords ? new Point({ longitude: lon, latitude: lat }) : null;
-
-                            const color = s.status && s.status.toLowerCase().includes('in transit')
-                                ? [76, 175, 80, 0.9]
-                                : s.status && s.status.toLowerCase().includes('deliv')
-                                    ? [33, 150, 243, 0.9]
-                                    : [255, 193, 7, 0.9];
-
-                            const symbol = new SimpleMarkerSymbol({
-                                color: color,
-                                size: 12,
-                                outline: { color: [255, 255, 255], width: 1 }
-                            });
-
-                            const popup = new PopupTemplate({
-                                title: `${s.trackingNumber || ''} — ${s.carrierName || ''}`,
-                                content: `Status: ${s.status || ''}<br/>Dest: ${s.destinationCity || ''}, ${s.destinationState || ''}`
-                            });
-
-                            if (point) {
-                                const graphic = new Graphic({ geometry: point, symbol: symbol, attributes: s, popupTemplate: popup });
-                                graphicsLayer.add(graphic);
-                            }
-                        });
-
-                        if (shipments.length > 0) {
-                            const points = graphicsLayer.graphics.toArray();
-                            if (points.length) view.goTo(points, { padding: 50 });
-                        }
-                    } catch (err) {
-                        console.error('Failed to fetch/plot shipments', err);
-                    }
-
-                    view.when(() => resolve());
-                } catch (err) {
-                    console.error('ArcGIS init failed', err);
-                    resolve();
                 }
+
+                const timeout = setTimeout(() => reject(new Error('Map timed out')), 15000);
+                fiberflowMapView.when(() => {
+                    clearTimeout(timeout);
+                    resolve();
+                }, err => {
+                    clearTimeout(timeout);
+                    reject(err);
+                });
             });
         });
+    }
 
-        // hide spinner if present
-        const spinner2 = document.querySelector('#fiberflowMap .fiberflow-spinner');
-        if (spinner2) spinner2.classList.add('d-none');
+    function plotFiberflowShipments(shipments) {
+        require([
+            'esri/Graphic',
+            'esri/geometry/Point',
+            'esri/symbols/SimpleMarkerSymbol',
+            'esri/PopupTemplate'
+        ], (Graphic, Point, SimpleMarkerSymbol, PopupTemplate) => {
+            fiberflowGraphicsLayer.removeAll();
+            shipments.forEach(s => {
+                const lon = Number(s.destinationLng);
+                const lat = Number(s.destinationLat);
+                if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) return;
+
+                const color = s.status?.toLowerCase().includes('in transit')
+                    ? [76, 175, 80, 0.9]
+                    : s.status?.toLowerCase().includes('deliv')
+                        ? [33, 150, 243, 0.9]
+                        : [255, 193, 7, 0.9];
+
+                fiberflowGraphicsLayer.add(new Graphic({
+                    geometry: new Point({ longitude: lon, latitude: lat }),
+                    symbol: new SimpleMarkerSymbol({
+                        color, size: 12,
+                        outline: { color: [255, 255, 255], width: 1 }
+                    }),
+                    attributes: s,
+                    popupTemplate: new PopupTemplate({
+                        title: `${s.trackingNumber || ''} — ${s.carrierName || ''}`,
+                        content: `Status: ${s.status || ''}<br/>Dest: ${s.destinationCity || ''}, ${s.destinationState || ''}`
+                    })
+                }));
+            });
+            const points = fiberflowGraphicsLayer.graphics.toArray();
+            if (points.length) {
+                fiberflowMapView.goTo(points, { padding: 50 });
+            } else {
+                fiberflowToast('No shipments with coordinates found.', 'warning');
+            }
+        });
+    }
+
+    window.loadFiberflowMap = function () {
+        initFiberflowMap()
+            .then(() => fetch('/api/FiberShipments'))
+            .then(res => res.ok ? res.json() : Promise.reject('Failed to load shipments'))
+            .then(shipments => plotFiberflowShipments(shipments))
+            .catch(err => {
+                console.error(err);
+                fiberflowToast('Map failed to load', 'danger');
+            });
     };
 }
+
 
 $(document).ready(function () {
     loadDashboardStats();
     loadFiberflowMap();
+    // DataTable length menu styling fix
+    $('link[href$="dataTables.bootstrap5.min.css"]').after('<link rel="stylesheet" href="/css/fiberflow.css">');
 });
 
 function loadDashboardStats() {
     $('#fiberflowRevenueChart .fiberflow-spinner').removeClass('d-none');
+    $('#fiberflowOrdersChart .fiberflow-spinner').removeClass('d-none');
+    $('#fiberflowInventoryChart .fiberflow-spinner').removeClass('d-none');
     fetchWithAuth('/api/FiberDashboard/stats')
         .then(r => r.json())
         .then(data => {
             updateDashboardBadges(data);
             renderRevenueChart(data.revenueByMonth || []);
+            renderOrdersChart(data.ordersByStatus || []);
+            renderInventoryChart(data.inventoryByCategory || []);
             fiberflowToast('Dashboard loaded', 'success');
         })
         .catch(() => {
             $('#fiberflowRevenueChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
+            $('#fiberflowOrdersChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
+            $('#fiberflowInventoryChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
             fiberflowToast('Failed to load dashboard', 'error');
         })
         .finally(() => {
             $('#fiberflowRevenueChart .fiberflow-spinner').addClass('d-none');
+            $('#fiberflowOrdersChart .fiberflow-spinner').addClass('d-none');
+            $('#fiberflowInventoryChart .fiberflow-spinner').addClass('d-none');
         });
 }
 
@@ -253,4 +278,128 @@ function renderRevenueChart(revenueByMonth) {
         .attr('fill', 'var(--text-muted)')
         .attr('class', 'small')
         .text('Revenue');
+}
+
+function renderOrdersChart(ordersByStatus) {
+    const container = d3.select('#fiberflowOrdersChart');
+    container.selectAll('*:not(.fiberflow-spinner)').remove();
+    if (!ordersByStatus.length) {
+        container.append('div').attr('class', 'text-muted small').text('No order status data.');
+        return;
+    }
+    const margin = { top: 24, right: 24, bottom: 40, left: 60 };
+    const width = container.node().clientWidth - margin.left - margin.right;
+    const height = 320 - margin.top - margin.bottom;
+    const svg = container.append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const statuses = ordersByStatus.map(d => d.status);
+    const counts = ordersByStatus.map(d => d.count);
+    const x = d3.scaleBand().domain(statuses).range([0, width]).padding(0.2);
+    const y = d3.scaleLinear().domain([0, d3.max(counts) * 1.1]).range([height, 0]);
+
+    svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('class', 'small')
+        .attr('fill', 'var(--text-muted)');
+
+    svg.append('g')
+        .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format('d')))
+        .selectAll('text')
+        .attr('class', 'small')
+        .attr('fill', 'var(--text-muted)');
+
+    svg.selectAll('.bar')
+        .data(ordersByStatus)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', d => x(d.status))
+        .attr('y', d => y(d.count))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d.count))
+        .attr('fill', 'var(--accent)');
+
+    svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', height + margin.bottom - 5)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-muted)')
+        .attr('class', 'small')
+        .text('Order Status');
+    svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', -margin.left + 16)
+        .attr('x', -height / 2)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-muted)')
+        .attr('class', 'small')
+        .text('Count');
+}
+
+function renderInventoryChart(inventoryByCategory) {
+    const container = d3.select('#fiberflowInventoryChart');
+    container.selectAll('*:not(.fiberflow-spinner)').remove();
+    if (!inventoryByCategory.length) {
+        container.append('div').attr('class', 'text-muted small').text('No inventory data.');
+        return;
+    }
+    const margin = { top: 24, right: 24, bottom: 40, left: 60 };
+    const width = container.node().clientWidth - margin.left - margin.right;
+    const height = 320 - margin.top - margin.bottom;
+    const svg = container.append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const categories = inventoryByCategory.map(d => d.category);
+    const counts = inventoryByCategory.map(d => d.count);
+    const x = d3.scaleBand().domain(categories).range([0, width]).padding(0.2);
+    const y = d3.scaleLinear().domain([0, d3.max(counts) * 1.1]).range([height, 0]);
+
+    svg.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('class', 'small')
+        .attr('fill', 'var(--text-muted)');
+
+    svg.append('g')
+        .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format('d')))
+        .selectAll('text')
+        .attr('class', 'small')
+        .attr('fill', 'var(--text-muted)');
+
+    svg.selectAll('.bar')
+        .data(inventoryByCategory)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', d => x(d.category))
+        .attr('y', d => y(d.count))
+        .attr('width', x.bandwidth())
+        .attr('height', d => height - y(d.count))
+        .attr('fill', 'var(--accent)');
+
+    svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', height + margin.bottom - 5)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-muted)')
+        .attr('class', 'small')
+        .text('Category');
+    svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', -margin.left + 16)
+        .attr('x', -height / 2)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'var(--text-muted)')
+        .attr('class', 'small')
+        .text('Count');
 }

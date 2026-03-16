@@ -11,6 +11,7 @@
 <!-- Include shared GIS/theme utilities so theme-surface and badges match other pages -->
 <link rel="stylesheet" href="~/css/gis.css" />
 <link rel="stylesheet" href="~/css/fiberflow.css" />
+<link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
 
 <div class="container-fluid py-3 theme-root">
     <!-- Toast Container for User Feedback -->
@@ -39,9 +40,9 @@
         </div>
     </div>
 
-    <!-- DASHBOARD ROW: CHARTS & MAP -->
+    <!-- DASHBOARD ROW: ANALYTICS & MAP -->
     <div class="row g-3 mb-3">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card shadow-sm theme-card mb-3">
                 <div class="card-header theme-card-header d-flex align-items-center gap-2">
                     <i class="fa-solid fa-chart-line text-accent"></i>
@@ -54,15 +55,60 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card shadow-sm theme-card mb-3">
+                <div class="card-header theme-card-header d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked text-accent"></i>
+                    <strong>Orders Analytics</strong>
+                </div>
+                <div class="card-body theme-body">
+                    <div id="fiberflowOrdersChart" class="fiberflow-chart">
+                        <div class="fiberflow-spinner spinner-border text-accent" role="status" aria-label="Loading chart..."></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm theme-card mb-3">
+                <div class="card-header theme-card-header d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-warehouse text-accent"></i>
+                    <strong>Inventory Analytics</strong>
+                </div>
+                <div class="card-body theme-body">
+                    <div id="fiberflowInventoryChart" class="fiberflow-chart">
+                        <div class="fiberflow-spinner spinner-border text-accent" role="status" aria-label="Loading chart..."></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card shadow-sm theme-card mb-3 fiberflow-tabs-card">
                 <div class="card-header theme-card-header d-flex align-items-center gap-2">
                     <i class="fa-solid fa-route text-accent"></i>
                     <strong>Shipment GIS Map</strong>
                 </div>
-                <div class="card-body theme-body">
-                    <div id="fiberflowMap" class="fiberflow-map">
-                        <div class="fiberflow-spinner spinner-border text-accent" role="status" aria-label="Loading map..."></div>
+                <div class="card-body theme-body position-relative">
+                    <div class="fiberflow-map-wrapper position-relative">
+                        <!-- Basemap Switcher Toolbar (matches HomeFinder) -->
+                        <div id="fiberflowMapToolbar" class="position-absolute top-0 end-0 m-2 z-3">
+                            <select id="fiberflowBasemapSelect" class="form-select form-select-sm basemap-select" aria-label="Select basemap view">
+                                <option value="dark-gray-vector">Dark Gray</option>
+                                <option value="satellite">Satellite</option>
+                                <option value="hybrid">Hybrid</option>
+                                <option value="streets-navigation-vector">Streets</option>
+                                <option value="topo-vector">Topographic</option>
+                                <option value="osm" selected>OpenStreetMap</option>
+                            </select>
+                        </div>
+                        <div style="width: 100%; min-height: 400px; position: relative;">
+                            <div id="fiberflowMap" class="fiberflow-map">
+                                <div class="fiberflow-spinner spinner-border text-accent" role="status" aria-label="Loading map..."></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-1">
                     </div>
                 </div>
             </div>
@@ -71,47 +117,68 @@
 
     <!-- DATA GRIDS: ORDERS, SHIPMENTS, INVENTORY -->
     <div class="row g-3 mb-3">
-        <div class="col-lg-6">
-            <div class="card shadow-sm theme-card mb-3">
-                <div class="card-header theme-card-header d-flex align-items-center gap-2 justify-content-between">
-                    <div><i class="fa-solid fa-boxes-stacked text-accent"></i> <strong>Orders</strong></div>
-                    <button class="btn btn-accent btn-sm theme-btn" id="btnNewOrder"><i class="fa-solid fa-plus me-1"></i>New Order</button>
-                </div>
-                <div class="card-body theme-body">
-                    <div class="fiberflow-spinner spinner-border text-accent d-none" id="ordersTableSpinner" role="status" aria-label="Loading orders..."></div>
-                    <table id="fiberflowOrdersTable" class="table table-striped table-hover w-100"></table>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card shadow-sm theme-card mb-3">
-                <div class="card-header theme-card-header d-flex align-items-center gap-2 justify-content-between">
-                    <div><i class="fa-solid fa-truck-fast text-accent"></i> <strong>Shipments</strong></div>
-                </div>
-                <div class="card-body theme-body">
-                    <div class="fiberflow-spinner spinner-border text-accent d-none" id="shipmentsTableSpinner" role="status" aria-label="Loading shipments..."></div>
-                    <table id="fiberflowShipmentsTable" class="table table-striped table-hover w-100"></table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row g-3 mb-3">
         <div class="col-12">
             <div class="card shadow-sm theme-card mb-3">
-                <div class="card-header theme-card-header d-flex align-items-center gap-2 justify-content-between">
-                    <div><i class="fa-solid fa-warehouse text-accent"></i> <strong>Inventory</strong></div>
+                <div class="card-header theme-card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="ordersShipmentsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#ordersTabPane" type="button" role="tab" aria-controls="ordersTabPane" aria-selected="true">
+                                <i class="fa-solid fa-boxes-stacked text-accent"></i> Orders
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="shipments-tab" data-bs-toggle="tab" data-bs-target="#shipmentsTabPane" type="button" role="tab" aria-controls="shipmentsTabPane" aria-selected="false">
+                                <i class="fa-solid fa-truck-fast text-accent"></i> Shipments
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventoryTabPane" type="button" role="tab" aria-controls="inventoryTabPane" aria-selected="false">
+                                <i class="fa-solid fa-warehouse text-accent"></i> Inventory
+                            </button>
+                        </li>
+                    </ul>
                 </div>
                 <div class="card-body theme-body">
-                    <div class="fiberflow-spinner spinner-border text-accent d-none" id="inventoryTableSpinner" role="status" aria-label="Loading inventory..."></div>
-                    <table id="fiberflowInventoryTable" class="table table-striped table-hover w-100"></table>
+                    <div class="tab-content" id="ordersShipmentsTabsContent">
+                        <div class="tab-pane fade show active" id="ordersTabPane" role="tabpanel" aria-labelledby="orders-tab">
+                            <div class="d-flex justify-content-end mb-2">
+                                <button class="btn btn-accent btn-sm theme-btn" id="btnNewOrder"><i class="fa-solid fa-plus me-1"></i>New Order</button>
+                            </div>
+                            <div class="fiberflow-spinner spinner-border text-accent d-none" id="ordersTableSpinner" role="status" aria-label="Loading orders..."></div>
+                            <div class="table-responsive">
+                                <table id="fiberflowOrdersTable" class="table table-striped table-hover w-100"></table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="shipmentsTabPane" role="tabpanel" aria-labelledby="shipments-tab">
+                            <div class="d-flex justify-content-end mb-2">
+                                <button class="btn btn-accent btn-sm theme-btn" id="btnNewShipment"><i class="fa-solid fa-plus me-1"></i>New Shipment</button>
+                            </div>
+                            <div class="fiberflow-spinner spinner-border text-accent d-none" id="shipmentsTableSpinner" role="status" aria-label="Loading shipments..."></div>
+                            <div class="table-responsive">
+                                <table id="fiberflowShipmentsTable" class="table table-striped table-hover w-100"></table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="inventoryTabPane" role="tabpanel" aria-labelledby="inventory-tab">
+                            <div class="d-flex justify-content-end mb-2">
+                                <button class="btn btn-accent btn-sm theme-btn" id="btnNewMaterial"><i class="fa-solid fa-plus me-1"></i>New Material</button>
+                            </div>
+                            <div class="fiberflow-spinner spinner-border text-accent d-none" id="inventoryTableSpinner" role="status" aria-label="Loading inventory..."></div>
+                            <div class="table-responsive">
+                                <table id="fiberflowInventoryTable" class="table table-striped table-hover w-100"></table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODALS (Order CRUD, Shipment Status, Inventory Details) -->
-    <div id="fiberflowModals"></div>
-</div>
+    <div class="row g-3 mb-3">
+        <!-- Inventory card removed; now in tabs above -->
+
+        <!-- MODALS (Order CRUD, Shipment Status, Inventory Details) -->
+        <div id="fiberflowModals"></div>
+    </div>
 
 @section Scripts {
     <script src="~/lib/d3/d3.min.js"></script>

@@ -30,4 +30,35 @@ public class FiberShipmentsController : ControllerBase
         var result = await _shipmentService.UpdateStatusAsync(id, dto, cancellationToken);
         return Ok(result);
     }
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
+    {
+        var result = await _shipmentService.GetByIdAsync(id, cancellationToken);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] FiberShipmentDto dto, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var result = await _shipmentService.CreateAsync(dto, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] FiberShipmentDto dto, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var result = await _shipmentService.UpdateAsync(id, dto, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var deleted = await _shipmentService.DeleteAsync(id, cancellationToken);
+        if (!deleted) return NotFound();
+        return Ok();
+    }
 }

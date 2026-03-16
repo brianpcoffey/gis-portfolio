@@ -49,7 +49,7 @@ public class FiberMaterialService : IFiberMaterialService
             var before = material.QtyOnHand;
             material.QtyOnHand += dto.Quantity;
             material.LastUpdated = _timeProvider.GetUtcNow().UtcDateTime;
-            await _materialRepo.UpdateAsync(material, cancellationToken);
+            await _materialRepo.UpdateAsync(material.Id, MapToDto(material), userId, cancellationToken);
             var inv = new FiberInventoryTransaction
             {
                 UserId = userId,
@@ -70,6 +70,39 @@ public class FiberMaterialService : IFiberMaterialService
             await transaction.RollbackAsync(cancellationToken);
             throw;
         }
+    }
+
+    public async Task<FiberMaterialDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var material = await _materialRepo.GetByIdAsync(id, CurrentUserId, cancellationToken);
+        return material == null ? null : MapToDto(material);
+    }
+
+    public async Task<FiberMaterialDto> CreateAsync(FiberMaterialDto dto, CancellationToken cancellationToken = default)
+    {
+        var material = new FiberMaterial
+        {
+            UserId = CurrentUserId,
+            Name = dto.Name,
+            Sku = dto.Sku,
+            QtyOnHand = dto.QtyOnHand,
+            UnitCost = dto.UnitCost,
+            ReorderPoint = dto.ReorderPoint,
+            LastUpdated = _timeProvider.GetUtcNow().UtcDateTime
+        };
+        var created = await _materialRepo.AddAsync(material, cancellationToken);
+        return MapToDto(created);
+    }
+
+    public async Task<FiberMaterialDto> UpdateAsync(int id, FiberMaterialDto dto, CancellationToken cancellationToken = default)
+    {
+        var updated = await _materialRepo.UpdateAsync(id, dto, CurrentUserId, cancellationToken);
+        return MapToDto(updated);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _materialRepo.DeleteAsync(id, CurrentUserId, cancellationToken);
     }
 
     private static FiberMaterialDto MapToDto(FiberMaterial m) => new()

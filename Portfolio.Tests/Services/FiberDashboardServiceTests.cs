@@ -27,13 +27,22 @@ namespace Portfolio.Tests.Services
         }
 
         [Fact]
-        public async Task GetDashboardAsync_ReturnsDashboardDto()
+        public async Task GetDashboardAsync_ReturnsDashboardDto_WithInventoryByCategory()
         {
+            var materials = new List<Portfolio.Common.Models.FiberMaterial>
+            {
+                new Portfolio.Common.Models.FiberMaterial { Id = 1, UserId = _testUserId, Name = "Mat1", Sku = "A", Category = "Reinforcements", QtyOnHand = 10, ReorderPoint = 2, ReorderQty = 5, UnitCost = 1, Supplier = "S1", WarehouseLocation = "W1", LastUpdated = System.DateTime.UtcNow },
+                new Portfolio.Common.Models.FiberMaterial { Id = 2, UserId = _testUserId, Name = "Mat2", Sku = "B", Category = "Resins", QtyOnHand = 5, ReorderPoint = 1, ReorderQty = 2, UnitCost = 2, Supplier = "S2", WarehouseLocation = "W2", LastUpdated = System.DateTime.UtcNow },
+                new Portfolio.Common.Models.FiberMaterial { Id = 3, UserId = _testUserId, Name = "Mat3", Sku = "C", Category = "Reinforcements", QtyOnHand = 7, ReorderPoint = 2, ReorderQty = 3, UnitCost = 3, Supplier = "S3", WarehouseLocation = "W3", LastUpdated = System.DateTime.UtcNow }
+            };
             _orderRepoMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Portfolio.Common.Models.FiberOrder>());
             _shipmentRepoMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Portfolio.Common.Models.FiberShipment>());
-            _materialRepoMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Portfolio.Common.Models.FiberMaterial>());
+            _materialRepoMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(materials);
             var result = await _service.GetDashboardAsync();
             Assert.NotNull(result);
+            Assert.NotNull(result.InventoryByCategory);
+            Assert.Contains(result.InventoryByCategory, c => c.Category == "Reinforcements" && c.Count == 2);
+            Assert.Contains(result.InventoryByCategory, c => c.Category == "Resins" && c.Count == 1);
         }
 
         [Fact]

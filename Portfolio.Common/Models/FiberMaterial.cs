@@ -7,6 +7,7 @@ public class FiberMaterial
     public string Name { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;
     public string UnitOfMeasure { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
     public decimal QtyOnHand { get; set; }
     public decimal ReorderPoint { get; set; }
     public decimal ReorderQty { get; set; }
