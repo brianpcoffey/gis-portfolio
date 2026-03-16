@@ -9,5 +9,6 @@ namespace Portfolio.Common.DTOs
         public required string Email { get; init; }
         public required string Name { get; init; }
         public string? Picture { get; init; }
+        public Guid? AnonymousUserId { get; set; }
     }
 }

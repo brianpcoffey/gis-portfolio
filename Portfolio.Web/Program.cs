@@ -138,25 +138,30 @@ builder.Services.AddAuthentication(options =>
             var profileService = context.HttpContext.RequestServices
                 .GetRequiredService<IUserProfileService>();
 
+            // Merge anonymous profile if present
+            Guid? anonId = null;
+            if (context.HttpContext.Request.Cookies.TryGetValue("AnonUserId", out var anonCookie) && Guid.TryParse(anonCookie, out var parsedAnonId))
+            {
+                anonId = parsedAnonId;
+            }
+
             var userId = await profileService.CreateOrUpdateFromGoogleAsync(new GoogleProfileDto
             {
                 GoogleId = googleId,
                 Email = email ?? string.Empty,
                 Name = name ?? string.Empty,
-                Picture = picture
+                Picture = picture,
+                AnonymousUserId = anonId // Pass anonId for merge logic and testability
             });
 
-            context.HttpContext.Response.Cookies.Append("AnonUserId", userId.ToString(), new CookieOptions
+            // Remove anonymous cookie after merge
+            if (anonId.HasValue)
             {
-                HttpOnly = true,
-                // Match secure flag to the request scheme so local HTTP dev works
-                Secure = context.Request.IsHttps,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddYears(1),
-                IsEssential = true
-            });
+                context.HttpContext.Response.Cookies.Delete("AnonUserId");
+            }
 
-            context.HttpContext.Items["AnonUserId"] = userId;
+            // Set identity key for authenticated user
+            context.HttpContext.Items["PortfolioIdentity"] = userId;
         }
     };
 })
