@@ -1,6 +1,6 @@
 # Brian Patrick Coffey – Software Engineering Portfolio
 
-![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-8.0-512BD4?style=flat&logo=dotnet&logoColor=white)
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-10.0-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=flat&logo=bootstrap&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon.tech-4169E1?style=flat&logo=postgresql&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
@@ -45,7 +45,7 @@ An application for locating and comparing smart home devices in Redlands. Filter
 
 | Layer | Technology |
 |---|---|
-| Backend | ASP.NET Core 8, C# |
+| Backend | ASP.NET Core 10, C# |
 | Frontend | Bootstrap 5, Font Awesome, Vanilla JavaScript, Razor Pages |
 | Database | PostgreSQL (Neon.tech) |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
@@ -59,7 +59,7 @@ An application for locating and comparing smart home devices in Redlands. Filter
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - A [Google Developer Console](https://console.developers.google.com/) project with OAuth 2.0 credentials
 - Access to a [Neon.tech](https://neon.tech/) PostgreSQL database
 - IDE or code editor (Visual Studio, VS Code, etc.)
