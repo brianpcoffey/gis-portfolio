@@ -4,6 +4,8 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api;
 
+using Microsoft.AspNetCore.Authorization;
+[Authorize(Policy = "Authenticated")]
 [ApiController]
 [Route("api/[controller]")]
 public class FiberShipmentsController : ControllerBase

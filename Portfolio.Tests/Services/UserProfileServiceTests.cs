@@ -28,7 +28,7 @@ namespace Portfolio.Tests.Services
             _seedServiceMock = new Mock<UserProfileSeedService>(_dbContextMock.Object);
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Items["AnonUserId"] = _testUserId;
+            httpContext.Items["PortfolioIdentity"] = _testUserId;
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
 
             _service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedServiceMock.Object);

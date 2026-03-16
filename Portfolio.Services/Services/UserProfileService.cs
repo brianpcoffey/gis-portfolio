@@ -4,6 +4,7 @@ using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
+using System.Security.Claims;
 
 namespace Portfolio.Services.Services
 {
@@ -17,7 +18,7 @@ namespace Portfolio.Services.Services
         private readonly IUserProfileRepository _repo;
         private readonly TimeProvider _timeProvider;
         private readonly UserProfileSeedService _seedService;
-        private const string HttpContextItemKey = "AnonUserId";
+        private const string HttpContextItemKey = "PortfolioIdentity";
 
         public UserProfileService(
             IHttpContextAccessor httpContextAccessor,
@@ -35,6 +36,18 @@ namespace Portfolio.Services.Services
         {
             var ctx = _httpContextAccessor.HttpContext;
             if (ctx == null) return null;
+            // Prefer authenticated user
+            if (ctx.User?.Identity?.IsAuthenticated == true)
+            {
+                var googleId = ctx.User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (!string.IsNullOrEmpty(googleId))
+                {
+                    // Look up user by GoogleId claim
+                    var profile = _repo.GetProfileByClaimAsync(Portfolio.Common.Constants.ProfileClaimTypes.GoogleId, googleId).GetAwaiter().GetResult();
+                    return profile?.UserId;
+                }
+            }
+            // Fallback to anonymous
             if (ctx.Items.TryGetValue(HttpContextItemKey, out var o) && o is Guid g) return g;
             return null;
         }

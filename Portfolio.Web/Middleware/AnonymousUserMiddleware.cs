@@ -13,7 +13,7 @@ namespace Portfolio.Web.Middleware
     {
         private readonly RequestDelegate _next;
         private const string CookieName = "AnonUserId";
-        private const string HttpContextItemKey = "AnonUserId";
+        private const string HttpContextItemKey = "PortfolioIdentity";
 
         public AnonymousUserMiddleware(RequestDelegate next)
         {
@@ -22,6 +22,7 @@ namespace Portfolio.Web.Middleware
 
         public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider, Portfolio.Services.Services.UserProfileSeedService seedService)
         {
+            // Only set anonymous identity if not already set by authentication
             if (context.Items.ContainsKey(HttpContextItemKey))
             {
                 await _next(context);
@@ -30,6 +31,13 @@ namespace Portfolio.Web.Middleware
 
             var now = timeProvider.GetUtcNow().UtcDateTime;
             Guid userId;
+
+            if (context.User?.Identity?.IsAuthenticated == true)
+            {
+                // Authenticated user: do not set anonymous identity
+                await _next(context);
+                return;
+            }
 
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
@@ -52,35 +60,26 @@ namespace Portfolio.Web.Middleware
                 }
             }
             else
-
             {
                 userId = Guid.NewGuid();
-
                 var profile = new UserProfile
                 {
                     UserId = userId,
                     CreatedDate = now,
                     LastActiveDate = now
                 };
-
                 db.UserProfiles.Add(profile);
                 await db.SaveChangesAsync();
-
-                // Seed data for this new anonymous user
                 await seedService.SeedForUserAsync(userId);
-
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    // Allow cookies to be set over HTTP in development by matching the request scheme.
                     Secure = context.Request.IsHttps,
                     SameSite = SameSiteMode.Lax,
                     Expires = timeProvider.GetUtcNow().AddYears(1),
                     IsEssential = true
                 };
-
                 context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
-
                 Console.WriteLine($"[AnonymousUserMiddleware] Created anon profile and cookie for {userId} (IsHttps={context.Request.IsHttps})");
             }
 
