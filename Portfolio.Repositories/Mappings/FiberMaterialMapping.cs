@@ -15,6 +15,7 @@ public class FiberMaterialMapping : IEntityTypeConfiguration<FiberMaterial>
         builder.Property(x => x.Name).HasColumnName("name");
         builder.Property(x => x.Sku).HasColumnName("sku");
         builder.Property(x => x.UnitOfMeasure).HasColumnName("unit_of_measure");
+        builder.Property(x => x.Category).HasColumnName("category");
         builder.Property(x => x.QtyOnHand).HasColumnName("qty_on_hand");
         builder.Property(x => x.ReorderPoint).HasColumnName("reorder_point");
         builder.Property(x => x.ReorderQty).HasColumnName("reorder_qty");

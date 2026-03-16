@@ -35,13 +35,13 @@ public class FiberDashboardService : IFiberDashboardService
         var mtdStart = new DateTime(now.Year, now.Month, 1);
         var mtdRevenue = orders.Where(o => o.OrderDate >= mtdStart).Sum(o => o.UnitPrice * o.Quantity);
         var revenueByMonth = orders
-            .GroupBy(o => o.OrderDate.ToString("MMM"))
+            .GroupBy(o => o.OrderDate.ToString("MMM", System.Globalization.CultureInfo.InvariantCulture))
             .Select(g => new RevenueByMonthDto
             {
                 Month = g.Key,
                 Revenue = g.Sum(x => x.UnitPrice * x.Quantity)
             })
-            .OrderBy(x => DateTime.ParseExact(x.Month, "MMM", null).Month)
+            .OrderBy(x => System.DateTime.ParseExact(x.Month, "MMM", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).Month)
             .ToList();
         var allStatuses = new[] { "Draft", "Confirmed", "In Production", "Shipped", "Delivered" };
         var ordersByStatus = allStatuses
@@ -63,6 +63,18 @@ public class FiberDashboardService : IFiberDashboardService
             .OrderByDescending(x => x.Revenue)
             .Take(5)
             .ToList();
+
+        // Inventory by Category analytics
+        var inventoryByCategory = materials
+            .GroupBy(m => string.IsNullOrEmpty(m.Category) ? "Uncategorized" : m.Category)
+            .Select(g => new InventoryByCategoryDto
+            {
+                Category = g.Key,
+                Count = g.Count()
+            })
+            .OrderByDescending(x => x.Count)
+            .ToList();
+
         return new FiberDashboardDto
         {
             ActiveShipments = shipments.Count(s => s.Status == "In Transit"),
@@ -71,7 +83,8 @@ public class FiberDashboardService : IFiberDashboardService
             MtdRevenue = mtdRevenue,
             RevenueByMonth = revenueByMonth,
             OrdersByStatus = ordersByStatus,
-            TopClients = topClients
+            TopClients = topClients,
+            InventoryByCategory = inventoryByCategory
         };
     }
 }

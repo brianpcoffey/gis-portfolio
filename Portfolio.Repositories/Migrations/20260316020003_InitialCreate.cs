@@ -61,6 +61,7 @@ namespace Portfolio.Repositories.Migrations
                     name = table.Column<string>(type: "text", nullable: false),
                     sku = table.Column<string>(type: "text", nullable: false),
                     unit_of_measure = table.Column<string>(type: "text", nullable: false),
+                    category = table.Column<string>(type: "text", nullable: false),
                     qty_on_hand = table.Column<decimal>(type: "numeric", nullable: false),
                     reorder_point = table.Column<decimal>(type: "numeric", nullable: false),
                     reorder_qty = table.Column<decimal>(type: "numeric", nullable: false),

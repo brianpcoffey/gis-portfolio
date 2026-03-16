@@ -9,6 +9,13 @@ public class FiberDashboardDto
     public List<RevenueByMonthDto> RevenueByMonth { get; set; } = new();
     public List<OrdersByStatusDto> OrdersByStatus { get; set; } = new();
     public List<TopClientDto> TopClients { get; set; } = new();
+    public List<InventoryByCategoryDto> InventoryByCategory { get; set; } = new();
+}
+
+public class InventoryByCategoryDto
+{
+    public string Category { get; set; } = string.Empty;
+    public int Count { get; set; }
 }
 
 public class RevenueByMonthDto

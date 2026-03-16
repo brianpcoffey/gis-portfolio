@@ -55,5 +55,61 @@ namespace Portfolio.Tests.Services
             var service = new FiberShipmentService(_shipmentRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetAllAsync());
         }
+
+        [Fact]
+        public async Task GetByIdAsync_ReturnsMappedDto_WhenFound()
+        {
+            var shipment = new FiberShipment { Id = 1, UserId = _testUserId };
+            _shipmentRepoMock.Setup(r => r.GetByIdAsync(1, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(shipment);
+            var result = await _service.GetByIdAsync(1);
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Id);
+        }
+
+        [Fact]
+        public async Task GetByIdAsync_ReturnsNull_WhenNotFound()
+        {
+            _shipmentRepoMock.Setup(r => r.GetByIdAsync(1, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync((FiberShipment)null);
+            var result = await _service.GetByIdAsync(1);
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task CreateAsync_CreatesAndReturnsDto()
+        {
+            var dto = new FiberShipmentDto { TrackingNumber = "T1", CarrierName = "C1", Status = "S1" };
+            var created = new FiberShipment { Id = 2, UserId = _testUserId, TrackingNumber = "T1", CarrierName = "C1", Status = "S1" };
+            _shipmentRepoMock.Setup(r => r.AddAsync(It.IsAny<FiberShipment>(), It.IsAny<CancellationToken>())).ReturnsAsync(created);
+            var result = await _service.CreateAsync(dto);
+            Assert.Equal(2, result.Id);
+            Assert.Equal("T1", result.TrackingNumber);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_UpdatesAndReturnsDto()
+        {
+            var dto = new FiberShipmentDto { TrackingNumber = "T2", CarrierName = "C2", Status = "S2" };
+            var updated = new FiberShipment { Id = 3, UserId = _testUserId, TrackingNumber = "T2", CarrierName = "C2", Status = "S2" };
+            _shipmentRepoMock.Setup(r => r.UpdateAsync(3, dto, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
+            var result = await _service.UpdateAsync(3, dto);
+            Assert.Equal(3, result.Id);
+            Assert.Equal("T2", result.TrackingNumber);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_DeletesAndReturnsTrue()
+        {
+            _shipmentRepoMock.Setup(r => r.DeleteAsync(4, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            var result = await _service.DeleteAsync(4);
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ReturnsFalse_WhenNotFound()
+        {
+            _shipmentRepoMock.Setup(r => r.DeleteAsync(5, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            var result = await _service.DeleteAsync(5);
+            Assert.False(result);
+        }
     }
 }

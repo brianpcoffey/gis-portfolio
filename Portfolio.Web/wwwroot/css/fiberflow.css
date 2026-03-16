@@ -1,3 +1,70 @@
+/* FiberFlow combined styles: datatables + custom + map fix */
+
+/* DataTable length menu styling for FiberFlow dashboard */
+.dataTables_length label {
+    font-size: 0.95rem;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dataTables_length select {
+    border-radius: 0.375rem;
+    border: 1px solid var(--border);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.95rem;
+    background: var(--surface);
+    color: var(--text);
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+    min-width: 60px;
+    display: inline-block;
+}
+
+@media (max-width: 600px) {
+    .dataTables_length label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    .dataTables_length select {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/* Responsive DataTables: horizontal scroll and controls wrapping */
+@media (max-width: 991.98px) {
+    .dataTables_wrapper .dataTables_scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .dataTable {
+        min-width: 600px;
+    }
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        white-space: normal;
+        word-break: break-word;
+    }
+}
+@media (max-width: 600px) {
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        display: block;
+        text-align: left;
+        margin-bottom: 0.5rem;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 0.5rem;
+    }
+}
+
 /* FiberFlow custom styles: Only add rules not covered by site/Bootstrap. */
 
 /* Example: Highlight for low stock alert */
@@ -7,13 +74,52 @@
     font-weight: bold;
 }
 
-/* GIS map container */
-.fiberflow-map {
-    height: 400px;
+/* GIS map container - FIXED: prevent overflow */
+.fiberflow-map-wrapper {
+    height: 100%;
+    min-height: 400px;
     width: 100%;
+    box-sizing: border-box;
+    padding: 16px;
+    background: var(--background);
     border-radius: 12px;
+    border: 2px solid var(--border-dark);
+    box-shadow: 0 6px 16px var(--shadow-dark);
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
     overflow: hidden;
-    margin-bottom: 2rem;
+}
+
+.fiberflow-map {
+    width: 100%;
+    height: 100%;
+    min-height: 368px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--background);
+    box-sizing: border-box;
+}
+
+/* Ensure map canvas and overlays fit perfectly */
+#fiberflowMap .esri-view-root,
+#fiberflowMap .esri-view-surface,
+#fiberflowMap canvas {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+/* Responsive: reduce padding on small screens */
+@media (max-width: 600px) {
+    .fiberflow-map-wrapper {
+        padding: 6px;
+        border-radius: 8px;
+    }
+    .fiberflow-map {
+        border-radius: 6px;
+    }
 }
 
 /* D3 chart container */
@@ -23,22 +129,75 @@
     margin-bottom: 2rem;
 }
 
-/* ============================================================
-   Toast Slide Animations (match HomeFinder)
-   ============================================================ */
-
+/* Toast Slide Animations (match HomeFinder) */
 .toast {
     opacity: 0;
     transform: translateX(100%);
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
-
 .toast.toast-slide-in {
     opacity: 1;
     transform: translateX(0);
 }
-
 .toast.toast-slide-out {
     opacity: 0;
     transform: translateX(100%);
+}
+
+/* Responsive tweaks for Orders/Shipments tabs */
+.fiberflow-tabs-card .tab-content {
+    width: 100%;
+    overflow-x: auto;
+}
+.fiberflow-tabs-card .table {
+    min-width: 600px;
+    width: 100%;
+}
+@media (max-width: 767.98px) {
+    .fiberflow-tabs-card .tab-content {
+        padding: 0.25rem 0;
+    }
+    .fiberflow-tabs-card .table {
+        min-width: 400px;
+        font-size: 0.95rem;
+    }
+}
+
+/* === Dark mode improvements for DataTables and nav-tabs === */
+@media (prefers-color-scheme: dark) {
+  .dataTables_length label,
+  .dataTables_length select {
+    color: #f1f1f1;
+  }
+  .dataTables_length select {
+    background: #23272b;
+    border-color: #444;
+  }
+  .dataTables_length select option {
+    background: #23272b;
+    color: #f1f1f1;
+  }
+  .dataTables_length select:focus {
+    background: #23272b;
+    color: #fff;
+    border-color: var(--accent, #0d6efd);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent, #0d6efd33);
+  }
+
+  /* Nav tabs: active tab and normal tab contrast */
+  .nav-tabs .nav-link {
+    color: #cfd8dc;
+    background: transparent;
+    border-color: transparent;
+  }
+  .nav-tabs .nav-link.active,
+  .nav-tabs .nav-item.show .nav-link {
+    color: #fff;
+    background-color: #23272b;
+    border-color: #444 #444 #23272b;
+  }
+  .nav-tabs {
+    border-bottom: 1px solid #444;
+  }
 }
