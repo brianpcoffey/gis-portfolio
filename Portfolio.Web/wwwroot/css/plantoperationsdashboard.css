@@ -1,5 +1,35 @@
 /* Plant Operations Dashboard combined styles: datatables + custom + map fix */
 
+/* === Dark mode improvements for DataTables pagination buttons === */
+body.dark-mode .pagination .page-link {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+body.dark-mode .pagination .page-link:hover,
+body.dark-mode .pagination .page-link:focus {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent)33;
+}
+body.dark-mode .pagination .active .page-link,
+body.dark-mode .pagination .page-item.active .page-link {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+  z-index: 2;
+}
+body.dark-mode .pagination .disabled .page-link,
+body.dark-mode .pagination .page-item.disabled .page-link {
+  background: var(--surface) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border) !important;
+  opacity: 0.6;
+  pointer-events: none;
+}
 /* DataTable length menu styling for Plant Operations Dashboard */
 .dataTables_length label {
     font-size: 0.95rem;
