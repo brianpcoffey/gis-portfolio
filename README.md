@@ -39,7 +39,7 @@ An interactive state-level data exploration tool using GIS mapping and visualiza
 ### 🏠 Redlands Smart Home Finder
 An application for locating and comparing smart home devices in Redlands. Filters and sorts devices based on features and pricing, connected to a Neon.tech PostgreSQL database for real-time inventory.
 
-###🏭 Plant Operations Dashboard
+### 🏭 Plant Operations Dashboard
 A real-time dashboard for managing fiberglass ducting manufacturing operations. The dashboard provides live analytics, GIS-based shipment tracking, and inventory/order management. The application features interactive charts, a shipment map with basemap switching, and data grids for orders, shipments, and inventory. The backend exposes secure APIs for dashboard stats, orders, shipments, and materials, supporting CRUD operations and status updates.
 
 ---
