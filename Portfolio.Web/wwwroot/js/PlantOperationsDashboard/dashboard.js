@@ -182,7 +182,7 @@ $(document).ready(function () {
     loadDashboardStats();
     loadFiberflowMap();
     // DataTable length menu styling fix
-    $('link[href$="dataTables.bootstrap5.min.css"]').after('<link rel="stylesheet" href="/css/fiberflow.css">');
+    $('link[href$="dataTables.bootstrap5.min.css"]').after('<link rel="stylesheet" href="/css/plantoperationsdashboard.css">');
 });
 
 function loadDashboardStats() {
