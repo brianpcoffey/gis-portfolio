@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Portfolio.Common.Constants;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
 
@@ -34,7 +35,16 @@ namespace Portfolio.Web.Middleware
 
             if (context.User?.Identity?.IsAuthenticated == true)
             {
-                // Authenticated user: do not set anonymous identity
+                // Authenticated user: resolve their internal UserId from the GoogleId claim and store it.
+                var googleId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(googleId))
+                {
+                    var claim = await db.UserClaims
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(c => c.ClaimType == ProfileClaimTypes.GoogleId && c.ClaimValue == googleId);
+                    if (claim != null)
+                        context.Items[HttpContextItemKey] = claim.UserId;
+                }
                 await _next(context);
                 return;
             }

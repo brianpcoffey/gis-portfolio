@@ -42,18 +42,8 @@ namespace Portfolio.Services.Services
         {
             var ctx = _httpContextAccessor.HttpContext;
             if (ctx == null) return null;
-            // Prefer authenticated user
-            if (ctx.User?.Identity?.IsAuthenticated == true)
-            {
-                var googleId = ctx.User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (!string.IsNullOrEmpty(googleId))
-                {
-                    // Look up user by GoogleId claim
-                    var profile = _repo.GetProfileByClaimAsync(Portfolio.Common.Constants.ProfileClaimTypes.GoogleId, googleId).GetAwaiter().GetResult();
-                    return profile?.UserId;
-                }
-            }
-            // Fallback to anonymous
+            // Prefer authenticated user identity resolved from Items (set during sign-in event).
+            // Falls back to anonymous identity set by AnonymousUserMiddleware.
             if (ctx.Items.TryGetValue(HttpContextItemKey, out var o) && o is Guid g) return g;
             return null;
         }
