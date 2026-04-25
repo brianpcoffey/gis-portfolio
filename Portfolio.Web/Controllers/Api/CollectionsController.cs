@@ -14,10 +14,12 @@ namespace Portfolio.Web.Controllers.Api
     public class CollectionsController : ControllerBase
     {
         private readonly ICollectionService _service;
+        private readonly ILogger<CollectionsController> _logger;
 
-        public CollectionsController(ICollectionService service)
+        public CollectionsController(ICollectionService service, ILogger<CollectionsController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         /// <summary>
@@ -71,6 +73,7 @@ namespace Portfolio.Web.Controllers.Api
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning("Conflict creating collection: {Message}", ex.Message);
                 return Conflict(new { error = ex.Message });
             }
         }
@@ -85,7 +88,7 @@ namespace Portfolio.Web.Controllers.Api
         [HttpPut("{id:int}")]
         [ProducesResponseType(typeof(CollectionDto), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> Update(int id, [FromBody] CollectionUpdateDto dto, CancellationToken cancellationToken)
+        public async Task<ActionResult<CollectionDto>> Update(int id, [FromBody] CollectionUpdateDto dto, CancellationToken cancellationToken)
         {
             try
             {
@@ -107,7 +110,7 @@ namespace Portfolio.Web.Controllers.Api
         [HttpDelete("{id:int}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+        public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
         {
             var deleted = await _service.DeleteAsync(id, cancellationToken);
             return deleted ? NoContent() : NotFound();

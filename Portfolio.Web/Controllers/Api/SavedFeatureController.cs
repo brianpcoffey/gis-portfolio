@@ -14,10 +14,12 @@ namespace Portfolio.Web.Controllers
     public class SavedFeaturesController : ControllerBase
     {
         private readonly ISavedFeatureService _service;
+        private readonly ILogger<SavedFeaturesController> _logger;
 
-        public SavedFeaturesController(ISavedFeatureService service)
+        public SavedFeaturesController(ISavedFeatureService service, ILogger<SavedFeaturesController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         /// <summary>
@@ -55,6 +57,7 @@ namespace Portfolio.Web.Controllers
             }
             catch (InvalidOperationException)
             {
+                _logger.LogWarning("Conflict saving feature: layer={LayerId} feature={FeatureId}", dto.LayerId, dto.FeatureId);
                 return Conflict(new { error = "Feature already saved" });
             }
         }
@@ -73,6 +76,8 @@ namespace Portfolio.Web.Controllers
         {
             if (string.IsNullOrWhiteSpace(id)) return BadRequest();
 
+            // Route id can be either a numeric DB primary key or an opaque feature key string.
+            // Attempt integer parse first to decide which service method to call.
             if (int.TryParse(id, out var intId))
             {
                 var ok = await _service.DeleteByDbIdAsync(intId, cancellationToken);

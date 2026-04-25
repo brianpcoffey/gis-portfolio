@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
@@ -11,16 +12,21 @@ namespace Portfolio.Services.Services
     {
         private readonly ICollectionRepository _repository;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<CollectionService> _logger;
 
         public CollectionService(
             ICollectionRepository repository,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<CollectionService> logger)
         {
             _repository = repository
                 ?? throw new ArgumentNullException(nameof(repository));
 
             _httpContextAccessor = httpContextAccessor
                 ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+
+            _logger = logger
+                ?? throw new ArgumentNullException(nameof(logger));
         }
 
         private string CurrentUserId
@@ -108,6 +114,7 @@ namespace Portfolio.Services.Services
                 entity,
                 cancellationToken);
 
+            _logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", created.Id, ownerId);
             return MapToDto(created);
         }
 
@@ -158,6 +165,7 @@ namespace Portfolio.Services.Services
                 entity,
                 cancellationToken);
 
+            _logger.LogInformation("Collection {CollectionId} updated for owner {OwnerId}", id, ownerId);
             return MapToDto(updated);
         }
 
@@ -167,10 +175,12 @@ namespace Portfolio.Services.Services
         {
             var ownerId = CurrentUserId;
 
-            return await _repository.DeleteAsync(
-                id,
-                ownerId,
-                cancellationToken);
+            var deleted = await _repository.DeleteAsync(id, ownerId, cancellationToken);
+            if (deleted)
+                _logger.LogInformation("Collection {CollectionId} deleted for owner {OwnerId}", id, ownerId);
+            else
+                _logger.LogWarning("Collection {CollectionId} not found for owner {OwnerId} during delete", id, ownerId);
+            return deleted;
         }
 
         private static CollectionDto MapToDto(Collection c)

@@ -11,9 +11,16 @@ namespace Portfolio.Web.Controllers.Api
     [ApiController]
     [Route("api/features")]
     [AllowAnonymous]
-    public class FeaturesController(IArcGisService arcGisService) : ControllerBase
+    public class FeaturesController : ControllerBase
     {
-        private readonly IArcGisService _arcGisService = arcGisService;
+        private readonly IArcGisService _arcGisService;
+        private readonly ILogger<FeaturesController> _logger;
+
+        public FeaturesController(IArcGisService arcGisService, ILogger<FeaturesController> logger)
+        {
+            _arcGisService = arcGisService;
+            _logger = logger;
+        }
 
         /// <summary>
         /// Gets features from a layer, optionally filtered by bounding box.

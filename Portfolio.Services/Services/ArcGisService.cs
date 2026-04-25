@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -6,18 +7,33 @@ using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {
-    public class ArcGisService(HttpClient httpClient, ILogger<ArcGisService> logger) : IArcGisService
+    public class ArcGisService : IArcGisService
     {
-        private readonly HttpClient _httpClient = httpClient;
-        private readonly ILogger<ArcGisService> _logger = logger;
+        private readonly HttpClient _httpClient;
+        private readonly ILogger<ArcGisService> _logger;
+        private readonly string _baseUrl;
+
+        public ArcGisService(HttpClient httpClient, ILogger<ArcGisService> logger, IConfiguration configuration)
+        {
+            _httpClient = httpClient;
+            _logger = logger;
+            _baseUrl = configuration["ArcGis:BaseUrl"]
+                ?? throw new InvalidOperationException("ArcGis:BaseUrl configuration is missing.");
+        }
 
         public async Task<List<FeatureDto>> QueryFeaturesAsync(string layerId, string? bbox = null, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(layerId, nameof(layerId));
 
-            var url = $"https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer/{layerId}/query?where=1=1&f=json&outFields=*";
+            // Encode caller-supplied values to prevent URL injection / malformed requests.
+            var encodedLayerId = Uri.EscapeDataString(layerId);
+            var url = $"{_baseUrl}/{encodedLayerId}/query?where=1=1&f=json&outFields=*";
             if (!string.IsNullOrEmpty(bbox))
-                url += $"&geometry={bbox}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects";
+            {
+                // bbox is caller-supplied; encode it to prevent URL injection.
+                var encodedBbox = Uri.EscapeDataString(bbox);
+                url += $"&geometry={encodedBbox}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects";
+            }
 
             try
             {

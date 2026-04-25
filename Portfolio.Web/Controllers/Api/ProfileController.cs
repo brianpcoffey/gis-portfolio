@@ -14,10 +14,12 @@ namespace Portfolio.Web.Controllers.Api
     public class ProfileController : ControllerBase
     {
         private readonly IUserProfileService _profileService;
+        private readonly ILogger<ProfileController> _logger;
 
-        public ProfileController(IUserProfileService profileService)
+        public ProfileController(IUserProfileService profileService, ILogger<ProfileController> logger)
         {
             _profileService = profileService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -27,10 +29,14 @@ namespace Portfolio.Web.Controllers.Api
         [HttpGet]
         [ProducesResponseType(typeof(ProfileDto), 200)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<ProfileDto>> Get(CancellationToken cancellationToken)
+        public async Task<IActionResult> Get(CancellationToken cancellationToken)
         {
             var userId = _profileService.GetCurrentUserId();
-            if (userId == null) return BadRequest(new { error = "Anonymous identity not established." });
+            if (userId == null)
+            {
+                _logger.LogWarning("Anonymous identity not established on GET /api/profile");
+                return BadRequest(new { error = "Anonymous identity not established." });
+            }
 
             var claims = await _profileService.GetClaimsAsync(cancellationToken);
             var dto = new ProfileDto { UserId = userId.Value, Claims = claims };

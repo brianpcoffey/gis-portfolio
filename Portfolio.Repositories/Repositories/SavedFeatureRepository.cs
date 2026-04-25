@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 
@@ -7,10 +8,12 @@ namespace Portfolio.Repositories
     public class SavedFeatureRepository : ISavedFeatureRepository
     {
         private readonly PortfolioDbContext _db;
+        private readonly ILogger<SavedFeatureRepository> _logger;
 
-        public SavedFeatureRepository(PortfolioDbContext db)
+        public SavedFeatureRepository(PortfolioDbContext db, ILogger<SavedFeatureRepository> logger)
         {
             _db = db;
+            _logger = logger;
         }
 
         public async Task<List<SavedFeature>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -51,13 +54,18 @@ namespace Portfolio.Repositories
             await _db.SaveChangesAsync(cancellationToken);
             await _db.Entry(feature).Reference(f => f.Collection).LoadAsync(cancellationToken);
             await _db.Entry(feature).Collection(f => f.UserNotes).LoadAsync(cancellationToken);
+            _logger.LogInformation("SavedFeature {FeatureId} persisted with DB id {Id}", feature.FeatureId, feature.Id);
             return feature;
         }
 
         public async Task<bool> DeleteAsync(int id, Guid userId, CancellationToken cancellationToken = default)
         {
             var sf = await _db.SavedFeatures.FirstOrDefaultAsync(f => f.Id == id && f.UserId == userId, cancellationToken);
-            if (sf == null) return false;
+            if (sf == null)
+            {
+                _logger.LogWarning("SavedFeature DB id {Id} not found for user {UserId}", id, userId);
+                return false;
+            }
             _db.SavedFeatures.Remove(sf);
             await _db.SaveChangesAsync(cancellationToken);
             return true;

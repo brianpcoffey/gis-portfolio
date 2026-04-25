@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
@@ -24,7 +25,7 @@ namespace Portfolio.Tests.Services
             httpContext.Items["AnonUserId"] = _testUserId;
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
 
-            _service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object);
+            _service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
         }
 
         [Fact]
@@ -42,7 +43,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object);
+            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
 
             // Act
             var result = service.GetCurrentUserId();
@@ -57,7 +58,7 @@ namespace Portfolio.Tests.Services
             // Arrange
             var httpContext = new DefaultHttpContext();
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object);
+            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
 
             // Act
             var result = service.GetCurrentUserId();
@@ -91,7 +92,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object);
+            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetClaimsAsync());

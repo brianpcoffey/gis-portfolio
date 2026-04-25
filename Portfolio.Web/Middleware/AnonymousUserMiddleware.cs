@@ -31,6 +31,8 @@ namespace Portfolio.Web.Middleware
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
                 // Load profile; if missing on DB side, recreate profile
+                // A valid cookie was found but no DB record exists (e.g. after a data wipe).
+                // Recreate the profile so the existing cookie remains valid for the user.
                 var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
                 if (profile == null)
                 {

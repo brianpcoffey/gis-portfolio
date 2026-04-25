@@ -140,6 +140,9 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 
+// Global exception handler — returns RFC 7807 ProblemDetails for all unhandled exceptions.
+app.UseMiddleware<ApiExceptionMiddleware>();
+
 // Insert anonymous user middleware BEFORE controllers/pages so the profile is available
 app.UseMiddleware<AnonymousUserMiddleware>();
 

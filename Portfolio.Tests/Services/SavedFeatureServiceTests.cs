@@ -1,6 +1,10 @@
 using Moq;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
 using Portfolio.Common.DTOs;
+using Portfolio.Repositories;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
@@ -14,6 +18,7 @@ namespace Portfolio.Tests.Services
         private readonly Mock<IUserNoteRepository> _noteRepositoryMock;
         private readonly Mock<IUserProfileService> _userProfileServiceMock;
         private readonly SavedFeatureService _service;
+        private readonly PortfolioDbContext _db;
         private readonly Guid _testUserId = Guid.NewGuid();
 
         public SavedFeatureServiceTests()
@@ -22,12 +27,21 @@ namespace Portfolio.Tests.Services
             _noteRepositoryMock = new Mock<IUserNoteRepository>();
             _userProfileServiceMock = new Mock<IUserProfileService>();
 
+            var dbOptions = new DbContextOptionsBuilder<PortfolioDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                // Suppress the warning that in-memory transactions are no-ops; this is expected in tests.
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options;
+            _db = new PortfolioDbContext(dbOptions);
+
             _userProfileServiceMock.Setup(s => s.GetCurrentUserId()).Returns(_testUserId);
 
             _service = new SavedFeatureService(
                 _repositoryMock.Object,
                 _noteRepositoryMock.Object,
-                _userProfileServiceMock.Object);
+                _userProfileServiceMock.Object,
+                new Mock<ILogger<SavedFeatureService>>().Object,
+                _db);
         }
 
         [Fact]

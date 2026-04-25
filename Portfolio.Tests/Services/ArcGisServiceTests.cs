@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
@@ -9,11 +10,16 @@ namespace Portfolio.Tests.Services
 {
     public class ArcGisServiceTests
     {
+        private const string BaseUrl = "https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer";
+
         private readonly Mock<ILogger<ArcGisService>> _loggerMock;
+        private readonly Mock<IConfiguration> _configMock;
 
         public ArcGisServiceTests()
         {
             _loggerMock = new Mock<ILogger<ArcGisService>>();
+            _configMock = new Mock<IConfiguration>();
+            _configMock.Setup(c => c["ArcGis:BaseUrl"]).Returns(BaseUrl);
         }
 
         [Fact]
@@ -21,10 +27,11 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var httpClient = new HttpClient();
-            var service = new ArcGisService(httpClient, _loggerMock.Object);
+            var service = new ArcGisService(httpClient, _loggerMock.Object, _configMock.Object);
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(
+            // ThrowIfNullOrWhiteSpace raises ArgumentNullException for null (a subtype of ArgumentException).
+            await Assert.ThrowsAnyAsync<ArgumentException>(
                 () => service.QueryFeaturesAsync(null!));
         }
 
@@ -35,7 +42,7 @@ namespace Portfolio.Tests.Services
             var cts = new CancellationTokenSource();
             cts.Cancel();
             var httpClient = new HttpClient();
-            var service = new ArcGisService(httpClient, _loggerMock.Object);
+            var service = new ArcGisService(httpClient, _loggerMock.Object, _configMock.Object);
 
             // Act & Assert
             await Assert.ThrowsAsync<TaskCanceledException>(
@@ -68,7 +75,7 @@ namespace Portfolio.Tests.Services
                 .ReturnsAsync(response);
 
             var httpClient = new HttpClient(handlerMock.Object);
-            var service = new ArcGisService(httpClient, _loggerMock.Object);
+            var service = new ArcGisService(httpClient, _loggerMock.Object, _configMock.Object);
 
             // Act
             var result = await service.QueryFeaturesAsync("1");

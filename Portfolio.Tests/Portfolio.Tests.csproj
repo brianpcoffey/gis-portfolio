@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.9" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="xunit" Version="2.5.3" />
@@ -26,6 +27,7 @@
     <ProjectReference Include="..\Portfolio.Common\Portfolio.Common.csproj" />
     <ProjectReference Include="..\Portfolio.Repositories\Portfolio.Repositories.csproj" />
     <ProjectReference Include="..\Portfolio.Services\Portfolio.Services.csproj" />
+    <ProjectReference Include="..\Portfolio.Web\Portfolio.Web.csproj" />
   </ItemGroup>
 
 </Project>
