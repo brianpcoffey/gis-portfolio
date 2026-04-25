@@ -16,7 +16,7 @@ namespace Portfolio.Repositories.Repositories
             _logger = logger;
         }
 
-        public async Task<List<Collection>> GetAllAsync(string ownerId, CancellationToken cancellationToken = default)
+        public async Task<List<Collection>> GetAllAsync(Guid ownerId, CancellationToken cancellationToken = default)
         {
             return await _db.Collections
                 .Where(c => c.OwnerId == ownerId)
@@ -24,7 +24,7 @@ namespace Portfolio.Repositories.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<Collection?> GetByIdAsync(int id, string ownerId, CancellationToken cancellationToken = default)
+        public async Task<Collection?> GetByIdAsync(int id, Guid ownerId, CancellationToken cancellationToken = default)
         {
             return await _db.Collections
                 .FirstOrDefaultAsync(c => c.Id == id && c.OwnerId == ownerId, cancellationToken);
@@ -45,7 +45,7 @@ namespace Portfolio.Repositories.Repositories
             return entity;
         }
 
-        public async Task<bool> DeleteAsync(int id, string ownerId, CancellationToken cancellationToken = default)
+        public async Task<bool> DeleteAsync(int id, Guid ownerId, CancellationToken cancellationToken = default)
         {
             var entity = await GetByIdAsync(id, ownerId, cancellationToken);
             if (entity is null)
@@ -58,7 +58,7 @@ namespace Portfolio.Repositories.Repositories
             return true;
         }
 
-        public async Task<bool> ExistsAsync(string ownerId, string name, CancellationToken cancellationToken = default)
+        public async Task<bool> ExistsAsync(Guid ownerId, string name, CancellationToken cancellationToken = default)
         {
             return await _db.Collections.AnyAsync(c => c.OwnerId == ownerId && c.Name == name, cancellationToken);
         }

@@ -5,82 +5,84 @@ using Portfolio.Repositories;
 namespace Portfolio.Web.Middleware
 {
     /// <summary>
-    /// Ensures every visitor has an anonymous GUID-based identity stored in a secure cookie.
-    /// Responsibility:
-    ///  - Validate/reuse cookie
-    ///  - If missing/invalid, create new UserProfile and set cookie
-    ///  - Load profile and update LastActiveDate
-    ///  - Place the current UserId into HttpContext.Items["AnonUserId"]
+    /// Ensures every visitor has a UserProfile identity stored in HttpContext.Items["AnonUserId"].
+    /// For Google-authenticated users the OnSignedIn event has already set the cookie and Items key.
+    /// For anonymous users this validates/reuses the AnonUserId cookie, or creates a new profile.
     /// </summary>
     public class AnonymousUserMiddleware
     {
         private readonly RequestDelegate _next;
         private const string CookieName = "AnonUserId";
-        private const string HttpContextItemKey = "AnonUserId";
+        private const string HttpContextItemKey = "PortfolioIdentity";
 
         public AnonymousUserMiddleware(RequestDelegate next)
         {
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db)
+        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider, Portfolio.Services.Services.UserProfileSeedService seedService)
         {
+            // Only set anonymous identity if not already set by authentication
+            if (context.Items.ContainsKey(HttpContextItemKey))
+            {
+                await _next(context);
+                return;
+            }
+
+            var now = timeProvider.GetUtcNow().UtcDateTime;
             Guid userId;
 
-            // 1. Try read cookie
+            if (context.User?.Identity?.IsAuthenticated == true)
+            {
+                // Authenticated user: do not set anonymous identity
+                await _next(context);
+                return;
+            }
+
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
-                // Load profile; if missing on DB side, recreate profile
-                // A valid cookie was found but no DB record exists (e.g. after a data wipe).
-                // Recreate the profile so the existing cookie remains valid for the user.
-                var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
+var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
                 if (profile == null)
                 {
                     profile = new UserProfile
                     {
                         UserId = userId,
-                        CreatedDate = DateTime.UtcNow,
-                        LastActiveDate = DateTime.UtcNow
+                        CreatedDate = now,
+                        LastActiveDate = now
                     };
                     db.UserProfiles.Add(profile);
                     await db.SaveChangesAsync();
                 }
                 else
                 {
-                    // update last active
-                    profile.LastActiveDate = DateTime.UtcNow;
+                    profile.LastActiveDate = now;
                     await db.SaveChangesAsync();
                 }
             }
             else
             {
-                // Cookie missing or invalid -> generate new GUID, create profile, set cookie
                 userId = Guid.NewGuid();
-
                 var profile = new UserProfile
                 {
                     UserId = userId,
-                    CreatedDate = DateTime.UtcNow,
-                    LastActiveDate = DateTime.UtcNow
+                    CreatedDate = now,
+                    LastActiveDate = now
                 };
-
                 db.UserProfiles.Add(profile);
                 await db.SaveChangesAsync();
-
-                // Set secure cookie
+                await seedService.SeedForUserAsync(userId);
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = true,
+                    Secure = context.Request.IsHttps,
                     SameSite = SameSiteMode.Lax,
-                    Expires = DateTimeOffset.UtcNow.AddYears(1),
+                    Expires = timeProvider.GetUtcNow().AddYears(1),
                     IsEssential = true
                 };
-
                 context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
+                Console.WriteLine($"[AnonymousUserMiddleware] Created anon profile and cookie for {userId} (IsHttps={context.Request.IsHttps})");
             }
 
-            // Store in HttpContext.Items so services/controllers can read it (never accept UserId from clients).
             context.Items[HttpContextItemKey] = userId;
 
             await _next(context);

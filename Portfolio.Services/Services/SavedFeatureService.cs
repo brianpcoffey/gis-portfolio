@@ -11,23 +11,20 @@ namespace Portfolio.Services.Services
     public class SavedFeatureService : ISavedFeatureService
     {
         private readonly ISavedFeatureRepository _repo;
-        private readonly IUserNoteRepository _noteRepo;
         private readonly IUserProfileService _userProfileService;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<SavedFeatureService> _logger;
-        private readonly PortfolioDbContext _db;
 
         public SavedFeatureService(
             ISavedFeatureRepository repo,
-            IUserNoteRepository noteRepo,
             IUserProfileService userProfileService,
-            ILogger<SavedFeatureService> logger,
-            PortfolioDbContext db)
+            TimeProvider timeProvider,
+            ILogger<SavedFeatureService> logger)
         {
             _repo = repo;
-            _noteRepo = noteRepo;
             _userProfileService = userProfileService;
+            _timeProvider = timeProvider;
             _logger = logger;
-            _db = db;
         }
 
         private Guid CurrentUserId =>
@@ -57,6 +54,7 @@ namespace Portfolio.Services.Services
             if (existing != null)
                 throw new InvalidOperationException("Feature already saved");
 
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
             var entity = new SavedFeature
             {
                 UserId = userId,
@@ -66,39 +64,13 @@ namespace Portfolio.Services.Services
                 GeometryJson = dto.GeometryJson ?? string.Empty,
                 Description = dto.Description,
                 CollectionId = dto.CollectionId,
-                DateSaved = DateTime.UtcNow,
-                LastModified = DateTime.UtcNow
+                DateSaved = now,
+                LastModified = now
             };
 
-            // Use a transaction so the SavedFeature insert and optional UserNote insert
-            // are committed atomically — a failure on the note will not leave an orphaned feature.
-            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                var saved = await _repo.AddAsync(entity, cancellationToken);
-                _logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}", saved.FeatureId, saved.LayerId, userId);
-
-                if (!string.IsNullOrWhiteSpace(dto.Description))
-                {
-                    var note = new UserNote
-                    {
-                        UserId = userId,
-                        SavedFeatureId = saved.Id,
-                        Note = dto.Description,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    await _noteRepo.AddAsync(note, cancellationToken);
-                }
-
-                await transaction.CommitAsync(cancellationToken);
-                return MapToDto(saved);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Transaction rolled back while saving feature {FeatureId} for user {UserId}", dto.FeatureId, userId);
-                throw;
-            }
+var saved = await _repo.AddAsync(entity, cancellationToken);
+_logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}", saved.FeatureId, saved.LayerId, userId);
+return MapToDto(saved);
         }
 
         public async Task<bool> DeleteByDbIdAsync(int id, CancellationToken cancellationToken = default)
@@ -122,21 +94,18 @@ namespace Portfolio.Services.Services
             return await _repo.DeleteAsync(sf.Id, userId, cancellationToken);
         }
 
-        private static SavedFeatureDto MapToDto(SavedFeature sf)
+        private static SavedFeatureDto MapToDto(SavedFeature sf) => new()
         {
-            return new SavedFeatureDto
-            {
-                Id = sf.Id,
-                LayerId = sf.LayerId,
-                FeatureId = sf.FeatureId,
-                Name = sf.Name,
-                GeometryJson = sf.GeometryJson,
-                Description = sf.Description,
-                CollectionId = sf.CollectionId,
-                CollectionName = sf.Collection?.Name,
-                DateSaved = sf.DateSaved,
-                LastModified = sf.LastModified
-            };
-        }
+            Id = sf.Id,
+            LayerId = sf.LayerId,
+            FeatureId = sf.FeatureId,
+            Name = sf.Name,
+            GeometryJson = sf.GeometryJson,
+            Description = sf.Description,
+            CollectionId = sf.CollectionId,
+            CollectionName = sf.Collection?.Name,
+            DateSaved = sf.DateSaved,
+            LastModified = sf.LastModified
+        };
     }
 }

@@ -11,8 +11,8 @@
 <!-- Custom CSS -->
 <link rel="stylesheet" href="~/css/gis.css" />
 
-<!-- Typeahead CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js-bootstrap4-css/1.0.0/typeaheadjs.min.css" />
+<!-- Typeahead CSS (local) -->
+<link rel="stylesheet" href="~/lib/typeahead/typeahead.css" />
 
 <div class="container-fluid py-3 theme-root">
     <!-- PAGE TITLE -->
@@ -184,22 +184,19 @@
 
 <!-- View Saved State Modal -->
 <div class="modal fade" id="viewSavedModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content theme-modal">
-            <div class="modal-header theme-modal-header">
-                <h5 class="modal-title" id="viewSavedTitle">Saved State</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body theme-body">
-                <div id="viewSavedMeta" class="mb-2 text-muted small theme-text-muted"></div>
-            </div>
-            <div class="modal-footer theme-modal-footer">
-                <button type="button" id="btnViewZoom" class="btn btn-outline-secondary theme-btn">Zoom</button>
-                <button type="button" id="btnViewRemove" class="btn btn-outline-danger theme-btn">Remove</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="viewSavedTitle" class="modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewSavedMeta"></div>
+      </div>
+      <div class="modal-footer">
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Toast Container -->
@@ -214,8 +211,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="~/lib/typeahead/typeahead.bundle.min.js"></script>
     <script src="https://js.arcgis.com/4.28/"></script>
     <script type="module" src="~/js/StateExplorer/stateStore.js"></script>
     <script type="module" src="~/js/StateExplorer/featureService.js"></script>

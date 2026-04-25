@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Services;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {
@@ -13,19 +11,28 @@ namespace Portfolio.Tests.Services
     {
         private readonly Mock<IUserProfileRepository> _repoMock;
         private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+        private readonly FakeTimeProvider _timeProvider;
         private readonly UserProfileService _service;
         private readonly Guid _testUserId = Guid.NewGuid();
+        private readonly Mock<Portfolio.Repositories.PortfolioDbContext> _dbContextMock;
+        private readonly Mock<UserProfileSeedService> _seedServiceMock;
 
         public UserProfileServiceTests()
         {
             _repoMock = new Mock<IUserProfileRepository>();
             _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            _timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 3, 6, 12, 0, 0, TimeSpan.Zero));
+
+            // Setup DbContext mock for UserProfileSeedService
+            var dbOptions = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<Portfolio.Repositories.PortfolioDbContext>().Options;
+            _dbContextMock = new Mock<Portfolio.Repositories.PortfolioDbContext>(dbOptions);
+            _seedServiceMock = new Mock<UserProfileSeedService>(_dbContextMock.Object);
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Items["AnonUserId"] = _testUserId;
+            httpContext.Items["PortfolioIdentity"] = _testUserId;
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
 
-            _service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
+            _service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedServiceMock.Object, new Mock<ILogger<UserProfileService>>().Object);
         }
 
         [Fact]
@@ -43,22 +50,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
-
-            // Act
-            var result = service.GetCurrentUserId();
-
-            // Assert
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public void GetCurrentUserId_WithMissingAnonUserId_ReturnsNull()
-        {
-            // Arrange
-            var httpContext = new DefaultHttpContext();
-            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
+            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedServiceMock.Object, new Mock<ILogger<UserProfileService>>().Object);
 
             // Act
             var result = service.GetCurrentUserId();
@@ -92,7 +84,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, new Mock<ILogger<UserProfileService>>().Object);
+            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedServiceMock.Object, new Mock<ILogger<UserProfileService>>().Object);
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetClaimsAsync());

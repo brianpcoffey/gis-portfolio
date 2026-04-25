@@ -1,26 +1,38 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
+using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
+using System.Security.Claims;
 
 namespace Portfolio.Services.Services
 {
     /// <summary>
-    /// Only uses the UserId present in HttpContext.Items["AnonUserId"].
-    /// Never accepts user-supplied UserId.
+    /// Manages user profiles and claims.
+    /// Resolves the current user from HttpContext.Items["AnonUserId"] (set by middleware).
     /// </summary>
     public class UserProfileService : IUserProfileService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IUserProfileRepository _repo;
         private readonly ILogger<UserProfileService> _logger;
-        private const string HttpContextItemKey = "AnonUserId";
+        private readonly TimeProvider _timeProvider;
+        private readonly UserProfileSeedService _seedService;
+        private const string HttpContextItemKey = "PortfolioIdentity";
 
-        public UserProfileService(IHttpContextAccessor httpContextAccessor, IUserProfileRepository repo, ILogger<UserProfileService> logger)
+        public UserProfileService(
+            IHttpContextAccessor httpContextAccessor,
+            IUserProfileRepository repo,
+            TimeProvider timeProvider,
+            UserProfileSeedService seedService,
+            ILogger<UserProfileService> logger)
         {
             _httpContextAccessor = httpContextAccessor;
             _repo = repo;
+            _timeProvider = timeProvider;
+            _seedService = seedService;
             _logger = logger;
         }
 
@@ -30,6 +42,18 @@ namespace Portfolio.Services.Services
         {
             var ctx = _httpContextAccessor.HttpContext;
             if (ctx == null) return null;
+            // Prefer authenticated user
+            if (ctx.User?.Identity?.IsAuthenticated == true)
+            {
+                var googleId = ctx.User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (!string.IsNullOrEmpty(googleId))
+                {
+                    // Look up user by GoogleId claim
+                    var profile = _repo.GetProfileByClaimAsync(Portfolio.Common.Constants.ProfileClaimTypes.GoogleId, googleId).GetAwaiter().GetResult();
+                    return profile?.UserId;
+                }
+            }
+            // Fallback to anonymous
             if (ctx.Items.TryGetValue(HttpContextItemKey, out var o) && o is Guid g) return g;
             return null;
         }
@@ -74,5 +98,138 @@ namespace Portfolio.Services.Services
                 _logger.LogWarning("Claim '{ClaimType}' not found for user {UserId} during remove", type, userId);
             return removed;
         }
+
+        public async Task<ProfileDto?> GetProfileByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            var profile = await _repo.GetProfileAsync(userId, cancellationToken);
+            if (profile == null) return null;
+
+            var claims = await _repo.GetClaimsAsync(userId, cancellationToken);
+            return ToDto(profile, claims);
+        }
+
+        public async Task<ProfileDto?> GetProfileByGoogleIdAsync(string googleId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(googleId)) throw new ArgumentException("GoogleId required", nameof(googleId));
+
+            var profile = await _repo.GetProfileByClaimAsync(ProfileClaimTypes.GoogleId, googleId, cancellationToken);
+            if (profile == null) return null;
+
+            var claims = await _repo.GetClaimsAsync(profile.UserId, cancellationToken);
+            return ToDto(profile, claims);
+        }
+
+        public async Task<ProfileDto> GetCurrentProfileAsync(CancellationToken cancellationToken = default)
+        {
+            var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
+            var profile = await _repo.GetProfileAsync(userId, cancellationToken)
+                ?? throw new InvalidOperationException($"Profile not found for {userId}");
+
+            var claims = await _repo.GetClaimsAsync(userId, cancellationToken);
+            return ToDto(profile, claims);
+        }
+
+        public async Task<ProfileDto> UpdateCurrentProfileAsync(UpdateProfileDto dto, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(dto);
+            var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
+
+            if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+            {
+                await _repo.SetClaimAsync(userId, ProfileClaimTypes.DisplayName, dto.DisplayName.Trim(), cancellationToken);
+            }
+            else
+            {
+                await _repo.RemoveClaimAsync(userId, ProfileClaimTypes.DisplayName, cancellationToken);
+            }
+
+            var profile = await _repo.GetProfileAsync(userId, cancellationToken)
+                ?? throw new InvalidOperationException($"Profile not found for {userId}");
+            var claims = await _repo.GetClaimsAsync(userId, cancellationToken);
+            return ToDto(profile, claims);
+        }
+
+        public async Task<bool> DeleteProfileAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            return await _repo.DeleteProfileAsync(userId, cancellationToken);
+        }
+
+        public async Task<Guid> CreateOrUpdateFromGoogleAsync(GoogleProfileDto google, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(google);
+            if (string.IsNullOrWhiteSpace(google.GoogleId))
+                throw new ArgumentException("GoogleId is required", nameof(google));
+
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
+
+            var existing = await _repo.GetProfileByClaimAsync(
+                ProfileClaimTypes.GoogleId, google.GoogleId, cancellationToken);
+
+            Guid userId;
+
+            if (existing != null)
+            {
+                userId = existing.UserId;
+                existing.LastActiveDate = now;
+                await _repo.AddOrUpdateProfileAsync(existing, cancellationToken);
+            }
+            else
+            {
+                var ctx = _httpContextAccessor.HttpContext;
+                Guid? anonId = null;
+                if (ctx != null &&
+                    ctx.Request.Cookies.TryGetValue("AnonUserId", out var cookieVal) &&
+                    Guid.TryParse(cookieVal, out var parsed))
+                {
+                    var anonProfile = await _repo.GetProfileAsync(parsed, cancellationToken);
+                    if (anonProfile != null)
+                        anonId = anonProfile.UserId;
+
+                }
+
+                if (anonId.HasValue)
+                {
+                    userId = anonId.Value;
+                    var profile = (await _repo.GetProfileAsync(userId, cancellationToken))!;
+                    profile.LastActiveDate = now;
+                    await _repo.AddOrUpdateProfileAsync(profile, cancellationToken);
+                }
+                else
+                {
+                    userId = Guid.NewGuid();
+                    await _repo.AddOrUpdateProfileAsync(new UserProfile
+                    {
+                        UserId = userId,
+                        CreatedDate = now,
+                        LastActiveDate = now
+                    }, cancellationToken);
+                    await _seedService.SeedForUserAsync(userId);
+                }
+
+                await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, cancellationToken);
+            }
+
+            await _repo.SetClaimAsync(userId, ProfileClaimTypes.Email, google.Email, cancellationToken);
+            await _repo.SetClaimAsync(userId, ProfileClaimTypes.Name, google.Name, cancellationToken);
+            if (!string.IsNullOrEmpty(google.Picture))
+                await _repo.SetClaimAsync(userId, ProfileClaimTypes.Picture, google.Picture, cancellationToken);
+
+            return userId;
+        }
+
+        public async Task<bool> IsGoogleLinkedAsync(CancellationToken cancellationToken = default)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return false;
+
+            var claim = await _repo.GetClaimAsync(userId.Value, ProfileClaimTypes.GoogleId, cancellationToken);
+            return claim != null;
+        }
+
+        private static ProfileDto ToDto(UserProfile profile, List<UserClaim> claims) => new()
+        {
+            UserId = profile.UserId,
+            Claims = claims.Select(c => new ClaimDto { Type = c.ClaimType, Value = c.ClaimValue })
+        };
     }
 }

@@ -137,3 +137,10 @@ body.dark-mode .form-control {
         max-width: 280px;
     }
 }
+
+/* ======================================
+   Logout Card
+   ====================================== */
+.logout-card {
+    max-width: 400px;
+}

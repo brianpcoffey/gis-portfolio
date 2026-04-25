@@ -1,3 +1,13 @@
+﻿/* ======================================
+   Portfolio – CSS Entry Point
+   Import order: base → layout → components → sections → utilities
+   ====================================== */
+@import url('base.css');
+@import url('layout.css');
+@import url('components.css');
+@import url('contact.css');
+@import url('utilities.css');
+
 /* ======================================
    CSS Variables - GIS-Inspired Palette
    ====================================== */
@@ -46,6 +56,9 @@ body {
     color: var(--text);
     transition: background-color var(--transition), color var(--transition);
     line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 a {
@@ -174,6 +187,41 @@ body.dark-mode .theme-toggle-btn {
 }
 
 /* ======================================
+   User Dropdown - Mobile Touch Target & Positioning
+   ====================================== */
+.user-dropdown-toggle {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* On mobile, prevent dropdown from going off-screen */
+@media (max-width: 991.98px) {
+    .nav-item.dropdown .dropdown-menu {
+        position: static !important;
+        float: none;
+        width: 100%;
+        margin-top: 0.25rem;
+        border: none;
+        box-shadow: none;
+        background-color: var(--surface);
+    }
+
+    .user-dropdown-toggle {
+        justify-content: flex-start;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .user-dropdown-toggle .d-none.d-lg-inline {
+        display: inline !important;
+    }
+}
+
+/* ======================================
    Google Login Button
    ====================================== */
 .btn-google {
@@ -251,4 +299,23 @@ body.dark-mode .btn-google {
 .dropdown-item:focus {
     background-color: var(--background);
     color: var(--accent);
+}
+
+/* Limit the height of the View Saved modal and add a vertical scrollbar if needed */
+#viewSavedModal .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Flexbox modal content for scrollable body and fixed header/footer */
+.custom-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh; /* Never exceed 90% of viewport height */
+}
+
+.custom-modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0; /* Required for flexbox scrolling */
 }

@@ -1,0 +1,123 @@
+@page
+@model Portfolio.Web.Areas.Account.Pages.ProfileModel
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "My Profile";
+}
+
+<link rel="stylesheet" href="~/css/profile.css" />
+
+<div class="container py-5">
+    <div class="profile-page">
+
+        <h2 class="section-title text-center mb-5">My Profile</h2>
+
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="profile-alert alert-dismissible fade show d-flex align-items-center justify-content-between mb-4" role="alert">
+                <span>
+                    <i class="fa-solid fa-check-circle me-2"></i>@Model.StatusMessage
+                </span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Profile Header Card -->
+        <div class="profile-card">
+            <div class="profile-header">
+                @if (!string.IsNullOrEmpty(Model.Picture))
+                {
+                    <img src="@Model.Picture" alt="Profile picture"
+                         class="profile-avatar-lg"
+                         referrerpolicy="no-referrer" />
+                }
+                else
+                {
+                    <div class="profile-avatar-placeholder" aria-hidden="true">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                }
+                <div class="profile-header-info">
+                    <h4>@(Model.DisplayName ?? Model.GoogleName ?? "User")</h4>
+                    <p class="profile-email">
+                        @if (Model.IsGoogleLinked)
+                        {
+                            <span class="profile-badge me-2">
+                                <i class="fa-brands fa-google"></i> Google Linked
+                            </span>
+                        }
+                        @Model.Email
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Details (Read-only) -->
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <i class="fa-solid fa-id-card header-icon"></i>
+                <h5>Account Details</h5>
+            </div>
+            <div class="profile-card-body">
+                <div class="profile-detail-row">
+                    <div class="profile-detail-label">User ID</div>
+                    <div class="profile-detail-value"><code>@Model.UserId</code></div>
+                </div>
+                <div class="profile-detail-row">
+                    <div class="profile-detail-label">Email</div>
+                    <div class="profile-detail-value">@(Model.Email ?? "—")</div>
+                </div>
+                <div class="profile-detail-row">
+                    <div class="profile-detail-label">Google Name</div>
+                    <div class="profile-detail-value">@(Model.GoogleName ?? "—")</div>
+                </div>
+                <div class="profile-detail-row">
+                    <div class="profile-detail-label">Google ID</div>
+                    <div class="profile-detail-value"><code>@(Model.GoogleId ?? "—")</code></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editable Settings -->
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <i class="fa-solid fa-pen header-icon"></i>
+                <h5>Edit Profile</h5>
+            </div>
+            <div class="profile-card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="DisplayName" class="form-label">Display Name</label>
+                        <input type="text" class="form-control" id="DisplayName"
+                               asp-for="DisplayName"
+                               placeholder="@(Model.GoogleName ?? "Enter a display name")"
+                               maxlength="100" />
+                        <div class="form-text">
+                            This overrides your Google name across the site. Leave blank to use your Google name.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-accent">
+                        <i class="fa-solid fa-save me-1"></i>Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="profile-card profile-card--danger">
+            <div class="profile-card-header">
+                <i class="fa-solid fa-triangle-exclamation header-icon" style="color: inherit;"></i>
+                <h5><i class="fa-solid fa-triangle-exclamation me-1" style="display:none;"></i>Danger Zone</h5>
+            </div>
+            <div class="profile-card-body">
+                <p class="form-text" style="margin-top: 0;">
+                    Sign out of your account. Your saved features and collections will remain linked to your profile.
+                </p>
+                <a href="/Logout" class="btn btn-outline-danger">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i>Sign Out
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
