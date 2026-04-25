@@ -1,17 +1,17 @@
-﻿# AI Agent README â€” Portfolio Solution
+﻿# AI Agent README - Portfolio Solution
 
 > Authoritative guide for AI coding agents working in this repo. Only patterns
 > **observed in code** are documented. Anything else is flagged as
-> *â€œNo consistent pattern foundâ€*.
+> *"No consistent pattern found"*.
 
 ---
 
-## 1. ðŸ§­ Solution Overview
+## 1. Solution Overview
 
-A .NET 8 Razor Pages web application that lets visitors explore ArcGIS map
+A .NET 10 Razor Pages web application that lets visitors explore ArcGIS map
 features (the "State Explorer" project), save those features, and organize
 them into named collections. It also exposes a small claims/profile API for
-anonymous users.
+anonymous users, plus three ArcGIS-backed geocoding microservices.
 
 **Projects (5):**
 
@@ -20,11 +20,11 @@ anonymous users.
 | `Portfolio.Web` | ASP.NET Core host: Razor Pages + API controllers + middleware + DI composition root |
 | `Portfolio.Services` | Business logic and orchestration |
 | `Portfolio.Repositories` | EF Core `DbContext`, repositories, fluent mappings, migrations |
-| `Portfolio.Common` | POCO entity models and DTOs (no behavior) |
-| `Portfolio.Tests` | xUnit + Moq unit tests for services |
+| `Portfolio.Common` | POCO entity models, DTOs, enums, and ArcGIS wire models (no behavior) |
+| `Portfolio.Tests` | xUnit + Moq unit tests for services and controllers |
 
-**Architecture:** Classic 4-layer (Razor Pages / Controllers â†’ Services â†’
-Repositories â†’ EF Core / SQL Server). DTOs cross every boundary leaving the
+**Architecture:** Classic 4-layer (Razor Pages / Controllers -> Services ->
+Repositories -> EF Core / SQL Server). DTOs cross every boundary leaving the
 service layer.
 
 **Key domains/features:**
@@ -34,23 +34,26 @@ service layer.
 - User Profile + arbitrary key/value Claims (per anonymous user)
 - ArcGIS proxy querying `sampleserver6.arcgisonline.com`
 - Google OAuth login (Cookie + Google authentication schemes)
+- **Batch Geocoding** - CSV upload -> channel pipeline -> ArcGIS `findAddressCandidates` -> cached results
+- **Reverse Geocoding** - lat/lng -> grid-snapped `IMemoryCache` -> ArcGIS `reverseGeocode`
+- **Address Standardization & Validation** - freeform parse -> suffix normalization -> ArcGIS validation with fallback and `ConfidenceTier`
 
 ---
 
-## 2. ðŸ—ï¸ Architecture & Layer Rules
+## 2. Architecture & Layer Rules
 
 ### Flow
 
 ```
 Razor Page / API Controller
-        â”‚
-        â–¼
+        |
+        v
    Service (interface)
-        â”‚
-        â–¼
+        |
+        v
  Repository (interface)
-        â”‚
-        â–¼
+        |
+        v
   PortfolioDbContext (EF Core)  /  HttpClient (ArcGIS)
 ```
 
@@ -58,7 +61,7 @@ Razor Page / API Controller
 - MUST inherit `ControllerBase` and be decorated with `[ApiController]`,
   `[Route("api/[controller]")]` (or an explicit lowercase route).
 - MUST be decorated with `[Authorize(Policy = "Authenticated")]` **or**
-  `[AllowAnonymous]` â€” never left undecorated.
+  `[AllowAnonymous]` -- never left undecorated.
 - MUST only:
   - Validate trivial input shape (null/whitespace, presence of keys).
   - Translate service exceptions into HTTP status codes.
@@ -72,14 +75,14 @@ Razor Page / API Controller
 - Implement the matching `Portfolio.Services.Interfaces.I{Name}Service`.
 - Own all business rules: required-field checks, uniqueness checks,
   default values, timestamp assignment (`DateTime.UtcNow`).
-- Resolve the current user identity themselves (see Â§7) â€” they MUST NOT
+- Resolve the current user identity themselves (see Section 7) -- they MUST NOT
   accept user IDs as parameters from controllers.
-- Map `Entity â†’ DTO` via a `private static MapToDto(...)` method.
+- Map `Entity -> DTO` via a `private static MapToDto(...)` method.
 - Throw typed exceptions to signal outcomes:
-  - `ArgumentException` / `ArgumentNullException` â†’ 400
-  - `InvalidOperationException` â†’ 409 (conflict)
-  - `KeyNotFoundException` â†’ 404
-  - `UnauthorizedAccessException` â†’ not currently caught by controllers
+  - `ArgumentException` / `ArgumentNullException` -> 400
+  - `InvalidOperationException` -> 409 (conflict)
+  - `KeyNotFoundException` -> 404
+  - `UnauthorizedAccessException` -> not currently caught by controllers
 - MUST NOT use EF Core types (`DbContext`, `IQueryable`, `Include`, etc.).
 
 ### Repositories (`Portfolio.Repositories/Repositories/*`)
@@ -93,16 +96,16 @@ Razor Page / API Controller
 
 ---
 
-## 3. ðŸ§© Coding Conventions & Patterns
+## 3. Coding Conventions & Patterns
 
 ### Naming
 - Interfaces: `I{Name}Service`, `I{Name}Repository`.
 - Async methods always end in `Async`.
 - DTO suffixes:
-  - `{Entity}Dto` â€” read/return shape.
-  - `{Entity}CreateDto` or `Create{Entity}Dto` â€” write shape (both forms exist;
+  - `{Entity}Dto` -- read/return shape.
+  - `{Entity}CreateDto` or `Create{Entity}Dto` -- write shape (both forms exist;
     follow the form already used by the surrounding feature).
-  - `{Entity}UpdateDto` â€” partial update shape.
+  - `{Entity}UpdateDto` -- partial update shape.
 - Private fields are prefixed with `_` (e.g. `_repo`, `_httpContextAccessor`).
 - Files: one public type per file, file name = type name.
 
@@ -116,7 +119,7 @@ Razor Page / API Controller
 - Controllers and services exchange **DTOs only**.
 - Entities (`Portfolio.Common.Models.*`) never leave the repository layer
   except as inputs to a service-internal mapper.
-- DTOs are plain property bags â€” no methods, no validation attributes
+- DTOs are plain property bags -- no methods, no validation attributes
   (validation is done imperatively in services).
 
 ### Error handling
@@ -147,7 +150,7 @@ Razor Page / API Controller
 
 ---
 
-## 4. ðŸ”Œ Dependency Injection Rules
+## 4. Dependency Injection Rules
 
 All DI is wired in `Portfolio.Web/Program.cs`. The pattern is:
 
@@ -159,17 +162,25 @@ builder.Services.AddScoped<IXxxService, XxxService>();
 - **Lifetime: `Scoped` for every repository and service.** No `Singleton`,
   no `Transient` registrations exist for app code.
 - `IHttpContextAccessor` registered via `AddHttpContextAccessor()`.
-- `ArcGisService` is registered **twice** â€” as a scoped service and via
+- `ArcGisService` is registered **twice** -- as a scoped service and via
   `AddHttpClient<IArcGisService, ArcGisService>()`. Preserve both lines if
   you touch DI registration; the typed `HttpClient` is what the service
   actually consumes.
 - `PortfolioDbContext` is registered via `AddDbContext` with SQL Server.
 - New services/repositories MUST be registered in `Program.cs` immediately
   next to the existing block under `// Dependency Injection`.
+- The three geocoding services are registered as both a scoped service **and**
+  via `AddHttpClient<IXxxService, XxxService>()`, matching the `ArcGisService`
+  pattern, because each uses a typed `HttpClient` internally:
+  - `IBatchGeocodingService` / `BatchGeocodingService`
+  - `IReverseGeocodingService` / `ReverseGeocodingService`
+  - `IAddressStandardizationService` / `AddressStandardizationService`
+- `IMemoryCache` is registered once via `builder.Services.AddMemoryCache()`;
+  it is shared by `ReverseGeocodingService` and `BatchGeocodingService`.
 
 ---
 
-## 5. ðŸŒ API Design Standards
+## 5. API Design Standards
 
 ### Routing
 - Controllers: `[Route("api/[controller]")]`. One controller uses an explicit
@@ -181,7 +192,7 @@ builder.Services.AddScoped<IXxxService, XxxService>();
   string feature key).
 
 ### Action signatures
-- Either `Task<IActionResult>` or `Task<ActionResult<T>>` â€” both are present.
+- Either `Task<IActionResult>` or `Task<ActionResult<T>>` -- both are present.
   Prefer `Task<ActionResult<T>>` when the success type is known, otherwise
   `Task<IActionResult>`.
 - Always accept `CancellationToken cancellationToken` as the last parameter.
@@ -206,18 +217,18 @@ builder.Services.AddScoped<IXxxService, XxxService>();
 
 ### Swagger
 - Swagger is always on (no environment guard). XML doc comments are emitted
-  and surfaced â€” every public controller action MUST have an XML
+  and surfaced -- every public controller action MUST have an XML
   `<summary>` plus `<param>`/`<returns>` matching the surrounding style.
 
 ---
 
-## 6. ðŸ—„ï¸ Data Access Rules
+## 6. Data Access Rules
 
 - ORM: **Entity Framework Core** (SQL Server provider). No Dapper, no raw
   SQL.
 - `PortfolioDbContext` is the only `DbContext`. Never instantiate it
   directly outside the repository layer.
-- Entity â†” table mapping lives in `Portfolio.Repositories/Mappings/*Map.cs`
+- Entity <-> table mapping lives in `Portfolio.Repositories/Mappings/*Map.cs`
   via `IEntityTypeConfiguration<T>`. New entities follow the same pattern
   and are registered in `OnModelCreating` with
   `modelBuilder.ApplyConfiguration(new XxxMap())`.
@@ -239,11 +250,11 @@ builder.Services.AddScoped<IXxxService, XxxService>();
 
 ---
 
-## 7. ðŸ” Security Practices
+## 7. Security Practices
 
-### Identity model â€” **two parallel identities exist; do not confuse them**
+### Identity model -- **two parallel identities exist; do not confuse them**
 
-1. **Anonymous user (GUID)** â€” established by `AnonymousUserMiddleware`:
+1. **Anonymous user (GUID)** -- established by `AnonymousUserMiddleware`:
    - Sets a secure cookie `AnonUserId` (HttpOnly, Secure, SameSite=Lax,
      1-year expiry, `IsEssential=true`).
    - Stores the GUID in `HttpContext.Items["AnonUserId"]`.
@@ -252,25 +263,29 @@ builder.Services.AddScoped<IXxxService, XxxService>();
    - Services read it via `IUserProfileService.GetCurrentUserId()`.
    - Controllers/services MUST NOT accept `UserId` from request payloads.
 
-2. **Authenticated user (OAuth / cookie)** â€” Google sign-in via
+2. **Authenticated user (OAuth / cookie)** -- Google sign-in via
    `CookieAuthenticationDefaults` + `GoogleDefaults`:
    - Used by `CollectionService`, which reads `ClaimTypes.NameIdentifier`
      from `HttpContext.User`.
    - Endpoints requiring this identity use
      `[Authorize(Policy = "Authenticated")]`.
 
+The three geocoding controllers (`BatchGeocodingController`,
+`ReverseGeocodingController`, `AddressStandardizationController`) are
+`[AllowAnonymous]` -- they do not touch either identity system.
+
 When adding a new feature, decide which identity it belongs to and follow
-the matching serviceâ€™s pattern exactly. Mixing the two (e.g. using
+the matching service's pattern exactly. Mixing the two (e.g. using
 `HttpContext.User` in an "anonymous" service) is an error.
 
 ### Authorization
 - `Authenticated` policy = `RequireAuthenticatedUser()`. No other policies
-  are defined â€” do not invent new policy names without explicit instruction.
+  are defined -- do not invent new policy names without explicit instruction.
 - Cookie auth: `SecurePolicy = Always`, `SameSite = None`. Login path
   `/Login`, logout `/Logout`.
 
 ### Input safety
-- All EF queries use parameterized LINQ â€” **no string-concatenated SQL**.
+- All EF queries use parameterized LINQ -- **no string-concatenated SQL**.
 - ArcGIS request URLs encode `layerId` and `bbox` with `Uri.EscapeDataString()`
   before interpolation. Always apply the same encoding to any caller-supplied
   value used in outbound URLs.
@@ -282,7 +297,155 @@ the matching serviceâ€™s pattern exactly. Mixing the two (e.g. using
 
 ---
 
-## 8. âœ… Best Practices for AI Agents
+## 8. Portfolio.Common -- Model Location Rule
+
+**`Portfolio.Common` is the only project allowed to contain model/data classes.**
+This covers entity models, DTOs, enums, and ArcGIS HTTP wire-format types.
+No model, DTO, or data class may be defined inside `Portfolio.Services`,
+`Portfolio.Repositories`, or `Portfolio.Web`.
+
+### Folder structure inside `Portfolio.Common`
+
+```
+Portfolio.Common/
+  Models/         -- EF entity POCOs (SavedFeature, Collection, UserProfile, ...)
+  DTOs/           -- Service/controller data transfer objects
+  Enums/          -- Shared enumerations (e.g. ConfidenceTier)
+  ArcGis/         -- ArcGIS HTTP response wire models
+```
+
+### ArcGIS wire models (`Portfolio.Common/ArcGis/`)
+
+Every class that maps to a raw ArcGIS JSON response lives here, decorated
+with explicit `[JsonPropertyName("...")]` attributes to guard against
+property-name mismatches during deserialization:
+
+| File | Purpose |
+|---|---|
+| `ArcGisGeocodeResponse.cs` | Top-level `findAddressCandidates` response; `Candidates` collection |
+| `ArcGisGeocodeCandidate.cs` | Single geocode candidate: `Address`, `Score`, nullable `Location` |
+| `ArcGisLocation.cs` | Coordinate pair `X`/`Y` from a geocode candidate |
+| `ArcGisReverseGeocodeResponse.cs` | Top-level `reverseGeocode` response; `Address` payload |
+| `ArcGisReverseAddress.cs` | Reverse-geocode address fields: `LongLabel`, `Match_addr`, `AddNum`, `StAddr`, `City`, `Region`, `Postal`, `CountryCode`, `Addr_type` |
+
+Rules for ArcGIS wire models:
+- Every property MUST have `[JsonPropertyName("exactArcGisFieldName")]`.
+- They are **read-only deserialization targets** -- no business logic, no
+  methods, no validation attributes.
+- Two services may share the same wire model only when both target the
+  **identical ArcGIS endpoint** (e.g. `BatchGeocodingService` and
+  `AddressStandardizationService` both consume `findAddressCandidates`).
+- Private pipeline state (e.g. `CsvRow`, `GeocodeCacheEntry` in
+  `BatchGeocodingService`) that never crosses a layer boundary may remain
+  as private nested classes inside the service; it is not considered a
+  "model class" for this rule.
+
+### Enums (`Portfolio.Common/Enums/`)
+
+| File | Values |
+|---|---|
+| `ConfidenceTier.cs` | `High`, `Medium`, `Low`, `Unresolved` |
+
+---
+
+## 9. Geocoding Features
+
+### 9a. Batch Geocoding
+
+**Controller:** `Portfolio.Web/Controllers/Api/BatchGeocodingController.cs`
+- Route: `[Route("api/batchgeocoding")]`, `[AllowAnonymous]`
+- `POST /api/batchgeocoding` accepts `IFormFile` (CSV)
+- Returns `IEnumerable<BatchGeocodingResultDto>`
+- Catches `ArgumentException` -> 400
+
+**Service interface:** `IBatchGeocodingService` in `Portfolio.Services/Interfaces/`
+**Service:** `Portfolio.Services/Services/BatchGeocodingService.cs`
+- Reads and validates the uploaded CSV (must have at least a header + 1 data row).
+- Uses `System.Threading.Channels.Channel<T>` as a producer/consumer pipeline
+  for concurrent geocoding without creating unbounded threads.
+- Concurrency limit and minimum match score are read from configuration:
+  - `BatchGeocoding:MaxConcurrency` (default: 4)
+  - `BatchGeocoding:MinMatchScore` (default: 80)
+- Deduplicates repeated addresses using `IMemoryCache` (keyed on normalized address).
+- Calls ArcGIS `findAddressCandidates` via typed `HttpClient`.
+- Returns `BatchGeocodingResultDto` per input row; unmatched rows have
+  `Matched = false` and null coordinate fields.
+
+**DTOs** (all in `Portfolio.Common/DTOs/`):
+- `BatchGeocodingResultDto` -- `OriginalAddress`, `Matched`, `MatchedAddress`,
+  `Score`, `Latitude`, `Longitude`
+
+**Configuration** (`appsettings.json`):
+```json
+"BatchGeocoding": {
+  "MaxConcurrency": 4,
+  "MinMatchScore": 80
+}
+```
+
+### 9b. Reverse Geocoding
+
+**Controller:** `Portfolio.Web/Controllers/Api/ReverseGeocodingController.cs`
+- Route: `[Route("api/reversegeocoding")]`, `[AllowAnonymous]`
+- `GET /api/reversegeocoding?lat={lat}&lng={lng}`
+- Returns `ReverseGeocodingResultDto`
+- Catches `ArgumentException` -> 400, `KeyNotFoundException` -> 404
+
+**Service interface:** `IReverseGeocodingService` in `Portfolio.Services/Interfaces/`
+**Service:** `Portfolio.Services/Services/ReverseGeocodingService.cs`
+- Validates lat (-90..90) and lng (-180..180); throws `ArgumentException` on bad input.
+- Snaps lat/lng to a configurable grid before using as a cache key, so nearby
+  coordinates share a cached result.
+- Caches results in `IMemoryCache` with a sliding expiration.
+- Calls ArcGIS `reverseGeocode` via typed `HttpClient`.
+- Throws `KeyNotFoundException` when ArcGIS returns no usable address.
+- Maps to `ReverseGeocodingResultDto` via `private static MapToDto(...)`.
+
+**DTOs** (all in `Portfolio.Common/DTOs/`):
+- `ReverseGeocodingResultDto` -- `LongLabel`, `MatchAddress`, `HouseNumber`,
+  `Street`, `City`, `Region`, `PostalCode`, `CountryCode`, `LocationType`
+
+**Configuration** (`appsettings.json`):
+```json
+"ReverseGeocoding": {
+  "GridResolutionDegrees": 0.001,
+  "CacheSlidingExpirationMinutes": 30
+}
+```
+
+### 9c. Address Standardization & Validation
+
+**Controller:** `Portfolio.Web/Controllers/Api/AddressStandardizationController.cs`
+- Route: `[Route("api/addressstandardization")]`, `[AllowAnonymous]`
+- `POST /api/addressstandardization/parse` -- accepts `AddressParseRequestDto`,
+  returns `AddressParsedDto`
+- `POST /api/addressstandardization/validate` -- accepts `AddressParseRequestDto`,
+  returns `AddressValidationResultDto`
+- Catches `ArgumentException` -> 400
+
+**Service interface:** `IAddressStandardizationService` in `Portfolio.Services/Interfaces/`
+**Service:** `Portfolio.Services/Services/AddressStandardizationService.cs`
+- `ParseAsync` -- normalizes whitespace/case, expands abbreviated street
+  suffixes (e.g. "St" -> "Street"), extracts house number, street name,
+  unit designator, city, state abbreviation (validated against a 50-state +
+  territory set), and ZIP code via regex. Computes `ParseConfidence` (0-1).
+- `ValidateAsync` -- calls `ParseAsync`, then geocodes the standardized address
+  via ArcGIS `findAddressCandidates`. If the first candidate score is below 75,
+  falls back to a City+State+ZIP query. Maps the score to a `ConfidenceTier`.
+- Both methods throw `ArgumentException` when `RawAddress` is null/empty.
+- `DetermineConfidenceTier`: score >= 90 -> `High`, >= 75 -> `Medium`,
+  >= 50 -> `Low`, else `Unresolved`.
+
+**DTOs** (all in `Portfolio.Common/DTOs/`):
+- `AddressParseRequestDto` -- `RawAddress`
+- `AddressParsedDto` -- `HouseNumber`, `StreetName`, `StreetSuffix`, `Unit`,
+  `City`, `State`, `PostalCode`, `StandardizedAddress`, `ParseConfidence`
+- `AddressValidationResultDto` -- `Parsed` (`AddressParsedDto`), `MatchedAddress`,
+  `Score`, `ConfidenceTier` (`ConfidenceTier` enum)
+
+---
+
+## 10. Best Practices for AI Agents
 
 ### DO
 - DO put new business logic in a service that lives in
@@ -298,13 +461,17 @@ the matching serviceâ€™s pattern exactly. Mixing the two (e.g. using
 - DO return DTOs from controllers and services; map via a
   `private static MapToDto(...)` method.
 - DO derive the current user from `IUserProfileService.GetCurrentUserId()`
-  (anonymous flows) or `HttpContext.User` claims (authenticated flows) â€”
+  (anonymous flows) or `HttpContext.User` claims (authenticated flows) --
   matching the surrounding feature.
 - DO filter every per-user query by the user/owner id at the EF layer.
 - DO use `DateTime.UtcNow` for any persisted timestamp.
 - DO add `[ProducesResponseType]` for every status code an action can return.
 - DO add an XML `<summary>` for every public controller action and DI-exposed
   service/repository member; Swagger consumes them.
+- DO place ALL model/data classes (entities, DTOs, enums, ArcGIS wire types)
+  exclusively in `Portfolio.Common`. No model may be defined in any other project.
+- DO annotate every ArcGIS wire-model property with `[JsonPropertyName("...")]`
+  using the exact field name returned by ArcGIS.
 
 ### DO NOT
 - DO NOT inject `PortfolioDbContext`, `DbSet<>`, or any EF Core type into
@@ -312,7 +479,7 @@ the matching serviceâ€™s pattern exactly. Mixing the two (e.g. using
   database transaction (e.g. `SavedFeatureService` injects `PortfolioDbContext`
   solely to call `BeginTransactionAsync`). Never inject it into controllers.
 - DO NOT return EF entities (`SavedFeature`, `Collection`, `UserProfile`,
-  â€¦) from controllers.
+  ...) from controllers.
 - DO NOT accept `UserId` / `OwnerId` from request bodies or query strings.
 - DO NOT call `.Result`, `.Wait()`, use `async void`, or use
   `Task.Run` to wrap EF calls.
@@ -323,14 +490,16 @@ the matching serviceâ€™s pattern exactly. Mixing the two (e.g. using
 - DO NOT use `DateTime.Now`.
 - DO NOT add validation attributes to DTOs; validate imperatively in the
   service.
-- DO NOT log on every method entry â€” log errors and significant state
+- DO NOT log on every method entry -- log errors and significant state
   changes only (creation, deletion, conflict, unexpected exceptions).
 - DO NOT edit `Portfolio.Repositories/SavedFeatureRepository.cs` (the
   duplicate at the project root).
+- DO NOT define model or DTO classes outside `Portfolio.Common` -- not in
+  services, not in controllers, not in repositories.
 
 ---
 
-## 9. ðŸ§ª Testing & Validation Expectations
+## 11. Testing & Validation Expectations
 
 - Framework: **xUnit** + **Moq**. Service tests live in
   `Portfolio.Tests/Services/`; controller tests live in
@@ -357,20 +526,40 @@ the matching serviceâ€™s pattern exactly. Mixing the two (e.g. using
   - A not-found / null-input case.
   - Any authorization-dependent branch.
 
+### Geocoding test patterns
+
+Services that use `HttpClient` are tested with a custom `DelegatingHandler`
+subclass (a fake HTTP handler) wired into `new HttpClient(fakeHandler)`.
+Do not mock `HttpClient` directly.
+
+- `BatchGeocodingServiceTests` -- covers all-matched path, partial/unmatched,
+  null/empty/header-only files, no-candidate response, and cancellation.
+- `ReverseGeocodingServiceTests` -- covers happy path, cache-hit deduplication
+  (request count assertion), invalid lat/lng, and no-result (`KeyNotFoundException`).
+- `AddressStandardizationServiceTests` -- covers parse happy path, partial input,
+  empty input, validation confidence tiers, fallback to City+State+ZIP,
+  unresolved result, and a `[Theory]` covering all supported suffix abbreviations.
+- `AddressStandardizationControllerTests` -- covers `/parse` and `/validate`
+  happy paths, empty-input 400, and service-exception branches.
+- `ReverseGeocodingControllerTests` -- covers happy path, invalid lat/lng 400,
+  and not-found 404.
+
+Total test count as of last verified run: **168 passing, 0 failing**.
+
 ---
 
-## 10. ðŸ“ Formatting & Style Rules
+## 12. Formatting & Style Rules
 
 - **Indentation:** 4 spaces, no tabs.
-- **Braces:** Allman style (opening brace on its own line) â€” used uniformly.
+- **Braces:** Allman style (opening brace on its own line) -- used uniformly.
 - **`using` directives:** at top of file, outside the namespace.
 - **Namespaces:** block-scoped (`namespace Foo { ... }`), not file-scoped.
   Match this style in new files.
 - **One public type per file.**
-- **No `#region` blocks** anywhere â€” do not introduce them.
+- **No `#region` blocks** anywhere -- do not introduce them.
 - **Comment style:**
   - Public controller actions and class summaries: XML doc comments
-    (`/// <summary> â€¦ </summary>`).
+    (`/// <summary> ... </summary>`).
   - Repositories/services/middleware: short `//` line comments above
     methods describing intent and edge cases (see `UserProfileRepository`,
     `UserProfileService`, `AnonymousUserMiddleware`).
@@ -384,7 +573,7 @@ the matching serviceâ€™s pattern exactly. Mixing the two (e.g. using
 
 ---
 
-## 11. ðŸ§  Inferred â€œUnwritten Rulesâ€
+## 13. Inferred "Unwritten Rules"
 
 These are **not documented anywhere** but are followed consistently and
 must be preserved:
@@ -421,3 +610,14 @@ must be preserved:
 12. **Swagger XML comments are part of the public contract.** New public
     controller members without `<summary>` will silently degrade the
     Swagger UI; treat missing XML comments as a defect.
+13. **ArcGIS wire models belong only in `Portfolio.Common/ArcGis/`** with
+    explicit `[JsonPropertyName]` on every property. Private pipeline-only
+    state (e.g. `CsvRow`, `GeocodeCacheEntry`) that never crosses a layer
+    boundary may remain as private nested classes inside the owning service.
+14. **Channel-based pipelines** (`System.Threading.Channels`) are the
+    approved pattern for bounded concurrent workloads (see `BatchGeocodingService`).
+    Do not use `Parallel.ForEachAsync` or `Task.WhenAll` for unbounded fan-out
+    when a concurrency limit is required.
+15. **`IMemoryCache` for geocoding caches** -- injected via constructor; keyed
+    on normalized address string (batch geocoding) or snapped lat/lng string
+    (reverse geocoding). Do not use `IDistributedCache` unless explicitly asked.

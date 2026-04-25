@@ -53,12 +53,19 @@ builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
-builder.Services.AddHttpClient<IArcGisService, ArcGisService>();        
+builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
+builder.Services.AddScoped<IBatchGeocodingService, BatchGeocodingService>();
+builder.Services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>();
+builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();
+builder.Services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService>();
+builder.Services.AddScoped<IAddressStandardizationService, AddressStandardizationService>();
+builder.Services.AddHttpClient<IAddressStandardizationService, AddressStandardizationService>();
 
 // --------------------------
 // Session
 // --------------------------
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
