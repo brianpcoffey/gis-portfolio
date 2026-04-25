@@ -54,7 +54,7 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task SetClaim_WithValidBody_ReturnsNoContent()
+        public async Task SetClaim_WithValidBody_ReturnsOk()
         {
             // Arrange
             var body = new ClaimCreateDto { Type = "theme", Value = "dark" };
@@ -65,7 +65,7 @@ namespace Portfolio.Tests.Controllers
             var result = await _controller.SetClaim(body, CancellationToken.None);
 
             // Assert
-            Assert.IsType<NoContentResult>(result);
+            Assert.IsType<OkObjectResult>(result);
         }
 
         [Theory]

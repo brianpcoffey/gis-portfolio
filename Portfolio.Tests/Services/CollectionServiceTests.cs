@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
@@ -26,7 +27,8 @@ namespace Portfolio.Tests.Services
             _service = new CollectionService(
                 _repoMock.Object,
                 _userProfileServiceMock.Object,
-                _timeProvider);
+                _timeProvider,
+                new Mock<ILogger<CollectionService>>().Object);
         }
 
         [Fact]
@@ -221,7 +223,7 @@ namespace Portfolio.Tests.Services
         public async Task GetAllAsync_WhenNoUser_ThrowsUnauthorizedAccessException()
         {
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
-            var service = new CollectionService(_repoMock.Object, _userProfileServiceMock.Object, _timeProvider);
+            var service = new CollectionService(_repoMock.Object, _userProfileServiceMock.Object, _timeProvider, new Mock<ILogger<CollectionService>>().Object);
 
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetAllAsync());
         }
