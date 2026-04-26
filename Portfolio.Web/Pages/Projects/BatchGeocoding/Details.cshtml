@@ -1,0 +1,80 @@
+@page
+@model Portfolio.Web.Pages.Projects.BatchGeocoding.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Batch Geocoding – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+
+	<div class="mb-4 d-flex align-items-center gap-3">
+		<a href="/Projects/BatchGeocoding" class="btn btn-outline-accent btn-sm" aria-label="Back to Batch Geocoding demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+		<h1 class="mb-0"><i class="fa-solid fa-map-location-dot me-2"></i>Batch Geocoding – Technical Details</h1>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Architecture</h2>
+		<p>
+			Batch Geocoding is implemented as a Razor Page front end backed by a dedicated
+			<code>BatchGeocodingController</code> and <code>BatchGeocodingService</code>. The service uses a
+			<strong>System.Threading.Channels producer/consumer pipeline</strong> to geocode addresses concurrently
+			while respecting a configurable concurrency limit, avoiding unbounded thread creation.
+		</p>
+		<p>
+			The service is registered as both a scoped service and via <code>AddHttpClient&lt;IBatchGeocodingService, BatchGeocodingService&gt;()</code>,
+			which injects a typed <code>HttpClient</code> pre-configured for ArcGIS API calls.
+		</p>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Technology Stack</h2>
+		<ul>
+			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, <code>BatchGeocodingController</code> REST API</li>
+			<li><strong>System.Threading.Channels</strong> – bounded concurrent geocoding pipeline</li>
+			<li><strong>IMemoryCache</strong> – address-level deduplication cache keyed on normalised address string</li>
+			<li><strong>ArcGIS REST API</strong> – <code>findAddressCandidates</code> endpoint on <code>sampleserver6.arcgisonline.com</code></li>
+			<li><strong>DataTables.js</strong> – interactive results grid with column filtering and CSV/Excel export</li>
+			<li><strong>Bootstrap 5</strong> – responsive layout and badge components</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Key Features</h2>
+		<ul>
+			<li><strong>CSV upload pipeline</strong> – user uploads a CSV file; the service validates it (must have header + at least one data row) and streams addresses through a Channel</li>
+			<li><strong>Configurable concurrency</strong> – <code>BatchGeocoding:MaxConcurrency</code> (default 4) controls how many ArcGIS requests run simultaneously</li>
+			<li><strong>Minimum match score filter</strong> – <code>BatchGeocoding:MinMatchScore</code> (default 80) gates which candidates are accepted as a match</li>
+			<li><strong>Address deduplication</strong> – repeated addresses in the same batch are resolved from <code>IMemoryCache</code> without issuing duplicate ArcGIS calls</li>
+			<li><strong>Unmatched row handling</strong> – rows with no candidate above the score threshold are returned with <code>Matched = false</code> and null coordinate fields</li>
+			<li><strong>DataTables export</strong> – results grid supports client-side CSV and Excel export via DataTables Buttons extension</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Flow</h2>
+		<ol>
+			<li>User uploads a CSV via the file input; the page POSTs to <code>POST /api/batchgeocoding</code> as <code>multipart/form-data</code>.</li>
+			<li><code>BatchGeocodingController</code> receives the <code>IFormFile</code> and delegates to <code>IBatchGeocodingService.GeocodeAsync</code>.</li>
+			<li>The service reads all CSV rows, then writes addresses to a <code>Channel&lt;string&gt;</code>. A pool of consumer tasks (bounded by <code>MaxConcurrency</code>) reads from the channel and calls ArcGIS <code>findAddressCandidates</code> for each address.</li>
+			<li>Cache hits skip the ArcGIS call entirely; misses populate the cache on resolution.</li>
+			<li>Completed results are collected and returned as <code>IEnumerable&lt;BatchGeocodingResultDto&gt;</code>, which the controller returns as JSON.</li>
+			<li>The client renders results in a DataTables grid and updates match-rate statistics badges.</li>
+		</ol>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Implementation Details</h2>
+		<ul>
+			<li>The Channel is created with <code>BoundedChannelOptions</code> so back-pressure is applied if consumers fall behind.</li>
+			<li>ArcGIS wire-model classes (<code>ArcGisGeocodeResponse</code>, <code>ArcGisGeocodeCandidate</code>, <code>ArcGisLocation</code>) live in <code>Portfolio.Common/ArcGis/</code> with explicit <code>[JsonPropertyName]</code> attributes matching exact ArcGIS field names.</li>
+			<li>Private pipeline-only state (<code>CsvRow</code>, <code>GeocodeCacheEntry</code>) is kept as private nested classes inside <code>BatchGeocodingService</code> — it never crosses a layer boundary.</li>
+			<li>The controller is <code>[AllowAnonymous]</code> — no user identity is required or used.</li>
+			<li>Configuration values are read from <code>IConfiguration</code> with <code>GetValue&lt;int&gt;</code> and hardcoded defaults, following the same pattern as the other geocoding services.</li>
+		</ul>
+	</section>
+
+</div>

@@ -1,0 +1,85 @@
+@page
+@model Portfolio.Web.Pages.Projects.StateExplorer.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "US State Explorer – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+
+	<div class="mb-4 d-flex align-items-center gap-3">
+		<a href="/Projects/StateExplorer" class="btn btn-outline-accent btn-sm" aria-label="Back to US State Explorer demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+		<h1 class="mb-0">🗺️ US State Explorer – Technical Details</h1>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Architecture</h2>
+		<p>
+			The US State Explorer is built on a classic 4-layer ASP.NET Core architecture: a Razor Pages front end
+			communicates with REST API controllers, which delegate to scoped services, which in turn query repositories
+			backed by Entity Framework Core against SQL Server. The ArcGIS map rendering is handled entirely in the
+			browser via the <strong>ArcGIS JavaScript SDK 4.x</strong>.
+		</p>
+		<p>
+			Anonymous user identity is established via <code>AnonymousUserMiddleware</code>, which issues a secure
+			HttpOnly cookie (<code>AnonUserId</code>) on first visit. This GUID is stored in
+			<code>HttpContext.Items["AnonUserId"]</code> and used to scope all saved-feature operations to the
+			visiting user without requiring authentication.
+		</p>
+		<p>
+			Authenticated operations (Collections) require Google OAuth login through the
+			<strong>Cookie + Google authentication schemes</strong>. The <code>Authenticated</code> policy gates
+			those endpoints.
+		</p>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Technology Stack</h2>
+		<ul>
+			<li><strong>ArcGIS JavaScript SDK 4.x</strong> – MapView, FeatureLayer, Graphic, PopupTemplate, Typeahead search</li>
+			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, API controllers, middleware pipeline</li>
+			<li><strong>Entity Framework Core</strong> – SQL Server provider, fluent mappings, async queries</li>
+			<li><strong>Bootstrap 5</strong> – responsive layout, dark-mode theming via CSS custom properties</li>
+			<li><strong>Typeahead.js</strong> – client-side state name autocomplete</li>
+			<li><strong>Google OAuth 2.0</strong> – authenticated user sign-in for Collections</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Key Features</h2>
+		<ul>
+			<li><strong>Interactive ArcGIS map</strong> – clickable state polygons with popup details fetched from the ArcGIS Sample Server 6 FeatureLayer</li>
+			<li><strong>Saved Features</strong> – anonymous users can save any map feature; persisted per-user via <code>SavedFeatureService</code> and <code>SavedFeatureRepository</code></li>
+			<li><strong>Collections</strong> – authenticated users can group saved features into named, colour-coded collections managed by <code>CollectionService</code></li>
+			<li><strong>User Notes</strong> – inline notes attached to each saved feature, stored in the <code>UserNotes</code> EF entity</li>
+			<li><strong>State search</strong> – Typeahead autocomplete wired to a client-side dataset; selecting a result zooms the map and highlights the state</li>
+			<li><strong>Dark / light mode</strong> – toggled via a CSS class on <code>&lt;body&gt;</code>, persisted in <code>localStorage</code></li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Flow</h2>
+		<ol>
+			<li>Browser loads the ArcGIS MapView and queries <code>sampleserver6.arcgisonline.com</code> directly for FeatureLayer tiles and feature attributes.</li>
+			<li>When a user saves a feature, the client POSTs to <code>POST /api/features</code>.</li>
+			<li><code>SavedFeaturesController</code> reads the anonymous user GUID from <code>HttpContext.Items</code> (never from the request body) and delegates to <code>SavedFeatureService</code>.</li>
+			<li><code>SavedFeatureService</code> enforces uniqueness and writes via <code>SavedFeatureRepository</code> inside an EF Core transaction.</li>
+			<li>Saved features are returned with their <code>Collection</code> eagerly loaded so <code>MapToDto</code> can populate <code>CollectionName</code>.</li>
+		</ol>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Implementation Details</h2>
+		<ul>
+			<li>The front-end is split into focused ES modules: <code>mapManager.js</code> (map lifecycle), <code>featureService.js</code> (API calls), <code>collectionService.js</code> (collection CRUD), <code>stateStore.js</code> (client state), and <code>uiManager.js</code> (DOM updates).</li>
+			<li>All API endpoints that touch per-user data filter by the anonymous GUID at the EF layer — never in the service.</li>
+			<li>Multi-step writes (save feature + optional collection assignment) are wrapped in <code>BeginTransactionAsync / CommitAsync / RollbackAsync</code> to ensure atomicity.</li>
+			<li>The <code>ArcGisService</code> proxies ArcGIS feature queries through the server, encoding caller-supplied values with <code>Uri.EscapeDataString</code> to prevent URL injection.</li>
+		</ul>
+	</section>
+
+</div>

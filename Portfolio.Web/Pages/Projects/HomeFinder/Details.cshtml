@@ -1,0 +1,80 @@
+@page
+@model Portfolio.Web.Pages.Projects.HomeFinder.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Redlands Smart Home Finder – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+
+	<div class="mb-4 d-flex align-items-center gap-3">
+		<a href="/Projects/HomeFinder" class="btn btn-outline-accent btn-sm" aria-label="Back to Redlands Smart Home Finder demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+		<h1 class="mb-0"><i class="fa-solid fa-house-chimney me-2"></i>Redlands Smart Home Finder – Technical Details</h1>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Architecture</h2>
+		<p>
+			The Smart Home Finder is a full-stack ASP.NET Core application using Razor Pages as the host and a
+			dedicated REST API controller (<code>HomeFinderController</code>) to serve scoring and property data.
+			All endpoints are guarded by the <code>Authenticated</code> policy (Google OAuth), so the front end
+			includes an OAuth-aware <code>apiFetch</code> helper that intercepts 401 responses and redirects the
+			user to the Google login flow before retrying.
+		</p>
+		<p>
+			The scoring engine lives in <code>IHomeScoringService</code>, which applies a configurable weighted
+			composite algorithm against a PostgreSQL-backed property dataset. Saved search preferences are persisted
+			per user via <code>ISavedSearchService</code>.
+		</p>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Technology Stack</h2>
+		<ul>
+			<li><strong>ArcGIS JavaScript SDK 4.x</strong> – MapView, GraphicsLayer, popup templates for property pins</li>
+			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, <code>HomeFinderController</code> REST API</li>
+			<li><strong>Entity Framework Core</strong> – SQL Server provider for user profiles and saved searches</li>
+			<li><strong>PostgreSQL</strong> – property dataset storage queried by the scoring service</li>
+			<li><strong>Bootstrap 5 + custom CSS</strong> – responsive preference sliders, results cards</li>
+			<li><strong>Google OAuth 2.0</strong> – required authentication; 401→redirect handled in <code>app.js</code></li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Key Features</h2>
+		<ul>
+			<li><strong>Weighted composite scoring</strong> – 10 preference dimensions (affordability, neighbourhood rating, size, appreciation, condition, commute time, amenities, tax rate, resale value, environment) each with an independent 0–10 weight slider</li>
+			<li><strong>Top-10 results</strong> – <code>IHomeScoringService.GetTopPropertiesAsync</code> ranks all properties and returns the best matches</li>
+			<li><strong>ArcGIS map pins</strong> – matched properties are rendered as graphics on a MapView; clicking a pin opens a popup with full property details fetched from <code>GET /api/homefinder/property/{id}</code></li>
+			<li><strong>Saved searches</strong> – authenticated users can save their current preference configuration via <code>ISavedSearchService</code> and reload it on future visits</li>
+			<li><strong>OAuth-aware fetch</strong> – <code>apiFetch()</code> wrapper detects 401 and triggers a full-page redirect to <code>/Login?returnUrl=...</code>, returning the user to the same page post-login</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Flow</h2>
+		<ol>
+			<li>User adjusts preference sliders in the left panel; weight bars update live via JavaScript.</li>
+			<li>On "Find Homes", the client POSTs to <code>POST /api/homefinder/search</code> with the full <code>HomeSearchPreferencesDto</code> payload.</li>
+			<li><code>HomeFinderController</code> delegates to <code>IHomeScoringService.GetTopPropertiesAsync</code>, which applies the weighted algorithm and returns up to 10 <code>ScoredPropertyDto</code> records.</li>
+			<li>Results are rendered as Bootstrap cards in the results panel and as ArcGIS Graphic pins on the MapView.</li>
+			<li>Selecting a pin fetches full details from <code>GET /api/homefinder/property/{id}</code> and populates the ArcGIS popup.</li>
+		</ol>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Implementation Details</h2>
+		<ul>
+			<li>The scoring algorithm normalises each preference dimension to a 0–1 scale, multiplies by the user-assigned weight, and sums across all dimensions to produce a composite score.</li>
+			<li>Slider values are normalised in real-time; weight bars give visual feedback of relative importance.</li>
+			<li>The controller reads the authenticated user's ID from <code>ClaimTypes.NameIdentifier</code> — never from the request body — to scope saved-search operations.</li>
+			<li>All EF queries are parameterised LINQ; no raw SQL is used.</li>
+			<li>The <code>homefinder.css</code> stylesheet extends the base GIS theme with custom card and slider styling.</li>
+		</ul>
+	</section>
+
+</div>

@@ -1,0 +1,82 @@
+@page
+@model Portfolio.Web.Pages.Projects.PlantOperationsDashboard.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Plant Operations Dashboard – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+
+	<div class="mb-4 d-flex align-items-center gap-3">
+		<a href="/Projects/PlantOperationsDashboard" class="btn btn-outline-accent btn-sm" aria-label="Back to Plant Operations Dashboard demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+		<h1 class="mb-0"><i class="fa-solid fa-industry me-2"></i>Plant Operations Dashboard – Technical Details</h1>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Architecture</h2>
+		<p>
+			The Plant Operations Dashboard (FiberFlow) is a full-stack ASP.NET Core Razor Pages application with
+			multiple dedicated REST API controllers — one each for shipments, orders, inventory, and the revenue
+			dashboard. Each domain follows the 4-layer architecture: Razor Page / API controller → service →
+			repository → Entity Framework Core (SQL Server).
+		</p>
+		<p>
+			The dashboard requires authenticated access via Google OAuth (<code>[Authorize(Policy = "Authenticated")]</code>).
+			ArcGIS JavaScript SDK renders a live shipment routing map. DataTables.js drives the tabular management
+			panels for orders, inventory, and transaction audit logs.
+		</p>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Technology Stack</h2>
+		<ul>
+			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, multiple REST API controllers</li>
+			<li><strong>Entity Framework Core</strong> – SQL Server provider, fluent entity mappings, async EF queries</li>
+			<li><strong>PostgreSQL</strong> – operational data store for shipments, orders, and inventory</li>
+			<li><strong>ArcGIS JavaScript SDK 4.x (Esri GIS)</strong> – MapView with shipment routing graphics and stop markers</li>
+			<li><strong>DataTables.js</strong> – server-side and client-side tabular data for orders, inventory, and shipments with sort, filter, and export</li>
+			<li><strong>Bootstrap 5 + custom CSS</strong> – responsive dashboard layout with live badge counters</li>
+			<li><strong>Google OAuth 2.0</strong> – required authentication</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Key Features</h2>
+		<ul>
+			<li><strong>Shipment GIS routing</strong> – active shipments are rendered on an ArcGIS MapView with route lines and origin/destination stop markers; routes are fetched from the shipment API and drawn as polyline graphics</li>
+			<li><strong>Order management</strong> – full CRUD for plant orders via a DataTables panel; orders have status tracking (open, in-progress, completed)</li>
+			<li><strong>Inventory tracking</strong> – stock levels with low-stock detection; the dashboard header badge shows live low-stock count</li>
+			<li><strong>Transaction audit logs</strong> – every inventory movement generates an audit log entry displayed in a read-only DataTables panel</li>
+			<li><strong>Live revenue dashboard</strong> – aggregated revenue metrics computed from completed orders, displayed in summary cards</li>
+			<li><strong>Live header badges</strong> – active shipment count, open order count, and low-stock count refresh on page load via separate API calls</li>
+			<li><strong>Toast notifications</strong> – all user actions (create, update, delete) surface Bootstrap toast messages for feedback</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Flow</h2>
+		<ol>
+			<li>Page loads and the front end fires parallel API calls to fetch shipments, orders, inventory counts, and revenue metrics.</li>
+			<li>Shipment data is passed to the ArcGIS MapView module (<code>dashboard.js</code>) to draw route graphics.</li>
+			<li>Order, inventory, and shipment tables are initialised as DataTables instances consuming JSON from the respective API endpoints.</li>
+			<li>User actions (e.g. create order, adjust inventory) call the appropriate REST endpoint; on success, the DataTable is refreshed and a toast notification is displayed.</li>
+			<li>Revenue metrics are recalculated server-side on demand and returned as aggregated DTOs.</li>
+		</ol>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Implementation Details</h2>
+		<ul>
+			<li>The front end is split into focused ES modules: <code>dashboard.js</code> (map + summary), <code>orders.js</code> (order CRUD), <code>inventory.js</code> (inventory CRUD), <code>shipments.js</code> (shipment table + GIS).</li>
+			<li>All per-user data is filtered by the authenticated user's ID (<code>ClaimTypes.NameIdentifier</code>) at the EF repository layer.</li>
+			<li>ArcGIS routing coordinates are stored alongside shipment records and retrieved via the shipment API; the client constructs polyline graphics from the coordinate arrays.</li>
+			<li>The <code>plantoperationsdashboard.css</code> stylesheet defines custom badge variants and dashboard card styles that extend the shared GIS theme.</li>
+			<li>Low-stock detection is computed in the inventory service by comparing current stock against a configurable minimum threshold and returned as part of the inventory DTO.</li>
+		</ul>
+	</section>
+
+</div>

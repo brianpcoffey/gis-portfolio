@@ -1,0 +1,81 @@
+@page
+@model Portfolio.Web.Pages.Projects.ReverseGeocoding.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Reverse Geocoding – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+
+	<div class="mb-4 d-flex align-items-center gap-3">
+		<a href="/Projects/ReverseGeocoding" class="btn btn-outline-accent btn-sm" aria-label="Back to Reverse Geocoding demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+		<h1 class="mb-0"><i class="fa-solid fa-map-pin me-2"></i>Reverse Geocoding – Technical Details</h1>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Architecture</h2>
+		<p>
+			Reverse Geocoding is served by <code>ReverseGeocodingController</code>, a single GET endpoint that
+			accepts latitude and longitude query parameters and delegates to <code>IReverseGeocodingService</code>.
+			The service combines an <strong>IMemoryCache with grid-snapping</strong> and a typed
+			<code>HttpClient</code> to ArcGIS to deliver fast, cache-friendly reverse geocode lookups.
+		</p>
+		<p>
+			The service is registered as both a scoped service and via
+			<code>AddHttpClient&lt;IReverseGeocodingService, ReverseGeocodingService&gt;()</code>.
+			<code>IMemoryCache</code> is the same singleton instance shared with <code>BatchGeocodingService</code>,
+			registered once in <code>Program.cs</code> via <code>AddMemoryCache()</code>.
+		</p>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Technology Stack</h2>
+		<ul>
+			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, <code>ReverseGeocodingController</code> REST API</li>
+			<li><strong>IMemoryCache</strong> – grid-snapped lat/lng cache with sliding expiration to deduplicate nearby coordinate lookups</li>
+			<li><strong>ArcGIS REST API</strong> – <code>reverseGeocode</code> endpoint on <code>sampleserver6.arcgisonline.com</code></li>
+			<li><strong>ArcGIS JavaScript SDK 4.x</strong> – interactive MapView; click events supply coordinates to the API</li>
+			<li><strong>Bootstrap 5</strong> – responsive layout with history panel and coordinate entry form</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Key Features</h2>
+		<ul>
+			<li><strong>Map-click geocoding</strong> – clicking anywhere on the ArcGIS MapView captures the coordinates and calls the reverse geocode API</li>
+			<li><strong>Manual coordinate entry</strong> – users can also type lat/lng directly into a form</li>
+			<li><strong>Grid-snapped caching</strong> – coordinates are snapped to a configurable grid resolution (<code>ReverseGeocoding:GridResolutionDegrees</code>, default 0.001°) before use as a cache key, so nearby points share a cached result</li>
+			<li><strong>Sliding expiration cache</strong> – cached results expire after a configurable idle period (<code>ReverseGeocoding:CacheSlidingExpirationMinutes</code>, default 30 minutes)</li>
+			<li><strong>Lookup history</strong> – recent lookups are displayed in a scrollable panel on the page</li>
+			<li><strong>Graceful not-found</strong> – the service throws <code>KeyNotFoundException</code> when ArcGIS returns no usable address; the controller returns 404</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Flow</h2>
+		<ol>
+			<li>User clicks on the map or submits coordinates manually.</li>
+			<li>Client calls <code>GET /api/reversegeocoding?lat={lat}&amp;lng={lng}</code>.</li>
+			<li>The controller validates that lat/lng are present (400 on missing values) and delegates to <code>IReverseGeocodingService.ReverseGeocodeAsync</code>.</li>
+			<li>The service validates the ranges (lat −90..90, lng −180..180; throws <code>ArgumentException</code> on violation), snaps the coordinates to the grid, and checks <code>IMemoryCache</code>.</li>
+			<li>On a cache miss, the service calls ArcGIS <code>reverseGeocode</code>, deserialises the response, and stores the result in the cache.</li>
+			<li>The result is mapped to <code>ReverseGeocodingResultDto</code> via <code>private static MapToDto(...)</code> — preferring the <code>StAddr</code> field for the street line with <code>Address</code> as fallback.</li>
+			<li>The controller returns the DTO; the client updates the result panel and prepends to the history list.</li>
+		</ol>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Implementation Details</h2>
+		<ul>
+			<li>The ArcGIS <code>reverseGeocode</code> response is deserialised into <code>ArcGisReverseGeocodeResponse</code> / <code>ArcGisReverseAddress</code> wire models in <code>Portfolio.Common/ArcGis/</code>, each property annotated with <code>[JsonPropertyName]</code>.</li>
+			<li><code>MapToDto</code> uses <code>StAddr ?? Address</code> for the street field because ArcGIS populates <code>StAddr</code> consistently across all <code>Addr_type</code> values, while <code>Address</code> can be empty for some types (e.g. PointAddress).</li>
+			<li>The controller is <code>[AllowAnonymous]</code> — no user identity is required.</li>
+			<li>Input validation (lat/lng range checks) is performed at the top of the service method, throwing <code>ArgumentException</code> which the controller translates to 400.</li>
+		</ul>
+	</section>
+
+</div>
