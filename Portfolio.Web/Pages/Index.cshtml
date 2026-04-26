@@ -96,9 +96,10 @@
     <div class="container">
         <h2 id="projectsHeading" class="section-title text-center mb-5">Featured Projects</h2>
 
-        <div class="row g-4 justify-content-center">
-            <div class="col-12 col-sm-6 col-lg-4">
-                <article class="project-card h-100" aria-labelledby="project-state-explorer">
+        <div class="projects-slider" role="region" aria-label="Project cards carousel">
+            <div class="projects-track">
+                <!-- State Explorer -->
+                <article class="project-card" aria-labelledby="project-state-explorer">
                     <div class="project-image" aria-hidden="true">
                         <i class="fa-solid fa-map fa-3x"></i>
                     </div>
@@ -106,47 +107,230 @@
                         <h3 id="project-state-explorer" class="project-title">US State Explorer</h3>
                         <p class="project-desc">Interactive GIS dashboard for exploring, comparing, and analyzing U.S. state data with ArcGIS JS API and ASP.NET Core backend.</p>
                         <div class="project-stack" aria-hidden="true">
-                            <span class="badge-gis">ArcGIS JS</span>
-                            <span class="badge-gis">ASP.NET Core</span>
-                            <span class="badge-gis">GeoJSON</span>
+                            <span>ArcGIS JS</span>
+                            <span>ASP.NET Core</span>
+                            <span>GeoJSON</span>
                         </div>
                         <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/StateExplorer/Index" title="Open demo">Demo</a>
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/StateExplorer/Index">Demo</a>
                             <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
                         </div>
                     </div>
                 </article>
-            </div>
 
-            <div class="col-12 col-md-6 col-lg-4">
-                <article class="project-card h-100 d-flex flex-column" aria-labelledby="homeFinderTitle">
-                    <div class="project-image mb-3 text-center" aria-hidden="true">
+                <!-- Home Finder -->
+                <article class="project-card" aria-labelledby="project-home-finder">
+                    <div class="project-image" aria-hidden="true">
                         <i class="fa-solid fa-house fa-3x"></i>
                     </div>
-                    <div class="project-info flex-grow-1 d-flex flex-column">
-                        <h3 id="homeFinderTitle" class="project-title">Redlands Smart Home Finder</h3>
-                        <p class="project-desc flex-grow-1">GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.</p>
-                        <div class="project-stack mb-3"><span>ArcGIS JS</span> <span>ASP.NET Core</span> <span>PostgreSQL</span></div>
-                        <div>
+                    <div class="project-info">
+                        <h3 id="project-home-finder" class="project-title">Redlands Smart Home Finder</h3>
+                        <p class="project-desc">GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS JS</span>
+                            <span>ASP.NET Core</span>
+                            <span>PostgreSQL</span>
+                        </div>
+                        <div class="mt-3">
                             <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/HomeFinder/Index">Demo</a>
                             <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener">GitHub</a>
                         </div>
                     </div>
                 </article>
-            </div>
 
-            <div class="col-12 col-md-6 col-lg-4">
-                <article class="project-card h-100 d-flex flex-column" aria-labelledby="fiberFlowTitle">
-                    <div class="project-image mb-3 text-center" aria-hidden="true">
+                <!-- Plant Operations Dashboard -->
+                <article class="project-card" aria-labelledby="project-plant-ops">
+                    <div class="project-image" aria-hidden="true">
                         <i class="fa-solid fa-industry fa-3x"></i>
                     </div>
-                    <div class="project-info flex-grow-1 d-flex flex-column">
-                        <h3 id="fiberFlowTitle" class="project-title">Plant Operations Dashboard</h3>
-                        <p class="project-desc flex-grow-1">Industrial plant operations dashboard for a fiberglass ducting manufacturer. Shipment GIS routing, order management, inventory tracking with transaction audit logs, and a live revenue dashboard.</p>
-                        <div class="project-stack mb-3"><span>ASP.NET Core</span> <span>DataTables</span> <span>Esri GIS</span> <span>PostgreSQL</span></div>
-                        <div>
+                    <div class="project-info">
+                        <h3 id="project-plant-ops" class="project-title">Plant Operations Dashboard</h3>
+                        <p class="project-desc">Industrial plant operations dashboard for a fiberglass ducting manufacturer. Shipment GIS routing, order management, inventory tracking with transaction audit logs, and a live revenue dashboard.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ASP.NET Core</span>
+                            <span>DataTables</span>
+                            <span>Esri GIS</span>
+                            <span>PostgreSQL</span>
+                        </div>
+                        <div class="mt-3">
                             <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/PlantOperationsDashboard/Index">Demo</a>
                             <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Batch Geocoding -->
+                <article class="project-card" aria-labelledby="project-batch-geocoding">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-map-location-dot fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 id="project-batch-geocoding" class="project-title">Batch Geocoding</h3>
+                        <p class="project-desc">Upload a CSV of addresses and geocode them in bulk via ArcGIS. Uses a channel-based pipeline for concurrent processing with configurable concurrency and match score thresholds.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS Geocoding</span>
+                            <span>ASP.NET Core</span>
+                            <span>C#</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/BatchGeocoding/Index">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Reverse Geocoding -->
+                <article class="project-card" aria-labelledby="project-reverse-geocoding">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-map-pin fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 id="project-reverse-geocoding" class="project-title">Reverse Geocoding</h3>
+                        <p class="project-desc">Click anywhere on the map to discover what address or place is at that location. Results are grid-snapped and cached for fast repeated lookups via ArcGIS.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS Geocoding</span>
+                            <span>ASP.NET Core</span>
+                            <span>C#</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/ReverseGeocoding/Index">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Address Standardization -->
+                <article class="project-card" aria-labelledby="project-address-std">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-address-card fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 id="project-address-std" class="project-title">Address Standardization &amp; Validation</h3>
+                        <p class="project-desc">Parse freeform addresses into structured components and validate them against ArcGIS geocoding with NLP-based suffix normalization and confidence scoring.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS Geocoding</span>
+                            <span>NLP Parsing</span>
+                            <span>ASP.NET Core</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/AddressStandardization/Index">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Duplicates for seamless loop -->
+                <article class="project-card" aria-hidden="true">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-map fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 class="project-title">US State Explorer</h3>
+                        <p class="project-desc">Interactive GIS dashboard for exploring, comparing, and analyzing U.S. state data with ArcGIS JS API and ASP.NET Core backend.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS JS</span>
+                            <span>ASP.NET Core</span>
+                            <span>GeoJSON</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/StateExplorer/Index" tabindex="-1">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card" aria-hidden="true">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-house fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 class="project-title">Redlands Smart Home Finder</h3>
+                        <p class="project-desc">GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS JS</span>
+                            <span>ASP.NET Core</span>
+                            <span>PostgreSQL</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/HomeFinder/Index" tabindex="-1">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card" aria-hidden="true">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-industry fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 class="project-title">Plant Operations Dashboard</h3>
+                        <p class="project-desc">Industrial plant operations dashboard for a fiberglass ducting manufacturer. Shipment GIS routing, order management, inventory tracking with transaction audit logs, and a live revenue dashboard.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ASP.NET Core</span>
+                            <span>DataTables</span>
+                            <span>Esri GIS</span>
+                            <span>PostgreSQL</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/PlantOperationsDashboard/Index" tabindex="-1">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card" aria-hidden="true">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-map-location-dot fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 class="project-title">Batch Geocoding</h3>
+                        <p class="project-desc">Upload a CSV of addresses and geocode them in bulk via ArcGIS. Uses a channel-based pipeline for concurrent processing with configurable concurrency and match score thresholds.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS Geocoding</span>
+                            <span>ASP.NET Core</span>
+                            <span>C#</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/BatchGeocoding/Index" tabindex="-1">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card" aria-hidden="true">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-map-pin fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 class="project-title">Reverse Geocoding</h3>
+                        <p class="project-desc">Click anywhere on the map to discover what address or place is at that location. Results are grid-snapped and cached for fast repeated lookups via ArcGIS.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS Geocoding</span>
+                            <span>ASP.NET Core</span>
+                            <span>C#</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/ReverseGeocoding/Index" tabindex="-1">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="project-card" aria-hidden="true">
+                    <div class="project-image" aria-hidden="true">
+                        <i class="fa-solid fa-address-card fa-3x"></i>
+                    </div>
+                    <div class="project-info">
+                        <h3 class="project-title">Address Standardization &amp; Validation</h3>
+                        <p class="project-desc">Parse freeform addresses into structured components and validate them against ArcGIS geocoding with NLP-based suffix normalization and confidence scoring.</p>
+                        <div class="project-stack" aria-hidden="true">
+                            <span>ArcGIS Geocoding</span>
+                            <span>NLP Parsing</span>
+                            <span>ASP.NET Core</span>
+                        </div>
+                        <div class="mt-3">
+                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/AddressStandardization/Index" tabindex="-1">Demo</a>
+                            <a class="btn btn-accent btn-sm" href="https://github.com/brianpcoffey/portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
                         </div>
                     </div>
                 </article>
