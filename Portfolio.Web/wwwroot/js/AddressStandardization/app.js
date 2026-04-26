@@ -267,11 +267,18 @@
     }
 
     // ── Render validation result ───────────────────────────────────────────────
+    // confidenceTier arrives as an integer from the API (System.Text.Json default enum serialization):
+    //   0 = High, 1 = Medium, 2 = Low, 3 = Unresolved
+    // Integer keys and string keys are both provided so the lookup works regardless of serialization format.
     var tierConfig = {
         High:       { cls: "tier-high",       icon: "fa-circle-check",        label: "HIGH CONFIDENCE" },
         Medium:     { cls: "tier-medium",      icon: "fa-circle-exclamation",  label: "MEDIUM CONFIDENCE" },
         Low:        { cls: "tier-low",         icon: "fa-triangle-exclamation",label: "LOW CONFIDENCE" },
-        Unresolved: { cls: "tier-unresolved",  icon: "fa-circle-xmark",        label: "UNRESOLVED" }
+        Unresolved: { cls: "tier-unresolved",  icon: "fa-circle-xmark",        label: "UNRESOLVED" },
+        0:          { cls: "tier-high",       icon: "fa-circle-check",        label: "HIGH CONFIDENCE" },
+        1:          { cls: "tier-medium",      icon: "fa-circle-exclamation",  label: "MEDIUM CONFIDENCE" },
+        2:          { cls: "tier-low",         icon: "fa-triangle-exclamation",label: "LOW CONFIDENCE" },
+        3:          { cls: "tier-unresolved",  icon: "fa-circle-xmark",        label: "UNRESOLVED" }
     };
 
     function renderValidateResult(dto) {
@@ -296,8 +303,8 @@
         var isFallback = houseNum !== "" && matched.indexOf(houseNum) === -1;
         $fallbackAlert.toggleClass("d-none", !isFallback);
 
-        // Unresolved alert
-        $unresolvedAlert.toggleClass("d-none", tier !== "Unresolved");
+        // Unresolved alert — tier may be the integer 3 or the string "Unresolved"
+        $unresolvedAlert.toggleClass("d-none", tier !== "Unresolved" && tier !== 3);
 
         $validatePlaceholder.addClass("d-none");
         $validateResult.removeClass("d-none");

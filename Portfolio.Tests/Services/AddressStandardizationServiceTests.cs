@@ -127,8 +127,8 @@ namespace Portfolio.Tests.Services
                   "candidates": [
                     {
                       "address": "1600 Pennsylvania Ave NW, Washington, DC 20500",
-                      "score": 100,
-                      "location": { "x": -77.0366, "y": 38.8971 }
+                      "score": 93.1,
+                      "location": { "x": -77.03654, "y": 38.89765 }
                     }
                   ]
                 }
@@ -140,7 +140,7 @@ namespace Portfolio.Tests.Services
 
             // Assert
             Assert.Equal(ConfidenceTier.High, result.ConfidenceTier);
-            Assert.Equal(100.0, result.Score);
+            Assert.Equal(93.1, result.Score);
             Assert.NotEmpty(result.MatchedAddress);
         }
 
@@ -242,6 +242,8 @@ namespace Portfolio.Tests.Services
             Assert.Equal("1600",   result.HouseNumber);
             Assert.Equal("DC",     result.State);
             Assert.Equal("20500",  result.PostalCode);
+            Assert.Equal("Pennsylvania", result.StreetName);
+            Assert.Contains("Avenue NW", result.StandardizedAddress);
         }
 
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler
