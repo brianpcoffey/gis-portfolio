@@ -235,3 +235,17 @@ body.dark-mode .batch-geocoding-page .pagination .page-item.disabled .page-link 
     border: 1px solid var(--border);
     border-radius: 0.375rem;
 }
+
+/* ── Dark mode: inputs and placeholders ─────────────── */
+body.dark-mode .batch-geocoding-page .dataTables_filter input::placeholder,
+body.dark-mode .batch-geocoding-page input::placeholder,
+body.dark-mode .batch-geocoding-page textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+body.dark-mode .batch-geocoding-page .input-group-text {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}

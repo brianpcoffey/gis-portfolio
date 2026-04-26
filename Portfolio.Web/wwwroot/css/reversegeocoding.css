@@ -147,7 +147,7 @@
 }
 
 .reverse-geocoding-page .rg-location-type-badge.type-postal {
-    background-color: #d69e2e;
+    background-color: #b7791f;
     color: #fff;
 }
 
@@ -309,4 +309,22 @@ body.dark-mode .reverse-geocoding-page .form-control {
 body.dark-mode .reverse-geocoding-page .form-control:focus {
     background: var(--surface);
     color: var(--text);
+}
+
+/* ── Dark mode: placeholders and input-group-text ───── */
+body.dark-mode .reverse-geocoding-page input::placeholder,
+body.dark-mode .reverse-geocoding-page textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+body.dark-mode .reverse-geocoding-page .input-group-text {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+body.dark-mode .reverse-geocoding-page .rg-location-type-badge.type-other {
+    background-color: #4a5568;
+    color: #fff;
 }

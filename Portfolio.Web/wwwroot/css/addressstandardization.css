@@ -334,3 +334,16 @@ body.dark-mode .address-standardization-page .as-sparkline-tooltip {
     border-color: var(--border);
     color: var(--text);
 }
+
+/* ── Dark mode: placeholders and input-group-text ───── */
+body.dark-mode .address-standardization-page .as-textarea::placeholder,
+body.dark-mode .address-standardization-page input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+body.dark-mode .address-standardization-page .input-group-text {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}

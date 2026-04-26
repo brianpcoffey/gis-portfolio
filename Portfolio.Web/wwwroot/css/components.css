@@ -144,3 +144,271 @@ body.dark-mode .form-control {
 .logout-card {
     max-width: 400px;
 }
+
+/* ======================================
+   Dark Mode – Bootstrap Component Overrides
+   ====================================== */
+
+/* Tables */
+body.dark-mode .table {
+    --bs-table-bg: var(--surface);
+    --bs-table-striped-bg: var(--background);
+    --bs-table-hover-bg: var(--background);
+    --bs-table-border-color: var(--border);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+body.dark-mode .table > :not(caption) > * > * {
+    background-color: transparent;
+    color: var(--text);
+    border-bottom-color: var(--border);
+}
+
+body.dark-mode .table thead th,
+body.dark-mode .table thead td {
+    background-color: var(--background);
+    color: var(--text);
+    border-bottom-color: var(--border);
+}
+
+body.dark-mode .table tbody tr {
+    background-color: var(--surface);
+    color: var(--text);
+}
+
+body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--background);
+    color: var(--text);
+}
+
+body.dark-mode .table-hover > tbody > tr:hover > * {
+    background-color: var(--background);
+    color: var(--text);
+}
+
+/* Alerts */
+body.dark-mode .alert-info {
+    background-color: rgba(49, 130, 206, 0.15);
+    color: #90cdf4;
+    border-color: rgba(49, 130, 206, 0.3);
+}
+
+body.dark-mode .alert-success {
+    background-color: rgba(56, 161, 105, 0.15);
+    color: #9ae6b4;
+    border-color: rgba(56, 161, 105, 0.3);
+}
+
+body.dark-mode .alert-warning {
+    background-color: rgba(214, 158, 46, 0.15);
+    color: #fbd38d;
+    border-color: rgba(214, 158, 46, 0.3);
+}
+
+body.dark-mode .alert-danger {
+    background-color: rgba(229, 62, 62, 0.15);
+    color: #feb2b2;
+    border-color: rgba(229, 62, 62, 0.3);
+}
+
+/* Form controls */
+body.dark-mode .form-control::placeholder,
+body.dark-mode .form-select::placeholder,
+body.dark-mode textarea::placeholder,
+body.dark-mode input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+body.dark-mode .form-select {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+body.dark-mode .form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 0.2rem rgba(56, 161, 105, 0.25);
+}
+
+body.dark-mode .input-group-text {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+/* List group */
+body.dark-mode .list-group-item {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+body.dark-mode .list-group-item-action:hover,
+body.dark-mode .list-group-item-action:focus {
+    background-color: var(--background);
+    color: var(--text);
+}
+
+/* Modals */
+body.dark-mode .modal-content {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: var(--border);
+}
+
+body.dark-mode .modal .btn-close {
+    filter: invert(1) grayscale(1);
+}
+
+/* Dropdowns */
+body.dark-mode .dropdown-menu {
+    background-color: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+body.dark-mode .dropdown-item {
+    color: var(--text);
+}
+
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+    background-color: var(--background);
+    color: var(--text);
+}
+
+body.dark-mode .dropdown-divider {
+    border-color: var(--border);
+}
+
+/* Nav tabs */
+body.dark-mode .nav-tabs {
+    border-bottom-color: var(--border);
+}
+
+body.dark-mode .nav-tabs .nav-link {
+    color: var(--text-muted);
+    border-color: transparent;
+}
+
+body.dark-mode .nav-tabs .nav-link:hover,
+body.dark-mode .nav-tabs .nav-link:focus {
+    border-color: var(--border) var(--border) transparent;
+    color: var(--text);
+}
+
+body.dark-mode .nav-tabs .nav-link.active,
+body.dark-mode .nav-tabs .nav-item.show .nav-link {
+    background-color: var(--surface);
+    border-color: var(--border) var(--border) var(--surface);
+    color: var(--text);
+}
+
+/* Badges */
+body.dark-mode .badge.text-bg-secondary {
+    background-color: var(--text-muted) !important;
+    color: var(--background) !important;
+}
+
+body.dark-mode .badge.text-bg-light {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+}
+
+body.dark-mode .badge.text-bg-dark {
+    background-color: var(--background) !important;
+    color: var(--text) !important;
+}
+
+/* ======================================
+   Dark Mode – DataTables Overrides
+   ====================================== */
+
+body.dark-mode table.dataTable thead th,
+body.dark-mode table.dataTable thead td {
+    background-color: var(--background);
+    color: var(--text);
+    border-bottom-color: var(--border);
+}
+
+body.dark-mode table.dataTable tbody tr {
+    background-color: var(--surface);
+}
+
+body.dark-mode table.dataTable tbody tr.odd {
+    background-color: var(--background);
+}
+
+body.dark-mode table.dataTable tbody tr.even {
+    background-color: var(--surface);
+}
+
+body.dark-mode table.dataTable tbody td {
+    color: var(--text);
+    border-top-color: var(--border);
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_filter label,
+body.dark-mode .dataTables_wrapper .dataTables_length label {
+    color: var(--text);
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_filter input {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_filter input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_length select {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_length select option {
+    background-color: var(--surface);
+    color: var(--text);
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_info {
+    color: var(--text-muted);
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text) !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    color: var(--text-muted) !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    opacity: 0.6;
+}

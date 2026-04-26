@@ -134,6 +134,14 @@ body.dark-mode .toast {
     border: 1px solid var(--border) !important;
 }
 
+body.dark-mode .score-bar-container {
+    background: var(--border);
+}
+
+body.dark-mode .weight-bar-container {
+    background: var(--border);
+}
+
 /* ============================================================
    Weight Budget Ring
    ============================================================ */

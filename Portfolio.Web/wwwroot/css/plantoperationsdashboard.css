@@ -113,8 +113,8 @@ body.dark-mode .pagination .page-item.disabled .page-link {
     padding: 16px;
     background: var(--background);
     border-radius: 12px;
-    border: 2px solid var(--border-dark);
-    box-shadow: 0 6px 16px var(--shadow-dark);
+    border: 2px solid var(--border);
+    box-shadow: 0 6px 16px var(--shadow);
     display: flex;
     align-items: stretch;
     justify-content: stretch;
