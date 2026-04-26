@@ -621,3 +621,7 @@ must be preserved:
 15. **`IMemoryCache` for geocoding caches** -- injected via constructor; keyed
     on normalized address string (batch geocoding) or snapped lat/lng string
     (reverse geocoding). Do not use `IDistributedCache` unless explicitly asked.
+16. **ArcGIS reverseGeocode returns the street line in `StAddr` consistently
+    across all `Addr_type` values.** `Address` (capital A) is populated for
+    some types but empty for others (e.g. PointAddress). `MapToDto` must
+    prefer `StAddr` with `Address` as fallback: `StAddr ?? Address`.

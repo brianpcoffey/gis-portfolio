@@ -8,10 +8,13 @@ namespace Portfolio.Common.ArcGis
         public string? LongLabel { get; set; }
 
         [JsonPropertyName("Match_addr")]
-        public string? Match_addr { get; set; }
+        public string? MatchAddr { get; set; }
 
         [JsonPropertyName("AddNum")]
         public string? AddNum { get; set; }
+
+        [JsonPropertyName("Address")]
+        public string? Address { get; set; }
 
         [JsonPropertyName("StAddr")]
         public string? StAddr { get; set; }
@@ -29,6 +32,6 @@ namespace Portfolio.Common.ArcGis
         public string? CountryCode { get; set; }
 
         [JsonPropertyName("Addr_type")]
-        public string? Addr_type { get; set; }
+        public string? AddrType { get; set; }
     }
 }

@@ -104,14 +104,16 @@ namespace Portfolio.Services.Services
             {
                 Latitude = latitude,
                 Longitude = longitude,
-                MatchedAddress = addr.LongLabel ?? addr.Match_addr ?? string.Empty,
+                MatchedAddress = addr.LongLabel ?? addr.MatchAddr ?? string.Empty,
                 HouseNumber = addr.AddNum ?? string.Empty,
-                Street = addr.StAddr ?? string.Empty,
+                Street = !string.IsNullOrWhiteSpace(addr.StAddr)
+                    ? addr.StAddr
+                    : addr.Address ?? string.Empty,
                 City = addr.City ?? string.Empty,
                 Region = addr.Region ?? string.Empty,
                 PostalCode = addr.Postal ?? string.Empty,
                 CountryCode = addr.CountryCode ?? string.Empty,
-                LocationType = addr.Addr_type ?? string.Empty
+                LocationType = addr.AddrType ?? string.Empty
             };
         }
 
