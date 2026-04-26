@@ -199,6 +199,7 @@ body.dark-mode .batch-geocoding-page .pagination .page-link {
     background: var(--surface) !important;
     color: var(--text) !important;
     border: 1px solid var(--border) !important;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
 body.dark-mode .batch-geocoding-page .pagination .page-link:hover,
@@ -206,19 +207,24 @@ body.dark-mode .batch-geocoding-page .pagination .page-link:focus {
     background: var(--accent) !important;
     color: #fff !important;
     border-color: var(--accent) !important;
+    outline: none;
 }
 
+body.dark-mode .batch-geocoding-page .pagination .active .page-link,
 body.dark-mode .batch-geocoding-page .pagination .page-item.active .page-link {
     background: var(--accent) !important;
     color: #fff !important;
     border-color: var(--accent) !important;
+    z-index: 2;
 }
 
+body.dark-mode .batch-geocoding-page .pagination .disabled .page-link,
 body.dark-mode .batch-geocoding-page .pagination .page-item.disabled .page-link {
     background: var(--surface) !important;
     color: var(--text-muted) !important;
     border-color: var(--border) !important;
     opacity: 0.6;
+    pointer-events: none;
 }
 
 /* ── DataTables length/filter controls ─────────────── */
@@ -236,16 +242,111 @@ body.dark-mode .batch-geocoding-page .pagination .page-item.disabled .page-link 
     border-radius: 0.375rem;
 }
 
-/* ── Dark mode: inputs and placeholders ─────────────── */
+/* ── Dark mode: DataTables controls (mirrors plantoperationsdashboard.css) ── */
+body.dark-mode .batch-geocoding-page .dataTables_length label,
+body.dark-mode .batch-geocoding-page .dataTables_filter label {
+    color: var(--text) !important;
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_length select {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_length select option {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_length select:focus {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--accent) !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(56, 161, 105, 0.33);
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_filter input {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_info {
+    color: var(--text-muted) !important;
+}
+
+/* ── Dark mode: DataTables paginate buttons ─────────── */
+body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text) !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+
+body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    color: var(--text-muted) !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    opacity: 0.6;
+}
+
+/* ── Dark mode: inputs, placeholders, and close buttons ── */
 body.dark-mode .batch-geocoding-page .dataTables_filter input::placeholder,
 body.dark-mode .batch-geocoding-page input::placeholder,
 body.dark-mode .batch-geocoding-page textarea::placeholder {
-    color: var(--text-muted);
+    color: var(--text-muted) !important;
     opacity: 1;
 }
 
 body.dark-mode .batch-geocoding-page .input-group-text {
-    background-color: var(--surface);
-    color: var(--text);
-    border-color: var(--border);
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-mode .batch-geocoding-page .btn-close {
+    filter: invert(1) grayscale(1);
+}
+
+/* ── Dark mode: sample download buttons ─────────────── */
+body.dark-mode .batch-geocoding-page .btn-outline-secondary {
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    background: transparent !important;
+}
+
+body.dark-mode .batch-geocoding-page .btn-outline-secondary:hover,
+body.dark-mode .batch-geocoding-page .btn-outline-secondary:focus {
+    background-color: var(--border) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+body.dark-mode .batch-geocoding-page .btn-outline-secondary .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* ── Dark mode: form labels ──────────────────────────── */
+body.dark-mode .batch-geocoding-page .form-label,
+body.dark-mode .batch-geocoding-page label {
+    color: var(--text) !important;
+}
+
+body.dark-mode .batch-geocoding-page .text-muted {
+    color: var(--text-muted) !important;
 }

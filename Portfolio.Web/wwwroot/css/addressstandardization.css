@@ -314,18 +314,26 @@ body.dark-mode .address-standardization-page .as-component-table tbody td:first-
 }
 
 body.dark-mode .address-standardization-page .as-tier-badge-card.tier-high {
+    background: rgba(56, 161, 105, 0.2);
+    border-color: rgba(56, 161, 105, 0.5);
     color: #9ae6b4;
 }
 
 body.dark-mode .address-standardization-page .as-tier-badge-card.tier-medium {
+    background: rgba(214, 158, 46, 0.2);
+    border-color: rgba(214, 158, 46, 0.5);
     color: #fbd38d;
 }
 
 body.dark-mode .address-standardization-page .as-tier-badge-card.tier-low {
+    background: rgba(237, 137, 54, 0.2);
+    border-color: rgba(237, 137, 54, 0.5);
     color: #fbd38d;
 }
 
 body.dark-mode .address-standardization-page .as-tier-badge-card.tier-unresolved {
+    background: rgba(229, 62, 62, 0.2);
+    border-color: rgba(229, 62, 62, 0.5);
     color: #feb2b2;
 }
 
@@ -347,3 +355,55 @@ body.dark-mode .address-standardization-page .input-group-text {
     color: var(--text);
     border-color: var(--border);
 }
+
+body.dark-mode .address-standardization-page .as-badge-nlp {
+    background-color: var(--primary-light);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* ── Dark mode: form labels and text ────────────────── */
+body.dark-mode .address-standardization-page .form-label {
+    color: var(--text) !important;
+}
+
+body.dark-mode .address-standardization-page .text-muted {
+    color: var(--text-muted) !important;
+}
+
+body.dark-mode .address-standardization-page strong {
+    color: var(--text) !important;
+}
+
+/* ── Dark mode: border-top divider (sparkline section) ── */
+body.dark-mode .address-standardization-page .border-top {
+    border-top-color: var(--border) !important;
+}
+
+/* ── Dark mode: btn-close (dismiss alerts) ──────────── */
+body.dark-mode .address-standardization-page .btn-close {
+    filter: invert(1) grayscale(1);
+}
+
+/* ── Dark mode: copy button (btn-outline-secondary) ─── */
+body.dark-mode .address-standardization-page .btn-outline-secondary {
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    background: transparent !important;
+}
+
+body.dark-mode .address-standardization-page .btn-outline-secondary:hover,
+body.dark-mode .address-standardization-page .btn-outline-secondary:focus {
+    background-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+/* ── Dark mode: matched address text ────────────────── */
+body.dark-mode .address-standardization-page #asMatchedAddress {
+    color: var(--text) !important;
+}
+
+/* ── Dark mode: confidence label ────────────────────── */
+body.dark-mode .address-standardization-page #asConfidenceLabel {
+    color: var(--text) !important;
+}
+

@@ -328,3 +328,44 @@ body.dark-mode .reverse-geocoding-page .rg-location-type-badge.type-other {
     background-color: #4a5568;
     color: #fff;
 }
+
+/* ── Dark mode: panel dividers ──────────────────────── */
+body.dark-mode .reverse-geocoding-page .border-bottom {
+    border-bottom-color: var(--border) !important;
+}
+
+/* ── Dark mode: form labels and text ────────────────── */
+body.dark-mode .reverse-geocoding-page .form-label {
+    color: var(--text) !important;
+}
+
+body.dark-mode .reverse-geocoding-page .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* ── Dark mode: btn-close (dismiss alerts) ──────────── */
+body.dark-mode .reverse-geocoding-page .btn-close {
+    filter: invert(1) grayscale(1);
+}
+
+/* ── Dark mode: alert-secondary (no address found) ──── */
+body.dark-mode .reverse-geocoding-page .alert-secondary {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+/* ── Dark mode: rg-coord-readout and section labels ─── */
+body.dark-mode .reverse-geocoding-page .rg-coord-readout {
+    color: var(--text) !important;
+}
+
+body.dark-mode .reverse-geocoding-page .rg-lookup-address {
+    color: var(--text) !important;
+}
+
+/* ── Dark mode: fw-semibold result text ─────────────── */
+body.dark-mode .reverse-geocoding-page .rg-match-address {
+    color: var(--text) !important;
+}
+

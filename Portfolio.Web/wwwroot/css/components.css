@@ -149,6 +149,26 @@ body.dark-mode .form-control {
    Dark Mode – Bootstrap Component Overrides
    ====================================== */
 
+/* Card headers */
+body.dark-mode .card-header {
+    background-color: var(--background);
+    color: var(--text);
+    border-bottom-color: var(--border);
+}
+
+/* Outline secondary buttons */
+body.dark-mode .btn-outline-secondary {
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+
+body.dark-mode .btn-outline-secondary:hover,
+body.dark-mode .btn-outline-secondary:focus {
+    background-color: var(--border);
+    color: var(--text);
+    border-color: var(--border);
+}
+
 /* Tables */
 body.dark-mode .table {
     --bs-table-bg: var(--surface);
