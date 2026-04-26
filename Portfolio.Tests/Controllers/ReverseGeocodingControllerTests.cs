@@ -48,32 +48,20 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(dto, ok.Value);
         }
 
-        [Fact]
-        public async Task GetPlaceData_InvalidLatitude_ReturnsBadRequest()
+        [Theory]
+        [InlineData(91.0, 0.0, "Latitude must be between -90 and 90", "latitude")]
+        [InlineData(-91.0, 0.0, "Latitude must be between -90 and 90", "latitude")]
+        [InlineData(0.0, 181.0, "Longitude must be between -180 and 180", "longitude")]
+        [InlineData(0.0, -181.0, "Longitude must be between -180 and 180", "longitude")]
+        public async Task GetPlaceData_OutOfRangeCoordinates_ReturnsBadRequest(double lat, double lng, string message, string paramName)
         {
             // Arrange
             _serviceMock
                 .Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Latitude must be between -90 and 90", "latitude"));
+                .ThrowsAsync(new ArgumentException(message, paramName));
 
             // Act
-            var result = await _controller.GetPlaceData(91.0, 0.0, CancellationToken.None);
-
-            // Assert
-            var bad = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.NotNull(bad.Value);
-        }
-
-        [Fact]
-        public async Task GetPlaceData_InvalidLongitude_ReturnsBadRequest()
-        {
-            // Arrange
-            _serviceMock
-                .Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Longitude must be between -180 and 180", "longitude"));
-
-            // Act
-            var result = await _controller.GetPlaceData(0.0, 181.0, CancellationToken.None);
+            var result = await _controller.GetPlaceData(lat, lng, CancellationToken.None);
 
             // Assert
             var bad = Assert.IsType<BadRequestObjectResult>(result);

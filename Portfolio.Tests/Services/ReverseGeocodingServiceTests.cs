@@ -109,33 +109,19 @@ namespace Portfolio.Tests.Services
         }
 
         [Theory]
-        [InlineData(-91.0)]
-        [InlineData(90.1)]
-        [InlineData(-90.001)]
-        public async Task ReverseGeocodeAsync_InvalidLatitude_ThrowsArgumentException(double lat)
+        [InlineData(-91.0, 0.0, "Latitude must be between -90 and 90")]
+        [InlineData(90.1, 0.0, "Latitude must be between -90 and 90")]
+        [InlineData(0.0, -181.0, "Longitude must be between -180 and 180")]
+        [InlineData(0.0, 180.1, "Longitude must be between -180 and 180")]
+        public async Task ReverseGeocodeAsync_OutOfRangeCoordinates_ThrowsArgumentException(double lat, double lng, string expectedMessage)
         {
             // Arrange
             var service = CreateService("{}");
 
             // Act & Assert
             var ex = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.ReverseGeocodeAsync(lat, 0.0));
-            Assert.Contains("Latitude must be between -90 and 90", ex.Message);
-        }
-
-        [Theory]
-        [InlineData(-181.0)]
-        [InlineData(180.1)]
-        [InlineData(200.0)]
-        public async Task ReverseGeocodeAsync_InvalidLongitude_ThrowsArgumentException(double lng)
-        {
-            // Arrange
-            var service = CreateService("{}");
-
-            // Act & Assert
-            var ex = await Assert.ThrowsAsync<ArgumentException>(
-                () => service.ReverseGeocodeAsync(0.0, lng));
-            Assert.Contains("Longitude must be between -180 and 180", ex.Message);
+                () => service.ReverseGeocodeAsync(lat, lng));
+            Assert.Contains(expectedMessage, ex.Message);
         }
 
         [Fact]

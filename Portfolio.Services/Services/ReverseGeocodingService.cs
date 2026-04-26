@@ -29,7 +29,7 @@ namespace Portfolio.Services.Services
             _cache = cache;
             _logger = logger;
             _gridResolution = configuration.GetValue<double>("ReverseGeocoding:GridResolutionDegrees", 0.001);
-            _cacheSlidingExpirationMinutes = configuration.GetValue<int>("ReverseGeocoding:CacheSlidingExpirationMinutes", 10);
+            _cacheSlidingExpirationMinutes = configuration.GetValue<int>("ReverseGeocoding:CacheSlidingExpirationMinutes", 30);
         }
 
         // Validates coordinates, snaps to grid, checks cache, then calls ArcGIS if needed.
@@ -49,7 +49,6 @@ namespace Portfolio.Services.Services
 
             if (_cache.TryGetValue(cacheKey, out ReverseGeocodingResultDto? cached) && cached is not null)
             {
-                _logger.LogInformation("Cache hit for reverse geocode at ({Lat}, {Lng})", snappedLat, snappedLng);
                 return cached;
             }
 
@@ -85,7 +84,8 @@ namespace Portfolio.Services.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error during reverse geocode for ({Lat}, {Lng})", latitude, longitude);
-                throw;
+                throw new InvalidOperationException(
+                    $"Upstream geocoding service failed for coordinates ({latitude}, {longitude}).", ex);
             }
 
             if (parsed?.Address is null)

@@ -36,8 +36,8 @@ namespace Portfolio.Services.Services
             var userId = _userProfileService.GetCurrentUserId();
             if (userId is null)
             {
-                _logger.LogWarning("GetAllAsync called with no resolved user identity; returning empty list.");
-                return [];
+                _logger.LogWarning("GetAllAsync called with no resolved user identity.");
+                throw new InvalidOperationException("No current user identity is available.");
             }
             var list = await _repo.GetAllAsync(userId.Value, cancellationToken);
             return list.Select(MapToDto).ToList();

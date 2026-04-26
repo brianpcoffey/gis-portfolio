@@ -85,7 +85,7 @@ namespace Portfolio.Tests.Services
 
             // Assert
             Assert.Equal(2, results.Count);
-            Assert.All(results, r => Assert.Equal("Matched", r.Status));
+            Assert.All(results, r => Assert.True(r.Matched));
         }
 
         [Fact]
@@ -103,7 +103,7 @@ namespace Portfolio.Tests.Services
 
             // Assert
             Assert.Single(results);
-            Assert.Equal("Unmatched", results[0].Status);
+            Assert.False(results[0].Matched);
             Assert.Equal(50.0, results[0].Score);
         }
 
@@ -186,7 +186,7 @@ namespace Portfolio.Tests.Services
 
             // Assert
             Assert.Single(results);
-            Assert.Equal("Unmatched", results[0].Status);
+            Assert.False(results[0].Matched);
         }
 
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler

@@ -17,6 +17,7 @@ namespace Portfolio.Services.Services
         private readonly ILogger<BatchGeocodingService> _logger;
         private readonly int _maxConcurrency;
         private readonly double _minMatchScore;
+        private readonly int _cacheTtlMinutes;
 
         private const string GeocodeUrl =
             "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates";
@@ -30,8 +31,9 @@ namespace Portfolio.Services.Services
             _httpClient = httpClient;
             _cache = cache;
             _logger = logger;
-            _maxConcurrency = configuration.GetValue<int>("BatchGeocoding:MaxConcurrency", 5);
+            _maxConcurrency = configuration.GetValue<int>("BatchGeocoding:MaxConcurrency", 4);
             _minMatchScore = configuration.GetValue<double>("BatchGeocoding:MinMatchScore", 80.0);
+            _cacheTtlMinutes = configuration.GetValue<int>("BatchGeocoding:CacheTtlMinutes", 60);
         }
 
         // Parses the uploaded CSV, geocodes each row via producer/consumer channels, and returns results.
@@ -64,32 +66,33 @@ namespace Portfolio.Services.Services
             }, cancellationToken);
 
             // Consumer: spin up MaxConcurrency workers.
-            var results = new System.Collections.Concurrent.ConcurrentBag<BatchGeocodingResultDto>();
+            var results = new System.Collections.Concurrent.ConcurrentBag<(string Id, BatchGeocodingResultDto Dto)>();
 
             var workers = Enumerable.Range(0, _maxConcurrency).Select(_ => Task.Run(async () =>
             {
                 await foreach (var row in channel.Reader.ReadAllAsync(cancellationToken))
                 {
                     var result = await GeocodeRowAsync(row, cancellationToken);
-                    results.Add(result);
+                    results.Add((row.Id, result));
                 }
             }, cancellationToken)).ToArray();
 
             await producer;
             await Task.WhenAll(workers);
 
-            return [.. results.OrderBy(r => r.Id)];
+            return [.. results.OrderBy(r => r.Id).Select(r => r.Dto)];
         }
 
         // Geocodes a single CSV row, using IMemoryCache to avoid duplicate HTTP calls.
         private async Task<BatchGeocodingResultDto> GeocodeRowAsync(CsvRow row, CancellationToken cancellationToken)
         {
-            var cacheKey = $"geocode:{row.Address}|{row.City}|{row.State}|{row.Zip}";
+            var normalizedKey = $"{row.Address}|{row.City}|{row.State}|{row.Zip}".Trim().ToLowerInvariant();
+            var cacheKey = $"geocode:{normalizedKey}";
 
             if (!_cache.TryGetValue(cacheKey, out GeocodeCacheEntry? cached) || cached is null)
             {
                 cached = await FetchGeocodeAsync(row, cancellationToken);
-                _cache.Set(cacheKey, cached, TimeSpan.FromMinutes(60));
+                _cache.Set(cacheKey, cached, TimeSpan.FromMinutes(_cacheTtlMinutes));
             }
 
             var matched = cached.Score >= _minMatchScore;
@@ -99,13 +102,12 @@ namespace Portfolio.Services.Services
 
             return new BatchGeocodingResultDto
             {
-                Id = row.Id,
-                InputAddress = $"{row.Address}, {row.City}, {row.State} {row.Zip}".Trim(),
-                MatchedAddress = cached.MatchedAddress,
+                OriginalAddress = $"{row.Address}, {row.City}, {row.State} {row.Zip}".Trim(),
+                Matched = matched,
+                MatchedAddress = matched ? cached.MatchedAddress : string.Empty,
                 Score = cached.Score,
-                Latitude = cached.Latitude,
-                Longitude = cached.Longitude,
-                Status = matched ? "Matched" : "Unmatched"
+                Latitude = matched ? cached.Latitude : null,
+                Longitude = matched ? cached.Longitude : null
             };
         }
 
@@ -202,6 +204,5 @@ namespace Portfolio.Services.Services
             public double Latitude { get; set; }
             public double Longitude { get; set; }
         }
-
-            }
-        }
+    }
+}

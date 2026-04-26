@@ -1,0 +1,237 @@
+/* ======================================================
+   Batch Geocoding Page Styles
+   All colors use CSS custom properties from base.css.
+   All selectors scoped under .batch-geocoding-page.
+   ====================================================== */
+
+/* ── Hero / Header ─────────────────────────────────── */
+.batch-geocoding-page .geocoding-hero {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+/* ── Upload Zone ────────────────────────────────────── */
+.batch-geocoding-page .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2rem 1rem;
+    background: var(--background);
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition);
+    user-select: none;
+}
+
+.batch-geocoding-page .upload-zone:hover,
+.batch-geocoding-page .upload-zone:focus {
+    border-color: var(--accent);
+    background: var(--surface);
+    outline: none;
+}
+
+.batch-geocoding-page .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--surface);
+    box-shadow: 0 0 0 4px rgba(56, 161, 105, 0.15);
+}
+
+body.dark-mode .batch-geocoding-page .upload-zone {
+    background: var(--background);
+}
+
+body.dark-mode .batch-geocoding-page .upload-zone:hover,
+body.dark-mode .batch-geocoding-page .upload-zone:focus,
+body.dark-mode .batch-geocoding-page .upload-zone.dragover {
+    background: var(--surface);
+}
+
+/* ── Format Example ─────────────────────────────────── */
+.batch-geocoding-page .format-example {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    overflow-x: auto;
+}
+
+body.dark-mode .batch-geocoding-page .format-example {
+    background: var(--background);
+    color: var(--text-muted);
+}
+
+/* ── File Info Card ─────────────────────────────────── */
+.batch-geocoding-page .file-info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: border-color var(--transition);
+}
+
+.batch-geocoding-page .file-info-card:hover {
+    border-color: var(--accent);
+}
+
+/* ── Summary Bar ────────────────────────────────────── */
+.batch-geocoding-page .summary-bar {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+}
+
+/* ── KPI Cards ──────────────────────────────────────── */
+.batch-geocoding-page .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 0.5rem;
+    transition: box-shadow var(--transition);
+}
+
+.batch-geocoding-page .kpi-card:hover {
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.batch-geocoding-page .kpi-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+}
+
+.batch-geocoding-page .kpi-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 0.15rem;
+}
+
+.batch-geocoding-page .kpi-success .kpi-value {
+    color: #38a169;
+}
+
+.batch-geocoding-page .kpi-danger .kpi-value {
+    color: #e53e3e;
+}
+
+body.dark-mode .batch-geocoding-page .kpi-success .kpi-value {
+    color: #68d391;
+}
+
+body.dark-mode .batch-geocoding-page .kpi-danger .kpi-value {
+    color: #fc8181;
+}
+
+/* ── Score Bar ──────────────────────────────────────── */
+.batch-geocoding-page .score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.batch-geocoding-page .score-bar {
+    width: 60px;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.batch-geocoding-page .score-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.batch-geocoding-page .score-bar-fill.score-high {
+    background: #38a169;
+}
+
+.batch-geocoding-page .score-bar-fill.score-medium {
+    background: #d69e2e;
+}
+
+.batch-geocoding-page .score-bar-fill.score-low {
+    background: #e53e3e;
+}
+
+.batch-geocoding-page .score-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    min-width: 2.2rem;
+    text-align: right;
+}
+
+/* ── Results Placeholder ────────────────────────────── */
+.batch-geocoding-page .results-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    color: var(--text-muted);
+}
+
+/* ── Spinner Overlay ────────────────────────────────── */
+.batch-geocoding-page .spinner-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+body.dark-mode .batch-geocoding-page .spinner-overlay {
+    background: rgba(26, 32, 44, 0.8);
+}
+
+/* ── Dark-mode DataTables pagination (mirrors plantoperationsdashboard.css) ── */
+body.dark-mode .batch-geocoding-page .pagination .page-link {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+body.dark-mode .batch-geocoding-page .pagination .page-link:hover,
+body.dark-mode .batch-geocoding-page .pagination .page-link:focus {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+
+body.dark-mode .batch-geocoding-page .pagination .page-item.active .page-link {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent) !important;
+}
+
+body.dark-mode .batch-geocoding-page .pagination .page-item.disabled .page-link {
+    background: var(--surface) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border) !important;
+    opacity: 0.6;
+}
+
+/* ── DataTables length/filter controls ─────────────── */
+.batch-geocoding-page .dataTables_length label,
+.batch-geocoding-page .dataTables_filter label {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.batch-geocoding-page .dataTables_length select,
+.batch-geocoding-page .dataTables_filter input {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+}

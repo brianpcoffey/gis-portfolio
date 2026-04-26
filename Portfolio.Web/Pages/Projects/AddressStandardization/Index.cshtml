@@ -1,0 +1,274 @@
+@page
+@model Portfolio.Web.Pages.Projects.AddressStandardization.IndexModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Address Standardization & Validation";
+}
+
+<link rel="stylesheet" href="~/css/addressstandardization.css" />
+
+<div class="address-standardization-page">
+
+	<!-- PAGE HEADER -->
+	<div class="as-hero py-4 mb-4">
+		<div class="container">
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+				<div>
+					<h1 class="mb-1">
+						<i class="fa-solid fa-address-card me-2"></i>Address Standardization &amp; Validation
+					</h1>
+					<p class="text-muted mb-0">
+						Parse freeform addresses into structured components and validate them against ArcGIS geocoding.
+					</p>
+				</div>
+				<div class="d-flex flex-wrap gap-2">
+					<span class="badge badge-gis fs-6">
+						<i class="fa-solid fa-satellite-dish me-1"></i>ArcGIS Geocoding
+					</span>
+					<span class="badge as-badge-nlp fs-6">
+						<i class="fa-solid fa-brain me-1"></i>NLP Parsing
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- MAIN CONTENT -->
+	<div class="container pb-5">
+
+		<!-- ── ZONE 1: INPUT ─────────────────────────────────────────── -->
+		<div class="row justify-content-center mb-4">
+			<div class="col-12 as-input-zone">
+
+				<!-- Alert area -->
+				<div id="asAlert" class="alert alert-warning alert-dismissible fade d-none mb-3" role="alert">
+					<i class="fa-solid fa-triangle-exclamation me-1"></i>
+					<span id="asAlertMsg"></span>
+					<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+				</div>
+
+				<div class="card shadow-sm">
+					<div class="card-body p-4">
+
+						<!-- Textarea label row -->
+						<div class="d-flex align-items-center justify-content-between mb-1">
+							<label for="asRawAddress" class="form-label fw-semibold mb-0">
+								<i class="fa-solid fa-keyboard me-1 text-accent"></i>Raw Address
+							</label>
+							<div id="asAnalyzingIndicator" class="as-analyzing-indicator d-none">
+								<span class="spinner-border spinner-border-sm text-accent me-1" role="status" aria-hidden="true"></span>
+								<small class="text-muted">Analyzing&hellip;</small>
+							</div>
+						</div>
+
+						<textarea id="asRawAddress"
+								  class="form-control as-textarea mb-1"
+								  rows="3"
+								  placeholder="123 main st apt 4b los angeles ca 90001"
+								  aria-label="Raw address input"
+								  autocomplete="off"
+								  spellcheck="false"></textarea>
+
+						<div class="d-flex justify-content-between align-items-center mb-3">
+							<small id="asCharCount" class="text-muted">0 characters</small>
+						</div>
+
+						<!-- Action buttons -->
+						<div class="d-flex flex-wrap gap-2 mb-3">
+							<button id="asBtnParse" class="btn btn-outline-accent" disabled>
+								<i class="fa-solid fa-search me-1"></i>Parse Address
+							</button>
+							<button id="asBtnValidate" class="btn btn-accent" disabled>
+								<i class="fa-solid fa-circle-check me-1"></i>Parse &amp; Validate
+							</button>
+						</div>
+
+						<!-- Example addresses collapse -->
+						<div>
+							<button class="btn btn-link btn-sm px-0 text-accent text-decoration-none"
+									type="button"
+									data-bs-toggle="collapse"
+									data-bs-target="#asExamples"
+									aria-expanded="false"
+									aria-controls="asExamples">
+								<i class="fa-solid fa-lightbulb me-1"></i>Try an example address
+								<i class="fa-solid fa-chevron-down ms-1 as-chevron"></i>
+							</button>
+							<div class="collapse mt-2" id="asExamples">
+								<div class="list-group as-example-list">
+									<button type="button"
+											class="list-group-item list-group-item-action as-example-item"
+											data-address="123 main st apt 4b los angeles ca 90001">
+										<span class="as-example-address">123 main st apt 4b los angeles ca 90001</span>
+										<small class="text-muted d-block">Full address, all components</small>
+									</button>
+									<button type="button"
+											class="list-group-item list-group-item-action as-example-item"
+											data-address="456 oak ave chicago illinois">
+										<span class="as-example-address">456 oak ave chicago illinois</span>
+										<small class="text-muted d-block">No ZIP, full state name</small>
+									</button>
+									<button type="button"
+											class="list-group-item list-group-item-action as-example-item"
+											data-address="789 hwy 1 big sur ca">
+										<span class="as-example-address">789 hwy 1 big sur ca</span>
+										<small class="text-muted d-block">Highway suffix, no ZIP</small>
+									</button>
+									<button type="button"
+											class="list-group-item list-group-item-action as-example-item"
+											data-address="1600 pennsylvania ave nw washington dc 20500">
+										<span class="as-example-address">1600 pennsylvania ave nw washington dc 20500</span>
+										<small class="text-muted d-block">Famous address</small>
+									</button>
+									<button type="button"
+											class="list-group-item list-group-item-action as-example-item"
+											data-address="999 fake blvd nowhere xx 00000">
+										<span class="as-example-address">999 fake blvd nowhere xx 00000</span>
+										<small class="text-muted d-block">Invalid state (expect low score)</small>
+									</button>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ── ZONES 2 & 3: RESULTS ──────────────────────────────────── -->
+		<div class="row g-4">
+
+			<!-- ZONE 2: PARSE RESULTS -->
+			<div class="col-lg-7">
+				<div class="card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center justify-content-between">
+						<div class="d-flex align-items-center gap-2">
+							<i class="fa-solid fa-code-branch text-accent"></i>
+							<strong>Parse Results</strong>
+						</div>
+						<div id="asParseSpinner" class="d-none">
+							<span class="spinner-border spinner-border-sm text-accent" role="status" aria-hidden="true"></span>
+						</div>
+					</div>
+					<div class="card-body">
+
+						<!-- Parse placeholder -->
+						<div id="asParsePlaceholder" class="text-center text-muted py-5">
+							<i class="fa-solid fa-signs-post fa-2x mb-3 d-block text-accent opacity-50"></i>
+							<p class="mb-0">Enter an address above to see parsed components.</p>
+						</div>
+
+						<!-- Parse result content (hidden until first parse) -->
+						<div id="asParseResult" class="d-none">
+
+							<!-- Standardized address card -->
+							<div class="as-mailing-label-card mb-3">
+								<div class="d-flex align-items-start justify-content-between gap-2">
+									<div id="asStandardizedAddress" class="as-mailing-label-text flex-grow-1"></div>
+									<button id="asCopyBtn"
+											class="btn btn-sm btn-outline-secondary as-copy-btn flex-shrink-0"
+											title="Copy to clipboard"
+											aria-label="Copy standardized address">
+										<i class="fa-regular fa-copy"></i>
+									</button>
+								</div>
+							</div>
+
+							<!-- Component breakdown table -->
+							<table class="table table-sm as-component-table mb-3">
+								<thead>
+									<tr>
+										<th scope="col" class="text-muted fw-normal small">Component</th>
+										<th scope="col" class="text-muted fw-normal small">Extracted Value</th>
+									</tr>
+								</thead>
+								<tbody id="asComponentsBody"></tbody>
+							</table>
+
+							<!-- Parse confidence meter -->
+							<div class="mb-1 d-flex align-items-center justify-content-between">
+								<small class="text-muted text-uppercase fw-semibold" style="letter-spacing:.05em;">Parse Confidence</small>
+								<small id="asConfidenceLabel" class="fw-semibold"></small>
+							</div>
+							<div class="as-confidence-chart-container mb-1">
+								<div id="confidence-chart"></div>
+							</div>
+
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- ZONE 3: VALIDATION RESULTS -->
+			<div class="col-lg-5">
+				<div class="card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center justify-content-between">
+						<div class="d-flex align-items-center gap-2">
+							<i class="fa-solid fa-shield-halved text-accent"></i>
+							<strong>Validation Results</strong>
+						</div>
+						<div id="asValidateSpinner" class="d-none">
+							<span class="spinner-border spinner-border-sm text-accent" role="status" aria-hidden="true"></span>
+						</div>
+					</div>
+					<div class="card-body d-flex flex-column">
+
+						<!-- Validation placeholder -->
+						<div id="asValidatePlaceholder" class="text-center text-muted py-5 flex-grow-1 d-flex flex-column align-items-center justify-content-center">
+							<i class="fa-solid fa-shield-halved fa-2x mb-3 d-block text-accent opacity-50"></i>
+							<p class="mb-0 small">Click <strong>Parse &amp; Validate</strong> to check this address against ArcGIS.</p>
+						</div>
+
+						<!-- Validation result content (hidden until first validate) -->
+						<div id="asValidateResult" class="d-none flex-grow-1 d-flex flex-column">
+
+							<!-- Confidence tier banner -->
+							<div id="asTierCard" class="as-tier-badge-card rounded mb-3 p-3 text-center">
+								<div id="asTierIcon" class="fs-3 mb-1"></div>
+								<div id="asTierLabel" class="fw-bold text-uppercase ls-wide"></div>
+								<div id="asTierScore" class="small mt-1 opacity-75"></div>
+							</div>
+
+							<!-- Matched address -->
+							<div class="mb-2">
+								<div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing:.05em;">ArcGIS Matched Address</div>
+								<div id="asMatchedAddress" class="fw-semibold"></div>
+							</div>
+
+							<!-- Fallback alert -->
+							<div id="asFallbackAlert" class="alert alert-info d-none py-2 px-3 small mb-2" role="alert">
+								<i class="fa-solid fa-circle-info me-1"></i>
+								Full address could not be matched. Result is based on City, State, and ZIP only.
+							</div>
+
+							<!-- Unresolved alert -->
+							<div id="asUnresolvedAlert" class="alert alert-warning d-none py-2 px-3 small mb-2" role="alert">
+								<i class="fa-solid fa-triangle-exclamation me-1"></i>
+								Address could not be verified against ArcGIS. Check the parsed components for errors &mdash; the state abbreviation or ZIP may be invalid.
+							</div>
+
+							<!-- Score history sparkline -->
+							<div class="mt-auto pt-3 border-top">
+								<div class="d-flex align-items-center gap-2 mb-2">
+									<i class="fa-solid fa-chart-line text-accent"></i>
+									<small class="text-muted text-uppercase fw-semibold" style="letter-spacing:.05em;">Recent Scores</small>
+								</div>
+								<div class="as-sparkline-container">
+									<div id="as-sparkline"></div>
+									<div id="as-sparkline-tooltip" class="as-sparkline-tooltip" role="tooltip"></div>
+								</div>
+							</div>
+
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script src="~/lib/d3/d3.min.js"></script>
+	<script src="~/js/AddressStandardization/app.js"></script>
+}

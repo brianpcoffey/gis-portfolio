@@ -1,0 +1,184 @@
+@page
+@model Portfolio.Web.Pages.Projects.ReverseGeocoding.IndexModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Reverse Geocoding";
+}
+
+<link rel="stylesheet" href="~/css/reversegeocoding.css" />
+
+<div class="reverse-geocoding-page">
+
+	<!-- PAGE HEADER -->
+	<div class="rg-hero py-4 mb-4">
+		<div class="container">
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+				<div>
+					<h1 class="mb-1">
+						<i class="fa-solid fa-map-pin me-2"></i>Reverse Geocoding
+					</h1>
+					<p class="text-muted mb-0">
+						Click anywhere on the map to discover what address or place is at that location.
+					</p>
+				</div>
+				<div>
+					<span class="badge badge-gis fs-6">
+						<i class="fa-solid fa-satellite-dish me-1"></i>ArcGIS Geocoding API
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- MAIN CONTENT -->
+	<div class="container-fluid px-3 pb-5">
+
+		<!-- Error alert area -->
+		<div id="rgAlert" class="alert alert-warning alert-dismissible fade d-none mb-3 mx-0" role="alert">
+			<i class="fa-solid fa-triangle-exclamation me-1"></i>
+			<span id="rgAlertMsg"></span>
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+
+		<div class="row g-0 rg-layout">
+
+			<!-- MAP COLUMN -->
+			<div class="col-lg-8">
+				<div id="rgMapView" class="rg-map-container shadow-sm"></div>
+			</div>
+
+			<!-- RIGHT PANEL -->
+			<div class="col-lg-4">
+				<div class="rg-result-panel">
+
+					<!-- COORDINATE DISPLAY -->
+					<div class="rg-coordinate-display p-3 border-bottom">
+						<div class="d-flex align-items-center gap-2 mb-1">
+							<i class="fa-solid fa-crosshairs text-accent"></i>
+							<span class="fw-semibold small text-muted text-uppercase tracking-wide">Clicked Coordinates</span>
+						</div>
+						<div id="rgCoordinateReadout" class="rg-coord-readout text-muted">
+							Click the map to select a location
+						</div>
+					</div>
+
+					<!-- MANUAL INPUT FORM -->
+					<div class="p-3 border-bottom">
+						<div class="d-flex align-items-center gap-2 mb-2">
+							<i class="fa-solid fa-keyboard text-accent"></i>
+							<span class="fw-semibold small text-muted text-uppercase tracking-wide">Manual Lookup</span>
+						</div>
+						<div class="row g-2 mb-2">
+							<div class="col-6">
+								<label for="rgLatInput" class="form-label form-label-sm mb-1">Latitude</label>
+								<input id="rgLatInput" type="number" class="form-control form-control-sm"
+									   placeholder="-90 to 90" step="any" min="-90" max="90" />
+								<div class="invalid-feedback">Must be between -90 and 90.</div>
+							</div>
+							<div class="col-6">
+								<label for="rgLngInput" class="form-label form-label-sm mb-1">Longitude</label>
+								<input id="rgLngInput" type="number" class="form-control form-control-sm"
+									   placeholder="-180 to 180" step="any" min="-180" max="180" />
+								<div class="invalid-feedback">Must be between -180 and 180.</div>
+							</div>
+						</div>
+						<button id="rgLookupBtn" class="btn btn-accent btn-sm w-100">
+							<i class="fa-solid fa-magnifying-glass me-1"></i>Look Up
+						</button>
+					</div>
+
+					<!-- RESULT AREA -->
+					<div id="rgResultArea" class="p-3 border-bottom">
+						<div id="rgPlaceholder" class="text-center text-muted py-4">
+							<i class="fa-solid fa-map-pin fa-2x mb-2 d-block"></i>
+							<small>Your result will appear here after clicking the map.</small>
+						</div>
+
+						<!-- Spinner (hidden by default) -->
+						<div id="rgSpinner" class="text-center py-4 d-none">
+							<div class="spinner-border text-accent" role="status">
+								<span class="visually-hidden">Looking up address…</span>
+							</div>
+							<div class="small text-muted mt-2">Looking up address…</div>
+						</div>
+
+						<!-- 404 message (hidden by default) -->
+						<div id="rgNotFound" class="alert alert-secondary d-none" role="alert">
+							<i class="fa-solid fa-circle-xmark me-1"></i>
+							No address found at this location. Try clicking a nearby point.
+						</div>
+
+						<!-- Result card (hidden by default) -->
+						<div id="rgResultCard" class="rg-result-card d-none">
+							<div class="d-flex align-items-start justify-content-between mb-2 gap-2">
+								<div id="rgMatchAddress" class="rg-match-address fw-semibold"></div>
+								<span id="rgLocationTypeBadge" class="badge rg-location-type-badge text-nowrap"></span>
+							</div>
+
+							<div class="rg-detail-grid mb-2">
+								<div class="rg-detail-row">
+									<div class="rg-detail-cell">
+										<span class="rg-detail-label">House No.</span>
+										<span id="rgHouseNumber" class="rg-detail-value">—</span>
+									</div>
+									<div class="rg-detail-cell">
+										<span class="rg-detail-label">Street</span>
+										<span id="rgStreet" class="rg-detail-value">—</span>
+									</div>
+								</div>
+								<div class="rg-detail-row">
+									<div class="rg-detail-cell">
+										<span class="rg-detail-label">City</span>
+										<span id="rgCity" class="rg-detail-value">—</span>
+									</div>
+									<div class="rg-detail-cell">
+										<span class="rg-detail-label">Region</span>
+										<span id="rgRegion" class="rg-detail-value">—</span>
+									</div>
+								</div>
+								<div class="rg-detail-row">
+									<div class="rg-detail-cell">
+										<span class="rg-detail-label">Postal</span>
+										<span id="rgPostal" class="rg-detail-value">—</span>
+									</div>
+									<div class="rg-detail-cell">
+										<span class="rg-detail-label">Country</span>
+										<span id="rgCountry" class="rg-detail-value">—</span>
+									</div>
+								</div>
+							</div>
+
+							<div class="rg-coords-row small text-muted mb-3">
+								<i class="fa-solid fa-location-dot me-1"></i>
+								Lat: <span id="rgResultLat"></span>&nbsp;&nbsp;
+								Lng: <span id="rgResultLng"></span>
+							</div>
+
+							<button id="rgSaveHistoryBtn" class="btn btn-outline-accent btn-sm w-100">
+								<i class="fa-solid fa-bookmark me-1"></i>Save to History
+							</button>
+						</div>
+					</div>
+
+					<!-- RECENT LOOKUPS -->
+					<div class="p-3">
+						<div class="d-flex align-items-center gap-2 mb-2">
+							<i class="fa-solid fa-clock-rotate-left text-accent"></i>
+							<span class="fw-semibold small text-muted text-uppercase tracking-wide">Recent Lookups</span>
+						</div>
+						<div id="rgHistoryList" class="rg-recent-lookups-list">
+							<div class="text-muted small text-center py-2" id="rgHistoryEmpty">No recent lookups yet.</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script src="https://js.arcgis.com/4.29/"></script>
+	<script src="~/js/ReverseGeocoding/app.js"></script>
+}

@@ -304,6 +304,5 @@ namespace Portfolio.Services.Services
             return string.Join(" ", words.Select(w =>
                 char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
         }
-
-            }
-        }
+    }
+}
