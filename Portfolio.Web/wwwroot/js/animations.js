@@ -1,32 +1,49 @@
 /**
  * animations.js
- * Handles scroll-triggered animations and hover effects
+ * Handles scroll-triggered fade-in animations with stagger support
  */
 
 document.addEventListener('DOMContentLoaded', function () {
     initScrollAnimations();
-    initProjectCardEffects();
 });
 
 /**
- * Initialize fade-in animations on scroll
+ * Initialize fade-in animations on scroll.
+ * Elements sharing the same direct parent are staggered in sequence.
  */
 function initScrollAnimations() {
-    // Add fade-in class to animatable elements
     const animatableSelectors = [
         '.skill-card',
-        '.project-card',
         '.about-card',
         '.contact-link'
     ];
 
     animatableSelectors.forEach(selector => {
+        // Group siblings so stagger delay is relative within each parent
+        const groups = new Map();
         document.querySelectorAll(selector).forEach(el => {
-            el.classList.add('fade-in');
+            const parent = el.parentElement;
+            if (!groups.has(parent)) groups.set(parent, []);
+            groups.get(parent).push(el);
+        });
+
+        groups.forEach(siblings => {
+            siblings.forEach((el, i) => {
+                el.classList.add('fade-in');
+                el.style.transitionDelay = `${i * 80}ms`;
+            });
         });
     });
 
-    // Create Intersection Observer
+    // Also stagger project cards on the all-projects grid page (not the carousel)
+    const projectGrid = document.querySelector('.projects-grid');
+    if (projectGrid) {
+        projectGrid.querySelectorAll('.project-card').forEach((el, i) => {
+            el.classList.add('fade-in');
+            el.style.transitionDelay = `${i * 60}ms`;
+        });
+    }
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -35,47 +52,11 @@ function initScrollAnimations() {
             }
         });
     }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
+        threshold: 0.08,
+        rootMargin: '0px 0px -40px 0px'
     });
 
-    // Observe all fade-in elements
     document.querySelectorAll('.fade-in').forEach(el => {
         observer.observe(el);
-    });
-}
-
-/**
- * Add interactive hover effects to project cards
- */
-function initProjectCardEffects() {
-    const projectCards = document.querySelectorAll('.project-card');
-
-    projectCards.forEach(card => {
-        card.addEventListener('mouseenter', function () {
-            this.style.setProperty('--hover-scale', '1.02');
-        });
-
-        card.addEventListener('mouseleave', function () {
-            this.style.setProperty('--hover-scale', '1');
-        });
-
-        // Add subtle tilt effect on mouse move
-        card.addEventListener('mousemove', function (e) {
-            const rect = this.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-
-            const rotateX = (y - centerY) / 20;
-            const rotateY = (centerX - x) / 20;
-
-            this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px) scale(1.02)`;
-        });
-
-        card.addEventListener('mouseleave', function () {
-            this.style.transform = '';
-        });
     });
 }

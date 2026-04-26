@@ -10,6 +10,14 @@
 <div class="container py-5">
     <div class="profile-page">
 
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="profile-breadcrumb mb-4">
+            <a href="/" class="profile-back-link">
+                <i class="fa-solid fa-arrow-left fa-xs me-1" aria-hidden="true"></i>
+                Back to portfolio
+            </a>
+        </nav>
+
         <h2 class="section-title text-center mb-5">My Profile</h2>
 
         @if (!string.IsNullOrEmpty(Model.StatusMessage))
@@ -23,7 +31,8 @@
         }
 
         <!-- Profile Header Card -->
-        <div class="profile-card">
+        <div class="profile-card profile-card--header">
+            <div class="profile-header-banner" aria-hidden="true"></div>
             <div class="profile-header">
                 @if (!string.IsNullOrEmpty(Model.Picture))
                 {
@@ -43,7 +52,7 @@
                         @if (Model.IsGoogleLinked)
                         {
                             <span class="profile-badge me-2">
-                                <i class="fa-brands fa-google"></i> Google Linked
+                                <i class="fa-brands fa-google" aria-hidden="true"></i> Google Linked
                             </span>
                         }
                         @Model.Email
@@ -55,7 +64,7 @@
         <!-- Account Details (Read-only) -->
         <div class="profile-card">
             <div class="profile-card-header">
-                <i class="fa-solid fa-id-card header-icon"></i>
+                <i class="fa-solid fa-id-card header-icon" aria-hidden="true"></i>
                 <h5>Account Details</h5>
             </div>
             <div class="profile-card-body">
@@ -65,15 +74,15 @@
                 </div>
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">Email</div>
-                    <div class="profile-detail-value">@(Model.Email ?? "—")</div>
+                    <div class="profile-detail-value">@(Model.Email ?? "&mdash;")</div>
                 </div>
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">Google Name</div>
-                    <div class="profile-detail-value">@(Model.GoogleName ?? "—")</div>
+                    <div class="profile-detail-value">@(Model.GoogleName ?? "&mdash;")</div>
                 </div>
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">Google ID</div>
-                    <div class="profile-detail-value"><code>@(Model.GoogleId ?? "—")</code></div>
+                    <div class="profile-detail-value"><code>@(Model.GoogleId ?? "&mdash;")</code></div>
                 </div>
             </div>
         </div>
@@ -81,7 +90,7 @@
         <!-- Editable Settings -->
         <div class="profile-card">
             <div class="profile-card-header">
-                <i class="fa-solid fa-pen header-icon"></i>
+                <i class="fa-solid fa-pen header-icon" aria-hidden="true"></i>
                 <h5>Edit Profile</h5>
             </div>
             <div class="profile-card-body">
@@ -97,7 +106,7 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-accent">
-                        <i class="fa-solid fa-save me-1"></i>Save Changes
+                        <i class="fa-solid fa-save me-1" aria-hidden="true"></i>Save Changes
                     </button>
                 </form>
             </div>
@@ -106,15 +115,15 @@
         <!-- Danger Zone -->
         <div class="profile-card profile-card--danger">
             <div class="profile-card-header">
-                <i class="fa-solid fa-triangle-exclamation header-icon" style="color: inherit;"></i>
-                <h5><i class="fa-solid fa-triangle-exclamation me-1" style="display:none;"></i>Danger Zone</h5>
+                <i class="fa-solid fa-triangle-exclamation header-icon" aria-hidden="true"></i>
+                <h5>Danger Zone</h5>
             </div>
             <div class="profile-card-body">
                 <p class="form-text" style="margin-top: 0;">
                     Sign out of your account. Your saved features and collections will remain linked to your profile.
                 </p>
                 <a href="/Logout" class="btn btn-outline-danger">
-                    <i class="fa-solid fa-right-from-bracket me-1"></i>Sign Out
+                    <i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Sign Out
                 </a>
             </div>
         </div>

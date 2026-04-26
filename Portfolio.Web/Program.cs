@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.DataProtection;
+using System.Net.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Portfolio.Common.Configuration;
@@ -53,7 +54,15 @@ builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
-builder.Services.AddHttpClient<IArcGisService, ArcGisService>();
+builder.Services.AddHttpClient<IArcGisService, ArcGisService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+})
+.SetHandlerLifetime(Timeout.InfiniteTimeSpan);
 builder.Services.AddScoped<IBatchGeocodingService, BatchGeocodingService>();
 builder.Services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>();
 builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();

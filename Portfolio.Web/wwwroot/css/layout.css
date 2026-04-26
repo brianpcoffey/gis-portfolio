@@ -57,12 +57,51 @@ body.dark-mode .navbar {
     border-color: var(--border);
 }
 
-.navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(26, 54, 93, 0.8)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+/* ======================================
+   Hamburger Menu Animation
+   ====================================== */
+.hamburger-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
 }
 
-body.dark-mode .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(247, 250, 252, 0.8)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+.hamburger-btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(56, 161, 105, 0.35);
+    outline: none;
+}
+
+.hamburger-bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: var(--text);
+    border-radius: 2px;
+    transition: transform 0.35s ease, opacity 0.25s ease, width 0.35s ease;
+    transform-origin: center;
+}
+
+/* Open state: top bar rotates to \ , middle fades out, bottom rotates to / */
+.hamburger-btn[aria-expanded="true"] .hamburger-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-btn[aria-expanded="true"] .hamburger-bar:nth-child(2) {
+    opacity: 0;
+    width: 0;
+}
+
+.hamburger-btn[aria-expanded="true"] .hamburger-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
 }
 
 /* ======================================
@@ -95,6 +134,13 @@ body.dark-mode .navbar-toggler-icon {
     z-index: 1;
     max-width: 700px;
     margin: 0 auto;
+    /* Entrance animation */
+    animation: heroFadeUp 0.6s ease both;
+}
+
+@keyframes heroFadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .hero-title {
@@ -208,13 +254,14 @@ body.dark-mode .projects-section {
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
-    transition: all var(--transition);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     box-shadow: 0 2px 8px var(--shadow);
+    will-change: transform;
 }
 
 .project-card:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 16px 32px var(--shadow);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 28px var(--shadow);
     border-color: var(--accent);
 }
 
@@ -229,7 +276,7 @@ body.dark-mode .projects-section {
 }
 
 .project-card:hover .project-image {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
     color: #fff;
 }
 
@@ -273,13 +320,33 @@ body.dark-mode .projects-section {
 .projects-slider {
     overflow: hidden;
     position: relative;
+    /* Vertical padding gives hovering cards room to lift/shadow without clipping */
+    padding-top: 12px;
+    margin-top: -12px;
+    padding-bottom: 20px;
+    margin-bottom: -20px;
+    /* Fade edges for a natural bleed effect */
+    mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        #000 8%,
+        #000 92%,
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        #000 8%,
+        #000 92%,
+        transparent 100%
+    );
 }
 
 .projects-track {
     display: flex;
     gap: 1.5rem;
     width: max-content;
-    animation: scrollProjects 40s linear infinite;
+    animation: scrollProjects 45s linear infinite;
 }
 
 .projects-track .project-card {
@@ -289,12 +356,35 @@ body.dark-mode .projects-section {
 }
 
 @keyframes scrollProjects {
-    0% { transform: translateX(0); }
+    0%   { transform: translateX(0); }
     100% { transform: translateX(-50%); }
 }
 
+/* Pause scroll on hover; transition eases the stop/start */
 .projects-slider:hover .projects-track {
     animation-play-state: paused;
+}
+
+/* ======================================
+   Projects Index Page (/Projects)
+   ====================================== */
+.projects-index-section {
+    background-color: var(--background);
+    min-height: calc(100vh - 64px);
+}
+
+body.dark-mode .projects-index-section {
+    background-color: var(--surface);
+}
+
+.projects-back-link {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    transition: color var(--transition);
+}
+
+.projects-back-link:hover {
+    color: var(--accent);
 }
 
 /* ======================================

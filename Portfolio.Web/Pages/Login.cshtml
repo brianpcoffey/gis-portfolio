@@ -2,13 +2,43 @@
 @model LoginModel
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Sign In";
 }
 
-<div class="container py-5 text-center">
-    <h2 class="mb-4">Sign in</h2>
-    <a class="btn btn-google btn-lg" href="/Login?handler=Google&ReturnUrl=@Uri.EscapeDataString(Model.ReturnUrl ?? "/")">
-        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" class="btn-google-logo" />
-        Sign in with Google
-    </a>
-</div>
+<section class="login-section" aria-labelledby="loginHeading">
+    <div class="login-card-wrapper">
+        <div class="login-card-inner">
+
+            <!-- Brand mark -->
+            <div class="login-brand" aria-hidden="true">
+                <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+
+            <h1 id="loginHeading" class="login-title">Welcome back</h1>
+            <p class="login-subtitle">Sign in to manage your saved features and collections.</p>
+
+            <a class="btn btn-google btn-lg login-google-btn"
+               href="/Login?handler=Google&ReturnUrl=@Uri.EscapeDataString(Model.ReturnUrl ?? "/")"
+               aria-label="Sign in with Google">
+                <img src="https://developers.google.com/identity/images/g-logo.png"
+                     alt=""
+                     class="btn-google-logo"
+                     aria-hidden="true" />
+                Continue with Google
+            </a>
+
+            <p class="login-privacy">
+                <i class="fa-solid fa-lock fa-xs me-1" aria-hidden="true"></i>
+                Your account is secured via Google OAuth. We never store your password.
+            </p>
+
+            <div class="login-divider" aria-hidden="true"></div>
+
+            <a href="/" class="login-back-link">
+                <i class="fa-solid fa-arrow-left fa-xs me-1" aria-hidden="true"></i>
+                Back to portfolio
+            </a>
+
+        </div>
+    </div>
+</section>
