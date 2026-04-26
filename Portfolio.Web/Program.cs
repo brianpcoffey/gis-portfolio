@@ -241,12 +241,12 @@ app.UseSession();
 // Global exception handler — returns RFC 7807 ProblemDetails for all unhandled exceptions.
 app.UseMiddleware<ApiExceptionMiddleware>();
 
-// Insert anonymous user middleware BEFORE controllers/pages so the profile is available
-app.UseMiddleware<AnonymousUserMiddleware>();
-
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Insert anonymous user middleware AFTER authentication so context.User is populated
+// for authenticated users (Google sign-in) and AnonUserId cookie for anonymous users.
+app.UseMiddleware<AnonymousUserMiddleware>();
 
 // --------------------------
 // Swagger UI
