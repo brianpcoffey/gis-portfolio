@@ -42,8 +42,12 @@ namespace Portfolio.Services.Services
         };
 
         // Token-level patterns used during parsing.
-        private static readonly Regex ZipTokenPattern   = new(@"^\d{5}(-\d{4})?$", RegexOptions.Compiled);
-        private static readonly Regex NormalizeSpaces   = new(@"\s+", RegexOptions.Compiled);
+        private static readonly Regex ZipTokenPattern    = new(@"^\d{5}(-\d{4})?$", RegexOptions.Compiled);
+        private static readonly Regex NormalizeSpaces    = new(@"\s+", RegexOptions.Compiled);
+        private static readonly Regex HouseNumberPattern = new(@"^(\d+)\s+", RegexOptions.Compiled);
+        private static readonly Regex UnitPattern        = new(@"\b(apt|suite|ste|unit|#)\s*\S+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex StateZipPattern    = new(@"\b([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\b", RegexOptions.Compiled);
+        private static readonly Regex ZipPattern         = new(@"\b(\d{5}(?:-\d{4})?)\b", RegexOptions.Compiled);
 
         // Unit designator keywords (case-insensitive token match).
         private static readonly HashSet<string> UnitKeywords = new(StringComparer.OrdinalIgnoreCase)
@@ -157,6 +161,7 @@ namespace Portfolio.Services.Services
             var houseNumber  = string.Empty;
             var streetName   = string.Empty;
             var streetSuffix = string.Empty;
+            var directional  = string.Empty;
             var unit         = string.Empty;
             var city         = string.Empty;
             var state        = string.Empty;
@@ -211,18 +216,17 @@ namespace Portfolio.Services.Services
             streetName = ToTitleCase(string.Join(" ", streetNameTokens));
 
             // ── Step 8: Directional qualifier after suffix ──
-            // A directional token immediately after the suffix (e.g. "NW" in "Ave NW") is appended
-            // to StreetName as a qualifier rather than treated as the start of the city.
-            // Only consume it if it is not also the state abbreviation and not the last token.
+            // A directional token immediately after the suffix (e.g. "NW" in "Ave NW") is stored
+            // separately so it can be placed after the expanded suffix in the standardized address
+            // ("Pennsylvania Avenue NW"), not before it.
+            // Only consume it if it is not also a valid state abbreviation.
             if (suffixFound && cursor <= end)
             {
                 var tok = tokens[cursor];
                 if (Directionals.Contains(tok)
-                    && !string.Equals(tok, state, StringComparison.OrdinalIgnoreCase))
+                    && !UsStateAbbreviations.Contains(tok))
                 {
-                    streetName = string.IsNullOrEmpty(streetName)
-                        ? tok.ToUpperInvariant()
-                        : $"{streetName} {tok.ToUpperInvariant()}";
+                    directional = tok.ToUpperInvariant();
                     cursor++;
                 }
             }
@@ -274,8 +278,9 @@ namespace Portfolio.Services.Services
             }
 
             // ── Step 10: StandardizedAddress ──
+            // directional goes after the expanded suffix: "Pennsylvania Avenue NW".
             var streetPart = string.Join(" ",
-                new[] { houseNumber, streetName, streetSuffix }.Where(s => !string.IsNullOrEmpty(s)));
+                new[] { houseNumber, streetName, streetSuffix, directional }.Where(s => !string.IsNullOrEmpty(s)));
 
             var unitPart   = string.IsNullOrEmpty(unit) ? string.Empty : $" {unit}";
             var localePart = string.Join(", ",
