@@ -96,7 +96,8 @@ namespace Portfolio.Tests.Services
             Assert.Equal("CO", result.State);
             Assert.Empty(result.PostalCode);
             Assert.True(result.ParseConfidence < 1.0);
-            Assert.Equal(0.8, result.ParseConfidence, precision: 5); // 4 of 5 components
+            // 5 of 6 components (no PostalCode); denominator is 6 when unit is absent.
+            Assert.Equal(5.0 / 6.0, result.ParseConfidence, precision: 5);
         }
 
         // ── Parse empty input ─────────────────────────────────────────────────
@@ -120,16 +121,26 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task ValidateAsync_HighScoreResult_ReturnsHighTier()
         {
-            // Arrange
-            var json = BuildCandidateResponse("123 Main Street, Springfield, IL 62701, USA", 95.0);
+            // Arrange — use exact ArcGIS wire-format JSON (lowercase field names, with location).
+            var json = """
+                {
+                  "candidates": [
+                    {
+                      "address": "1600 Pennsylvania Ave NW, Washington, DC 20500",
+                      "score": 100,
+                      "location": { "x": -77.0366, "y": 38.8971 }
+                    }
+                  ]
+                }
+                """;
             var service = CreateService(json);
 
             // Act
-            var result = await service.ValidateAsync("123 Main St, Springfield, IL 62701");
+            var result = await service.ValidateAsync("1600 pennsylvania ave nw washington dc 20500");
 
             // Assert
             Assert.Equal(ConfidenceTier.High, result.ConfidenceTier);
-            Assert.Equal(95.0, result.Score);
+            Assert.Equal(100.0, result.Score);
             Assert.NotEmpty(result.MatchedAddress);
         }
 
@@ -210,6 +221,27 @@ namespace Portfolio.Tests.Services
 
             // Assert
             Assert.Equal(expectedSuffix, result.StreetSuffix);
+        }
+
+        // ── Directional qualifier does not consume city ────────────────────────
+
+        [Fact]
+        public async Task Parse_DirectionalAfterSuffix_DoesNotEatCity()
+        {
+            // Arrange
+            var service = CreateService("{}");
+
+            // Act
+            var result = await service.ParseAsync("1600 pennsylvania ave nw washington dc 20500");
+
+            // Assert — directional "NW" must not bleed into City
+            Assert.Equal("Washington", result.City);
+            Assert.DoesNotContain("Nw",         result.City,       StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Washington", result.StreetName, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("Avenue", result.StreetSuffix);
+            Assert.Equal("1600",   result.HouseNumber);
+            Assert.Equal("DC",     result.State);
+            Assert.Equal("20500",  result.PostalCode);
         }
 
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler

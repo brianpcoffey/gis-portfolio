@@ -41,12 +41,21 @@ namespace Portfolio.Services.Services
             "DC","PR","VI","GU","MP","AS"
         };
 
-        // Regex patterns used during parsing.
-        private static readonly Regex ZipPattern        = new(@"\b(\d{5}(?:-\d{4})?)\b", RegexOptions.Compiled);
-        private static readonly Regex StateZipPattern   = new(@"\b([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\b", RegexOptions.Compiled);
-        private static readonly Regex HouseNumberPattern = new(@"^(\d+[A-Za-z]?)\s+", RegexOptions.Compiled);
-        private static readonly Regex UnitPattern       = new(@"\b(?:Apt|Suite|Ste|Unit|#)\s*([A-Za-z0-9-]+)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        // Token-level patterns used during parsing.
+        private static readonly Regex ZipTokenPattern   = new(@"^\d{5}(-\d{4})?$", RegexOptions.Compiled);
         private static readonly Regex NormalizeSpaces   = new(@"\s+", RegexOptions.Compiled);
+
+        // Unit designator keywords (case-insensitive token match).
+        private static readonly HashSet<string> UnitKeywords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Apt", "Suite", "Ste", "Unit", "#"
+        };
+
+        // Post-suffix directional qualifiers that are NOT city/state tokens.
+        private static readonly HashSet<string> Directionals = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "N", "S", "E", "W", "NW", "NE", "SW", "SE"
+        };
 
         public AddressStandardizationService(HttpClient httpClient, ILogger<AddressStandardizationService> logger)
         {
@@ -136,122 +145,135 @@ namespace Portfolio.Services.Services
             }
         }
 
-        // Core parsing logic. All string manipulation starts from a normalised lowercase copy,
-        // but casing is restored for suffix expansion and state abbreviations.
+        // Core parsing logic: token-based pipeline.
+        // Commas are treated as whitespace; all parsing is driven by a single flat token array
+        // so that comma-delimited and comma-free address formats are handled identically.
         private static AddressParsedDto ParseAddress(string rawAddress)
         {
-            // Normalise whitespace; keep a working copy (preserves original casing for readback).
-            var working = NormalizeSpaces.Replace(rawAddress.Trim(), " ");
+            // Normalise: collapse whitespace, replace commas with spaces, then re-split into tokens.
+            var normalised = NormalizeSpaces.Replace(rawAddress.Replace(',', ' ').Trim(), " ");
+            var tokens = normalised.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-            var houseNumber = string.Empty;
-            var streetName  = string.Empty;
+            var houseNumber  = string.Empty;
+            var streetName   = string.Empty;
             var streetSuffix = string.Empty;
-            var unit        = string.Empty;
-            var city        = string.Empty;
-            var state       = string.Empty;
-            var postalCode  = string.Empty;
+            var unit         = string.Empty;
+            var city         = string.Empty;
+            var state        = string.Empty;
+            var postalCode   = string.Empty;
 
-            // ── Extract unit designator (before splitting on comma so it doesn't confuse city) ──
-            var unitMatch = UnitPattern.Match(working);
-            if (unitMatch.Success)
+            var cursor = 0;
+            var end    = tokens.Length - 1; // exclusive upper bound (shrinks as tail tokens are consumed)
+
+            // ── Step 5 & 6: consume PostalCode and State from the tail first ──
+            // This anchors the tail so everything in between is city/street.
+            if (end >= 0 && ZipTokenPattern.IsMatch(tokens[end]))
             {
-                unit = unitMatch.Value.Trim();
-                working = working.Remove(unitMatch.Index, unitMatch.Length).Trim();
-                working = NormalizeSpaces.Replace(working, " ");
+                postalCode = tokens[end];
+                end--;
             }
 
-            // ── Split on commas to separate the street line from city/state/zip ──
-            var parts = working.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            // ── Parse state + ZIP from the last segment(s) ──
-            // Look for "TX 75001" or "TX 75001-1234" pattern anywhere in the tail.
-            for (var i = parts.Length - 1; i >= 0; i--)
+            if (end >= 0 && tokens[end].Length == 2 && UsStateAbbreviations.Contains(tokens[end]))
             {
-                var stateZipMatch = StateZipPattern.Match(parts[i]);
-                if (stateZipMatch.Success)
+                state = tokens[end].ToUpperInvariant();
+                end--;
+            }
+
+            // ── Step 2: HouseNumber ──
+            // Matches a leading numeric token (digits only, or digits + single letter suffix like "123A").
+            if (cursor <= end && tokens[cursor].Length > 0
+                && char.IsDigit(tokens[cursor][0])
+                && tokens[cursor].All(c => char.IsDigit(c) || char.IsLetter(c)))
+            {
+                houseNumber = tokens[cursor];
+                cursor++;
+            }
+
+            // ── Step 3: StreetName + StreetSuffix ──
+            // Walk tokens forward until we find one that is a known suffix abbreviation.
+            var streetNameTokens = new List<string>();
+            var suffixFound = false;
+
+            while (cursor <= end)
+            {
+                var tok = tokens[cursor];
+                if (SuffixMap.TryGetValue(tok, out var expandedSuffix))
                 {
-                    var candidate = stateZipMatch.Groups[1].Value.ToUpperInvariant();
-                    if (UsStateAbbreviations.Contains(candidate))
-                    {
-                        state      = candidate;
-                        postalCode = stateZipMatch.Groups[2].Value;
-                        // Remove this segment from parts so the city search ignores it.
-                        parts[i] = StateZipPattern.Replace(parts[i], string.Empty).Trim();
-                        break;
-                    }
+                    streetSuffix = expandedSuffix;
+                    cursor++;
+                    suffixFound = true;
+                    break;
                 }
+                streetNameTokens.Add(tok);
+                cursor++;
+            }
 
-                // ZIP alone (no preceding state abbreviation found)
-                if (string.IsNullOrEmpty(postalCode))
-                {
-                    var zipOnly = ZipPattern.Match(parts[i]);
-                    if (zipOnly.Success)
-                    {
-                        postalCode = zipOnly.Value;
-                        parts[i] = parts[i].Replace(zipOnly.Value, string.Empty).Trim();
-                    }
-                }
+            streetName = ToTitleCase(string.Join(" ", streetNameTokens));
 
-                // Bare state abbreviation (e.g. "CO") when no ZIP is present in this segment.
-                if (string.IsNullOrEmpty(state))
+            // ── Step 8: Directional qualifier after suffix ──
+            // A directional token immediately after the suffix (e.g. "NW" in "Ave NW") is appended
+            // to StreetName as a qualifier rather than treated as the start of the city.
+            // Only consume it if it is not also the state abbreviation and not the last token.
+            if (suffixFound && cursor <= end)
+            {
+                var tok = tokens[cursor];
+                if (Directionals.Contains(tok)
+                    && !string.Equals(tok, state, StringComparison.OrdinalIgnoreCase))
                 {
-                    var trimmed = parts[i].Trim();
-                    if (trimmed.Length == 2 && UsStateAbbreviations.Contains(trimmed))
-                    {
-                        state = trimmed.ToUpperInvariant();
-                        parts[i] = string.Empty;
-                        break;
-                    }
+                    streetName = string.IsNullOrEmpty(streetName)
+                        ? tok.ToUpperInvariant()
+                        : $"{streetName} {tok.ToUpperInvariant()}";
+                    cursor++;
                 }
             }
 
-            // ── City: the segment immediately before the state/ZIP segment, or last non-empty part ──
-            // The street is always parts[0]; city is the second-to-last meaningful segment.
-            var nonEmptyParts = parts.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
-
-            var streetSegment = nonEmptyParts.Count > 0 ? nonEmptyParts[0] : string.Empty;
-
-            if (nonEmptyParts.Count >= 2)
+            // ── Step 4: Unit designator ──
+            // Check whether the token at cursor is a unit keyword; if so, consume keyword + value.
+            if (cursor <= end && UnitKeywords.Contains(tokens[cursor]))
             {
-                // When there are 3+ segments: [street, city, state/zip-remnant]
-                // When there are 2 segments: [street, city]
-                city = ToTitleCase(nonEmptyParts[nonEmptyParts.Count == 2 ? 1 : nonEmptyParts.Count - 1]);
-            }
-
-            // ── Parse house number from street segment ──
-            var houseMatch = HouseNumberPattern.Match(streetSegment);
-            if (houseMatch.Success)
-            {
-                houseNumber   = houseMatch.Groups[1].Value;
-                streetSegment = streetSegment[houseMatch.Length..].Trim();
-            }
-
-            // ── Expand street suffix abbreviation ──
-            var streetTokens = streetSegment.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (streetTokens.Length > 0)
-            {
-                var lastToken = streetTokens[^1];
-                if (SuffixMap.TryGetValue(lastToken, out var expanded))
+                var keyword = tokens[cursor];
+                cursor++;
+                if (cursor <= end)
                 {
-                    streetSuffix = expanded;
-                    streetName   = ToTitleCase(string.Join(" ", streetTokens[..^1]));
+                    unit = $"{ToTitleCase(keyword)} {tokens[cursor].ToUpperInvariant()}";
+                    cursor++;
                 }
                 else
                 {
-                    streetName = ToTitleCase(streetSegment);
+                    unit = ToTitleCase(keyword);
                 }
             }
 
-            // ── Compute parse confidence (how many of the 5 core components were extracted) ──
+            // ── Step 7: City ──
+            // All tokens remaining between cursor and end (inclusive) form the city.
+            if (cursor <= end)
+            {
+                city = ToTitleCase(string.Join(" ", tokens[cursor..(end + 1)]));
+            }
+
+            // ── Step 9: ParseConfidence ──
+            // Denominator is 6 when no unit is present (unit is optional and not penalised),
+            // 7 when a unit was extracted (all 7 components are in play).
             var found = 0;
-            if (!string.IsNullOrEmpty(houseNumber)) found++;
-            if (!string.IsNullOrEmpty(streetName))  found++;
+            if (!string.IsNullOrEmpty(houseNumber))  found++;
+            if (!string.IsNullOrEmpty(streetName))   found++;
+            if (!string.IsNullOrEmpty(streetSuffix)) found++;
             if (!string.IsNullOrEmpty(city))         found++;
             if (!string.IsNullOrEmpty(state))        found++;
             if (!string.IsNullOrEmpty(postalCode))   found++;
-            var parseConfidence = found / 5.0;
 
-            // ── Build standardized single-line address ──
+            double parseConfidence;
+            if (!string.IsNullOrEmpty(unit))
+            {
+                found++;
+                parseConfidence = found / 7.0;
+            }
+            else
+            {
+                parseConfidence = found / 6.0;
+            }
+
+            // ── Step 10: StandardizedAddress ──
             var streetPart = string.Join(" ",
                 new[] { houseNumber, streetName, streetSuffix }.Where(s => !string.IsNullOrEmpty(s)));
 
