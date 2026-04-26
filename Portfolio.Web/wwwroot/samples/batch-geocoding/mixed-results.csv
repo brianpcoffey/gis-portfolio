@@ -1,0 +1,13 @@
+Id,Address,City,State,Zip
+1,123 Main St,Springfield,IL,62701
+2,456 Oak Ave,Portland,OR,97201
+3,789 Elm Blvd,Austin,TX,78701
+4,321 Maple Dr,Nashville,TN,37201
+5,654 Pine Rd,Denver,CO,80201
+6,987 Cedar Ln,Phoenix,AZ,85001
+7,111 Birch Ct,Charlotte,NC,28201
+8,222 Walnut Way,Columbus,OH,43201
+9,333 Spruce St,Indianapolis,IN,46201
+10,INVALID ADDRESS,,XX,00000
+11,444 Willow Pl,Louisville,KY,40201
+12,555 Chestnut Ave,Memphis,TN,38101
