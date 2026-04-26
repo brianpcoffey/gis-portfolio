@@ -18,7 +18,7 @@ public class UserProfileSeedService
     public async Task SeedForUserAsync(Guid userId)
     {
         var providerName = _db.Database.ProviderName;
-        IDbContextTransaction tx = null;
+        IDbContextTransaction? tx = null;
         try
         {
             if (string.IsNullOrEmpty(providerName) ||
