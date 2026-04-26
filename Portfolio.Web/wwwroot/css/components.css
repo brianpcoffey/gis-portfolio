@@ -154,6 +154,8 @@ body.dark-mode .card-header {
     background-color: var(--background);
     color: var(--text);
     border-bottom-color: var(--border);
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
 }
 
 /* Outline secondary buttons */

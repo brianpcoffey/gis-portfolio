@@ -237,3 +237,18 @@ body.dark-mode .nav-tabs .nav-link.active.bg-body {
   border-color: var(--border) var(--border) var(--surface) !important;
   z-index: 2;
 }
+
+/* === Dark mode card header fix (prevents clipped corners) === */
+.theme-card-header {
+  background-color: var(--surface, #fff);
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.125));
+  color: var(--text, inherit);
+}
+
+body.dark-mode .theme-card-header {
+  background-color: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-top-left-radius: inherit !important;
+  border-top-right-radius: inherit !important;
+}
