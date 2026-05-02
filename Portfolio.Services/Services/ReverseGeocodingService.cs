@@ -1,17 +1,19 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.ArcGis;
 using Portfolio.Common.DTOs;
+using Portfolio.Common.Serialization;
 using Portfolio.Services.Interfaces;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {
     public class ReverseGeocodingService : IReverseGeocodingService
     {
         private readonly HttpClient _httpClient;
-        private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
         private readonly ILogger<ReverseGeocodingService> _logger;
         private readonly double _gridResolution;
         private readonly int _cacheSlidingExpirationMinutes;
@@ -21,7 +23,7 @@ namespace Portfolio.Services.Services
 
         public ReverseGeocodingService(
             HttpClient httpClient,
-            IMemoryCache cache,
+            IDistributedCache cache,
             ILogger<ReverseGeocodingService> logger,
             IConfiguration configuration)
         {
@@ -47,17 +49,23 @@ namespace Portfolio.Services.Services
             var snappedLng = SnapToGrid(longitude, _gridResolution);
             var cacheKey = $"reversegeocode:{snappedLat:R}:{snappedLng:R}";
 
-            if (_cache.TryGetValue(cacheKey, out ReverseGeocodingResultDto? cached) && cached is not null)
+            var cachedBytes = await _cache.GetAsync(cacheKey, cancellationToken);
+            if (cachedBytes is not null)
             {
-                return cached;
+                var cached = JsonSerializer.Deserialize<ReverseGeocodingResultDto>(
+                    cachedBytes, PortfolioJsonOptions.Default);
+                if (cached is not null)
+                    return cached;
             }
 
             var result = await FetchReverseGeocodeAsync(snappedLat, snappedLng, cancellationToken);
 
-            _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
-            {
-                SlidingExpiration = TimeSpan.FromMinutes(_cacheSlidingExpirationMinutes)
-            });
+            await _cache.SetAsync(cacheKey,
+                JsonSerializer.SerializeToUtf8Bytes(result, PortfolioJsonOptions.Default),
+                new DistributedCacheEntryOptions
+                {
+                    SlidingExpiration = TimeSpan.FromMinutes(_cacheSlidingExpirationMinutes)
+                }, cancellationToken);
 
             return result;
         }

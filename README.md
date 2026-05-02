@@ -63,7 +63,7 @@ Razor Page / API Controller  (Portfolio.Web)
 - Structured logging with `ILogger<T>` across all services, repositories, and controllers
 - `ApiExceptionMiddleware` for centralized error handling
 - All async methods accept and forward `CancellationToken`
-- `IMemoryCache` shared across geocoding services for deduplication and result caching
+- `IDistributedCache` shared across geocoding services for deduplication and result caching (Redis in production, in-memory fallback locally)
 - EF Core migrations run automatically at startup via `db.Database.Migrate()`
 
 ---
@@ -88,7 +88,7 @@ GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on 
 Upload a CSV of addresses and geocode them in bulk via the ArcGIS `findAddressCandidates` endpoint. Results are shown in an interactive DataTables grid with match rates, scores, coordinates, and CSV export support.
 
 - Producer/consumer pipeline using `System.Threading.Channels` with configurable concurrency (`BatchGeocoding:MaxConcurrency`, default 4)
-- `IMemoryCache` deduplication — repeated addresses in the same upload hit the cache instead of ArcGIS
+- `IDistributedCache` deduplication — repeated addresses in the same upload hit the cache instead of ArcGIS (Redis in production, in-process fallback locally)
 - Configurable minimum match score (`BatchGeocoding:MinMatchScore`, default 80)
 - Sample CSV files included under `wwwroot/samples/batch-geocoding/`
 
@@ -102,7 +102,7 @@ Upload a CSV of addresses and geocode them in bulk via the ArcGIS `findAddressCa
 Click anywhere on an interactive ArcGIS map to instantly resolve the address at that location. Supports manual coordinate entry and displays a history of recent lookups.
 
 - Coordinate grid-snapping before cache lookup so nearby clicks share cached results (`ReverseGeocoding:GridResolutionDegrees`, default 0.001°)
-- Sliding-expiration `IMemoryCache` (`ReverseGeocoding:CacheSlidingExpirationMinutes`, default 30 min)
+- Sliding-expiration `IDistributedCache` (`ReverseGeocoding:CacheSlidingExpirationMinutes`, default 30 min)
 - Validates lat (−90..90) and lng (−180..180) with descriptive error messages
 
 **Stack:** ArcGIS, C#, .NET, Maps
@@ -143,11 +143,13 @@ Industrial plant operations dashboard for a fiberglass ducting manufacturer. Pro
 | ORM | Entity Framework Core (code-first, fluent mappings, migrations) |
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
-| Caching | `IMemoryCache` (geocoding deduplication & result caching) |
+| Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
 | API Docs | Scalar / OpenAPI (always-on, XML doc comments) |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
 | Database Hosting | Neon.tech PostgreSQL |
+| Containerization | Docker (multi-stage build), Docker Compose (local dev with Redis) |
+| Orchestration | Kubernetes manifests (Deployment, Service, HPA, ConfigMap, Secret) |
 
 ---
 
@@ -206,7 +208,7 @@ Industrial plant operations dashboard for a fiberglass ducting manufacturer. Pro
 dotnet test
 ```
 
-168 tests — all passing (xUnit + Moq, no integration/DB tests).
+351 tests — all passing (xUnit + Moq, no integration/DB tests).
 
 ---
 
@@ -227,18 +229,45 @@ Key settings in `appsettings.json`:
   "ReverseGeocoding": {
     "GridResolutionDegrees": 0.001,
     "CacheSlidingExpirationMinutes": 30
+  },
+  "Redis": {
+    "ConnectionString": ""
   }
 }
 ```
+
+Leaving `Redis:ConnectionString` empty activates the in-process `MemoryDistributedCache` fallback — Redis is only required in production. Set it via the `Redis__ConnectionString` environment variable (double-underscore is the .NET config hierarchy separator).
 
 ---
 
 ## Deployment
 
-- Hosted on **Render** with continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/portfolio).
+### Render (current production)
+- Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/portfolio).
 - Database hosted on **Neon.tech** PostgreSQL.
-- EF Core migrations run automatically at startup — no manual migration step required in production.
-- HTTPS redirection and HSTS are enabled in non-development environments.
+- EF Core migrations run automatically at startup — no manual migration step required.
+- HTTPS redirection and HSTS enabled in non-development environments.
+- Secrets (`DATABASE_URL`, `Redis__ConnectionString`, Google OAuth credentials) are injected as environment variables.
+
+### Docker (local dev + staging)
+```bash
+# Build and run with a local Redis sidecar
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up
+```
+The base `docker/docker-compose.yml` defines the `portfolio` app and a `redis:7-alpine` sidecar with a health check. The override injects `DATABASE_URL` and sets `Redis__ConnectionString=redis:6379,abortConnect=false`.
+
+### Kubernetes (manifests in `k8s/`)
+See [`k8s/README.md`](k8s/README.md) for full deploy order. Quick reference:
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml   # fill in real values first
+kubectl apply -f k8s/redis.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/hpa.yaml
+```
+The HPA scales between 2 and 10 replicas based on CPU (70%) and memory (80%) utilization. All replicas share geocoding cache and job state via Redis.
 
 ---
 

@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  portfolio:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_RUNNING_IN_CONTAINER=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - portfolio-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+    networks:
+      - portfolio-net
+
+volumes:
+  redis-data:
+
+networks:
+  portfolio-net:
+    driver: bridge

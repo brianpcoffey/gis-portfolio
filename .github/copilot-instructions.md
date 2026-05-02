@@ -25,7 +25,7 @@ order management domain, and a home-finder property scoring feature.
 | `Portfolio.Tests` | xUnit + Moq unit tests for services and controllers |
 
 **Architecture:** Classic 4-layer (Razor Pages / Controllers -> Services ->
-Repositories -> EF Core / SQL Server). DTOs cross every boundary leaving the
+Repositories -> EF Core / PostgreSQL). DTOs cross every boundary leaving the
 service layer. All API controllers are versioned under `api/v{version}` using
 `Asp.Versioning`.
 
@@ -37,7 +37,7 @@ service layer. All API controllers are versioned under `api/v{version}` using
 - ArcGIS proxy querying `sampleserver6.arcgisonline.com`
 - Google OAuth login (Cookie + Google authentication schemes)
 - **Batch Geocoding** - CSV upload -> async job pipeline -> ArcGIS `findAddressCandidates` -> `IBatchJobStore` + Polly circuit breaker
-- **Reverse Geocoding** - lat/lng -> grid-snapped `IMemoryCache` -> ArcGIS `reverseGeocode`
+- **Reverse Geocoding** - lat/lng -> grid-snapped `IDistributedCache` -> ArcGIS `reverseGeocode`
 - **Address Standardization & Validation** - freeform parse -> suffix normalization -> ArcGIS validation with fallback and `ConfidenceTier`
 - **Fiber Order Management** - CRUD for orders, materials, shipments, and clients; dashboard aggregation (MTD revenue, open orders, active shipments, low-stock alerts, top clients, orders-by-status)
 - **Home Finder** - preference-based property scoring, saved searches, property detail lookup
@@ -170,7 +170,7 @@ builder.Services.AddScoped<IXxxService, XxxService>();
   `AddHttpClient<IArcGisService, ArcGisService>()`. Preserve both lines if
   you touch DI registration; the typed `HttpClient` is what the service
   actually consumes.
-- `PortfolioDbContext` is registered via `AddDbContext` with SQL Server.
+- `PortfolioDbContext` is registered via `AddDbContext` with **PostgreSQL** (Npgsql provider).
 - New services/repositories MUST be registered in `Program.cs` immediately
   next to the existing block under `// Dependency Injection`.
 - The three geocoding services are registered as both a scoped service **and**
@@ -179,11 +179,15 @@ builder.Services.AddScoped<IXxxService, XxxService>();
   - `IBatchGeocodingService` / `BatchGeocodingService`
   - `IReverseGeocodingService` / `ReverseGeocodingService`
   - `IAddressStandardizationService` / `AddressStandardizationService`
-- `IMemoryCache` is registered once via `builder.Services.AddMemoryCache()`;
-  it is shared by `ReverseGeocodingService` and `BatchGeocodingService`.
-- `IBatchJobStore` / `InMemoryBatchJobStore` is registered as **Singleton**
-  (the only singleton in the app) so in-flight job state survives across
-  scoped requests.
+- `IDistributedCache` is registered conditionally: when `Redis:ConnectionString` is non-empty,
+  `AddStackExchangeRedisCache` is used; otherwise `AddDistributedMemoryCache` provides an
+  in-process fallback. Both `BatchGeocodingService` and `ReverseGeocodingService` consume
+  `IDistributedCache` for geocoding deduplication.
+- `AddMemoryCache()` is still registered for any remaining `IMemoryCache` consumers.
+- `IBatchJobStore` is registered conditionally as **Singleton**:
+  - `RedisBatchJobStore` when `Redis:ConnectionString` is non-empty (cross-pod job state).
+  - `InMemoryBatchJobStore` otherwise (local dev / Render free tier).
+  Both implementations are the only singletons in the app.
 - Fiber services and repositories (`IFiberOrderService`, `IFiberMaterialService`,
   `IFiberShipmentService`, `IFiberClientService`, `IFiberDashboardService`, and
   their repository counterparts) are all registered as `Scoped`.
@@ -242,8 +246,7 @@ builder.Services.AddScoped<IXxxService, XxxService>();
 
 ## 6. Data Access Rules
 
-- ORM: **Entity Framework Core** (SQL Server provider). No Dapper, no raw
-  SQL.
+- ORM: **Entity Framework Core** (PostgreSQL/Npgsql provider). No Dapper, no raw SQL.
 - `PortfolioDbContext` is the only `DbContext`. Never instantiate it
   directly outside the repository layer.
 - Entity <-> table mapping lives in `Portfolio.Repositories/Mappings/*Map.cs`
@@ -337,6 +340,7 @@ Portfolio.Common/
   DTOs/           -- Service/controller data transfer objects
   Enums/          -- Shared enumerations (e.g. ConfidenceTier)
   ArcGis/         -- ArcGIS HTTP response wire models
+  Serialization/  -- Shared JsonSerializerOptions (PortfolioJsonOptions.cs)
 ```
 
 ### ArcGIS wire models (`Portfolio.Common/ArcGis/`)
@@ -397,22 +401,28 @@ Rules for ArcGIS wire models:
 
 **Service:** `Portfolio.Services/Services/BatchGeocodingService.cs`
 - Reads and validates the uploaded CSV (must have at least a header + 1 data row).
+- **`IFormFile` stream is read to `byte[]` on the request thread** before any `Task.Run`
+  closure, so the stream lifetime never crosses an async boundary.
 - Uses `System.Threading.Channels.Channel<T>` as a producer/consumer pipeline
   for concurrent geocoding without creating unbounded threads.
 - Concurrency limit and minimum match score are read from configuration:
   - `BatchGeocoding:MaxConcurrency` (default: 4)
   - `BatchGeocoding:MinMatchScore` (default: 80)
-- Deduplicates repeated addresses using `IMemoryCache` (keyed on normalized address).
+  - `BatchGeocoding:CacheTtlMinutes` (default: 60)
+- Deduplicates repeated addresses using `IDistributedCache` (keyed on normalized address,
+  serialized to JSON via `PortfolioJsonOptions.Default`).
 - Calls ArcGIS `findAddressCandidates` via typed `HttpClient`.
-- Updates the `BatchJob` record (progress, cache hits, failed rows, avg score,
-  throughput) in `IBatchJobStore` during and after processing.
-- Protected by a **Polly circuit breaker** (`CircuitBreakerAsync`) around ArcGIS
-  HTTP calls; opens after 5 failures within 60 s; resets after 15 s.
+- Updates the `BatchJob` record at each state transition (`Queued → Processing → TotalRows set → Completed/Failed`)
+  via `IBatchJobStore.UpdateAsync` so Redis-backed replicas always read the latest snapshot.
+- Protected by a **Polly resilience pipeline** around ArcGIS HTTP calls.
 
 **Job store abstraction:** `Portfolio.Services/Abstractions/IBatchJobStore`
 - `CreateAsync`, `GetAsync`, `UpdateAsync` -- create/read/update a `BatchJob`.
-- Implementation: `Portfolio.Services.InMemoryBatchJobStore` -- thread-safe
-  `ConcurrentDictionary<string, BatchJob>`; registered as Singleton.
+- **`InMemoryBatchJobStore`** (`Portfolio.Services/`) -- thread-safe `ConcurrentDictionary<string, BatchJob>`;
+  registered as Singleton when `Redis:ConnectionString` is empty (local dev / Render).
+- **`RedisBatchJobStore`** (`Portfolio.Services/`) -- serializes the full `BatchJob` to JSON
+  on every write via `PortfolioJsonOptions.Default`; 24-hour TTL per job; registered as
+  Singleton when `Redis:ConnectionString` is non-empty.
 
 **Models / DTOs** (all in `Portfolio.Common/`):
 - `BatchJob` (`Models/`) -- `JobId`, `Status` (`BatchJobStatus` enum), `SubmittedAt`,
@@ -426,7 +436,8 @@ Rules for ArcGIS wire models:
 ```json
 "BatchGeocoding": {
   "MaxConcurrency": 4,
-  "MinMatchScore": 80
+  "MinMatchScore": 80,
+  "CacheTtlMinutes": 60
 }
 ```
 
@@ -443,7 +454,8 @@ Rules for ArcGIS wire models:
 - Validates lat (-90..90) and lng (-180..180); throws `ArgumentException` on bad input.
 - Snaps lat/lng to a configurable grid before using as a cache key, so nearby
   coordinates share a cached result.
-- Caches results in `IMemoryCache` with a sliding expiration.
+- Caches results in `IDistributedCache` with a sliding expiration; value is serialized
+  to JSON using `PortfolioJsonOptions.Default`.
 - Calls ArcGIS `reverseGeocode` via typed `HttpClient`.
 - Throws `KeyNotFoundException` when ArcGIS returns no usable address.
 - Maps to `ReverseGeocodingResultDto` via `private static MapToDto(...)`.
@@ -563,6 +575,55 @@ Each controller exposes standard CRUD (`GET` all, `GET {id}`, `POST`, `PUT {id}`
 
 ---
 
+## 14. Deployment & Containerization
+
+### Docker
+- **`Dockerfile`** (repo root) — multi-stage build: `mcr.microsoft.com/dotnet/sdk:10.0` build stage
+  → `mcr.microsoft.com/dotnet/aspnet:10.0` runtime stage. Sets `ASPNETCORE_URLS`, `ASPNETCORE_ENVIRONMENT=Production`,
+  `DOTNET_RUNNING_IN_CONTAINER=true`. Creates `/app/DataProtection-Keys` directory.
+- **`docker/docker-compose.yml`** (base) — defines `portfolio` app service + `redis:7-alpine` sidecar with
+  `redis-cli ping` healthcheck, named volume `redis-data`, and `portfolio-net` bridge network.
+- **`docker/docker-compose.override.yml`** (local dev) — extends the base: sets
+  `ASPNETCORE_ENVIRONMENT=Development`, passes `DATABASE_URL` from the host environment,
+  sets `Redis__ConnectionString=redis:6379,abortConnect=false`, and mounts
+  `./data/dataprotection:/app/DataProtection-Keys`.
+
+Local dev command:
+```bash
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up
+```
+
+### Kubernetes (`k8s/`)
+
+| File | Purpose |
+|---|---|
+| `namespace.yaml` | `portfolio` namespace |
+| `configmap.yaml` | Non-secret env vars (double-underscore `__` convention for .NET config hierarchy) |
+| `secret.yaml` | Stub secrets — **never commit real values**; use Sealed Secrets or External Secrets in production |
+| `deployment.yaml` | 2-replica Deployment, resource limits/requests, liveness + readiness probes at `/health/live` and `/health/ready`, `emptyDir` volume for DataProtection-Keys (keys live in Redis) |
+| `service.yaml` | ClusterIP, port 80 → targetPort 8080 |
+| `hpa.yaml` | autoscaling/v2 HPA: min 2 / max 10 replicas, CPU 70% + memory 80% |
+| `redis.yaml` | Single-replica Redis Deployment + ClusterIP Service (staging/demo; use managed Redis in production) |
+| `k8s/README.md` | Full deploy order, connection string, health endpoint table, secrets guidance |
+
+### Configuration / secrets conventions
+- **Double-underscore (`__`)** is the .NET config hierarchy separator for environment variables.
+  `Redis__ConnectionString` maps to `Redis:ConnectionString` in `IConfiguration`.
+- **`.env.example`** (repo root) documents all environment variables. Copy to `.env` for local dev; never commit `.env`.
+- `Redis:ConnectionString` left empty → in-memory fallback (no Redis required locally).
+- `DATABASE_URL` accepts both Npgsql format (`Host=...`) and Postgres URI format
+  (`postgres://user:pass@host/db`); `Program.cs` parses both.
+
+### Data Protection key ring
+- **Local dev / Docker (no Redis):** keys persisted to `/app/DataProtection-Keys` on the filesystem.
+- **Production (Redis configured):** keys stored in Redis via `PersistKeysToStackExchangeRedis`
+  under the `DataProtection-Keys` key. All pods share the same key ring, so encrypted cookies
+  and anti-forgery tokens are valid across any replica.
+- The `emptyDir` volume mount in `k8s/deployment.yaml` is intentional — it is not the source
+  of truth when Redis is active.
+
+---
+
 ## 10. Best Practices for AI Agents
 
 ### DO
@@ -650,10 +711,19 @@ Services that use `HttpClient` are tested with a custom `DelegatingHandler`
 subclass (a fake HTTP handler) wired into `new HttpClient(fakeHandler)`.
 Do not mock `HttpClient` directly.
 
+Services that use `IDistributedCache` are tested with a real `MemoryDistributedCache`:
+```csharp
+var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+```
+Do not use `IMemoryCache` / `MemoryCache` in new geocoding or job-store tests.
+
 - `BatchGeocodingServiceTests` -- covers all-matched path, partial/unmatched,
   null/empty/header-only files, no-candidate response, and cancellation.
 - `ReverseGeocodingServiceTests` -- covers happy path, cache-hit deduplication
   (request count assertion), invalid lat/lng, and no-result (`KeyNotFoundException`).
+- `RedisBatchJobStoreTests` -- Create/Get round-trip, unknown key returns null,
+  three-stage Update progression, all four `BatchJobStatus` enum values surviving
+  JSON round-trip (confirms `JsonStringEnumConverter` is wired correctly).
 - `AddressStandardizationServiceTests` -- covers parse happy path, partial input,
   empty input, validation confidence tiers, fallback to City+State+ZIP,
   unresolved result, and a `[Theory]` covering all supported suffix abbreviations.
@@ -692,7 +762,7 @@ Do not mock `HttpClient` directly.
 - `ApiVersioningAttributeTests` -- reflection-based tests that assert every
   versioned controller carries `[ApiVersion("1.0")]` and the correct route prefix.
 
-Total test count as of last verified run: **347 passing, 0 failing**.
+Total test count as of last verified run: **351 passing, 0 failing**.
 
 ---
 
@@ -766,9 +836,11 @@ must be preserved:
     approved pattern for bounded concurrent workloads (see `BatchGeocodingService`).
     Do not use `Parallel.ForEachAsync` or `Task.WhenAll` for unbounded fan-out
     when a concurrency limit is required.
-15. **`IMemoryCache` for geocoding caches** -- injected via constructor; keyed
+15. **`IDistributedCache` for geocoding caches** -- injected via constructor; keyed
     on normalized address string (batch geocoding) or snapped lat/lng string
-    (reverse geocoding). Do not use `IDistributedCache` unless explicitly asked.
+    (reverse geocoding); serialized to/from JSON using `PortfolioJsonOptions.Default`.
+    `IMemoryCache` is still registered but is no longer used by the geocoding services.
+    Do not regress these services back to `IMemoryCache`.
 16. **ArcGIS reverseGeocode returns the street line in `StAddr` consistently
     across all `Addr_type` values.** `Address` (capital A) is populated for
     some types but empty for others (e.g. PointAddress). `MapToDto` must

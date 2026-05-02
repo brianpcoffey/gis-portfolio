@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Portfolio.Services.Services;
 using System.Net;
@@ -24,7 +26,7 @@ namespace Portfolio.Tests.Services
                 .Build();
 
             // Use a fresh cache per test to avoid inter-test cache pollution.
-            var cache = new MemoryCache(new MemoryCacheOptions());
+            var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
             var handler = new FakeHttpMessageHandler(responseJson);
             var httpClient = new HttpClient(handler);
 
@@ -95,12 +97,10 @@ namespace Portfolio.Tests.Services
                 })
                 .Build();
 
-            var cache = new MemoryCache(new MemoryCacheOptions());
+            var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
             var handler = new CountingFakeHandler(json, () => callCount++);
             var httpClient = new HttpClient(handler);
             var service = new ReverseGeocodingService(httpClient, cache, _loggerMock.Object, config);
-
-            // Act — lat 38.8977 and 38.8975 both snap to 38.898 at 0.001 resolution
             await service.ReverseGeocodeAsync(38.8977, -77.0366);
             await service.ReverseGeocodeAsync(38.8975, -77.0366);
 

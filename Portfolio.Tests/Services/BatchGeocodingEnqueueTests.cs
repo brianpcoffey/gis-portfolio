@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Portfolio.Common.Models;
 using Portfolio.Services;
@@ -20,7 +22,7 @@ namespace Portfolio.Tests.Services
     public class BatchGeocodingEnqueueTests
     {
         private readonly Mock<ILogger<BatchGeocodingService>> _loggerMock = new();
-        private readonly IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions());
+        private readonly IDistributedCache _memoryCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
         private static IConfiguration MakeConfig(int maxConcurrency = 2, double minScore = 80.0) =>
             new ConfigurationBuilder()

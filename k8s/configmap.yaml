@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-config
+  namespace: portfolio
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  DOTNET_RUNNING_IN_CONTAINER: "true"
+  BatchGeocoding__MaxConcurrency: "4"
+  BatchGeocoding__MinMatchScore: "80"
+  BatchGeocoding__CacheTtlMinutes: "60"
+  ReverseGeocoding__GridResolutionDegrees: "0.001"
+  ReverseGeocoding__CacheSlidingExpirationMinutes: "30"

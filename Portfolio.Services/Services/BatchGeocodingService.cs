@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.ArcGis;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
+using Portfolio.Common.Serialization;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Channels;
 
 namespace Portfolio.Services.Services
@@ -15,7 +17,7 @@ namespace Portfolio.Services.Services
     public class BatchGeocodingService : IBatchGeocodingService
     {
         private readonly HttpClient _httpClient;
-        private readonly IMemoryCache _cache;
+        private readonly IDistributedCache _cache;
         private readonly ILogger<BatchGeocodingService> _logger;
         private readonly IBatchJobStore _jobStore;
         private readonly int _maxConcurrency;
@@ -27,7 +29,7 @@ namespace Portfolio.Services.Services
 
         public BatchGeocodingService(
             HttpClient httpClient,
-            IMemoryCache cache,
+            IDistributedCache cache,
             ILogger<BatchGeocodingService> logger,
             IBatchJobStore jobStore,
             IConfiguration configuration)
@@ -41,17 +43,27 @@ namespace Portfolio.Services.Services
             _cacheTtlMinutes = configuration.GetValue<int>("BatchGeocoding:CacheTtlMinutes", 60);
         }
 
-        // Parses the uploaded CSV, geocodes each row via producer/consumer channels, and returns results.
-        // Duplicate addresses are served from IMemoryCache to avoid redundant HTTP calls.
-        public async Task<List<BatchGeocodingResultDto>> GeocodeAsync(IFormFile file, CancellationToken cancellationToken = default)
+        // Public overload: delegates to the byte[] overload after reading the stream on the request thread.
+        // Kept for the legacy [Obsolete] sync endpoint and existing tests.
+        public Task<List<BatchGeocodingResultDto>> GeocodeAsync(IFormFile file, CancellationToken cancellationToken = default)
         {
             if (file is null || file.Length == 0)
                 throw new ArgumentException("A non-empty CSV file is required.", nameof(file));
 
-            var rows = ParseCsv(file);
+            using var ms = new MemoryStream();
+            file.OpenReadStream().CopyTo(ms);
+            return GeocodeAsync(ms.ToArray(), file.FileName, cancellationToken);
+        }
+
+        // Core geocoding implementation over raw CSV bytes. All internal callers use this overload
+        // so the IFormFile stream is never captured across an async boundary.
+        private async Task<List<BatchGeocodingResultDto>> GeocodeAsync(
+            byte[] csvBytes, string fileName, CancellationToken cancellationToken = default)
+        {
+            var rows = ParseCsv(csvBytes);
 
             if (rows.Count == 0)
-                throw new ArgumentException("The CSV file contains no data rows.", nameof(file));
+                throw new ArgumentException("The CSV file contains no data rows.", fileName);
 
             _logger.LogInformation("Batch geocoding job started. Record count: {Count}", rows.Count);
 
@@ -95,21 +107,31 @@ namespace Portfolio.Services.Services
         }
 
         // Enqueues a CSV file for background processing and returns a job ID immediately.
-        // The background task calls GeocodeAsync and writes progress back to IBatchJobStore.
+        // The file stream is read on the request thread before Task.Run so the IFormFile
+        // lifetime does not need to extend into the background closure.
         public async Task<string> EnqueueAsync(IFormFile file, CancellationToken ct = default)
         {
+            // Read the entire stream on the request thread, before Task.Run.
+            byte[] fileBytes;
+            using (var ms = new MemoryStream())
+            {
+                await file.OpenReadStream().CopyToAsync(ms, ct);
+                fileBytes = ms.ToArray();
+            }
+            string originalFileName = file.FileName;
+
             var jobId = Guid.NewGuid().ToString("N");
             var job = new BatchJob
             {
                 JobId       = jobId,
                 Status      = BatchJobStatus.Queued,
                 SubmittedAt = DateTimeOffset.UtcNow,
-                FileName    = file.FileName
+                FileName    = originalFileName
             };
 
             await _jobStore.CreateAsync(job, ct);
 
-            // Fire and forget — run geocoding in background so the HTTP response returns immediately.
+            // Fire and forget — captures only value-type-safe locals (byte[], string, BatchJob).
             _ = Task.Run(async () =>
             {
                 job.Status = BatchJobStatus.Processing;
@@ -118,10 +140,13 @@ namespace Portfolio.Services.Services
                 try
                 {
                     var started = DateTimeOffset.UtcNow;
-                    var results = await GeocodeAsync(file, CancellationToken.None);
+                    var results = await GeocodeAsync(fileBytes, originalFileName, CancellationToken.None);
+
+                    job.TotalRows           = results.Count;
+                    await _jobStore.UpdateAsync(job);
+
                     job.Results             = results;
                     job.ProcessedRows       = results.Count;
-                    job.TotalRows           = results.Count;
                     job.AverageScore        = results.Count > 0
                         ? results.Average(r => r.Score) : 0;
                     job.CompletedAt         = DateTimeOffset.UtcNow;
@@ -142,16 +167,28 @@ namespace Portfolio.Services.Services
             return jobId;
         }
 
-        // Geocodes a single CSV row, using IMemoryCache to avoid duplicate HTTP calls.
+        // Geocodes a single CSV row, using IDistributedCache to avoid duplicate HTTP calls across replicas.
         private async Task<BatchGeocodingResultDto> GeocodeRowAsync(CsvRow row, CancellationToken cancellationToken)
         {
             var normalizedKey = $"{row.Address}|{row.City}|{row.State}|{row.Zip}".Trim().ToLowerInvariant();
             var cacheKey = $"geocode:{normalizedKey}";
 
-            if (!_cache.TryGetValue(cacheKey, out GeocodeCacheEntry? cached) || cached is null)
+            GeocodeCacheEntry? cached = null;
+            var cachedBytes = await _cache.GetAsync(cacheKey, cancellationToken);
+            if (cachedBytes is not null)
+            {
+                cached = JsonSerializer.Deserialize<GeocodeCacheEntry>(cachedBytes, PortfolioJsonOptions.Default);
+            }
+
+            if (cached is null)
             {
                 cached = await FetchGeocodeAsync(row, cancellationToken);
-                _cache.Set(cacheKey, cached, TimeSpan.FromMinutes(_cacheTtlMinutes));
+                var entryBytes = JsonSerializer.SerializeToUtf8Bytes(cached, PortfolioJsonOptions.Default);
+                await _cache.SetAsync(cacheKey, entryBytes,
+                    new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheTtlMinutes)
+                    }, cancellationToken);
             }
 
             var matched = cached.Score >= _minMatchScore;
@@ -190,15 +227,13 @@ namespace Portfolio.Services.Services
 
                 var top = parsed?.Candidates?.FirstOrDefault();
                 if (top is null)
-                    return new GeocodeCacheEntry();
+                    return new GeocodeCacheEntry(string.Empty, 0, 0, 0);
 
-                return new GeocodeCacheEntry
-                {
-                    MatchedAddress = top.Address ?? string.Empty,
-                    Score = top.Score,
-                    Latitude = top.Location?.Y ?? 0,
-                    Longitude = top.Location?.X ?? 0
-                };
+                return new GeocodeCacheEntry(
+                    top.Address ?? string.Empty,
+                    top.Score,
+                    top.Location?.Y ?? 0,
+                    top.Location?.X ?? 0);
                 // ArcGisGeocodeResponse and ArcGisGeocodeCandidate are defined in Portfolio.Common.ArcGis.
             }
             catch (OperationCanceledException)
@@ -208,16 +243,16 @@ namespace Portfolio.Services.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error geocoding address for row {Id}", row.Id);
-                return new GeocodeCacheEntry();
+                return new GeocodeCacheEntry(string.Empty, 0, 0, 0);
             }
         }
 
-        // Parses the CSV stream into typed rows. Expects header: Id,Address,City,State,Zip
-        private static List<CsvRow> ParseCsv(IFormFile file)
+        // Parses the CSV bytes into typed rows. Expects header: Id,Address,City,State,Zip
+        private static List<CsvRow> ParseCsv(byte[] csvBytes)
         {
             var rows = new List<CsvRow>();
 
-            using var reader = new StreamReader(file.OpenReadStream());
+            using var reader = new StreamReader(new MemoryStream(csvBytes));
 
             // Skip header line.
             var header = reader.ReadLine();
@@ -256,12 +291,7 @@ namespace Portfolio.Services.Services
             public string Zip { get; set; } = string.Empty;
         }
 
-        private sealed class GeocodeCacheEntry
-        {
-            public string MatchedAddress { get; set; } = string.Empty;
-            public double Score { get; set; }
-            public double Latitude { get; set; }
-            public double Longitude { get; set; }
-        }
+        private sealed record GeocodeCacheEntry(
+            string MatchedAddress, double Score, double Latitude, double Longitude);
     }
 }

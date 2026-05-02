@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
 using Portfolio.Common.DTOs;
 
 namespace Portfolio.Common.Models;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BatchJobStatus { Queued, Processing, Completed, Failed }
 
 /// <summary>

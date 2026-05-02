@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Services;
@@ -14,7 +16,7 @@ namespace Portfolio.Tests.Services
     public class BatchGeocodingServiceTests
     {
         private readonly Mock<ILogger<BatchGeocodingService>> _loggerMock = new();
-        private readonly IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions());
+        private readonly IDistributedCache _memoryCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
         private readonly Mock<IBatchJobStore> _jobStoreMock = new();
 
         private BatchGeocodingService CreateService(string responseJson, double minScore = 80.0, int maxConcurrency = 5)

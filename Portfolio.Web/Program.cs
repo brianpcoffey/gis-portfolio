@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
+using StackExchange.Redis;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using System.Net.Http;
@@ -166,13 +168,43 @@ builder.Services.AddHttpClient<IAddressStandardizationService, AddressStandardiz
             BreakDuration     = TimeSpan.FromSeconds(15)
         });
     });
-builder.Services.AddSingleton<IBatchJobStore, InMemoryBatchJobStore>();
+if (!string.IsNullOrEmpty(builder.Configuration["Redis:ConnectionString"]))
+{
+    builder.Services.AddSingleton<IBatchJobStore, RedisBatchJobStore>();
+}
+else
+{
+    builder.Services.AddSingleton<IBatchJobStore, InMemoryBatchJobStore>();
+}
 
 // --------------------------
-// Session
+// Caching & Session
 // --------------------------
-builder.Services.AddDistributedMemoryCache();
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
+
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    // Production / staging: shared Redis cache and Data Protection key ring
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName  = "portfolio:";
+    });
+
+    var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+    builder.Services.AddDataProtection()
+        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
+        .SetApplicationName("portfolio");
+}
+else
+{
+    // Local dev fallback: in-process distributed cache
+    builder.Services.AddDistributedMemoryCache();
+}
+
+// AddMemoryCache kept for compatibility with any remaining IMemoryCache consumers.
 builder.Services.AddMemoryCache();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -343,11 +375,14 @@ var npgsqlBuilder = ParsePostgresConnectionString(databaseUrl);
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
     options.UseNpgsql(npgsqlBuilder.ConnectionString));
 // --------------------------
-// Data Protection Keys Folder (for Docker / Render)
+// Data Protection Keys Folder (fallback for local dev without Redis)
 // --------------------------
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo("/app/DataProtection-Keys"))
-    .SetApplicationName("PortfolioApp");
+if (string.IsNullOrEmpty(redisConnectionString))
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo("/app/DataProtection-Keys"))
+        .SetApplicationName("PortfolioApp");
+}
 
 var app = builder.Build();
 
