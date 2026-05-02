@@ -101,6 +101,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>List of geocoding results with match status, coordinates, and score.</returns>
         [HttpPost("sync")]
+        [HttpPost("/api/batchgeocoding/sync")]
         [Obsolete("Use POST /api/v1/geocoding/batch for the recommended async job pattern.")] // kept for test compatibility
         [ProducesResponseType(typeof(List<BatchGeocodingResultDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

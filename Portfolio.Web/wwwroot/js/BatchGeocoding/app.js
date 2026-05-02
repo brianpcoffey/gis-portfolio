@@ -191,7 +191,7 @@
         var formData = new FormData();
         formData.append("file", _file);
 
-        fetch("/api/v1/geocoding/batch", {
+        fetch("/api/batchgeocoding/sync", {
             method: "POST",
             body: formData
             // No Content-Type header — browser sets multipart/form-data automatically.
@@ -204,15 +204,10 @@
             }
             return response.json();
         })
-        .then(function (job) {
-            showToast("Geocoding job accepted. Processing results...", "success");
-            return pollJobStatus(job.statusUrl || job.StatusUrl);
-        })
-        .then(function (job) {
-            var results = job.results || job.Results || [];
-            _results = results;
-            renderResults(results);
-            var total = results.length;
+        .then(function (data) {
+            _results = data;
+            renderResults(data);
+            var total = data.length;
             showToast("Geocoding complete \u2014 " + total + " address" + (total !== 1 ? "es" : "") + " processed.", "success");
         })
         .catch(function (err) {
@@ -222,35 +217,6 @@
         .finally(function () {
             setLoading(false);
         });
-    }
-
-    function pollJobStatus(statusUrl) {
-        if (!statusUrl) {
-            throw new Error("Batch job status URL was not returned by the server.");
-        }
-
-        return fetch(statusUrl)
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error("Failed to poll geocoding job status.");
-                }
-                return response.json();
-            })
-            .then(function (job) {
-                var status = job.status || job.Status;
-                if (status === "Completed") {
-                    return job;
-                }
-                if (status === "Failed") {
-                    throw new Error("The geocoding job failed.");
-                }
-
-                return new Promise(function (resolve) {
-                    setTimeout(resolve, 1500);
-                }).then(function () {
-                    return pollJobStatus(statusUrl);
-                });
-            });
     }
 
     function setLoading(loading) {
