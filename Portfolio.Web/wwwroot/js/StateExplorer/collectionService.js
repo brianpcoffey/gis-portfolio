@@ -24,6 +24,7 @@ export const CollectionService = {
 
     async updateCollection(id, { name, color }) {
         const res = await fetch(`/api/v1/collections/${id}`, {
+            method: 'PUT',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, color })
@@ -34,6 +35,7 @@ export const CollectionService = {
 
     async deleteCollection(id) {
         const res = await fetch(`/api/v1/collections/${id}`, {
+            method: 'DELETE',
             credentials: 'same-origin'
         });
         if (!res.ok) throw new Error('Failed to delete collection');
