@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.Constants;
@@ -10,7 +11,8 @@ namespace Portfolio.Web.Controllers.Api
     /// API endpoints for anonymous and authenticated user profile claims.
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/profile")]
     public class ProfileController : ControllerBase
     {
         private readonly IUserProfileService _profileService;
@@ -43,6 +45,7 @@ namespace Portfolio.Web.Controllers.Api
         [AllowAnonymous]
         [ProducesResponseType(typeof(ProfileDto), 200)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get(CancellationToken cancellationToken)
         {
             var userId = _profileService.GetCurrentUserId();
@@ -60,6 +63,7 @@ namespace Portfolio.Web.Controllers.Api
         [AllowAnonymous]
         [ProducesResponseType(typeof(ClaimDto), 200)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SetClaim([FromBody] ClaimCreateDto claim, CancellationToken cancellationToken)
         {
             if (IsInvalidClaim(claim))
@@ -83,6 +87,7 @@ namespace Portfolio.Web.Controllers.Api
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RemoveClaim(string type, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(type))
@@ -105,6 +110,7 @@ namespace Portfolio.Web.Controllers.Api
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ClaimDto), 200)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SetAuthenticatedClaim([FromBody] ClaimCreateDto claim, CancellationToken cancellationToken)
         {
             if (IsInvalidClaim(claim))

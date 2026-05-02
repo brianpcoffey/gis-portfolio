@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
@@ -9,7 +10,8 @@ namespace Portfolio.Web.Controllers.Api
     /// API endpoints for managing saved features.
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/features/saved")]
     [AllowAnonymous] // Uses anonymous user identity from middleware
     public class SavedFeaturesController : ControllerBase
     {
@@ -29,6 +31,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <returns>List of saved features.</returns>
         [HttpGet]
         [ProducesResponseType(typeof(List<SavedFeatureDto>), 200)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
             var items = await _service.GetAllAsync(cancellationToken);
@@ -45,6 +48,7 @@ namespace Portfolio.Web.Controllers.Api
         [ProducesResponseType(typeof(SavedFeatureDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(409)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Create([FromBody] CreateSavedFeatureDto dto, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(dto.LayerId) || string.IsNullOrWhiteSpace(dto.FeatureId))
@@ -72,6 +76,7 @@ namespace Portfolio.Web.Controllers.Api
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(id)) return BadRequest();

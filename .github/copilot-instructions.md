@@ -11,7 +11,8 @@
 A .NET 10 Razor Pages web application that lets visitors explore ArcGIS map
 features (the "State Explorer" project), save those features, and organize
 them into named collections. It also exposes a small claims/profile API for
-anonymous users, plus three ArcGIS-backed geocoding microservices.
+anonymous users, plus three ArcGIS-backed geocoding microservices, a fiber
+order management domain, and a home-finder property scoring feature.
 
 **Projects (5):**
 
@@ -25,7 +26,8 @@ anonymous users, plus three ArcGIS-backed geocoding microservices.
 
 **Architecture:** Classic 4-layer (Razor Pages / Controllers -> Services ->
 Repositories -> EF Core / SQL Server). DTOs cross every boundary leaving the
-service layer.
+service layer. All API controllers are versioned under `api/v{version}` using
+`Asp.Versioning`.
 
 **Key domains/features:**
 - Anonymous user identity (cookie-based GUID, established in middleware)
@@ -34,9 +36,11 @@ service layer.
 - User Profile + arbitrary key/value Claims (per anonymous user)
 - ArcGIS proxy querying `sampleserver6.arcgisonline.com`
 - Google OAuth login (Cookie + Google authentication schemes)
-- **Batch Geocoding** - CSV upload -> channel pipeline -> ArcGIS `findAddressCandidates` -> cached results
+- **Batch Geocoding** - CSV upload -> async job pipeline -> ArcGIS `findAddressCandidates` -> `IBatchJobStore` + Polly circuit breaker
 - **Reverse Geocoding** - lat/lng -> grid-snapped `IMemoryCache` -> ArcGIS `reverseGeocode`
 - **Address Standardization & Validation** - freeform parse -> suffix normalization -> ArcGIS validation with fallback and `ConfidenceTier`
+- **Fiber Order Management** - CRUD for orders, materials, shipments, and clients; dashboard aggregation (MTD revenue, open orders, active shipments, low-stock alerts, top clients, orders-by-status)
+- **Home Finder** - preference-based property scoring, saved searches, property detail lookup
 
 ---
 
@@ -177,6 +181,20 @@ builder.Services.AddScoped<IXxxService, XxxService>();
   - `IAddressStandardizationService` / `AddressStandardizationService`
 - `IMemoryCache` is registered once via `builder.Services.AddMemoryCache()`;
   it is shared by `ReverseGeocodingService` and `BatchGeocodingService`.
+- `IBatchJobStore` / `InMemoryBatchJobStore` is registered as **Singleton**
+  (the only singleton in the app) so in-flight job state survives across
+  scoped requests.
+- Fiber services and repositories (`IFiberOrderService`, `IFiberMaterialService`,
+  `IFiberShipmentService`, `IFiberClientService`, `IFiberDashboardService`, and
+  their repository counterparts) are all registered as `Scoped`.
+- Home Finder services (`IHomeScoringService`, `ISavedSearchService`) and
+  `IPropertyRepository` are registered as `Scoped`.
+- `UserProfileController` is versioned under `api/v{version:apiVersion}/users`
+  and registered via standard MVC; no extra DI wiring required beyond the
+  existing `IUserProfileService` registration.
+- API versioning is enabled via `Asp.Versioning` (`AddApiVersioning` +
+  `AddVersionedApiExplorer`). All new versioned controllers MUST carry
+  `[ApiVersion("1.0")]`.
 
 ---
 
@@ -274,6 +292,13 @@ The three geocoding controllers (`BatchGeocodingController`,
 `ReverseGeocodingController`, `AddressStandardizationController`) are
 `[AllowAnonymous]` -- they do not touch either identity system.
 
+`HomeFinderController` is also `[AllowAnonymous]`; it receives `userId` as a
+query parameter for saved-search operations (not from the cookie identity system).
+The Fiber controllers (`FiberOrdersController`, `FiberMaterialsController`,
+`FiberShipmentsController`, `FiberClientsController`, `FiberDashboardController`)
+all require `[Authorize(Policy = "Authenticated")]` and resolve the current user
+via `IUserProfileService.GetCurrentUserId()`.
+
 When adding a new feature, decide which identity it belongs to and follow
 the matching service's pattern exactly. Mixing the two (e.g. using
 `HttpContext.User` in an "anonymous" service) is an error.
@@ -353,12 +378,23 @@ Rules for ArcGIS wire models:
 ### 9a. Batch Geocoding
 
 **Controller:** `Portfolio.Web/Controllers/Api/BatchGeocodingController.cs`
-- Route: `[Route("api/batchgeocoding")]`, `[AllowAnonymous]`
-- `POST /api/batchgeocoding` accepts `IFormFile` (CSV)
-- Returns `IEnumerable<BatchGeocodingResultDto>`
-- Catches `ArgumentException` -> 400
+- Route: `[Route("api/v{version:apiVersion}/geocoding/batch")]`, `[AllowAnonymous]`
+- `POST /api/v1/geocoding/batch` -- accepts `IFormFile` (CSV), returns `202 Accepted`
+  with `BatchJobAcceptedDto` (`JobId`, `StatusUrl`); enqueues the job via
+  `IBatchGeocodingService.EnqueueAsync`.
+- `GET  /api/v1/geocoding/batch/{jobId}/status` -- polls job progress; returns
+  `BatchJob` (status, metrics, and results when completed); 404 when not found.
+- `POST /api/batchgeocoding/sync` *(deprecated)* -- synchronous path kept for test
+  compatibility; returns `List<BatchGeocodingResultDto>` directly; decorated
+  `[Obsolete]`.
+- Catches `ArgumentException` -> 400; `BrokenCircuitException` -> 503 with
+  `ProblemDetails` and `retryAfterSeconds = 15`.
 
 **Service interface:** `IBatchGeocodingService` in `Portfolio.Services/Interfaces/`
+- `GeocodeAsync(IFormFile, CancellationToken)` -- synchronous geocoding path (used by legacy `/sync` endpoint).
+- `EnqueueAsync(IFormFile, CancellationToken)` -- creates a `BatchJob`, stores it via
+  `IBatchJobStore`, starts background processing, and immediately returns the `JobId`.
+
 **Service:** `Portfolio.Services/Services/BatchGeocodingService.cs`
 - Reads and validates the uploaded CSV (must have at least a header + 1 data row).
 - Uses `System.Threading.Channels.Channel<T>` as a producer/consumer pipeline
@@ -368,12 +404,23 @@ Rules for ArcGIS wire models:
   - `BatchGeocoding:MinMatchScore` (default: 80)
 - Deduplicates repeated addresses using `IMemoryCache` (keyed on normalized address).
 - Calls ArcGIS `findAddressCandidates` via typed `HttpClient`.
-- Returns `BatchGeocodingResultDto` per input row; unmatched rows have
-  `Matched = false` and null coordinate fields.
+- Updates the `BatchJob` record (progress, cache hits, failed rows, avg score,
+  throughput) in `IBatchJobStore` during and after processing.
+- Protected by a **Polly circuit breaker** (`CircuitBreakerAsync`) around ArcGIS
+  HTTP calls; opens after 5 failures within 60 s; resets after 15 s.
 
-**DTOs** (all in `Portfolio.Common/DTOs/`):
-- `BatchGeocodingResultDto` -- `OriginalAddress`, `Matched`, `MatchedAddress`,
-  `Score`, `Latitude`, `Longitude`
+**Job store abstraction:** `Portfolio.Services/Abstractions/IBatchJobStore`
+- `CreateAsync`, `GetAsync`, `UpdateAsync` -- create/read/update a `BatchJob`.
+- Implementation: `Portfolio.Services.InMemoryBatchJobStore` -- thread-safe
+  `ConcurrentDictionary<string, BatchJob>`; registered as Singleton.
+
+**Models / DTOs** (all in `Portfolio.Common/`):
+- `BatchJob` (`Models/`) -- `JobId`, `Status` (`BatchJobStatus` enum), `SubmittedAt`,
+  `CompletedAt`, `FileName`, `TotalRows`, `ProcessedRows`, `CacheHits`, `FailedRows`,
+  `AverageScore`, `ThroughputPerSecond`, `Results`.
+- `BatchJobAcceptedDto` (`DTOs/`) -- sealed record: `JobId`, `StatusUrl`.
+- `BatchGeocodingResultDto` (`DTOs/`) -- `OriginalAddress`, `Matched`, `MatchedAddress`,
+  `Score`, `Latitude`, `Longitude`.
 
 **Configuration** (`appsettings.json`):
 ```json
@@ -442,6 +489,77 @@ Rules for ArcGIS wire models:
   `City`, `State`, `PostalCode`, `StandardizedAddress`, `ParseConfidence`
 - `AddressValidationResultDto` -- `Parsed` (`AddressParsedDto`), `MatchedAddress`,
   `Score`, `ConfidenceTier` (`ConfidenceTier` enum)
+
+### 9d. Fiber Order Management
+
+**Controllers** (all in `Portfolio.Web/Controllers/Api/`, versioned `[ApiVersion("1.0")]`):
+
+| Controller | Route | Auth |
+|---|---|---|
+| `FiberOrdersController` | `api/v1/fiberorders` | `[Authorize(Policy="Authenticated")]` |
+| `FiberMaterialsController` | `api/v1/fibermaterials` | `[Authorize(Policy="Authenticated")]` |
+| `FiberShipmentsController` | `api/v1/fibershipments` | `[Authorize(Policy="Authenticated")]` |
+| `FiberClientsController` | `api/v1/fiberclients` | `[Authorize(Policy="Authenticated")]` |
+| `FiberDashboardController` | `api/v1/fiberdashboard` | `[Authorize(Policy="Authenticated")]` |
+
+Each controller exposes standard CRUD (`GET` all, `GET {id}`, `POST`, `PUT {id}`,
+`DELETE {id}`) delegating entirely to the corresponding service.
+
+**Services / interfaces:**
+- `IFiberOrderService` / `FiberOrderService` -- CRUD for orders; sets `UserId` from
+  `IUserProfileService.GetCurrentUserId()` on create; throws `InvalidOperationException`
+  when user is unidentified.
+- `IFiberMaterialService` / `FiberMaterialService` -- CRUD for materials; same
+  user-identity enforcement.
+- `IFiberShipmentService` / `FiberShipmentService` -- CRUD for shipments.
+- `IFiberClientService` / `FiberClientService` -- CRUD for clients.
+- `IFiberDashboardService` / `FiberDashboardService` -- aggregates across all four
+  repositories to produce `FiberDashboardDto` containing:
+  - `MtdRevenue` (current-month `UnitPrice × Quantity`)
+  - `OpenOrders` (status not "Shipped" or "Delivered")
+  - `ActiveShipments` (status "In Transit")
+  - `LowStockAlerts` (`QtyOnHand <= ReorderPoint`)
+  - `OrdersByStatus` (all 5 known statuses, counts default to 0)
+  - `TopClients` (top 5 by revenue, current year)
+  - `InventoryByCategory` (grouped material counts)
+
+**DTOs** (`Portfolio.Common/DTOs/`):
+- `FiberOrderDto`, `CreateFiberOrderDto`, `UpdateFiberOrderDto`
+- `FiberMaterialDto`, `CreateFiberMaterialDto`, `UpdateFiberMaterialDto`
+- `FiberShipmentDto`, `CreateFiberShipmentDto`, `UpdateFiberShipmentDto`
+- `FiberClientDto`, `CreateFiberClientDto`, `UpdateFiberClientDto`
+- `FiberDashboardDto` (with nested `OrdersByStatusDto`, `TopClientDto`, `InventoryByCategoryDto`)
+
+**Models** (`Portfolio.Common/Models/`):
+- `FiberOrder`, `FiberMaterial`, `FiberShipment`, `FiberClient`
+- `FiberOrder` has a navigation property `ICollection<FiberShipment> Shipments`.
+
+### 9e. Home Finder
+
+**Controller:** `Portfolio.Web/Controllers/Api/HomeFinderController.cs`
+- Route: `[Route("api/v{version:apiVersion}/homefinder")]`, `[AllowAnonymous]`
+- `POST /api/v1/homefinder/score` -- accepts `HomeSearchPreferencesDto`, optional
+  `top` query param (default 10); returns `List<ScoredPropertyDto>`.
+- `GET  /api/v1/homefinder/properties/{id}` -- returns `ScoredPropertyDto` or 404.
+- `POST /api/v1/homefinder/searches` -- saves a named search; accepts
+  `CreateSavedSearchDto`; requires `userId` query param; returns `SavedSearchDto`.
+- `GET  /api/v1/homefinder/searches` -- lists saved searches for a user; requires
+  `userId` query param.
+- `DELETE /api/v1/homefinder/searches/{id}` -- deletes a saved search; 204 on success.
+- Catches `ArgumentException` -> 400, `KeyNotFoundException` -> 404.
+
+**Services / interfaces:**
+- `IHomeScoringService` / `HomeScoringService` -- scores all properties from
+  `IPropertyRepository` against caller-supplied preferences; returns top-N ranked
+  `ScoredPropertyDto` list; `GetPropertyByIdAsync` returns a single property or null.
+- `ISavedSearchService` / `SavedSearchService` -- CRUD for named Home Finder
+  searches; owner enforced via `userId` parameter (passed from controller).
+
+**DTOs** (`Portfolio.Common/DTOs/`):
+- `HomeSearchPreferencesDto` -- scoring preference sliders/filters
+- `ScoredPropertyDto` -- property fields plus computed `Score`
+- `SavedSearchDto` -- `Id`, `Name`, `Preferences`, `PropertyIds`, `CreatedAt`
+- `CreateSavedSearchDto` -- `Name`, `Preferences`, `PropertyIds`
 
 ---
 
@@ -544,7 +662,37 @@ Do not mock `HttpClient` directly.
 - `ReverseGeocodingControllerTests` -- covers happy path, invalid lat/lng 400,
   and not-found 404.
 
-Total test count as of last verified run: **168 passing, 0 failing**.
+### Fiber & Home Finder test patterns
+
+- `FiberOrdersControllerTests`, `FiberMaterialsControllerTests`,
+  `FiberShipmentsControllerTests` -- CRUD happy paths, not-found 404 on get/update/delete,
+  user-not-identified 500.
+- `FiberDashboardControllerTests` -- happy path and user-not-identified branches.
+- `FiberOrderServiceTests` -- GetAll, GetById, CreateAsync (verifies `UserId` scoping),
+  UpdateAsync (applies partial fields, `KeyNotFoundException` for missing order),
+  DeleteAsync (true / false / user-not-identified).
+- `FiberDashboardServiceTests` -- active shipments, open orders, low-stock alerts,
+  MTD revenue (current-month only), all-statuses present with zero counts, per-status
+  counts, top-5 client truncation.
+- `HomeScoringServiceTests` -- top-N list, empty list, `GetPropertyByIdAsync` found / not-found.
+- `HomeFinderControllerTests` -- score endpoint, property detail, saved-search CRUD.
+
+### UserProfile test patterns
+
+- `UserProfileControllerTests` -- `GetCurrentProfile`, `UpdateCurrentProfile`,
+  `GetById`, `GetByGoogleId`, `GetClaims`, `SetClaim` (valid + `[Theory]` for blank
+  type + null value + all 4 protected Google claim types), `RemoveClaim`, `Delete`
+  (self, cross-user Forbid, not-found).
+- `UserProfileServiceTests` -- claim CRUD, `GetProfileByIdAsync`, `GetProfileByGoogleIdAsync`,
+  `GetCurrentProfileAsync`, `UpdateCurrentProfileAsync` (set/remove display name),
+  `DeleteProfileAsync`, `IsGoogleLinkedAsync`, `CreateOrUpdateFromGoogleAsync`.
+
+### API versioning attribute tests
+
+- `ApiVersioningAttributeTests` -- reflection-based tests that assert every
+  versioned controller carries `[ApiVersion("1.0")]` and the correct route prefix.
+
+Total test count as of last verified run: **347 passing, 0 failing**.
 
 ---
 

@@ -1,4 +1,5 @@
 ﻿using Moq;
+using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Services;
@@ -23,12 +24,11 @@ namespace Portfolio.Tests.Services
         public async Task CreateSavedSearchAsync_WithValidInput_ReturnsCreatedEntity()
         {
             // Arrange
-            var search = new SavedSearch
+            var dto = new Portfolio.Common.DTOs.CreateSavedSearchDto
             {
-                UserId = _testUserId,
                 Name = "My Search",
-                PreferencesJson = "{}",
-                TopPropertyIds = "1,2,3"
+                Preferences = new Portfolio.Common.DTOs.HomeSearchPreferencesDto(),
+                PropertyIds = new[] { 1, 2, 3 }
             };
 
             _repoMock
@@ -44,12 +44,11 @@ namespace Portfolio.Tests.Services
                 });
 
             // Act
-            var result = await _service.CreateSavedSearchAsync(search);
+            var result = await _service.CreateSavedSearchAsync(dto, _testUserId);
 
             // Assert
             Assert.Equal(1, result.Id);
             Assert.Equal("My Search", result.Name);
-            Assert.Equal(_testUserId, result.UserId);
             Assert.True(result.CreatedAt > DateTime.MinValue);
             _repoMock.Verify(r => r.AddAsync(It.IsAny<SavedSearch>(), It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -59,11 +58,10 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var before = DateTime.UtcNow;
-            var search = new SavedSearch
+            var dto = new Portfolio.Common.DTOs.CreateSavedSearchDto
             {
-                UserId = _testUserId,
                 Name = "Timestamped Search",
-                PreferencesJson = "{}"
+                Preferences = new Portfolio.Common.DTOs.HomeSearchPreferencesDto()
             };
 
             _repoMock
@@ -74,7 +72,7 @@ namespace Portfolio.Tests.Services
                 .ReturnsAsync((SavedSearch s, CancellationToken _) => s);
 
             // Act
-            var result = await _service.CreateSavedSearchAsync(search);
+            var result = await _service.CreateSavedSearchAsync(dto, _testUserId);
             var after = DateTime.UtcNow;
 
             // Assert
@@ -88,16 +86,15 @@ namespace Portfolio.Tests.Services
         public async Task CreateSavedSearchAsync_WithEmptyOrNullName_ThrowsArgumentException(string? name)
         {
             // Arrange
-            var search = new SavedSearch
+            var dto = new Portfolio.Common.DTOs.CreateSavedSearchDto
             {
-                UserId = _testUserId,
-                Name = name!,
-                PreferencesJson = "{}"
+                Name = name,
+                Preferences = new Portfolio.Common.DTOs.HomeSearchPreferencesDto()
             };
 
             // Act & Assert
             var ex = await Assert.ThrowsAsync<ArgumentException>(
-                () => _service.CreateSavedSearchAsync(search));
+                () => _service.CreateSavedSearchAsync(dto, _testUserId));
             Assert.Contains("Name is required", ex.Message);
             _repoMock.Verify(r => r.AddAsync(It.IsAny<SavedSearch>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -106,11 +103,10 @@ namespace Portfolio.Tests.Services
         public async Task CreateSavedSearchAsync_WithDuplicateName_ThrowsInvalidOperationException()
         {
             // Arrange
-            var search = new SavedSearch
+            var dto = new Portfolio.Common.DTOs.CreateSavedSearchDto
             {
-                UserId = _testUserId,
                 Name = "Duplicate",
-                PreferencesJson = "{}"
+                Preferences = new Portfolio.Common.DTOs.HomeSearchPreferencesDto()
             };
 
             _repoMock
@@ -119,7 +115,7 @@ namespace Portfolio.Tests.Services
 
             // Act & Assert
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => _service.CreateSavedSearchAsync(search));
+                () => _service.CreateSavedSearchAsync(dto, _testUserId));
             Assert.Contains("already exists", ex.Message);
             _repoMock.Verify(r => r.AddAsync(It.IsAny<SavedSearch>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -130,11 +126,10 @@ namespace Portfolio.Tests.Services
             // Arrange
             using var cts = new CancellationTokenSource();
             var token = cts.Token;
-            var search = new SavedSearch
+            var dto = new Portfolio.Common.DTOs.CreateSavedSearchDto
             {
-                UserId = _testUserId,
                 Name = "Token Test",
-                PreferencesJson = "{}"
+                Preferences = new Portfolio.Common.DTOs.HomeSearchPreferencesDto()
             };
 
             _repoMock
@@ -145,7 +140,7 @@ namespace Portfolio.Tests.Services
                 .ReturnsAsync((SavedSearch s, CancellationToken _) => s);
 
             // Act
-            await _service.CreateSavedSearchAsync(search, token);
+            await _service.CreateSavedSearchAsync(dto, _testUserId, token);
 
             // Assert
             _repoMock.Verify(r => r.ExistsByNameAsync(_testUserId, "Token Test", token), Times.Once);

@@ -37,5 +37,58 @@ namespace Portfolio.Tests.Services
             var result = await _service.GetTopPropertiesAsync(prefs);
             Assert.Empty(result);
         }
+
+        // ── GetPropertyByIdAsync ────────────────────────────────────────
+
+        [Fact]
+        public async Task GetPropertyByIdAsync_WhenFound_ReturnsScoredPropertyDto()
+        {
+            // Arrange
+            var property = new Property { Id = 42, Street = "123 Main St", City = "Denver", ZipCode = "80203" };
+            _propertyRepoMock
+                .Setup(r => r.GetByIdAsync(42, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(property);
+
+            // Act
+            var result = await _service.GetPropertyByIdAsync(42);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(42, result.PropertyId);
+            Assert.Equal("123 Main St", result.Street);
+            Assert.Equal("Denver", result.City);
+        }
+
+        [Fact]
+        public async Task GetPropertyByIdAsync_WhenNotFound_ReturnsNull()
+        {
+            // Arrange
+            _propertyRepoMock
+                .Setup(r => r.GetByIdAsync(999, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Property?)null);
+
+            // Act
+            var result = await _service.GetPropertyByIdAsync(999);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetPropertyByIdAsync_PassesCancellationToken()
+        {
+            // Arrange
+            using var cts = new CancellationTokenSource();
+            var token = cts.Token;
+            _propertyRepoMock
+                .Setup(r => r.GetByIdAsync(1, token))
+                .ReturnsAsync((Property?)null);
+
+            // Act
+            await _service.GetPropertyByIdAsync(1, token);
+
+            // Assert
+            _propertyRepoMock.Verify(r => r.GetByIdAsync(1, token), Times.Once);
+        }
     }
 }

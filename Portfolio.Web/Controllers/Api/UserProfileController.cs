@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.Constants;
@@ -10,7 +11,8 @@ namespace Portfolio.Web.Controllers.Api
     /// API endpoints for managing user profiles.
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/users")]
     public class UserProfileController : ControllerBase
     {
         private readonly IUserProfileService _profileService;
@@ -26,6 +28,8 @@ namespace Portfolio.Web.Controllers.Api
         [HttpGet("me")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ProfileDto), 200)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetCurrentProfile(CancellationToken cancellationToken)
         {
             try
@@ -45,7 +49,9 @@ namespace Portfolio.Web.Controllers.Api
         [HttpPut("me")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ProfileDto), 200)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(401)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateCurrentProfile([FromBody] UpdateProfileDto dto, CancellationToken cancellationToken)
         {
             var profile = await _profileService.UpdateCurrentProfileAsync(dto, cancellationToken);
@@ -59,6 +65,9 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]
+        [ProducesResponseType(typeof(ProfileDto), 200)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetById(Guid userId, CancellationToken cancellationToken)
         {
             var profile = await _profileService.GetProfileByIdAsync(userId, cancellationToken);
@@ -73,6 +82,9 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("google/{googleId}")]
         [Authorize(Policy = "Authenticated")]
+        [ProducesResponseType(typeof(ProfileDto), 200)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetByGoogleId(string googleId, CancellationToken cancellationToken)
         {
             var profile = await _profileService.GetProfileByGoogleIdAsync(googleId, cancellationToken);
@@ -86,6 +98,7 @@ namespace Portfolio.Web.Controllers.Api
         [HttpGet("me/claims")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(List<ClaimDto>), 200)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetClaims(CancellationToken cancellationToken)
         {
             var claims = await _profileService.GetClaimsAsync(cancellationToken);
@@ -99,6 +112,7 @@ namespace Portfolio.Web.Controllers.Api
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SetClaim([FromBody] ClaimDto dto, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(dto.Type) || dto.Value is null)
@@ -129,6 +143,7 @@ namespace Portfolio.Web.Controllers.Api
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RemoveClaim(string type, CancellationToken cancellationToken)
         {
             var removed = await _profileService.RemoveClaimAsync(type, cancellationToken);
@@ -145,6 +160,7 @@ namespace Portfolio.Web.Controllers.Api
         [ProducesResponseType(204)]
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Delete(Guid userId, CancellationToken cancellationToken)
         {
             var currentUserId = _profileService.GetCurrentUserId();

@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.ArcGis;
 using Portfolio.Common.DTOs;
+using Portfolio.Common.Models;
+using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using System.Net.Http.Json;
 using System.Threading.Channels;
@@ -15,6 +17,7 @@ namespace Portfolio.Services.Services
         private readonly HttpClient _httpClient;
         private readonly IMemoryCache _cache;
         private readonly ILogger<BatchGeocodingService> _logger;
+        private readonly IBatchJobStore _jobStore;
         private readonly int _maxConcurrency;
         private readonly double _minMatchScore;
         private readonly int _cacheTtlMinutes;
@@ -26,11 +29,13 @@ namespace Portfolio.Services.Services
             HttpClient httpClient,
             IMemoryCache cache,
             ILogger<BatchGeocodingService> logger,
+            IBatchJobStore jobStore,
             IConfiguration configuration)
         {
             _httpClient = httpClient;
             _cache = cache;
             _logger = logger;
+            _jobStore = jobStore;
             _maxConcurrency = configuration.GetValue<int>("BatchGeocoding:MaxConcurrency", 4);
             _minMatchScore = configuration.GetValue<double>("BatchGeocoding:MinMatchScore", 80.0);
             _cacheTtlMinutes = configuration.GetValue<int>("BatchGeocoding:CacheTtlMinutes", 60);
@@ -50,11 +55,17 @@ namespace Portfolio.Services.Services
 
             _logger.LogInformation("Batch geocoding job started. Record count: {Count}", rows.Count);
 
-            var channel = Channel.CreateUnbounded<CsvRow>(new UnboundedChannelOptions
+            var channel = Channel.CreateBounded<CsvRow>(new BoundedChannelOptions(500)
             {
-                SingleWriter = true,
-                SingleReader = false
+                FullMode                      = BoundedChannelFullMode.Wait,
+                SingleWriter                  = true,
+                SingleReader                  = false,
+                AllowSynchronousContinuations = false
             });
+
+            _logger.LogInformation(
+                "Batch geocoding channel created with capacity {Capacity} and {Workers} workers.",
+                500, _maxConcurrency);
 
             // Producer: write all rows into the channel.
             var producer = Task.Run(async () =>
@@ -81,6 +92,54 @@ namespace Portfolio.Services.Services
             await Task.WhenAll(workers);
 
             return [.. results.OrderBy(r => r.Id).Select(r => r.Dto)];
+        }
+
+        // Enqueues a CSV file for background processing and returns a job ID immediately.
+        // The background task calls GeocodeAsync and writes progress back to IBatchJobStore.
+        public async Task<string> EnqueueAsync(IFormFile file, CancellationToken ct = default)
+        {
+            var jobId = Guid.NewGuid().ToString("N");
+            var job = new BatchJob
+            {
+                JobId       = jobId,
+                Status      = BatchJobStatus.Queued,
+                SubmittedAt = DateTimeOffset.UtcNow,
+                FileName    = file.FileName
+            };
+
+            await _jobStore.CreateAsync(job, ct);
+
+            // Fire and forget — run geocoding in background so the HTTP response returns immediately.
+            _ = Task.Run(async () =>
+            {
+                job.Status = BatchJobStatus.Processing;
+                await _jobStore.UpdateAsync(job);
+
+                try
+                {
+                    var started = DateTimeOffset.UtcNow;
+                    var results = await GeocodeAsync(file, CancellationToken.None);
+                    job.Results             = results;
+                    job.ProcessedRows       = results.Count;
+                    job.TotalRows           = results.Count;
+                    job.AverageScore        = results.Count > 0
+                        ? results.Average(r => r.Score) : 0;
+                    job.CompletedAt         = DateTimeOffset.UtcNow;
+                    job.ThroughputPerSecond = results.Count /
+                        Math.Max((job.CompletedAt.Value - started).TotalSeconds, 0.001);
+                    job.Status              = BatchJobStatus.Completed;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Batch job {JobId} failed.", jobId);
+                    job.Status      = BatchJobStatus.Failed;
+                    job.CompletedAt = DateTimeOffset.UtcNow;
+                }
+
+                await _jobStore.UpdateAsync(job);
+            }, CancellationToken.None);
+
+            return jobId;
         }
 
         // Geocodes a single CSV row, using IMemoryCache to avoid duplicate HTTP calls.

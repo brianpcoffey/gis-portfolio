@@ -8,4 +8,6 @@ public interface IHomeScoringService
         HomeSearchPreferencesDto prefs,
         int top = 10,
         CancellationToken cancellationToken = default);
+
+    Task<ScoredPropertyDto?> GetPropertyByIdAsync(int id, CancellationToken cancellationToken = default);
 }

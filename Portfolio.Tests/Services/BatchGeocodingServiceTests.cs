@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Portfolio.Services.Abstractions;
 using Portfolio.Services.Services;
 using System.Net;
 using System.Text;
@@ -14,6 +15,7 @@ namespace Portfolio.Tests.Services
     {
         private readonly Mock<ILogger<BatchGeocodingService>> _loggerMock = new();
         private readonly IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions());
+        private readonly Mock<IBatchJobStore> _jobStoreMock = new();
 
         private BatchGeocodingService CreateService(string responseJson, double minScore = 80.0, int maxConcurrency = 5)
         {
@@ -28,7 +30,7 @@ namespace Portfolio.Tests.Services
             var handler = new FakeHttpMessageHandler(responseJson);
             var httpClient = new HttpClient(handler);
 
-            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, inMemoryConfig);
+            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, inMemoryConfig);
         }
 
         private static IFormFile BuildCsvFile(string csvContent)
@@ -163,7 +165,7 @@ namespace Portfolio.Tests.Services
                 })
                 .Build();
 
-            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, inMemoryConfig);
+            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, inMemoryConfig);
 
             cts.CancelAfter(50);
 

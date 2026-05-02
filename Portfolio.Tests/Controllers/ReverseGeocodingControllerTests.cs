@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -81,6 +82,25 @@ namespace Portfolio.Tests.Controllers
 
             // Assert
             Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task GetPlaceData_BrokenCircuit_Returns503WithProblemDetails()
+        {
+            // Arrange
+            _serviceMock
+                .Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
+
+            // Act
+            var result = await _controller.GetPlaceData(39.7, -104.9, CancellationToken.None);
+
+            // Assert
+            var status = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
+            var problem = Assert.IsType<ProblemDetails>(status.Value);
+            Assert.Equal(503, problem.Status);
+            Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
         }
     }
 }

@@ -1,11 +1,11 @@
-using Portfolio.Common.Models;
+using Portfolio.Common.DTOs;
 
 namespace Portfolio.Services.Interfaces
 {
     public interface ISavedSearchService
     {
-        Task<SavedSearch> CreateSavedSearchAsync(SavedSearch savedSearch, CancellationToken cancellationToken = default);
-        Task<List<SavedSearch>> GetSavedSearchesAsync(Guid userId, CancellationToken cancellationToken = default);
+        Task<SavedSearchDto> CreateSavedSearchAsync(CreateSavedSearchDto dto, Guid userId, CancellationToken cancellationToken = default);
+        Task<List<SavedSearchDto>> GetSavedSearchesAsync(Guid userId, CancellationToken cancellationToken = default);
         Task DeleteSavedSearchAsync(int id, CancellationToken cancellationToken = default);
     }
 }

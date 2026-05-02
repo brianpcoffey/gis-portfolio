@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -145,6 +146,50 @@ namespace Portfolio.Tests.Controllers
 
             // Assert
             Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        // ── Circuit-breaker resilience ──────────────────────────────────────────
+
+        [Fact]
+        public async Task Parse_BrokenCircuit_Returns503WithProblemDetails()
+        {
+            // Arrange
+            _serviceMock
+                .Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
+
+            var request = new AddressParseRequestDto { RawAddress = "123 Main St" };
+
+            // Act
+            var result = await _controller.Parse(request, CancellationToken.None);
+
+            // Assert
+            var status = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
+            var problem = Assert.IsType<ProblemDetails>(status.Value);
+            Assert.Equal(503, problem.Status);
+            Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
+        }
+
+        [Fact]
+        public async Task Validate_BrokenCircuit_Returns503WithProblemDetails()
+        {
+            // Arrange
+            _serviceMock
+                .Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
+
+            var request = new AddressParseRequestDto { RawAddress = "123 Main St" };
+
+            // Act
+            var result = await _controller.Validate(request, CancellationToken.None);
+
+            // Assert
+            var status = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
+            var problem = Assert.IsType<ProblemDetails>(status.Value);
+            Assert.Equal(503, problem.Status);
+            Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
         }
     }
 }

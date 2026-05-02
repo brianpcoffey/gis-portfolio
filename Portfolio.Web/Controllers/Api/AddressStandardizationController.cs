@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
@@ -9,7 +10,8 @@ namespace Portfolio.Web.Controllers.Api
     /// API endpoints for address parsing, standardization, and validation.
     /// </summary>
     [ApiController]
-    [Route("api/addressstandardization")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/addresses")]
     [AllowAnonymous]
     public class AddressStandardizationController : ControllerBase
     {
@@ -31,8 +33,10 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Structured address components including a standardized single-line output and parse confidence score.</returns>
         [HttpPost("parse")]
-        [ProducesResponseType(typeof(AddressParsedDto), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(AddressParsedDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Parse([FromBody] AddressParseRequestDto request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request?.RawAddress))
@@ -47,6 +51,17 @@ namespace Portfolio.Web.Controllers.Api
             {
                 return BadRequest(new { error = ex.Message });
             }
+            catch (Polly.CircuitBreaker.BrokenCircuitException)
+            {
+                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+                {
+                    Status = 503,
+                    Title  = "Geocoding Unavailable",
+                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
+                    Extensions = { ["retryAfterSeconds"] = 15 }
+                });
+            }
         }
 
         /// <summary>
@@ -57,8 +72,10 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Validation result with parsed components, ArcGIS matched address, score, and confidence tier.</returns>
         [HttpPost("validate")]
-        [ProducesResponseType(typeof(AddressValidationResultDto), 200)]
-        [ProducesResponseType(typeof(object), 400)]
+        [ProducesResponseType(typeof(AddressValidationResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Validate([FromBody] AddressParseRequestDto request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request?.RawAddress))
@@ -73,6 +90,18 @@ namespace Portfolio.Web.Controllers.Api
             {
                 return BadRequest(new { error = ex.Message });
             }
+            catch (Polly.CircuitBreaker.BrokenCircuitException)
+            {
+                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+                {
+                    Status = 503,
+                    Title  = "Geocoding Unavailable",
+                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
+                    Extensions = { ["retryAfterSeconds"] = 15 }
+                });
+            }
         }
     }
 }
+

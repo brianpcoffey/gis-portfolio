@@ -1,6 +1,8 @@
+using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
+using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {
@@ -16,25 +18,39 @@ namespace Portfolio.Services.Services
         /// <summary>
         /// Creates a saved search after validating that the name is unique per user.
         /// </summary>
-        public async Task<SavedSearch> CreateSavedSearchAsync(SavedSearch savedSearch, CancellationToken cancellationToken = default)
+        public async Task<SavedSearchDto> CreateSavedSearchAsync(CreateSavedSearchDto dto, Guid userId, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(savedSearch.Name))
-                throw new ArgumentException("Name is required.", nameof(savedSearch));
+            ArgumentNullException.ThrowIfNull(dto);
 
-            var duplicate = await _repo.ExistsByNameAsync(savedSearch.UserId, savedSearch.Name, cancellationToken);
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ArgumentException("Name is required.", nameof(dto));
+
+            var name = dto.Name.Trim();
+
+            var duplicate = await _repo.ExistsByNameAsync(userId, name, cancellationToken);
             if (duplicate)
-                throw new InvalidOperationException($"A saved search with the name '{savedSearch.Name}' already exists.");
+                throw new InvalidOperationException($"A saved search with the name '{name}' already exists.");
 
-            savedSearch.CreatedAt = DateTime.UtcNow;
-            return await _repo.AddAsync(savedSearch, cancellationToken);
+            var entity = new SavedSearch
+            {
+                UserId = userId,
+                Name = name,
+                PreferencesJson = JsonSerializer.Serialize(dto.Preferences),
+                TopPropertyIds = string.Join(",", dto.PropertyIds ?? Array.Empty<int>()),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var saved = await _repo.AddAsync(entity, cancellationToken);
+            return MapToDto(saved);
         }
 
         /// <summary>
         /// Returns all saved searches for a given user, ordered by most recent.
         /// </summary>
-        public async Task<List<SavedSearch>> GetSavedSearchesAsync(Guid userId, CancellationToken cancellationToken = default)
+        public async Task<List<SavedSearchDto>> GetSavedSearchesAsync(Guid userId, CancellationToken cancellationToken = default)
         {
-            return await _repo.GetAllAsync(userId, cancellationToken);
+            var entities = await _repo.GetAllAsync(userId, cancellationToken);
+            return entities.Select(MapToDto).ToList();
         }
 
         /// <summary>
@@ -47,6 +63,31 @@ namespace Portfolio.Services.Services
                 throw new KeyNotFoundException($"Saved search with ID {id} was not found.");
 
             await _repo.DeleteAsync(id, cancellationToken);
+        }
+
+        private static SavedSearchDto MapToDto(SavedSearch s) => new()
+        {
+            Id = s.Id,
+            Name = s.Name,
+            CreatedAt = s.CreatedAt,
+            Preferences = SafeDeserialize(s.PreferencesJson),
+            PropertyIds = s.TopPropertyIds?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(int.Parse)
+                .ToArray() ?? Array.Empty<int>()
+        };
+
+        private static HomeSearchPreferencesDto? SafeDeserialize(string json)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<HomeSearchPreferencesDto>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
@@ -9,7 +10,8 @@ namespace Portfolio.Web.Controllers.Api
     /// API endpoints for managing collections.
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/collections")]
     [Authorize(Policy = "Authenticated")]
     public class CollectionsController : ControllerBase
     {
@@ -28,6 +30,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <returns>List of collections.</returns>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<CollectionDto>), 200)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<CollectionDto>>> GetAll(CancellationToken cancellationToken)
         {
             var items = await _service.GetAllAsync(cancellationToken);
@@ -43,6 +46,7 @@ namespace Portfolio.Web.Controllers.Api
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(CollectionDto), 200)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<CollectionDto>> Get(int id, CancellationToken cancellationToken)
         {
             var item = await _service.GetByIdAsync(id, cancellationToken);
@@ -60,6 +64,7 @@ namespace Portfolio.Web.Controllers.Api
         [ProducesResponseType(typeof(CollectionDto), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(409)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<CollectionDto>> Create([FromBody] CollectionCreateDto dto, CancellationToken cancellationToken)
         {
             try
@@ -87,7 +92,9 @@ namespace Portfolio.Web.Controllers.Api
         /// <returns>The updated collection.</returns>
         [HttpPut("{id:int}")]
         [ProducesResponseType(typeof(CollectionDto), 200)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<CollectionDto>> Update(int id, [FromBody] CollectionUpdateDto dto, CancellationToken cancellationToken)
         {
             try
@@ -109,7 +116,9 @@ namespace Portfolio.Web.Controllers.Api
         /// <returns>No content if deleted, NotFound if not found.</returns>
         [HttpDelete("{id:int}")]
         [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
         {
             var deleted = await _service.DeleteAsync(id, cancellationToken);

@@ -108,6 +108,29 @@ public class HomeScoringService : IHomeScoringService
         return scored;
     }
 
+    // Gets a single property by ID and maps it to a ScoredPropertyDto (unscored, rank 0).
+    public async Task<ScoredPropertyDto?> GetPropertyByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var p = await _propertyRepo.GetByIdAsync(id, cancellationToken);
+        if (p is null) return null;
+
+        var monthlyCost = EstimateMonthlyCost(p);
+        return new ScoredPropertyDto
+        {
+            PropertyId = p.Id,
+            Street = p.Street,
+            City = p.City,
+            ZipCode = p.ZipCode,
+            Price = p.Price,
+            Bedrooms = p.Bedrooms,
+            Bathrooms = p.Bathrooms,
+            LotSqft = p.LotSqft,
+            Latitude = p.Latitude,
+            Longitude = p.Longitude,
+            EstimatedMonthlyCost = monthlyCost
+        };
+    }
+
     // --- Sub-score methods ---
 
     private static decimal EstimateMonthlyCost(Property p)

@@ -1,21 +1,29 @@
+using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api;
 
-using Microsoft.AspNetCore.Authorization;
 [Authorize(Policy = "Authenticated")]
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/fiber/dashboard")]
 public class FiberDashboardController : ControllerBase
 {
     private readonly IFiberDashboardService _dashboardService;
-    public FiberDashboardController(IFiberDashboardService dashboardService)
+    private readonly ILogger<FiberDashboardController> _logger;
+
+    public FiberDashboardController(IFiberDashboardService dashboardService, ILogger<FiberDashboardController> logger)
     {
         _dashboardService = dashboardService;
+        _logger = logger;
     }
 
+    /// <summary>Retrieves fiber dashboard statistics.</summary>
     [HttpGet("stats")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(500)]
     public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
     {
         try
@@ -25,8 +33,14 @@ public class FiberDashboardController : ControllerBase
         }
         catch (Exception ex)
         {
-            // Log the error (for now, return details in response)
-            return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
+            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
+                nameof(FiberDashboardController), nameof(GetStats));
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Status = 500,
+                Title  = "An unexpected error occurred.",
+                Detail = "See server logs for details."
+            });
         }
     }
 }

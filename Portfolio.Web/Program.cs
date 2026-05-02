@@ -1,7 +1,10 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Http.Resilience;
+using Polly;
 using System.Net.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -10,6 +13,8 @@ using Portfolio.Common.DTOs;
 using Portfolio.Repositories;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Repositories.Repositories;
+using Portfolio.Services;
+using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 using Portfolio.Web.Middleware;
@@ -62,13 +67,106 @@ builder.Services.AddHttpClient<IArcGisService, ArcGisService>(client =>
 {
     PooledConnectionLifetime = TimeSpan.FromMinutes(5)
 })
-.SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+.SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+.AddResilienceHandler("arcgis-features", pipeline =>
+{
+    pipeline.AddTimeout(TimeSpan.FromSeconds(25));
+
+    pipeline.AddRetry(new HttpRetryStrategyOptions
+    {
+        MaxRetryAttempts = 2,
+        BackoffType      = DelayBackoffType.Exponential,
+        UseJitter        = true,
+        Delay            = TimeSpan.FromMilliseconds(500),
+        ShouldHandle     = args => ValueTask.FromResult(
+            args.Outcome.Exception is HttpRequestException ||
+            args.Outcome.Result?.StatusCode >= System.Net.HttpStatusCode.InternalServerError)
+    });
+
+    pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+    {
+        SamplingDuration  = TimeSpan.FromSeconds(60),
+        FailureRatio      = 0.5,
+        MinimumThroughput = 5,
+        BreakDuration     = TimeSpan.FromSeconds(30)
+    });
+});
 builder.Services.AddScoped<IBatchGeocodingService, BatchGeocodingService>();
-builder.Services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>();
+builder.Services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>()
+    .AddResilienceHandler("arcgis-batch", pipeline =>
+    {
+        pipeline.AddTimeout(TimeSpan.FromSeconds(8));
+
+        pipeline.AddRetry(new HttpRetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType      = DelayBackoffType.Exponential,
+            UseJitter        = true,
+            Delay            = TimeSpan.FromMilliseconds(300),
+            ShouldHandle     = args => ValueTask.FromResult(
+                args.Outcome.Exception is HttpRequestException ||
+                args.Outcome.Result?.StatusCode >= System.Net.HttpStatusCode.InternalServerError)
+        });
+
+        pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+        {
+            SamplingDuration  = TimeSpan.FromSeconds(30),
+            FailureRatio      = 0.5,
+            MinimumThroughput = 8,
+            BreakDuration     = TimeSpan.FromSeconds(15)
+        });
+    });
 builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();
-builder.Services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService>();
+builder.Services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService>()
+    .AddResilienceHandler("arcgis-reverse", pipeline =>
+    {
+        pipeline.AddTimeout(TimeSpan.FromSeconds(8));
+
+        pipeline.AddRetry(new HttpRetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType      = DelayBackoffType.Exponential,
+            UseJitter        = true,
+            Delay            = TimeSpan.FromMilliseconds(300),
+            ShouldHandle     = args => ValueTask.FromResult(
+                args.Outcome.Exception is HttpRequestException ||
+                args.Outcome.Result?.StatusCode >= System.Net.HttpStatusCode.InternalServerError)
+        });
+
+        pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+        {
+            SamplingDuration  = TimeSpan.FromSeconds(30),
+            FailureRatio      = 0.5,
+            MinimumThroughput = 8,
+            BreakDuration     = TimeSpan.FromSeconds(15)
+        });
+    });
 builder.Services.AddScoped<IAddressStandardizationService, AddressStandardizationService>();
-builder.Services.AddHttpClient<IAddressStandardizationService, AddressStandardizationService>();
+builder.Services.AddHttpClient<IAddressStandardizationService, AddressStandardizationService>()
+    .AddResilienceHandler("arcgis-address", pipeline =>
+    {
+        pipeline.AddTimeout(TimeSpan.FromSeconds(8));
+
+        pipeline.AddRetry(new HttpRetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType      = DelayBackoffType.Exponential,
+            UseJitter        = true,
+            Delay            = TimeSpan.FromMilliseconds(300),
+            ShouldHandle     = args => ValueTask.FromResult(
+                args.Outcome.Exception is HttpRequestException ||
+                args.Outcome.Result?.StatusCode >= System.Net.HttpStatusCode.InternalServerError)
+        });
+
+        pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+        {
+            SamplingDuration  = TimeSpan.FromSeconds(30),
+            FailureRatio      = 0.5,
+            MinimumThroughput = 8,
+            BreakDuration     = TimeSpan.FromSeconds(15)
+        });
+    });
+builder.Services.AddSingleton<IBatchJobStore, InMemoryBatchJobStore>();
 
 // --------------------------
 // Session
@@ -207,6 +305,26 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddControllers();
+
+// --------------------------
+// API Versioning
+// --------------------------
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(
+        new UrlSegmentApiVersionReader(),
+        new HeaderApiVersionReader("X-Api-Version"),
+        new QueryStringApiVersionReader("api-version")
+    );
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
 // --------------------------
 // Swagger / API Explorer
 // --------------------------

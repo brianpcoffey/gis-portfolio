@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
@@ -9,7 +10,8 @@ namespace Portfolio.Web.Controllers.Api
     /// API endpoints for reverse geocoding a coordinate to structured place data.
     /// </summary>
     [ApiController]
-    [Route("api/reversegeocoding")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/geocoding/reverse")]
     [AllowAnonymous]
     public class ReverseGeocodingController : ControllerBase
     {
@@ -30,9 +32,11 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Structured place data including address components and location type.</returns>
         [HttpGet]
-        [ProducesResponseType(typeof(ReverseGeocodingResultDto), 200)]
-        [ProducesResponseType(typeof(object), 400)]
-        [ProducesResponseType(404)]
+        [ProducesResponseType(typeof(ReverseGeocodingResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPlaceData([FromQuery] double lat, [FromQuery] double lng, CancellationToken cancellationToken)
         {
             try
@@ -48,6 +52,18 @@ namespace Portfolio.Web.Controllers.Api
             {
                 return NotFound();
             }
+            catch (Polly.CircuitBreaker.BrokenCircuitException)
+            {
+                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+                {
+                    Status = 503,
+                    Title  = "Geocoding Unavailable",
+                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
+                    Extensions = { ["retryAfterSeconds"] = 15 }
+                });
+            }
         }
     }
 }
+

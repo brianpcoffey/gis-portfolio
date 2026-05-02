@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Polly.CircuitBreaker;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
@@ -63,6 +65,25 @@ namespace Portfolio.Tests.Controllers
 
             // Assert
             Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task GetFeatures_WhenCircuitBreakerIsOpen_Returns503WithProblemDetails()
+        {
+            // Arrange
+            _serviceMock
+                .Setup(s => s.QueryFeaturesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new BrokenCircuitException("circuit open"));
+
+            // Act
+            var result = await _controller.GetFeatures("1", null, CancellationToken.None);
+
+            // Assert
+            var status = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
+            var problem = Assert.IsType<ProblemDetails>(status.Value);
+            Assert.Equal(503, problem.Status);
+            Assert.Equal("Feature Service Unavailable", problem.Title);
         }
     }
 }
