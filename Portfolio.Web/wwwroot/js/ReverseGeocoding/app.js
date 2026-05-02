@@ -8,7 +8,7 @@
     // ── Constants ──────────────────────────────────────────────────────────────
     var HISTORY_KEY = "rg_recent_lookups";
     var MAX_HISTORY = 5;
-    var API_BASE = "/api/reversegeocoding";
+    var API_BASE = "/api/v1/geocoding/reverse";
 
     // ── State ──────────────────────────────────────────────────────────────────
     var currentResult = null;

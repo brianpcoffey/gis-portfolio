@@ -191,7 +191,7 @@
         var formData = new FormData();
         formData.append("file", _file);
 
-        fetch("/api/batchgeocoding", {
+        fetch("/api/v1/geocoding/batch", {
             method: "POST",
             body: formData
             // No Content-Type header — browser sets multipart/form-data automatically.

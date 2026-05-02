@@ -25,7 +25,7 @@ function loadOrdersTable() {
         fiberflowToast('DataTables library is not loaded. Please check your script order.', 'error');
         return;
     }
-    fetch('/api/FiberOrders')
+    fetch('/api/v1/fiber/orders')
         .then(r => r.json())
         .then(data => {
             if (ordersTable) {
@@ -71,7 +71,7 @@ window.showOrderModal = function (orderId) {
     let order = null;
     if (isEdit) {
         // Fetch order details
-        fetch(`/api/FiberOrders/${orderId}`)
+        fetch(`/api/v1/fiber/orders/${orderId}`)
             .then(r => r.json())
             .then(data => {
                 order = data;
@@ -152,7 +152,7 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
             shipDate: formData.shipDate ? new Date(formData.shipDate).toISOString() : null
         };
         let method = isEdit ? 'PUT' : 'POST';
-        let url = isEdit ? `/api/FiberOrders/${order.id}` : '/api/FiberOrders';
+        let url = isEdit ? `/api/v1/fiber/orders/${order.id}` : '/api/v1/fiber/orders';
         fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
@@ -176,7 +176,7 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
 // Delete order
 window.deleteOrder = function (orderId) {
     if (!confirm('Delete this order?')) return;
-    fetch(`/api/FiberOrders/${orderId}`, { method: 'DELETE' })
+    fetch(`/api/v1/fiber/orders/${orderId}`, { method: 'DELETE' })
         .then(r => {
             if (!r.ok) throw new Error('Failed to delete order');
             fiberflowToast('Order deleted', 'success');

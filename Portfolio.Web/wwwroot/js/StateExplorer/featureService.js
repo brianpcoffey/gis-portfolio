@@ -3,7 +3,7 @@
 
 import { UI } from './uiManager.js';
 
-const BASE = '/api';
+const BASE = '/api/v1';
 
 async function safeJson(resp) {
     try { return await resp.json(); } catch { return null; }
@@ -24,7 +24,7 @@ export const FeatureService = {
 
     async getSavedFeatures() {
         try {
-            const res = await fetch(`${BASE}/savedfeatures`, { credentials: 'same-origin' });
+            const res = await fetch(`${BASE}/features/saved`, { credentials: 'same-origin' });
             if (!res.ok) throw new Error((await safeJson(res))?.error || "Failed to fetch saved features");
             return await res.json();
         } catch (e) {
@@ -45,7 +45,7 @@ export const FeatureService = {
             };
             if (collectionId) payload.CollectionId = collectionId;
 
-            const res = await fetch(`${BASE}/savedfeatures`, {
+            const res = await fetch(`${BASE}/features/saved`, {
                 method: "POST",
                 credentials: 'same-origin',
                 headers: { "Content-Type": "application/json" },
@@ -66,7 +66,7 @@ export const FeatureService = {
 
     async deleteFeature(id) {
         try {
-            const res = await fetch(`${BASE}/savedfeatures/${encodeURIComponent(id)}`, {
+            const res = await fetch(`${BASE}/features/saved/${encodeURIComponent(id)}`, {
                 method: "DELETE",
                 credentials: 'same-origin'
             });

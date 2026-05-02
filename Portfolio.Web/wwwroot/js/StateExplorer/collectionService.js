@@ -1,7 +1,7 @@
 // small client wrapper for collection CRUD API
 export const CollectionService = {
     async getCollections() {
-        const res = await fetch('/api/collections', { credentials: 'same-origin' });
+        const res = await fetch('/api/v1/collections', { credentials: 'same-origin' });
         if (!res.ok) {
             throw new Error('Failed to load collections');
         }
@@ -9,7 +9,7 @@ export const CollectionService = {
     },
 
     async createCollection(name, color) {
-        const res = await fetch('/api/collections', {
+        const res = await fetch('/api/v1/collections', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
@@ -23,8 +23,7 @@ export const CollectionService = {
     },
 
     async updateCollection(id, { name, color }) {
-        const res = await fetch(`/api/collections/${id}`, {
-            method: 'PUT',
+        const res = await fetch(`/api/v1/collections/${id}`, {
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, color })
@@ -34,8 +33,7 @@ export const CollectionService = {
     },
 
     async deleteCollection(id) {
-        const res = await fetch(`/api/collections/${id}`, {
-            method: 'DELETE',
+        const res = await fetch(`/api/v1/collections/${id}`, {
             credentials: 'same-origin'
         });
         if (!res.ok) throw new Error('Failed to delete collection');

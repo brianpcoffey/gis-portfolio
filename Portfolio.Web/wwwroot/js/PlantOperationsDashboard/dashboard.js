@@ -167,7 +167,7 @@ if (typeof loadFiberflowMap !== 'function') {
 
     window.loadFiberflowMap = function () {
         initFiberflowMap()
-            .then(() => fetch('/api/FiberShipments'))
+            .then(() => fetch('/api/v1/fiber/shipments'))
             .then(res => res.ok ? res.json() : Promise.reject('Failed to load shipments'))
             .then(shipments => plotFiberflowShipments(shipments))
             .catch(err => {
@@ -189,7 +189,7 @@ function loadDashboardStats() {
     $('#fiberflowRevenueChart .fiberflow-spinner').removeClass('d-none');
     $('#fiberflowOrdersChart .fiberflow-spinner').removeClass('d-none');
     $('#fiberflowInventoryChart .fiberflow-spinner').removeClass('d-none');
-    fetchWithAuth('/api/FiberDashboard/stats')
+    fetchWithAuth('/api/v1/fiber/dashboard/stats')
         .then(r => r.json())
         .then(data => {
             updateDashboardBadges(data);

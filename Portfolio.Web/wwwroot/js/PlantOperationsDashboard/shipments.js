@@ -19,7 +19,7 @@ function loadShipmentsTable() {
         fiberflowToast('DataTables library is not loaded. Please check your script order.', 'error');
         return;
     }
-    fetchWithAuth('/api/FiberShipments')
+    fetchWithAuth('/api/v1/fiber/shipments')
         .then(r => r.json())
         .then(data => {
             if (shipmentsTable) {
@@ -91,7 +91,7 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
     $('#shipmentStatusForm').on('submit', function (e) {
         e.preventDefault();
         let formData = Object.fromEntries(new FormData(this).entries());
-        fetch(`/api/FiberShipments/${shipmentId}/status`, {
+        fetch(`/api/v1/fiber/shipments/${shipmentId}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
@@ -118,7 +118,7 @@ function showShipmentModal(shipmentId) {
     $modals.empty();
     let shipment = null;
     if (isEdit) {
-        fetch(`/api/FiberShipments/${shipmentId}`)
+        fetch(`/api/v1/fiber/shipments/${shipmentId}`)
             .then(r => r.json())
             .then(data => {
                 shipment = data;
@@ -206,7 +206,7 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
         formData.destinationLng = parseFloat(formData.destinationLng);
         formData.estimatedArrival = new Date(formData.estimatedArrival).toISOString();
         let method = isEdit ? 'PUT' : 'POST';
-        let url = isEdit ? `/api/FiberShipments/${shipment.id}` : '/api/FiberShipments';
+        let url = isEdit ? `/api/v1/fiber/shipments/${shipment.id}` : '/api/v1/fiber/shipments';
         fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
@@ -277,7 +277,7 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
         formData.unitCost = parseFloat(formData.unitCost);
         formData.reorderPoint = parseFloat(formData.reorderPoint);
         let method = isEdit ? 'PUT' : 'POST';
-        let url = isEdit ? `/api/FiberMaterials/${material.id}` : '/api/FiberMaterials';
+        let url = isEdit ? `/api/v1/fiber/materials/${material.id}` : '/api/v1/fiber/materials';
         fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
@@ -300,7 +300,7 @@ window.renderMaterialModal = renderMaterialModal;
 // Delete shipment by ID
 function deleteShipment(shipmentId) {
     if (!confirm('Are you sure you want to delete this shipment?')) return;
-    fetch(`/api/FiberShipments/${shipmentId}`, {
+    fetch(`/api/v1/fiber/shipments/${shipmentId}`, {
         method: 'DELETE'
     })
     .then(r => {

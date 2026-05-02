@@ -1,5 +1,5 @@
 ﻿// app.js — Smart Home Finder orchestration
-const API_BASE = "/api/homefinder";
+const API_BASE = "/api/v1/homefinder";
 
 // ============================================================
 // OAuth-Aware Fetch Helper

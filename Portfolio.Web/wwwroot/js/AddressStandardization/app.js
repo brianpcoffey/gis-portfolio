@@ -6,8 +6,8 @@
     "use strict";
 
     // ── Constants ──────────────────────────────────────────────────────────────
-    var PARSE_API    = "/api/addressstandardization/parse";
-    var VALIDATE_API = "/api/addressstandardization/validate";
+    var PARSE_API    = "/api/v1/addresses/parse";
+    var VALIDATE_API = "/api/v1/addresses/validate";
     var SCORE_KEY    = "as_score_history";
     var MAX_SCORES   = 5;
     var DEBOUNCE_MS  = 600;
