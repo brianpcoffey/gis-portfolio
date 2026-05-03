@@ -360,6 +360,7 @@ builder.Services.AddApiVersioning(options =>
 // Swagger / API Explorer
 // --------------------------
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
 
 // --------------------------
 // Database Context (PostgreSQL via Render / Supabase)
@@ -411,14 +412,9 @@ app.UseAuthorization();
 // Swagger UI
 // --------------------------
 
-// OpenAPI & Scalar UI — development only.
-// To enable in production (e.g. behind authentication middleware or IP restriction),
-// remove the if-guard below and add the appropriate authorization policy.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
+// OpenAPI & Scalar UI are intentionally available in production for public API documentation.
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 // --------------------------
 // Map endpoints
