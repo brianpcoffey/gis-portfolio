@@ -79,6 +79,7 @@
 		<ul>
 			<li><strong>Hosting:</strong> Render hosts the ASP.NET Core app; PostgreSQL connection strings and Google OAuth secrets are injected through configuration.</li>
 			<li><strong>Authentication infrastructure:</strong> Cookie authentication uses Google as the challenge scheme, with API requests receiving 401 instead of HTML redirects.</li>
+			<li><strong>Shared Redis infrastructure:</strong> Home Finder persists through PostgreSQL rather than Redis, while the host application uses Redis for geocoding caches, batch job state, and production Data Protection keys when configured.</li>
 			<li><strong>Database operations:</strong> EF Core migrations run at startup, supporting automated schema rollout for portfolio-scale deployments.</li>
 			<li><strong>Containerization:</strong> The same application can run from the root Dockerfile and Docker Compose; Kubernetes manifests provide replica, service, and HPA definitions.</li>
 			<li><strong>Cloud evolution:</strong> For larger scale, the property ranking path could move toward managed PostgreSQL read replicas, search indexes, Azure Cache for Redis, or a dedicated scoring service.</li>

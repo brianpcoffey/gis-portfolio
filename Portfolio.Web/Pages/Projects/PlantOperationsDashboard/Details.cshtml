@@ -79,6 +79,7 @@
 		<ul>
 			<li><strong>Hosting:</strong> Render runs the ASP.NET Core app with PostgreSQL configuration supplied through environment variables.</li>
 			<li><strong>Secrets management:</strong> Google OAuth and database credentials are externalized; Kubernetes secret manifests contain placeholders only.</li>
+			<li><strong>Shared Redis infrastructure:</strong> Plant operations data is persisted in PostgreSQL, while Redis is available to the host application for geocoding caches, batch job state, and production Data Protection keys.</li>
 			<li><strong>Containerization:</strong> Docker supports repeatable application packaging; Docker Compose adds Redis for local distributed infrastructure parity.</li>
 			<li><strong>Kubernetes:</strong> Manifests define namespace, config map, secret, deployment, service, Redis, and HPA for a scalable container platform target.</li>
 			<li><strong>Reliability considerations:</strong> Stateless API replicas plus shared database/cache services support horizontal scale; future production hardening would add managed Redis, managed PostgreSQL, health checks, and centralized telemetry.</li>

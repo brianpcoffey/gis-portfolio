@@ -68,7 +68,7 @@
 		</p>
 		<ul>
 			<li><strong>Caching strategy:</strong> Results are serialized with shared JSON options into <code>IDistributedCache</code> using a sliding expiration configured by <code>ReverseGeocoding:CacheSlidingExpirationMinutes</code>.</li>
-			<li><strong>Scale-out behavior:</strong> Redis lets multiple app replicas share cache entries; local development falls back to <code>MemoryDistributedCache</code>.</li>
+			<li><strong>Scale-out behavior:</strong> Redis lets multiple app replicas share snapped-coordinate cache entries; local development falls back to <code>MemoryDistributedCache</code> when <code>Redis:ConnectionString</code> is empty.</li>
 			<li><strong>Query optimization:</strong> Grid snapping trades exact per-click precision for dramatically better cache hit rates in dense click workflows.</li>
 			<li><strong>Database role:</strong> PostgreSQL remains available for other domains, but this workflow avoids unnecessary writes for ephemeral lookup results.</li>
 		</ul>
@@ -78,7 +78,8 @@
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Hosting:</strong> Deployed with the main Portfolio application on Render; configuration is provided through <code>appsettings</code> and environment variables.</li>
-			<li><strong>Distributed cache:</strong> <code>Redis__ConnectionString</code> switches the app from in-process cache to Redis-backed <code>IDistributedCache</code>.</li>
+			<li><strong>Distributed cache:</strong> <code>Redis__ConnectionString</code> switches the app from in-process cache to Redis-backed <code>IDistributedCache</code> for reverse-geocode results and other shared geocoding workflows.</li>
+			<li><strong>Shared platform role:</strong> The same Redis instance also supports batch geocoding job state and production Data Protection keys for multi-replica cookie validity.</li>
 			<li><strong>Reliability:</strong> Polly protects the app and ArcGIS dependency from long waits, transient failures, and repeated calls during upstream instability.</li>
 			<li><strong>Containers:</strong> Docker Compose includes Redis for local cache behavior close to production; Kubernetes manifests support replica scaling behind a service.</li>
 			<li><strong>Cloud architecture:</strong> In Azure, this maps cleanly to Azure Container Apps or AKS plus Azure Cache for Redis and managed PostgreSQL while preserving the current service API.</li>

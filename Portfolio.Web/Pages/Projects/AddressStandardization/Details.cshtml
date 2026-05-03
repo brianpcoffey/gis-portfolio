@@ -70,7 +70,7 @@
 		<ul>
 			<li><strong>Relational data:</strong> No EF Core repository is required because there are no persisted entities for parse or validation requests.</li>
 			<li><strong>Wire models:</strong> ArcGIS response classes live in <code>Portfolio.Common/ArcGis</code> with explicit <code>[JsonPropertyName]</code> attributes to protect deserialization from naming mismatches.</li>
-			<li><strong>Caching:</strong> No dedicated address-standardization cache is currently applied; repeated validation relies on ArcGIS resilience policies rather than stored results.</li>
+			<li><strong>Caching:</strong> No dedicated address-standardization Redis cache is currently applied; repeated validation relies on ArcGIS resilience policies rather than stored results.</li>
 			<li><strong>Scalability:</strong> Stateless service logic makes horizontal scaling straightforward; future caching could key on normalized address text if validation traffic becomes repetitive.</li>
 		</ul>
 	</section>
@@ -80,6 +80,7 @@
 		<ul>
 			<li><strong>Hosting:</strong> Runs as part of the same Render-hosted ASP.NET Core application as the other portfolio APIs.</li>
 			<li><strong>Configuration:</strong> ArcGIS timeout, retry, and circuit breaker behavior is configured through the typed <code>HttpClient</code> registration in <code>Program.cs</code>.</li>
+			<li><strong>Shared Redis infrastructure:</strong> This stateless parser does not store results in Redis, but the hosting application uses Redis for batch geocoding job state, geocoding caches, and production Data Protection keys when configured.</li>
 			<li><strong>Observability:</strong> Controller logging records upstream circuit-breaker failures; unexpected exceptions flow through centralized middleware.</li>
 			<li><strong>Container/cloud readiness:</strong> Because the workflow is stateless, it works well in Docker, Kubernetes, Azure Container Apps, AKS, or any horizontally scaled container platform.</li>
 			<li><strong>Secrets:</strong> No hard-coded credentials are required for the sample ArcGIS endpoint; production geocoding providers would move API keys to environment variables or a secret store.</li>

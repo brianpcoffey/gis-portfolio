@@ -79,7 +79,8 @@
 		<ul>
 			<li><strong>Hosting:</strong> Render hosts the .NET app; PostgreSQL, Google OAuth settings, and optional Redis settings are supplied by configuration.</li>
 			<li><strong>Middleware:</strong> <code>ApiExceptionMiddleware</code>, <code>AnonymousUserMiddleware</code>, authentication, and authorization run in a defined order so anonymous and authenticated identities coexist.</li>
-			<li><strong>Data protection:</strong> Local/container deployments can persist keys to the filesystem; Redis-backed key persistence supports multi-replica cookie validity when Redis is configured.</li>
+			<li><strong>Redis integration:</strong> Redis is used by the wider application for geocoding cache, batch geocoding job state, and production Data Protection key storage when <code>Redis__ConnectionString</code> is configured.</li>
+			<li><strong>Data protection:</strong> Local/container deployments can persist keys to the filesystem; Redis-backed key persistence stores keys under <code>DataProtection-Keys</code> and supports multi-replica cookie validity when Redis is configured.</li>
 			<li><strong>Containerization:</strong> Docker packages the application; Kubernetes manifests model replica scaling, config/secret injection, and service exposure.</li>
 			<li><strong>Cloud portability:</strong> The same boundaries map to Azure App Service or container platforms with managed PostgreSQL, Azure Cache for Redis, and externalized OAuth secrets.</li>
 		</ul>

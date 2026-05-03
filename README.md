@@ -5,6 +5,7 @@
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=flat&logo=bootstrap&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon.tech-4169E1?style=flat&logo=postgresql&logoColor=white)
 ![ArcGIS](https://img.shields.io/badge/ArcGIS-JS_API-2C7AC3?style=flat&logo=esri&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-Cache_%26_Job_State-DC382D?style=flat&logo=redis&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -64,7 +65,9 @@ Razor Page / API Controller  (Portfolio.Web)
 - Structured logging with `ILogger<T>` across all services, repositories, and controllers
 - `ApiExceptionMiddleware` for centralized error handling
 - All async methods accept and forward `CancellationToken`
-- `IDistributedCache` shared across geocoding services for deduplication and result caching (Redis in production, in-memory fallback locally)
+- Redis-backed `IDistributedCache` shared across geocoding services for deduplication and result caching, with in-memory fallback when `Redis:ConnectionString` is empty
+- Redis-backed batch job state through `RedisBatchJobStore`, allowing any replica to serve async geocoding status requests
+- Redis-backed ASP.NET Core Data Protection keys in production so encrypted cookies and antiforgery tokens remain valid across replicas
 - Typed `HttpClient` registrations with Polly timeout, retry, jitter, and circuit breaker policies for ArcGIS dependencies
 - EF Core migrations run automatically at startup via `db.Database.Migrate()`
 
@@ -168,6 +171,20 @@ Authenticated operations dashboard for fiber orders, materials, shipments, clien
 | Database Hosting | Neon.tech PostgreSQL |
 | Containerization | Docker (multi-stage build), Docker Compose (local dev with Redis) |
 | Orchestration | Kubernetes manifests (Deployment, Service, HPA, ConfigMap, Secret) |
+
+---
+
+## Redis Integration
+
+Redis is optional in local development but becomes the shared distributed infrastructure when `Redis:ConnectionString` is configured through `Redis__ConnectionString`:
+
+- **Batch Geocoding cache:** normalized address strings are cached through `IDistributedCache` to deduplicate repeated ArcGIS `findAddressCandidates` calls.
+- **Batch Geocoding job state:** `RedisBatchJobStore` stores full `BatchJob` snapshots with a 24-hour TTL so any horizontally scaled replica can return polling status and completed results.
+- **Reverse Geocoding cache:** snapped latitude/longitude keys cache ArcGIS `reverseGeocode` results with sliding expiration for repeated map-click lookups.
+- **Data Protection key ring:** production deployments persist ASP.NET Core Data Protection keys to Redis under `DataProtection-Keys`, keeping cookies and antiforgery tokens valid across replicas.
+- **Containers and Kubernetes:** Docker Compose includes a `redis:7-alpine` sidecar for local/staging parity, and the Kubernetes manifests include a Redis service for demo/staging scale-out. Production cloud deployments should prefer managed Redis.
+
+When Redis is not configured, geocoding cache falls back to `MemoryDistributedCache`, batch job state falls back to `InMemoryBatchJobStore`, and local/container Data Protection keys can be persisted on the filesystem.
 
 ---
 

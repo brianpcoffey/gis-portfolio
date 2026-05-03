@@ -68,9 +68,9 @@
 		</p>
 		<ul>
 			<li><strong>Job state:</strong> <code>RedisBatchJobStore</code> stores the full <code>BatchJob</code> JSON document with a 24-hour TTL when Redis is configured; <code>InMemoryBatchJobStore</code> supports local development.</li>
-			<li><strong>Caching:</strong> Normalized address strings key cache entries so repeated addresses across a batch can avoid duplicate ArcGIS calls.</li>
+			<li><strong>Caching:</strong> Normalized address strings key Redis-backed <code>IDistributedCache</code> entries so repeated addresses across a batch can avoid duplicate ArcGIS calls; local development falls back to <code>MemoryDistributedCache</code>.</li>
 			<li><strong>Serialization:</strong> Shared <code>PortfolioJsonOptions.Default</code> keeps enum and DTO serialization consistent across Redis and API responses.</li>
-			<li><strong>Scalability:</strong> Redis-backed job state lets any replica serve status polling requests after a different replica accepted the upload.</li>
+			<li><strong>Scalability:</strong> Redis-backed job state lets any replica serve status polling requests after a different replica accepted the upload, while shared cache entries reduce duplicate upstream work across replicas.</li>
 		</ul>
 	</section>
 
@@ -79,7 +79,7 @@
 		<ul>
 			<li><strong>Current hosting:</strong> The application is deployed on Render with configuration injected through environment variables.</li>
 			<li><strong>Containerization:</strong> The root <code>Dockerfile</code> builds a multi-stage .NET image; Docker Compose runs the app with a Redis sidecar for local distributed-cache testing.</li>
-			<li><strong>Kubernetes readiness:</strong> Manifests define a multi-replica deployment, Redis service for shared cache/job state, resource requests/limits, service, and HPA.</li>
+			<li><strong>Kubernetes readiness:</strong> Manifests define a multi-replica deployment, Redis service for shared geocoding cache, batch job state, and Data Protection keys, plus resource requests/limits, service, and HPA.</li>
 			<li><strong>Configuration:</strong> <code>BatchGeocoding:MaxConcurrency</code>, <code>MinMatchScore</code>, <code>CacheTtlMinutes</code>, and <code>Redis__ConnectionString</code> are environment-configurable.</li>
 			<li><strong>Cloud portability:</strong> The design can move to Azure App Service, Azure Container Apps, or AKS with Azure Cache for Redis and managed PostgreSQL without changing service contracts.</li>
 		</ul>
