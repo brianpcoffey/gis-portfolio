@@ -8,78 +8,101 @@
 <link rel="stylesheet" href="~/css/gis.css" />
 
 <div class="container py-5">
-
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0">🗺️ US State Explorer – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-map me-2"></i>US State Explorer – Technical Details</h1>
 		<a href="/Projects/StateExplorer" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to US State Explorer demo">
 			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
 		</a>
 	</div>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Architecture</h2>
-		<p>
-			The US State Explorer is built on a classic 4-layer ASP.NET Core architecture: a Razor Pages front end
-			communicates with REST API controllers, which delegate to scoped services, which in turn query repositories
-			backed by Entity Framework Core against SQL Server. The ArcGIS map rendering is handled entirely in the
-			browser via the <strong>ArcGIS JavaScript SDK 4.x</strong>.
-		</p>
-		<p>
-			Anonymous user identity is established via <code>AnonymousUserMiddleware</code>, which issues a secure
-			HttpOnly cookie (<code>AnonUserId</code>) on first visit. This GUID is stored in
-			<code>HttpContext.Items["AnonUserId"]</code> and used to scope all saved-feature operations to the
-			visiting user without requiring authentication.
-		</p>
-		<p>
-			Authenticated operations (Collections) require Google OAuth login through the
-			<strong>Cookie + Google authentication schemes</strong>. The <code>Authenticated</code> policy gates
-			those endpoints.
-		</p>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Technology Stack</h2>
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
-			<li><strong>ArcGIS JavaScript SDK 4.x</strong> – MapView, FeatureLayer, Graphic, PopupTemplate, Typeahead search</li>
-			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, API controllers, middleware pipeline</li>
-			<li><strong>Entity Framework Core</strong> – SQL Server provider, fluent mappings, async queries</li>
-			<li><strong>Bootstrap 5</strong> – responsive layout, dark-mode theming via CSS custom properties</li>
-			<li><strong>Typeahead.js</strong> – client-side state name autocomplete</li>
-			<li><strong>Google OAuth 2.0</strong> – authenticated user sign-in for Collections</li>
+			<li><strong>Purpose:</strong> Explore ArcGIS state feature data, save selected map features, attach notes, and organize saved features into collections.</li>
+			<li><strong>Business problem:</strong> Demonstrates how a geospatial browsing experience can be connected to user-specific persistence without requiring sign-in for basic saved-feature workflows.</li>
+			<li><strong>Architecture:</strong> Razor Page + ArcGIS JavaScript SDK → versioned ASP.NET Core APIs → scoped services → repositories → PostgreSQL via EF Core, with an ArcGIS proxy service for feature queries.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, ArcGIS JavaScript SDK, Bootstrap, Typeahead.js, EF Core/Npgsql, Google OAuth, anonymous identity middleware.</li>
+			<li><strong>Deployment model:</strong> Runs in the Render-hosted Portfolio app with Docker and Kubernetes manifests available for containerized cloud deployment.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Key Features</h2>
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
+		<p>
+			The front end is a Razor Page that delegates rich map behavior to focused JavaScript modules under <code>wwwroot/js/StateExplorer</code>. This keeps the page server-rendered while allowing map, search, saved-feature, and collection interactions to evolve independently.
+		</p>
 		<ul>
-			<li><strong>Interactive ArcGIS map</strong> – clickable state polygons with popup details fetched from the ArcGIS Sample Server 6 FeatureLayer</li>
-			<li><strong>Saved Features</strong> – anonymous users can save any map feature; persisted per-user via <code>SavedFeatureService</code> and <code>SavedFeatureRepository</code></li>
-			<li><strong>Collections</strong> – authenticated users can group saved features into named, colour-coded collections managed by <code>CollectionService</code></li>
-			<li><strong>User Notes</strong> – inline notes attached to each saved feature, stored in the <code>UserNotes</code> EF entity</li>
-			<li><strong>State search</strong> – Typeahead autocomplete wired to a client-side dataset; selecting a result zooms the map and highlights the state</li>
-			<li><strong>Dark / light mode</strong> – toggled via a CSS class on <code>&lt;body&gt;</code>, persisted in <code>localStorage</code></li>
+			<li><strong>Module boundaries:</strong> <code>mapManager.js</code> owns ArcGIS map lifecycle; <code>featureService.js</code> and <code>collectionService.js</code> wrap API calls; <code>stateStore.js</code> tracks client state; <code>uiManager.js</code> updates the DOM.</li>
+			<li><strong>API communication:</strong> Shared <code>api-config.js</code> constants provide versioned routes for features, saved features, and collections.</li>
+			<li><strong>State management:</strong> Client-side state tracks active layer, selected feature, saved features, collections, map highlights, and theme preferences without a SPA framework.</li>
+			<li><strong>Authentication handling:</strong> Saved features use the anonymous cookie automatically sent with API calls; collections use the shared fetch helper to redirect unauthenticated users to Google login.</li>
+			<li><strong>Performance:</strong> ArcGIS handles map rendering in the browser, while the backend handles persistence, ownership, validation, and protected proxy calls.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Data Flow</h2>
-		<ol>
-			<li>Browser loads the ArcGIS MapView and queries <code>sampleserver6.arcgisonline.com</code> directly for FeatureLayer tiles and feature attributes.</li>
-			<li>When a user saves a feature, the client POSTs to <code>POST /api/features</code>.</li>
-			<li><code>SavedFeaturesController</code> reads the anonymous user GUID from <code>HttpContext.Items</code> (never from the request body) and delegates to <code>SavedFeatureService</code>.</li>
-			<li><code>SavedFeatureService</code> enforces uniqueness and writes via <code>SavedFeatureRepository</code> inside an EF Core transaction.</li>
-			<li>Saved features are returned with their <code>Collection</code> eagerly loaded so <code>MapToDto</code> can populate <code>CollectionName</code>.</li>
-		</ol>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Implementation Details</h2>
+		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
-			<li>The front-end is split into focused ES modules: <code>mapManager.js</code> (map lifecycle), <code>featureService.js</code> (API calls), <code>collectionService.js</code> (collection CRUD), <code>stateStore.js</code> (client state), and <code>uiManager.js</code> (DOM updates).</li>
-			<li>All API endpoints that touch per-user data filter by the anonymous GUID at the EF layer — never in the service.</li>
-			<li>Multi-step writes (save feature + optional collection assignment) are wrapped in <code>BeginTransactionAsync / CommitAsync / RollbackAsync</code> to ensure atomicity.</li>
-			<li>The <code>ArcGisService</code> proxies ArcGIS feature queries through the server, encoding caller-supplied values with <code>Uri.EscapeDataString</code> to prevent URL injection.</li>
+			<li><strong>Feature query API:</strong> <code>FeaturesController</code> exposes <code>GET /api/v1/features?layerId={layerId}&amp;bbox={bbox}</code> as an anonymous ArcGIS feature proxy with circuit-breaker protection.</li>
+			<li><strong>Saved feature API:</strong> <code>SavedFeaturesController</code> exposes <code>/api/v1/features/saved</code> for anonymous per-user saved-feature CRUD.</li>
+			<li><strong>Collections API:</strong> <code>CollectionsController</code> exposes authenticated collection CRUD under <code>/api/v1/collections</code>.</li>
+			<li><strong>Identity model:</strong> Anonymous saved-feature ownership comes from <code>AnonUserId</code> in <code>HttpContext.Items</code>; authenticated collections use the <code>Authenticated</code> policy.</li>
+			<li><strong>Validation and errors:</strong> Controllers validate trivial request shape, translate service exceptions to 400/404/409, and return DTOs rather than EF entities.</li>
+			<li><strong>Security:</strong> The ArcGIS proxy URL-encodes caller-supplied query parts and prevents direct persistence based on client-supplied owner ids.</li>
 		</ul>
 	</section>
 
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>ArcGIS service:</strong> <code>ArcGisService</code> builds outbound ArcGIS requests, deserializes feature data, and uses typed <code>HttpClient</code> resilience policies.</li>
+			<li><strong>Saved features:</strong> <code>SavedFeatureService</code> resolves the current anonymous user, enforces duplicate prevention, assigns timestamps, and wraps multi-step writes in an EF Core transaction.</li>
+			<li><strong>Collections:</strong> <code>CollectionService</code> resolves authenticated user ownership, trims input, enforces unique collection names, and applies default colors.</li>
+			<li><strong>Service contracts:</strong> Services return DTOs and use typed exceptions such as <code>ArgumentException</code>, <code>InvalidOperationException</code>, and <code>KeyNotFoundException</code> for controller translation.</li>
+			<li><strong>Geospatial workflow:</strong> Browser map interactions identify features; backend services decide which selected feature data can be persisted and how it is scoped to the visitor.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
+		<ul>
+			<li><strong>Repository pattern:</strong> <code>SavedFeatureRepository</code> and <code>CollectionRepository</code> own EF Core queries, eager loading, owner filtering, and <code>SaveChangesAsync</code>.</li>
+			<li><strong>Database:</strong> PostgreSQL is accessed with EF Core/Npgsql, fluent mappings, and startup migrations.</li>
+			<li><strong>Ownership filtering:</strong> Per-user queries filter by anonymous <code>UserId</code> or authenticated <code>OwnerId</code> at the repository layer.</li>
+			<li><strong>Query shape:</strong> Saved-feature reads eagerly load <code>Collection</code> and <code>UserNotes</code> so DTO mapping can include collection names and note data without lazy loading.</li>
+			<li><strong>Transaction handling:</strong> Multi-step saved-feature creation uses <code>BeginTransactionAsync</code>, <code>CommitAsync</code>, and <code>RollbackAsync</code> to preserve atomicity.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
+		<ul>
+			<li><strong>Hosting:</strong> Render hosts the .NET app; PostgreSQL, Google OAuth settings, and optional Redis settings are supplied by configuration.</li>
+			<li><strong>Middleware:</strong> <code>ApiExceptionMiddleware</code>, <code>AnonymousUserMiddleware</code>, authentication, and authorization run in a defined order so anonymous and authenticated identities coexist.</li>
+			<li><strong>Data protection:</strong> Local/container deployments can persist keys to the filesystem; Redis-backed key persistence supports multi-replica cookie validity when Redis is configured.</li>
+			<li><strong>Containerization:</strong> Docker packages the application; Kubernetes manifests model replica scaling, config/secret injection, and service exposure.</li>
+			<li><strong>Cloud portability:</strong> The same boundaries map to Azure App Service or container platforms with managed PostgreSQL, Azure Cache for Redis, and externalized OAuth secrets.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Anonymous identity:</strong> Lowers friction for saved features, but requires careful separation from authenticated collection ownership.</li>
+			<li><strong>Server proxy for features:</strong> Centralizes URL encoding, resilience, and API contract control, but adds backend latency compared with direct browser-only feature queries.</li>
+			<li><strong>Layered architecture:</strong> Keeps controllers thin and services testable, at the cost of more files and interfaces.</li>
+			<li><strong>Future improvements:</strong> Add per-user quotas, ArcGIS response caching, collection sharing, richer spatial filtering, OpenTelemetry traces, and managed cloud secrets/key storage.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How do anonymous and authenticated identities coexist without leaking data across users?</li>
+			<li>What should be cached: ArcGIS feature responses, saved-feature DTOs, or both?</li>
+			<li>How would you protect the ArcGIS proxy from abusive bbox/layer queries?</li>
+			<li>Where should geospatial filtering run: browser, API proxy, database, or upstream ArcGIS?</li>
+			<li>How would you evolve saved features into a multi-user collaboration feature?</li>
+		</ul>
+	</section>
 </div>

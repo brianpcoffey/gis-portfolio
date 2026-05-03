@@ -1,42 +1,6 @@
 ﻿// app.js — Smart Home Finder orchestration
-const API_BASE = "/api/v1/homefinder";
+const HOME_FINDER_ROUTES = window.PortfolioApi.routes.homeFinder;
 
-// ============================================================
-// OAuth-Aware Fetch Helper
-// ============================================================
-// The /api/* endpoints return 401 when the user is not authenticated
-// (instead of a 302 redirect to Google OAuth, which would cause CORS
-// errors from fetch/XHR). This helper detects 401 responses and
-// triggers a full-page redirect to the Google OAuth challenge endpoint.
-// After successful OAuth login, /signin-google sets the auth cookie
-// and the user is redirected back to the current page to resume.
-// ============================================================
-
-/**
- * Wraps fetch() with automatic 401 → OAuth redirect handling.
- * If the server returns 401 (unauthenticated), we redirect the
- * entire page to the login flow instead of failing silently.
- *
- * @param {string} url - The request URL.
- * @param {RequestInit} [options] - Standard fetch options.
- * @returns {Promise<Response>} The fetch response (if authenticated).
- */
-async function apiFetch(url, options = {}) {
-    const res = await fetch(url, options);
-
-    if (res.status === 401) {
-        // Full-page redirect to Google OAuth challenge.
-        // returnUrl ensures the user comes back here after login.
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/Login?returnUrl=${returnUrl}`;
-
-        // Return a never-resolving promise so calling code doesn't
-        // continue executing while the redirect is in progress.
-        return new Promise(() => {});
-    }
-
-    return res;
-}
 
 let mapView = null;
 let mapInstance = null;
@@ -503,7 +467,7 @@ async function performSearch() {
         // This avoids the CORS error that would occur if the browser
         // tried to follow a 302 redirect to accounts.google.com
         // from within a fetch() call.
-        const res = await apiFetch(`${API_BASE}/search`, {
+        const res = await apiFetch(HOME_FINDER_ROUTES.search, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(prefs)
@@ -551,7 +515,7 @@ async function saveSearch() {
     if (!name) return;
 
     try {
-        const res = await apiFetch(`${API_BASE}/searches`, {
+        const res = await apiFetch(HOME_FINDER_ROUTES.searches, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -578,7 +542,7 @@ async function loadSavedSearches() {
     body.innerHTML = '<p class="text-muted text-center small">Loading\u2026</p>';
 
     try {
-        const res = await apiFetch(`${API_BASE}/searches`);
+        const res = await apiFetch(HOME_FINDER_ROUTES.searches);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const searches = await res.json();
 
@@ -622,7 +586,7 @@ async function loadSavedSearches() {
                 const id = btn.dataset.searchId;
                 if (!confirm("Delete this saved search?")) return;
                 try {
-                    const res = await apiFetch(`${API_BASE}/searches/${id}`, { method: "DELETE" });
+                    const res = await apiFetch(`${HOME_FINDER_ROUTES.searches}/${id}`, { method: "DELETE" });
                     if (res.ok) {
                         btn.closest(".card").remove();
                         showToast("Search deleted.", "success");
@@ -641,7 +605,7 @@ async function loadSavedSearches() {
 
 async function applySavedSearch(searchId) {
     try {
-        const res = await apiFetch(`${API_BASE}/searches/${searchId}`);
+        const res = await apiFetch(`${HOME_FINDER_ROUTES.searches}/${searchId}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const saved = await res.json();
 

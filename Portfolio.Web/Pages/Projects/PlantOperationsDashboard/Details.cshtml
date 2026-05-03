@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="~/css/gis.css" />
 
 <div class="container py-5">
-
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
 		<h1 class="mb-0"><i class="fa-solid fa-industry me-2"></i>Plant Operations Dashboard – Technical Details</h1>
 		<a href="/Projects/PlantOperationsDashboard" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Plant Operations Dashboard demo">
@@ -17,66 +16,93 @@
 	</div>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Architecture</h2>
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Manage fiber plant operations across orders, materials, shipments, clients, and dashboard metrics.</li>
+			<li><strong>Business problem:</strong> Consolidates operational workflows and KPI visibility that would otherwise be split across spreadsheets, inventory logs, and shipment tracking tools.</li>
+			<li><strong>Architecture:</strong> Razor Page dashboard → modular JavaScript managers → authenticated versioned fiber APIs → services → repositories → PostgreSQL via EF Core.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, DataTables.js, ArcGIS JavaScript SDK, EF Core/Npgsql, Google OAuth cookie authentication.</li>
+			<li><strong>Deployment model:</strong> Hosted with the Portfolio application on Render and designed for containerized deployment through Docker and Kubernetes manifests.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
-			The Plant Operations Dashboard (FiberFlow) is a full-stack ASP.NET Core Razor Pages application with
-			multiple dedicated REST API controllers — one each for shipments, orders, inventory, and the revenue
-			dashboard. Each domain follows the 4-layer architecture: Razor Page / API controller → service →
-			repository → Entity Framework Core (SQL Server).
+			The dashboard is a Razor Page enhanced with focused JavaScript files under <code>wwwroot/js/PlantOperationsDashboard</code>. Each module owns a bounded UI concern: map/dashboard summary, orders, inventory/materials, or shipments.
 		</p>
-		<p>
-			The dashboard requires authenticated access via Google OAuth (<code>[Authorize(Policy = "Authenticated")]</code>).
-			ArcGIS JavaScript SDK renders a live shipment routing map. DataTables.js drives the tabular management
-			panels for orders, inventory, and transaction audit logs.
-		</p>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Technology Stack</h2>
 		<ul>
-			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, multiple REST API controllers</li>
-			<li><strong>Entity Framework Core</strong> – SQL Server provider, fluent entity mappings, async EF queries</li>
-			<li><strong>PostgreSQL</strong> – operational data store for shipments, orders, and inventory</li>
-			<li><strong>ArcGIS JavaScript SDK 4.x (Esri GIS)</strong> – MapView with shipment routing graphics and stop markers</li>
-			<li><strong>DataTables.js</strong> – server-side and client-side tabular data for orders, inventory, and shipments with sort, filter, and export</li>
-			<li><strong>Bootstrap 5 + custom CSS</strong> – responsive dashboard layout with live badge counters</li>
-			<li><strong>Google OAuth 2.0</strong> – required authentication</li>
+			<li><strong>JavaScript organization:</strong> <code>dashboard.js</code> coordinates summary metrics and map rendering; <code>orders.js</code>, <code>inventory.js</code>, and <code>shipments.js</code> handle CRUD tables and form interactions.</li>
+			<li><strong>API communication:</strong> Shared <code>PortfolioApi.routes.fiber</code> constants provide consistent versioned URLs for orders, materials, shipments, and dashboard stats.</li>
+			<li><strong>State management:</strong> DataTables and page-local module state manage loaded records, selected rows, and refresh behavior after mutations.</li>
+			<li><strong>Authentication handling:</strong> <code>api-fetch.js</code> sends cookies and redirects 401 API responses to Google login with a return URL.</li>
+			<li><strong>UX decisions:</strong> Summary cards, status badges, toast notifications, and tabular grids support operational scanning rather than long-form record editing.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Key Features</h2>
+		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
-			<li><strong>Shipment GIS routing</strong> – active shipments are rendered on an ArcGIS MapView with route lines and origin/destination stop markers; routes are fetched from the shipment API and drawn as polyline graphics</li>
-			<li><strong>Order management</strong> – full CRUD for plant orders via a DataTables panel; orders have status tracking (open, in-progress, completed)</li>
-			<li><strong>Inventory tracking</strong> – stock levels with low-stock detection; the dashboard header badge shows live low-stock count</li>
-			<li><strong>Transaction audit logs</strong> – every inventory movement generates an audit log entry displayed in a read-only DataTables panel</li>
-			<li><strong>Live revenue dashboard</strong> – aggregated revenue metrics computed from completed orders, displayed in summary cards</li>
-			<li><strong>Live header badges</strong> – active shipment count, open order count, and low-stock count refresh on page load via separate API calls</li>
-			<li><strong>Toast notifications</strong> – all user actions (create, update, delete) surface Bootstrap toast messages for feedback</li>
+			<li><strong>Controllers:</strong> Fiber APIs are versioned under <code>/api/v1/fiber</code> and require <code>[Authorize(Policy = "Authenticated")]</code>.</li>
+			<li><strong>Routes:</strong> <code>/orders</code>, <code>/materials</code>, <code>/shipments</code>, and <code>/dashboard/stats</code> expose CRUD and aggregate dashboard data.</li>
+			<li><strong>Authorization flow:</strong> Cookie authentication protects the endpoints; services resolve the current user through <code>IUserProfileService.GetCurrentUserId()</code>.</li>
+			<li><strong>Request validation:</strong> Controllers perform minimal shape checks and delegate domain validation, user scoping, timestamps, and defaulting to services.</li>
+			<li><strong>Error handling:</strong> Controllers translate expected not-found and validation cases where implemented and return <code>ProblemDetails</code> for unexpected server errors.</li>
+			<li><strong>API design:</strong> DTOs are used at every boundary so EF Core entities do not leak to the client.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Data Flow</h2>
-		<ol>
-			<li>Page loads and the front end fires parallel API calls to fetch shipments, orders, inventory counts, and revenue metrics.</li>
-			<li>Shipment data is passed to the ArcGIS MapView module (<code>dashboard.js</code>) to draw route graphics.</li>
-			<li>Order, inventory, and shipment tables are initialised as DataTables instances consuming JSON from the respective API endpoints.</li>
-			<li>User actions (e.g. create order, adjust inventory) call the appropriate REST endpoint; on success, the DataTable is refreshed and a toast notification is displayed.</li>
-			<li>Revenue metrics are recalculated server-side on demand and returned as aggregated DTOs.</li>
-		</ol>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Implementation Details</h2>
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
-			<li>The front end is split into focused ES modules: <code>dashboard.js</code> (map + summary), <code>orders.js</code> (order CRUD), <code>inventory.js</code> (inventory CRUD), <code>shipments.js</code> (shipment table + GIS).</li>
-			<li>All per-user data is filtered by the authenticated user's ID (<code>ClaimTypes.NameIdentifier</code>) at the EF repository layer.</li>
-			<li>ArcGIS routing coordinates are stored alongside shipment records and retrieved via the shipment API; the client constructs polyline graphics from the coordinate arrays.</li>
-			<li>The <code>plantoperationsdashboard.css</code> stylesheet defines custom badge variants and dashboard card styles that extend the shared GIS theme.</li>
-			<li>Low-stock detection is computed in the inventory service by comparing current stock against a configurable minimum threshold and returned as part of the inventory DTO.</li>
+			<li><strong>Service boundaries:</strong> <code>IFiberOrderService</code>, <code>IFiberMaterialService</code>, <code>IFiberShipmentService</code>, <code>IFiberClientService</code>, and <code>IFiberDashboardService</code> separate domain operations.</li>
+			<li><strong>Business rules:</strong> Services enforce current-user presence, create/update timestamps, required fields, partial update behavior, and not-found/conflict semantics.</li>
+			<li><strong>Dashboard aggregation:</strong> <code>FiberDashboardService</code> computes MTD revenue, open orders, active shipments, low-stock alerts, orders by status, top clients, and inventory by category.</li>
+			<li><strong>External integration:</strong> Shipment location fields are visualized by the ArcGIS JavaScript SDK in the browser; backend services provide the operational shipment data.</li>
+			<li><strong>Dependency injection:</strong> Each service and repository is scoped, matching ASP.NET Core request lifetimes and EF Core <code>DbContext</code> usage.</li>
 		</ul>
 	</section>
 
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
+		<ul>
+			<li><strong>Repository pattern:</strong> Fiber repositories isolate EF Core querying, <code>AsNoTracking</code> read paths, updates, and <code>SaveChangesAsync</code>.</li>
+			<li><strong>Database:</strong> PostgreSQL is accessed through EF Core/Npgsql with entity mappings in <code>Portfolio.Repositories/Mappings</code>.</li>
+			<li><strong>User scoping:</strong> Per-user operational data is filtered by owner/user id inside repository predicates rather than in the browser.</li>
+			<li><strong>Query optimization:</strong> Dashboard metrics aggregate from repository-provided domain collections; future growth would push heavier aggregations into optimized SQL, materialized views, or read models.</li>
+			<li><strong>Transaction handling:</strong> Simple CRUD writes call <code>SaveChangesAsync</code> per operation; no distributed transaction is required for the current workflows.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
+		<ul>
+			<li><strong>Hosting:</strong> Render runs the ASP.NET Core app with PostgreSQL configuration supplied through environment variables.</li>
+			<li><strong>Secrets management:</strong> Google OAuth and database credentials are externalized; Kubernetes secret manifests contain placeholders only.</li>
+			<li><strong>Containerization:</strong> Docker supports repeatable application packaging; Docker Compose adds Redis for local distributed infrastructure parity.</li>
+			<li><strong>Kubernetes:</strong> Manifests define namespace, config map, secret, deployment, service, Redis, and HPA for a scalable container platform target.</li>
+			<li><strong>Reliability considerations:</strong> Stateless API replicas plus shared database/cache services support horizontal scale; future production hardening would add managed Redis, managed PostgreSQL, health checks, and centralized telemetry.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Classic layered architecture:</strong> Clear service/repository boundaries make the domain easy to test and explain, but can add boilerplate compared with vertical-slice endpoints.</li>
+			<li><strong>Server-side aggregates:</strong> Keeps KPI logic authoritative, but may require read-model optimization if operational volume grows.</li>
+			<li><strong>Razor Pages plus JavaScript:</strong> Avoids SPA complexity while still supporting rich dashboard behavior; a large enterprise dashboard might eventually justify a dedicated frontend app.</li>
+			<li><strong>Future improvements:</strong> Add audit-event persistence, optimistic concurrency, outbox events for inventory changes, real-time updates with SignalR, and warehouse-specific access control.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How would you redesign dashboard metrics for millions of orders and shipments?</li>
+			<li>Where should transactional consistency matter most: inventory, shipments, orders, or revenue recognition?</li>
+			<li>How would you implement multi-tenant authorization and per-warehouse access boundaries?</li>
+			<li>What belongs in OLTP tables versus read-optimized projections or materialized views?</li>
+			<li>How would you add real-time operational updates without overloading the database?</li>
+		</ul>
+	</section>
 </div>

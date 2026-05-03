@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="~/css/gis.css" />
 
 <div class="container py-5">
-
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
 		<h1 class="mb-0"><i class="fa-solid fa-house-chimney me-2"></i>Redlands Smart Home Finder – Technical Details</h1>
 		<a href="/Projects/HomeFinder" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Redlands Smart Home Finder demo">
@@ -17,64 +16,93 @@
 	</div>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Architecture</h2>
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Score and rank Redlands-area properties against user-defined home search preferences, then display the best matches on a map and in result cards.</li>
+			<li><strong>Business problem:</strong> Converts subjective search criteria into a repeatable ranking API that can explain tradeoffs across affordability, commute, amenities, property condition, and resale factors.</li>
+			<li><strong>Architecture:</strong> Razor Page + ArcGIS map UI → authenticated versioned API → <code>IHomeScoringService</code> and <code>ISavedSearchService</code> → repositories → PostgreSQL via EF Core.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, ArcGIS JavaScript SDK, Bootstrap, vanilla JavaScript, EF Core/Npgsql, Google OAuth cookie authentication.</li>
+			<li><strong>Deployment model:</strong> Runs in the Portfolio web app on Render with PostgreSQL backing property and saved-search data; container and Kubernetes manifests support cloud portability.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
-			The Smart Home Finder is a full-stack ASP.NET Core application using Razor Pages as the host and a
-			dedicated REST API controller (<code>HomeFinderController</code>) to serve scoring and property data.
-			All endpoints are guarded by the <code>Authenticated</code> policy (Google OAuth), so the front end
-			includes an OAuth-aware <code>apiFetch</code> helper that intercepts 401 responses and redirects the
-			user to the Google login flow before retrying.
+			The page uses Razor for initial layout and <code>wwwroot/js/HomeFinder/app.js</code> for client behavior. It is not a SPA; preference sliders, map graphics, property cards, and saved-search interactions are coordinated with modular vanilla JavaScript.
 		</p>
-		<p>
-			The scoring engine lives in <code>IHomeScoringService</code>, which applies a configurable weighted
-			composite algorithm against a PostgreSQL-backed property dataset. Saved search preferences are persisted
-			per user via <code>ISavedSearchService</code>.
-		</p>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Technology Stack</h2>
 		<ul>
-			<li><strong>ArcGIS JavaScript SDK 4.x</strong> – MapView, GraphicsLayer, popup templates for property pins</li>
-			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, <code>HomeFinderController</code> REST API</li>
-			<li><strong>Entity Framework Core</strong> – SQL Server provider for user profiles and saved searches</li>
-			<li><strong>PostgreSQL</strong> – property dataset storage queried by the scoring service</li>
-			<li><strong>Bootstrap 5 + custom CSS</strong> – responsive preference sliders, results cards</li>
-			<li><strong>Google OAuth 2.0</strong> – required authentication; 401→redirect handled in <code>app.js</code></li>
+			<li><strong>Map UI:</strong> ArcGIS JavaScript SDK renders property pins and popup content for selected scored properties.</li>
+			<li><strong>State management:</strong> Slider weights and current result sets are held in browser state and sent to the API as <code>HomeSearchPreferencesDto</code>.</li>
+			<li><strong>API communication:</strong> <code>api-config.js</code> defines <code>/api/v1/homefinder/search</code>, <code>/property/{id}</code>, and <code>/searches</code>; <code>api-fetch.js</code> redirects API 401 responses to the login page.</li>
+			<li><strong>Authentication handling:</strong> The page relies on cookie authentication; saved-search calls require the authenticated portfolio identity resolved server-side.</li>
+			<li><strong>UX decisions:</strong> Preference sliders expose scoring tradeoffs directly so the ranking model is explainable during a technical walkthrough.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Key Features</h2>
+		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
-			<li><strong>Weighted composite scoring</strong> – 10 preference dimensions (affordability, neighbourhood rating, size, appreciation, condition, commute time, amenities, tax rate, resale value, environment) each with an independent 0–10 weight slider</li>
-			<li><strong>Top-10 results</strong> – <code>IHomeScoringService.GetTopPropertiesAsync</code> ranks all properties and returns the best matches</li>
-			<li><strong>ArcGIS map pins</strong> – matched properties are rendered as graphics on a MapView; clicking a pin opens a popup with full property details fetched from <code>GET /api/homefinder/property/{id}</code></li>
-			<li><strong>Saved searches</strong> – authenticated users can save their current preference configuration via <code>ISavedSearchService</code> and reload it on future visits</li>
-			<li><strong>OAuth-aware fetch</strong> – <code>apiFetch()</code> wrapper detects 401 and triggers a full-page redirect to <code>/Login?returnUrl=...</code>, returning the user to the same page post-login</li>
+			<li><strong>Controller:</strong> <code>HomeFinderController</code> is versioned at <code>/api/v1/homefinder</code> and currently requires <code>[Authorize(Policy = "Authenticated")]</code>.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/homefinder/search</code> scores top properties; <code>GET /api/v1/homefinder/property/{id}</code> returns one property; <code>/searches</code> endpoints create, list, retrieve, and delete saved searches.</li>
+			<li><strong>Backward compatibility:</strong> <code>/score</code> and <code>/properties/{id}</code> aliases are retained but hidden from API exploration.</li>
+			<li><strong>Authorization flow:</strong> The controller gets the current user through <code>IUserProfileService.GetCurrentUserId()</code> for saved-search ownership instead of trusting request body identity.</li>
+			<li><strong>Error handling:</strong> Not-found property/search paths return 404, duplicate saved searches return 409, and unauthenticated saved-search calls return 401.</li>
+			<li><strong>OpenAPI:</strong> Versioning and response metadata are declared with attributes so the API surface remains discoverable and migration-friendly.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Data Flow</h2>
-		<ol>
-			<li>User adjusts preference sliders in the left panel; weight bars update live via JavaScript.</li>
-			<li>On "Find Homes", the client POSTs to <code>POST /api/homefinder/search</code> with the full <code>HomeSearchPreferencesDto</code> payload.</li>
-			<li><code>HomeFinderController</code> delegates to <code>IHomeScoringService.GetTopPropertiesAsync</code>, which applies the weighted algorithm and returns up to 10 <code>ScoredPropertyDto</code> records.</li>
-			<li>Results are rendered as Bootstrap cards in the results panel and as ArcGIS Graphic pins on the MapView.</li>
-			<li>Selecting a pin fetches full details from <code>GET /api/homefinder/property/{id}</code> and populates the ArcGIS popup.</li>
-		</ol>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Implementation Details</h2>
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
-			<li>The scoring algorithm normalises each preference dimension to a 0–1 scale, multiplies by the user-assigned weight, and sums across all dimensions to produce a composite score.</li>
-			<li>Slider values are normalised in real-time; weight bars give visual feedback of relative importance.</li>
-			<li>The controller reads the authenticated user's ID from <code>ClaimTypes.NameIdentifier</code> — never from the request body — to scope saved-search operations.</li>
-			<li>All EF queries are parameterised LINQ; no raw SQL is used.</li>
-			<li>The <code>homefinder.css</code> stylesheet extends the base GIS theme with custom card and slider styling.</li>
+			<li><strong>Scoring service:</strong> <code>HomeScoringService</code> retrieves property data and applies a weighted composite scoring model based on the submitted preferences and top-N limit.</li>
+			<li><strong>Saved-search service:</strong> <code>SavedSearchService</code> owns named search persistence, uniqueness rules, timestamps, and owner scoping.</li>
+			<li><strong>Separation of concerns:</strong> The controller handles HTTP translation; services own business rules and DTO mapping; repositories own EF Core queries.</li>
+			<li><strong>Extensibility:</strong> The scoring model is isolated behind <code>IHomeScoringService</code>, allowing future replacement with richer spatial, ML, or search-index scoring without changing the controller contract.</li>
+			<li><strong>Geospatial workflow:</strong> The backend returns scored properties with location data, while the browser handles map visualization and interaction.</li>
 		</ul>
 	</section>
 
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
+		<ul>
+			<li><strong>Repository pattern:</strong> <code>IPropertyRepository</code> and <code>ISavedSearchRepository</code> isolate EF Core access from business logic.</li>
+			<li><strong>Database:</strong> PostgreSQL is accessed through EF Core with the Npgsql provider, fluent mappings, migrations, and parameterized LINQ queries.</li>
+			<li><strong>Ownership:</strong> Saved searches are scoped to the current user through repository predicates, not by client-provided owner fields.</li>
+			<li><strong>Query behavior:</strong> Property scoring currently operates over repository-provided property data; future scale could add indexed search, precomputed feature vectors, or database-side filtering before scoring.</li>
+			<li><strong>Caching:</strong> No dedicated property cache is currently implemented; the design favors correctness and simple repository boundaries over cache invalidation complexity.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
+		<ul>
+			<li><strong>Hosting:</strong> Render hosts the ASP.NET Core app; PostgreSQL connection strings and Google OAuth secrets are injected through configuration.</li>
+			<li><strong>Authentication infrastructure:</strong> Cookie authentication uses Google as the challenge scheme, with API requests receiving 401 instead of HTML redirects.</li>
+			<li><strong>Database operations:</strong> EF Core migrations run at startup, supporting automated schema rollout for portfolio-scale deployments.</li>
+			<li><strong>Containerization:</strong> The same application can run from the root Dockerfile and Docker Compose; Kubernetes manifests provide replica, service, and HPA definitions.</li>
+			<li><strong>Cloud evolution:</strong> For larger scale, the property ranking path could move toward managed PostgreSQL read replicas, search indexes, Azure Cache for Redis, or a dedicated scoring service.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Weighted scoring:</strong> A transparent scoring formula is easy to explain and test, but less adaptive than ML-based recommendation models.</li>
+			<li><strong>Server-side ranking:</strong> Keeps scoring rules authoritative and avoids exposing full property datasets to the browser, at the cost of server CPU per search.</li>
+			<li><strong>Authenticated saved searches:</strong> Provides durable user value and ownership guarantees, but requires login even for some interactions in the current controller configuration.</li>
+			<li><strong>Future improvements:</strong> Add spatial indexes, bounding-box filtering, cached property feature vectors, pagination, search telemetry, and background recomputation of market-derived signals.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How would you keep scoring explainable as ranking factors become more complex?</li>
+			<li>Which parts should move into database queries, a search engine, or a separate scoring service at larger scale?</li>
+			<li>How do you enforce saved-search ownership without trusting client-supplied user ids?</li>
+			<li>What indexes would matter for property search once the dataset grows beyond in-memory scoring?</li>
+			<li>How would you design A/B testing or telemetry around ranking quality?</li>
+		</ul>
+	</section>
 </div>

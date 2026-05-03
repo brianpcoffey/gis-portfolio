@@ -191,19 +191,7 @@
         var formData = new FormData();
         formData.append("file", _file);
 
-        fetch("/api/batchgeocoding/sync", {
-            method: "POST",
-            body: formData
-            // No Content-Type header — browser sets multipart/form-data automatically.
-        })
-        .then(function (response) {
-            if (!response.ok) {
-                return response.json().then(function (err) {
-                    throw new Error(err.error || "An unexpected error occurred.");
-                });
-            }
-            return response.json();
-        })
+        apiPostForm(window.PortfolioApi.routes.geocoding.batchSync, formData)
         .then(function (data) {
             _results = data;
             renderResults(data);

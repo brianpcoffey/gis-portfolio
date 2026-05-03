@@ -3,7 +3,8 @@
 
 import { UI } from './uiManager.js';
 
-const BASE = '/api/v1';
+const FEATURES = window.PortfolioApi.routes.features.query;
+const SAVED_FEATURES = window.PortfolioApi.routes.features.saved;
 
 async function safeJson(resp) {
     try { return await resp.json(); } catch { return null; }
@@ -12,7 +13,7 @@ async function safeJson(resp) {
 export const FeatureService = {
     async getFeatures(layerId = 3) {
         try {
-            const res = await fetch(`${BASE}/features?layerId=${encodeURIComponent(layerId)}`, { credentials: 'same-origin' });
+            const res = await window.apiFetch(`${FEATURES}?layerId=${encodeURIComponent(layerId)}`);
             if (!res.ok) throw new Error((await safeJson(res))?.error || "Failed to fetch features");
             return await res.json();
         } catch (e) {
@@ -24,7 +25,7 @@ export const FeatureService = {
 
     async getSavedFeatures() {
         try {
-            const res = await fetch(`${BASE}/features/saved`, { credentials: 'same-origin' });
+            const res = await window.apiFetch(SAVED_FEATURES);
             if (!res.ok) throw new Error((await safeJson(res))?.error || "Failed to fetch saved features");
             return await res.json();
         } catch (e) {
@@ -45,9 +46,8 @@ export const FeatureService = {
             };
             if (collectionId) payload.CollectionId = collectionId;
 
-            const res = await fetch(`${BASE}/features/saved`, {
+            const res = await window.apiFetch(SAVED_FEATURES, {
                 method: "POST",
-                credentials: 'same-origin',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
@@ -66,9 +66,8 @@ export const FeatureService = {
 
     async deleteFeature(id) {
         try {
-            const res = await fetch(`${BASE}/features/saved/${encodeURIComponent(id)}`, {
-                method: "DELETE",
-                credentials: 'same-origin'
+            const res = await window.apiFetch(`${SAVED_FEATURES}/${encodeURIComponent(id)}`, {
+                method: "DELETE"
             });
             if (!res.ok && res.status !== 404) throw new Error((await safeJson(res))?.error || "Failed to delete feature");
             return;

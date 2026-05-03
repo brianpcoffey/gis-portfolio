@@ -4,14 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
-namespace Portfolio.Web.Controllers.Api;
-
-[Authorize(Policy = "Authenticated")]
-[ApiController]
-[ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/fiber/materials")]
-public class FiberMaterialsController : ControllerBase
+namespace Portfolio.Web.Controllers.Api
 {
+    [Authorize(Policy = "Authenticated")]
+    [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/fiber/materials")]
+    public class FiberMaterialsController : ControllerBase
+    {
     private readonly IFiberMaterialService _materialService;
     private readonly ILogger<FiberMaterialsController> _logger;
 
@@ -178,5 +178,7 @@ public class FiberMaterialsController : ControllerBase
                 Detail = "See server logs for details."
             });
         }
+    }
+
     }
 }

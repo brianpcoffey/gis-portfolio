@@ -8,7 +8,7 @@
     // ── Constants ──────────────────────────────────────────────────────────────
     var HISTORY_KEY = "rg_recent_lookups";
     var MAX_HISTORY = 5;
-    var API_BASE = "/api/v1/geocoding/reverse";
+    var API_BASE = window.PortfolioApi.routes.geocoding.reverse;
 
     // ── State ──────────────────────────────────────────────────────────────────
     var currentResult = null;
@@ -224,7 +224,7 @@
 
         var url = API_BASE + "?lat=" + encodeURIComponent(lat) + "&lng=" + encodeURIComponent(lng);
 
-        fetch(url)
+        window.apiFetch(url)
             .then(function (response) {
                 if (response.ok) {
                     return response.json().then(function (dto) {

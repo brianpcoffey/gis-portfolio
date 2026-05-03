@@ -1,7 +1,8 @@
 // small client wrapper for collection CRUD API
+const _COLLECTIONS = window.PortfolioApi.routes.collections;
 export const CollectionService = {
     async getCollections() {
-        const res = await fetch('/api/v1/collections', { credentials: 'same-origin' });
+        const res = await window.apiFetch(_COLLECTIONS);
         if (!res.ok) {
             throw new Error('Failed to load collections');
         }
@@ -9,9 +10,8 @@ export const CollectionService = {
     },
 
     async createCollection(name, color) {
-        const res = await fetch('/api/v1/collections', {
+        const res = await window.apiFetch(_COLLECTIONS, {
             method: 'POST',
-            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, color })
         });
@@ -23,9 +23,8 @@ export const CollectionService = {
     },
 
     async updateCollection(id, { name, color }) {
-        const res = await fetch(`/api/v1/collections/${id}`, {
+        const res = await window.apiFetch(`${_COLLECTIONS}/${id}`, {
             method: 'PUT',
-            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, color })
         });
@@ -34,9 +33,8 @@ export const CollectionService = {
     },
 
     async deleteCollection(id) {
-        const res = await fetch(`/api/v1/collections/${id}`, {
-            method: 'DELETE',
-            credentials: 'same-origin'
+        const res = await window.apiFetch(`${_COLLECTIONS}/${id}`, {
+            method: 'DELETE'
         });
         if (!res.ok) throw new Error('Failed to delete collection');
         return;

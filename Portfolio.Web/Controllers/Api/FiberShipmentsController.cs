@@ -4,14 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
-namespace Portfolio.Web.Controllers.Api;
-
-[Authorize(Policy = "Authenticated")]
-[ApiController]
-[ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/fiber/shipments")]
-public class FiberShipmentsController : ControllerBase
+namespace Portfolio.Web.Controllers.Api
 {
+    [Authorize(Policy = "Authenticated")]
+    [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/fiber/shipments")]
+    public class FiberShipmentsController : ControllerBase
+    {
     private readonly IFiberShipmentService _shipmentService;
     private readonly ILogger<FiberShipmentsController> _logger;
 
@@ -95,4 +95,7 @@ public class FiberShipmentsController : ControllerBase
         if (!deleted) return NotFound();
         return NoContent();
     }
+
+    }
+
 }

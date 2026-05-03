@@ -626,6 +626,38 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.ym
 
 ## 10. Best Practices for AI Agents
 
+### Project technical documentation pages
+
+`Portfolio.Web/Pages/Projects/*/Details.cshtml` pages are interview-oriented
+technical walkthroughs. When modifying or creating one, preserve this section
+order and tone:
+
+1. `High-Level System Overview`
+2. `Frontend Architecture`
+3. `API Layer`
+4. `Services and Business Logic`
+5. `Data Access Layer`
+6. `Infrastructure and Deployment`
+7. `Engineering Decisions and Tradeoffs`
+8. `Interview Discussion Points`
+
+Rules for these pages:
+- Write for a senior/lead engineer evaluating system design, API scalability,
+  geocoding/search workflows, cloud architecture, and backend maintainability.
+- Keep language technically deep but concise; avoid marketing copy.
+- Match current implementation details in `Portfolio.Web/Controllers/Api`,
+  `Portfolio.Services`, `Portfolio.Repositories`, `Program.cs`, and
+  `wwwroot/js/api-config.js`.
+- Use the current route style (`/api/v1/...`) and controller authorization
+  attributes exactly as implemented.
+- Describe current hosting as Render with PostgreSQL unless deployment code or
+  configuration changes. Mention Azure, AKS, Azure Container Apps, Azure Cache
+  for Redis, queues, search services, or managed observability only as future
+  architecture unless implemented in the repo.
+- Use `PostgreSQL via EF Core/Npgsql`, `IDistributedCache` with Redis/in-memory
+  fallback, typed `HttpClient`, and Polly resilience terminology where relevant.
+- Keep future scalability items clearly labeled as future improvements.
+
 ### DO
 - DO put new business logic in a service that lives in
   `Portfolio.Services/Services` and is fronted by an interface in

@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Services.Interfaces;
 
-namespace Portfolio.Web.Controllers.Api;
-
-[Authorize(Policy = "Authenticated")]
-[ApiController]
-[ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/fiber/dashboard")]
-public class FiberDashboardController : ControllerBase
+namespace Portfolio.Web.Controllers.Api
 {
+    [Authorize(Policy = "Authenticated")]
+    [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/fiber/dashboard")]
+    public class FiberDashboardController : ControllerBase
+    {
     private readonly IFiberDashboardService _dashboardService;
     private readonly ILogger<FiberDashboardController> _logger;
 
@@ -41,6 +41,8 @@ public class FiberDashboardController : ControllerBase
                 Title  = "An unexpected error occurred.",
                 Detail = "See server logs for details."
             });
-        }
     }
+    }
+
+}
 }

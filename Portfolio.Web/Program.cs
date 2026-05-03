@@ -344,13 +344,10 @@ builder.Services.AddControllers();
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
+    // Require explicit URL-segment versions so missing or ambiguous API versions are detected.
+    options.AssumeDefaultVersionWhenUnspecified = false;
     options.ReportApiVersions = true;
-    options.ApiVersionReader = ApiVersionReader.Combine(
-        new UrlSegmentApiVersionReader(),
-        new HeaderApiVersionReader("X-Api-Version"),
-        new QueryStringApiVersionReader("api-version")
-    );
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
 })
 .AddMvc()
 .AddApiExplorer(options =>
@@ -405,18 +402,18 @@ app.UseSession();
 // Global exception handler — returns RFC 7807 ProblemDetails for all unhandled exceptions.
 app.UseMiddleware<ApiExceptionMiddleware>();
 
+app.UseMiddleware<AnonymousUserMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Insert anonymous user middleware AFTER authentication so context.User is populated
-// for authenticated users (Google sign-in) and AnonUserId cookie for anonymous users.
-app.UseMiddleware<AnonymousUserMiddleware>();
 
 // --------------------------
 // Swagger UI
 // --------------------------
 
-// OpenAPI & Scalar UI in development
+// OpenAPI & Scalar UI — development only.
+// To enable in production (e.g. behind authentication middleware or IP restriction),
+// remove the if-guard below and add the appropriate authorization policy.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

@@ -4,14 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
-namespace Portfolio.Web.Controllers.Api;
-
-[Authorize(Policy = "Authenticated")]
-[ApiController]
-[ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/fiber/orders")]
-public class FiberOrdersController : ControllerBase
+namespace Portfolio.Web.Controllers.Api
 {
+    [Authorize(Policy = "Authenticated")]
+    [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/fiber/orders")]
+    public class FiberOrdersController : ControllerBase
+    {
     private readonly IFiberOrderService _orderService;
     private readonly ILogger<FiberOrdersController> _logger;
 
@@ -151,5 +151,7 @@ public class FiberOrdersController : ControllerBase
                 Detail = "See server logs for details."
             });
         }
+    }
+
     }
 }

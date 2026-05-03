@@ -9,9 +9,9 @@
 
 ## Overview
 
-A modern software engineering portfolio showcasing projects in geographic information systems (GIS), geocoding pipelines, smart home data applications, and industrial operations dashboards. Built with an emphasis on clean architecture, secure authentication, responsive design, and cloud deployment.
+A .NET 10 Razor Pages and ASP.NET Core API portfolio focused on scalable backend engineering, GIS workflows, geocoding services, user-scoped persistence, and cloud-ready deployment patterns. The application is intentionally structured as a lead-level system design walkthrough: thin Razor/API entry points, service-layer business logic, repository-owned data access, typed external integrations, cache-backed geocoding workflows, and containerized deployment assets.
 
-The portfolio is built with **ASP.NET Core 10**, **Razor Pages**, and **Bootstrap 5**, featuring Google OAuth authentication, dark/light mode toggle, and layouts optimized for desktop and mobile. It is hosted on **Render**, with a **Neon.tech PostgreSQL** database powering project data and backend functionality.
+The current production deployment runs on **Render** with **PostgreSQL via Npgsql/EF Core**. The repository also includes a multi-stage Dockerfile, Docker Compose with Redis, and Kubernetes manifests that demonstrate how the same architecture can move to a horizontally scaled container platform. Azure, AKS, Azure Container Apps, or Azure Cache for Redis are future hosting targets rather than current production dependencies.
 
 ---
 
@@ -59,11 +59,13 @@ Razor Page / API Controller  (Portfolio.Web)
 - Font Awesome icons throughout
 
 ### API & Backend
-- RESTful JSON API controllers under `api/` with Scalar/OpenAPI docs
+- Versioned RESTful JSON API controllers under `api/v1/` using `Asp.Versioning`
+- OpenAPI document generation via ASP.NET Core OpenAPI, with Scalar as the interactive API reference UI in development
 - Structured logging with `ILogger<T>` across all services, repositories, and controllers
 - `ApiExceptionMiddleware` for centralized error handling
 - All async methods accept and forward `CancellationToken`
 - `IDistributedCache` shared across geocoding services for deduplication and result caching (Redis in production, in-memory fallback locally)
+- Typed `HttpClient` registrations with Polly timeout, retry, jitter, and circuit breaker policies for ArcGIS dependencies
 - EF Core migrations run automatically at startup via `db.Database.Migrate()`
 
 ---
@@ -71,30 +73,32 @@ Razor Page / API Controller  (Portfolio.Web)
 ## Projects Highlighted
 
 ### 🗺️ US State Explorer
-Explore, compare, and analyze U.S. states with an interactive ArcGIS-powered dashboard and ASP.NET Core backend. Users can save GIS features to their profile and organize them into named collections. Saved features and collections are persisted per-user in PostgreSQL.
+Interactive ArcGIS feature exploration with anonymous saved-feature persistence and authenticated collections. The browser handles ArcGIS map rendering, while versioned APIs manage feature proxying, saved-feature ownership, collection CRUD, EF Core transactions, and user-scoped PostgreSQL queries.
 
 **Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL
 
 ---
 
 ### 🏠 Redlands Smart Home Finder
-GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm. Users set preference weights and the backend scores and ranks properties accordingly.
+Authenticated property scoring API that ranks Redlands properties using weighted preferences and stores named searches per user. The scoring service is isolated from API and repository concerns so the ranking algorithm can evolve toward spatial indexes, search services, or dedicated scoring infrastructure.
 
 **Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL
 
 ---
 
 ### 🗂️ Batch Geocoding
-Upload a CSV of addresses and geocode them in bulk via the ArcGIS `findAddressCandidates` endpoint. Results are shown in an interactive DataTables grid with match rates, scores, coordinates, and CSV export support.
+Upload a CSV of addresses and process them through an asynchronous ArcGIS `findAddressCandidates` workflow. The recommended API returns `202 Accepted` with a polling URL, while Redis-backed job state allows any scaled replica to serve status requests.
 
 - Producer/consumer pipeline using `System.Threading.Channels` with configurable concurrency (`BatchGeocoding:MaxConcurrency`, default 4)
 - `IDistributedCache` deduplication — repeated addresses in the same upload hit the cache instead of ArcGIS (Redis in production, in-process fallback locally)
 - Configurable minimum match score (`BatchGeocoding:MinMatchScore`, default 80)
+- Job store abstraction (`IBatchJobStore`) backed by Redis when configured or an in-memory store for local development
+- Polly timeout/retry/circuit breaker policies around ArcGIS calls
 - Sample CSV files included under `wwwroot/samples/batch-geocoding/`
 
 **Stack:** ArcGIS, C#, .NET, Channels
 
-**API:** `POST /api/batchgeocoding` (accepts `multipart/form-data` CSV)
+**API:** `POST /api/v1/geocoding/batch` (accepts `multipart/form-data` CSV), then poll `GET /api/v1/geocoding/batch/{jobId}/status`
 
 ---
 
@@ -107,7 +111,7 @@ Click anywhere on an interactive ArcGIS map to instantly resolve the address at 
 
 **Stack:** ArcGIS, C#, .NET, Maps
 
-**API:** `GET /api/reversegeocoding?lat={lat}&lng={lng}`
+**API:** `GET /api/v1/geocoding/reverse?lat={lat}&lng={lng}`
 
 ---
 
@@ -120,13 +124,13 @@ Parse freeform address strings into structured components using NLP-style regex 
 **Stack:** ArcGIS, Address Parsing, C#, .NET
 
 **API:**
-- `POST /api/addressstandardization/parse`
-- `POST /api/addressstandardization/validate`
+- `POST /api/v1/addresses/parse`
+- `POST /api/v1/addresses/validate`
 
 ---
 
 ### 🏭 Plant Operations Dashboard
-Industrial plant operations dashboard for a fiberglass ducting manufacturer. Provides live revenue analytics, GIS-based shipment routing with basemap switching, order management, inventory tracking with transaction audit logs, and interactive DataTables grids.
+Authenticated operations dashboard for fiber orders, materials, shipments, clients, and KPI aggregation. The API layer is split into domain controllers under `/api/v1/fiber/*`, with services enforcing user identity and repositories handling EF Core owner filtering and PostgreSQL persistence.
 
 **Stack:** ASP.NET Core, DataTables, Esri GIS, PostgreSQL
 
@@ -144,7 +148,7 @@ Industrial plant operations dashboard for a fiberglass ducting manufacturer. Pro
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
-| API Docs | Scalar / OpenAPI (always-on, XML doc comments) |
+| API Docs | Scalar / OpenAPI in development, XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
 | Database Hosting | Neon.tech PostgreSQL |
@@ -200,7 +204,18 @@ Industrial plant operations dashboard for a fiberglass ducting manufacturer. Pro
    dotnet run --project Portfolio.Web
    ```
 
-6. Open `https://localhost:5001` in your browser. The API docs are available at `/scalar`.
+6. Open `https://localhost:5001` in your browser.
+
+### API Documentation
+
+The project uses **OpenAPI** for API metadata and **Scalar** as the interactive API documentation UI. It does not currently use Swagger UI.
+
+When running in the Development environment:
+
+- Interactive API reference: `https://localhost:5001/scalar`
+- Raw OpenAPI document: `https://localhost:5001/openapi/v1.json`
+
+These endpoints are mapped only in development in `Program.cs` via `MapOpenApi()` and `MapScalarApiReference()`.
 
 ### Running Tests
 

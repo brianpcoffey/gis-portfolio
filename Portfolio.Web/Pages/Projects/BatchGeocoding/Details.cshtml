@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="~/css/gis.css" />
 
 <div class="container py-5">
-
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
 		<h1 class="mb-0"><i class="fa-solid fa-map-location-dot me-2"></i>Batch Geocoding – Technical Details</h1>
 		<a href="/Projects/BatchGeocoding" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Batch Geocoding demo">
@@ -17,64 +16,93 @@
 	</div>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Architecture</h2>
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Bulk geocode CSV address files into match status, matched address, score, latitude, and longitude fields using ArcGIS <code>findAddressCandidates</code>.</li>
+			<li><strong>Business problem:</strong> Converts manual address cleanup into a repeatable API workflow that can process duplicate-heavy datasets without issuing unnecessary upstream geocoding calls.</li>
+			<li><strong>Architecture:</strong> Razor Page upload experience → versioned ASP.NET Core API → <code>IBatchGeocodingService</code> → channel-based worker pipeline → ArcGIS REST API, with job state stored behind <code>IBatchJobStore</code>.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, vanilla JavaScript, Bootstrap, DataTables.js, typed <code>HttpClient</code>, Polly resilience, <code>IDistributedCache</code>, Redis or in-memory fallback.</li>
+			<li><strong>Deployment model:</strong> Runs as part of the Portfolio web application on Render, supports Docker Compose with Redis locally, and has Kubernetes manifests for horizontally scaled replicas.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
-			Batch Geocoding is implemented as a Razor Page front end backed by a dedicated
-			<code>BatchGeocodingController</code> and <code>BatchGeocodingService</code>. The service uses a
-			<strong>System.Threading.Channels producer/consumer pipeline</strong> to geocode addresses concurrently
-			while respecting a configurable concurrency limit, avoiding unbounded thread creation.
+			The UI is a Razor Page backed by <code>wwwroot/js/BatchGeocoding/app.js</code>. It keeps state in page-level JavaScript rather than a SPA framework: selected file, submitted job id, polling state, progress metrics, and result rows are managed in the browser and reflected into Bootstrap cards and a DataTables grid.
 		</p>
+		<ul>
+			<li><strong>API communication:</strong> Shared route constants from <code>api-config.js</code> point to <code>/api/v1/geocoding/batch</code>; shared fetch helpers send cookies and normalize error handling.</li>
+			<li><strong>Upload flow:</strong> The browser posts <code>multipart/form-data</code> without manually setting <code>Content-Type</code>, allowing the browser to generate the boundary correctly.</li>
+			<li><strong>Async UX:</strong> The recommended path returns <code>202 Accepted</code> with a status URL; the client polls until the job reaches a terminal state, then renders metrics and row-level results.</li>
+			<li><strong>Performance:</strong> DataTables provides client-side filtering, sorting, and export for completed results, keeping the server focused on geocoding and job orchestration.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>BatchGeocodingController</code> is a versioned API controller at <code>/api/v1/geocoding/batch</code> and is intentionally <code>[AllowAnonymous]</code>.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/geocoding/batch</code> enqueues a job; <code>GET /api/v1/geocoding/batch/{jobId}/status</code> returns progress and results; <code>POST /api/v1/geocoding/batch/sync</code> is retained as an obsolete compatibility path.</li>
+			<li><strong>Validation:</strong> The controller rejects null or empty files before calling the service; deeper CSV validation occurs in the service.</li>
+			<li><strong>Error handling:</strong> <code>ArgumentException</code> maps to 400, an open Polly circuit maps to 503 with retry guidance, and unexpected errors flow through the global exception middleware.</li>
+			<li><strong>Security:</strong> No user identity is required; the API accepts only uploaded files and does not trust caller-supplied user ownership fields.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>Service boundary:</strong> <code>BatchGeocodingService</code> owns CSV parsing, job creation, pipeline orchestration, ArcGIS calls, cache lookup, match scoring, and DTO mapping.</li>
+			<li><strong>Background processing:</strong> The request thread reads the uploaded file into memory before background work starts, avoiding lifetime issues with <code>IFormFile</code> streams.</li>
+			<li><strong>Concurrency model:</strong> A bounded <code>System.Threading.Channels</code> producer/consumer pipeline applies back-pressure and limits ArcGIS concurrency with <code>BatchGeocoding:MaxConcurrency</code>.</li>
+			<li><strong>Resilience:</strong> Typed <code>HttpClient</code> is wrapped with timeout, exponential retry with jitter, and circuit breaker policies for transient ArcGIS failures.</li>
+			<li><strong>Match logic:</strong> Candidates below <code>BatchGeocoding:MinMatchScore</code> are returned as unmatched rather than hidden, preserving auditability of failed rows.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<p>
-			The service is registered as both a scoped service and via <code>AddHttpClient&lt;IBatchGeocodingService, BatchGeocodingService&gt;()</code>,
-			which injects a typed <code>HttpClient</code> pre-configured for ArcGIS API calls.
+			Batch geocoding is primarily external-service and cache driven. It does not persist each geocoded row to PostgreSQL; instead, job snapshots are stored through <code>IBatchJobStore</code> and result cache entries use <code>IDistributedCache</code>.
 		</p>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Technology Stack</h2>
 		<ul>
-			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, <code>BatchGeocodingController</code> REST API</li>
-			<li><strong>System.Threading.Channels</strong> – bounded concurrent geocoding pipeline</li>
-			<li><strong>IMemoryCache</strong> – address-level deduplication cache keyed on normalised address string</li>
-			<li><strong>ArcGIS REST API</strong> – <code>findAddressCandidates</code> endpoint on <code>sampleserver6.arcgisonline.com</code></li>
-			<li><strong>DataTables.js</strong> – interactive results grid with column filtering and CSV/Excel export</li>
-			<li><strong>Bootstrap 5</strong> – responsive layout and badge components</li>
+			<li><strong>Job state:</strong> <code>RedisBatchJobStore</code> stores the full <code>BatchJob</code> JSON document with a 24-hour TTL when Redis is configured; <code>InMemoryBatchJobStore</code> supports local development.</li>
+			<li><strong>Caching:</strong> Normalized address strings key cache entries so repeated addresses across a batch can avoid duplicate ArcGIS calls.</li>
+			<li><strong>Serialization:</strong> Shared <code>PortfolioJsonOptions.Default</code> keeps enum and DTO serialization consistent across Redis and API responses.</li>
+			<li><strong>Scalability:</strong> Redis-backed job state lets any replica serve status polling requests after a different replica accepted the upload.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Key Features</h2>
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
-			<li><strong>CSV upload pipeline</strong> – user uploads a CSV file; the service validates it (must have header + at least one data row) and streams addresses through a Channel</li>
-			<li><strong>Configurable concurrency</strong> – <code>BatchGeocoding:MaxConcurrency</code> (default 4) controls how many ArcGIS requests run simultaneously</li>
-			<li><strong>Minimum match score filter</strong> – <code>BatchGeocoding:MinMatchScore</code> (default 80) gates which candidates are accepted as a match</li>
-			<li><strong>Address deduplication</strong> – repeated addresses in the same batch are resolved from <code>IMemoryCache</code> without issuing duplicate ArcGIS calls</li>
-			<li><strong>Unmatched row handling</strong> – rows with no candidate above the score threshold are returned with <code>Matched = false</code> and null coordinate fields</li>
-			<li><strong>DataTables export</strong> – results grid supports client-side CSV and Excel export via DataTables Buttons extension</li>
+			<li><strong>Current hosting:</strong> The application is deployed on Render with configuration injected through environment variables.</li>
+			<li><strong>Containerization:</strong> The root <code>Dockerfile</code> builds a multi-stage .NET image; Docker Compose runs the app with a Redis sidecar for local distributed-cache testing.</li>
+			<li><strong>Kubernetes readiness:</strong> Manifests define a multi-replica deployment, Redis service for shared cache/job state, resource requests/limits, service, and HPA.</li>
+			<li><strong>Configuration:</strong> <code>BatchGeocoding:MaxConcurrency</code>, <code>MinMatchScore</code>, <code>CacheTtlMinutes</code>, and <code>Redis__ConnectionString</code> are environment-configurable.</li>
+			<li><strong>Cloud portability:</strong> The design can move to Azure App Service, Azure Container Apps, or AKS with Azure Cache for Redis and managed PostgreSQL without changing service contracts.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Data Flow</h2>
-		<ol>
-			<li>User uploads a CSV via the file input; the page POSTs to <code>POST /api/batchgeocoding</code> as <code>multipart/form-data</code>.</li>
-			<li><code>BatchGeocodingController</code> receives the <code>IFormFile</code> and delegates to <code>IBatchGeocodingService.GeocodeAsync</code>.</li>
-			<li>The service reads all CSV rows, then writes addresses to a <code>Channel&lt;string&gt;</code>. A pool of consumer tasks (bounded by <code>MaxConcurrency</code>) reads from the channel and calls ArcGIS <code>findAddressCandidates</code> for each address.</li>
-			<li>Cache hits skip the ArcGIS call entirely; misses populate the cache on resolution.</li>
-			<li>Completed results are collected and returned as <code>IEnumerable&lt;BatchGeocodingResultDto&gt;</code>, which the controller returns as JSON.</li>
-			<li>The client renders results in a DataTables grid and updates match-rate statistics badges.</li>
-		</ol>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Implementation Details</h2>
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
-			<li>The Channel is created with <code>BoundedChannelOptions</code> so back-pressure is applied if consumers fall behind.</li>
-			<li>ArcGIS wire-model classes (<code>ArcGisGeocodeResponse</code>, <code>ArcGisGeocodeCandidate</code>, <code>ArcGisLocation</code>) live in <code>Portfolio.Common/ArcGis/</code> with explicit <code>[JsonPropertyName]</code> attributes matching exact ArcGIS field names.</li>
-			<li>Private pipeline-only state (<code>CsvRow</code>, <code>GeocodeCacheEntry</code>) is kept as private nested classes inside <code>BatchGeocodingService</code> — it never crosses a layer boundary.</li>
-			<li>The controller is <code>[AllowAnonymous]</code> — no user identity is required or used.</li>
-			<li>Configuration values are read from <code>IConfiguration</code> with <code>GetValue&lt;int&gt;</code> and hardcoded defaults, following the same pattern as the other geocoding services.</li>
+			<li><strong>Channels over unbounded tasks:</strong> Bounded channels make throughput predictable and prevent large uploads from creating unbounded concurrent ArcGIS calls.</li>
+			<li><strong>Async job over synchronous request:</strong> The job pattern avoids long-running HTTP requests and supports scale-out status polling, at the cost of added job-state complexity.</li>
+			<li><strong>Cache before persistence:</strong> Geocoding outputs are treated as transient workflow results; persisting only job snapshots keeps the database clean but limits historical analytics.</li>
+			<li><strong>Future improvements:</strong> Add durable queue-backed workers, per-client rate limits, file size quotas, idempotency keys, dead-letter handling, and managed Redis/PostgreSQL in production cloud environments.</li>
 		</ul>
 	</section>
 
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How would you set concurrency limits against a third-party geocoding API with variable latency and quotas?</li>
+			<li>Why is Redis-backed job state important once the app runs more than one replica?</li>
+			<li>How would you evolve this from in-process background work to a queue/worker architecture?</li>
+			<li>Where would you add rate limiting, file validation, observability, and tenant-level quotas?</li>
+			<li>How do timeout, retry, and circuit breaker policies interact with user-facing SLA and upstream protection?</li>
+		</ul>
+	</section>
 </div>

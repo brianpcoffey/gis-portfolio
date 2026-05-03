@@ -56,16 +56,6 @@ function fiberflowToast(message, type) {
 }
 window.fiberflowToast = fiberflowToast;
 
-// Simple auth-aware fetch helper: if API responds 401, redirect to login flow
-async function fetchWithAuth(url, options = {}) {
-    const res = await fetch(url, options);
-    if (res.status === 401) {
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/Login?returnUrl=${returnUrl}`;
-        return new Promise(() => {});
-    }
-    return res;
-}
 
 
 // Ensure loadFiberflowMap is always defined to avoid ReferenceError
@@ -167,7 +157,7 @@ if (typeof loadFiberflowMap !== 'function') {
 
     window.loadFiberflowMap = function () {
         initFiberflowMap()
-            .then(() => fetch('/api/v1/fiber/shipments'))
+            .then(() => window.apiFetch(window.PortfolioApi.routes.fiber.shipments))
             .then(res => res.ok ? res.json() : Promise.reject('Failed to load shipments'))
             .then(shipments => plotFiberflowShipments(shipments))
             .catch(err => {
@@ -189,7 +179,7 @@ function loadDashboardStats() {
     $('#fiberflowRevenueChart .fiberflow-spinner').removeClass('d-none');
     $('#fiberflowOrdersChart .fiberflow-spinner').removeClass('d-none');
     $('#fiberflowInventoryChart .fiberflow-spinner').removeClass('d-none');
-    fetchWithAuth('/api/v1/fiber/dashboard/stats')
+    window.fetchWithAuth(window.PortfolioApi.routes.fiber.dashboard)
         .then(r => r.json())
         .then(data => {
             updateDashboardBadges(data);

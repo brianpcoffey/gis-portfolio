@@ -21,7 +21,7 @@ $(document).ready(function () {
 
 function loadInventoryTable() {
     $('#inventoryTableSpinner').removeClass('d-none');
-    fetchWithAuth('/api/v1/fiber/materials')
+    window.fetchWithAuth(window.PortfolioApi.routes.fiber.materials)
         .then(r => r.json())
         .then(data => {
             if (inventoryTable) {
@@ -144,7 +144,7 @@ window.showReceiveStockModal = function (materialId) {
         e.preventDefault();
         let formData = Object.fromEntries(new FormData(this).entries());
         formData.quantity = parseFloat(formData.quantity);
-        fetch(`/api/v1/fiber/materials/${materialId}/receive`, {
+        window.apiFetch(`${window.PortfolioApi.routes.fiber.materials}/${materialId}/receive`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
@@ -169,7 +169,7 @@ function showMaterialModal(materialId) {
     $modals.empty();
     let material = null;
     if (isEdit) {
-        fetch(`/api/v1/fiber/materials/${materialId}`)
+        window.apiFetch(`${window.PortfolioApi.routes.fiber.materials}/${materialId}`)
             .then(r => r.json())
             .then(data => {
                 material = data;
@@ -231,8 +231,8 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
         formData.unitCost = parseFloat(formData.unitCost);
         formData.reorderPoint = parseFloat(formData.reorderPoint);
         let method = isEdit ? 'PUT' : 'POST';
-        let url = isEdit ? `/api/v1/fiber/materials/${material.id}` : '/api/v1/fiber/materials';
-        fetch(url, {
+        let url = isEdit ? `${window.PortfolioApi.routes.fiber.materials}/${material.id}` : window.PortfolioApi.routes.fiber.materials;
+        window.apiFetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
@@ -254,7 +254,7 @@ window.renderMaterialModal = renderMaterialModal;
 // Delete material by ID
 function deleteMaterial(materialId) {
     if (!confirm('Are you sure you want to delete this material?')) return;
-    fetch(`/api/v1/fiber/materials/${materialId}`, {
+    window.apiFetch(`${window.PortfolioApi.routes.fiber.materials}/${materialId}`, {
         method: 'DELETE'
     })
     .then(r => {

@@ -102,6 +102,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <returns>List of geocoding results with match status, coordinates, and score.</returns>
         [HttpPost("sync")]
         [HttpPost("/api/batchgeocoding/sync")]
+        [ApiExplorerSettings(IgnoreApi = true)]
         [Obsolete("Use POST /api/v1/geocoding/batch for the recommended async job pattern.")] // kept for test compatibility
         [ProducesResponseType(typeof(List<BatchGeocodingResultDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

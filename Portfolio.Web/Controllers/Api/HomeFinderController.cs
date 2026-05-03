@@ -4,14 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
-namespace Portfolio.Web.Controllers.Api;
-
-[ApiController]
-[ApiVersion("1.0")]
-[Route("api/v{version:apiVersion}/homefinder")]
-[Authorize(Policy = "Authenticated")]
-public class HomeFinderController : ControllerBase
+namespace Portfolio.Web.Controllers.Api
 {
+    [ApiController]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/homefinder")]
+    [Authorize(Policy = "Authenticated")]
+    public class HomeFinderController : ControllerBase
+    {
     private readonly IHomeScoringService _scoring;
     private readonly IUserProfileService _profileService;
     private readonly ISavedSearchService _savedSearchService;
@@ -35,6 +35,18 @@ public class HomeFinderController : ControllerBase
         return Ok(results);
     }
 
+    /// <summary>Backward-compatible alias for computing matching properties.</summary>
+    [HttpPost("score")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [Obsolete("Use POST /api/v1/homefinder/search.")]
+    [ProducesResponseType(typeof(List<ScoredPropertyDto>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public Task<IActionResult> Score([FromBody] HomeSearchPreferencesDto prefs, CancellationToken cancellationToken)
+    {
+        return Search(prefs, cancellationToken);
+    }
+
     /// <summary>Get a single property by ID.</summary>
     [HttpGet("property/{id:int}")]
     [ProducesResponseType(typeof(ScoredPropertyDto), 200)]
@@ -44,6 +56,18 @@ public class HomeFinderController : ControllerBase
     {
         var property = await _scoring.GetPropertyByIdAsync(id, cancellationToken);
         return property is null ? NotFound() : Ok(property);
+    }
+
+    /// <summary>Backward-compatible alias for getting a single property by ID.</summary>
+    [HttpGet("properties/{id:int}")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [Obsolete("Use GET /api/v1/homefinder/property/{id}.")]
+    [ProducesResponseType(typeof(ScoredPropertyDto), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public Task<IActionResult> GetPropertyLegacy(int id, CancellationToken cancellationToken)
+    {
+        return GetProperty(id, cancellationToken);
     }
 
     /// <summary>Save a new search to the user's profile.</summary>
@@ -110,5 +134,7 @@ public class HomeFinderController : ControllerBase
             return NoContent();
         }
         catch (KeyNotFoundException) { return NotFound(); }
+    }
+
     }
 }

@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="~/css/gis.css" />
 
 <div class="container py-5">
-
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
 		<h1 class="mb-0"><i class="fa-solid fa-address-card me-2"></i>Address Standardization &amp; Validation – Technical Details</h1>
 		<a href="/Projects/AddressStandardization" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Address Standardization demo">
@@ -17,65 +16,94 @@
 	</div>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Architecture</h2>
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Parse freeform address text into normalized components, then validate the result through ArcGIS forward geocoding.</li>
+			<li><strong>Business problem:</strong> Demonstrates backend address quality workflows used before routing, geocoding, data enrichment, CRM deduplication, or spatial analytics.</li>
+			<li><strong>Architecture:</strong> Razor Page form → versioned ASP.NET Core API → <code>IAddressStandardizationService</code> → regex/suffix normalization → ArcGIS <code>findAddressCandidates</code> validation.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, vanilla JavaScript, typed <code>HttpClient</code>, Polly resilience, <code>System.Text.RegularExpressions</code>, shared ArcGIS wire models.</li>
+			<li><strong>Deployment model:</strong> Runs with the Portfolio web application and uses environment-driven configuration for ArcGIS resilience and service behavior.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
-			Address Standardization is split into two distinct operations exposed as separate POST endpoints on
-			<code>AddressStandardizationController</code>: <code>/parse</code> and <code>/validate</code>.
-			Both delegate to <code>IAddressStandardizationService</code>, which owns all regex parsing, suffix
-			normalization, and ArcGIS geocoding logic.
+			The front end is a Razor Page enhanced by <code>wwwroot/js/AddressStandardization/app.js</code>. It provides two workflows: parse-only for deterministic normalization and validate for ArcGIS-backed candidate scoring.
 		</p>
+		<ul>
+			<li><strong>Page structure:</strong> Bootstrap cards separate raw input, parsed components, matched address, score, and confidence tier.</li>
+			<li><strong>API communication:</strong> The page uses shared route constants for <code>/api/v1/addresses/parse</code> and <code>/api/v1/addresses/validate</code>.</li>
+			<li><strong>State management:</strong> Client state is local to the form; the source of truth for parsing and validation remains server-side to keep business logic testable.</li>
+			<li><strong>UX decisions:</strong> Confidence badges make uncertainty visible instead of presenting geocoding as a binary success/failure outcome.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>AddressStandardizationController</code> is versioned at <code>/api/v1/addresses</code> and is <code>[AllowAnonymous]</code>.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/addresses/parse</code> returns <code>AddressParsedDto</code>; <code>POST /api/v1/addresses/validate</code> returns <code>AddressValidationResultDto</code>.</li>
+			<li><strong>Request contract:</strong> Both endpoints accept <code>AddressParseRequestDto</code> with <code>RawAddress</code>.</li>
+			<li><strong>Validation:</strong> The controller rejects missing input, and the service repeats null/empty validation as the business boundary.</li>
+			<li><strong>Error handling:</strong> <code>ArgumentException</code> maps to 400; an open ArcGIS circuit returns 503 with retry guidance.</li>
+			<li><strong>OpenAPI:</strong> XML comments and <code>[ProducesResponseType]</code> attributes make the parse and validate contracts discoverable through the API explorer.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>Service boundary:</strong> <code>AddressStandardizationService</code> owns normalization, suffix expansion, component extraction, state validation, confidence scoring, ArcGIS validation, and fallback logic.</li>
+			<li><strong>Parsing workflow:</strong> The service normalizes whitespace/case, expands suffixes such as <code>St</code> to <code>Street</code>, extracts house number, street, unit, city, state, and ZIP, then computes <code>ParseConfidence</code>.</li>
+			<li><strong>Validation workflow:</strong> The standardized address is sent to ArcGIS <code>findAddressCandidates</code>; if the best candidate is below 75, the service retries with a broader City + State + ZIP query.</li>
+			<li><strong>Confidence model:</strong> ArcGIS score maps to <code>ConfidenceTier</code>: High at 90+, Medium at 75+, Low at 50+, otherwise Unresolved.</li>
+			<li><strong>Reusable integration:</strong> The service shares <code>ArcGisGeocodeResponse</code>, <code>ArcGisGeocodeCandidate</code>, and <code>ArcGisLocation</code> with batch geocoding because both consume the same ArcGIS endpoint.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<p>
-			The service is registered as both a scoped service and via
-			<code>AddHttpClient&lt;IAddressStandardizationService, AddressStandardizationService&gt;()</code>,
-			providing a typed <code>HttpClient</code> for ArcGIS calls. It shares the
-			<code>ArcGisGeocodeResponse</code> wire models with <code>BatchGeocodingService</code> because both
-			consume the same ArcGIS <code>findAddressCandidates</code> endpoint.
+			This workflow is computational and integration-focused; it does not persist parsed addresses to PostgreSQL. That keeps the service stateless and appropriate for public validation calls.
 		</p>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Technology Stack</h2>
 		<ul>
-			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, <code>AddressStandardizationController</code> REST API</li>
-			<li><strong>System.Text.RegularExpressions</strong> – regex-based extraction of house number, street name, suffix, unit, city, state, ZIP</li>
-			<li><strong>ArcGIS REST API</strong> – <code>findAddressCandidates</code> on <code>sampleserver6.arcgisonline.com</code> for geocode validation</li>
-			<li><strong>Bootstrap 5</strong> – two-zone layout (parse zone + validation zone) with confidence-tier badge styling</li>
-			<li><strong>Custom CSS</strong> – <code>addressstandardization.css</code> extends the GIS theme with NLP-badge variants</li>
+			<li><strong>Relational data:</strong> No EF Core repository is required because there are no persisted entities for parse or validation requests.</li>
+			<li><strong>Wire models:</strong> ArcGIS response classes live in <code>Portfolio.Common/ArcGis</code> with explicit <code>[JsonPropertyName]</code> attributes to protect deserialization from naming mismatches.</li>
+			<li><strong>Caching:</strong> No dedicated address-standardization cache is currently applied; repeated validation relies on ArcGIS resilience policies rather than stored results.</li>
+			<li><strong>Scalability:</strong> Stateless service logic makes horizontal scaling straightforward; future caching could key on normalized address text if validation traffic becomes repetitive.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Key Features</h2>
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
-			<li><strong>Freeform address parsing</strong> – <code>ParseAsync</code> normalises whitespace and case, expands abbreviated street suffixes (e.g. "St" → "Street", "Blvd" → "Boulevard"), and extracts structured components via regex</li>
-			<li><strong>State validation</strong> – extracted state abbreviations are validated against a complete 50-state + territory set; invalid states reduce <code>ParseConfidence</code></li>
-			<li><strong>Parse confidence score</strong> – a 0–1 float computed from how many components were successfully extracted</li>
-			<li><strong>ArcGIS validation with fallback</strong> – <code>ValidateAsync</code> geocodes the standardised address; if the top candidate score is below 75, it falls back to a City + State + ZIP query</li>
-			<li><strong>Confidence tiers</strong> – score ≥ 90 → <code>High</code>, ≥ 75 → <code>Medium</code>, ≥ 50 → <code>Low</code>, else <code>Unresolved</code> (the <code>ConfidenceTier</code> enum in <code>Portfolio.Common/Enums/</code>)</li>
+			<li><strong>Hosting:</strong> Runs as part of the same Render-hosted ASP.NET Core application as the other portfolio APIs.</li>
+			<li><strong>Configuration:</strong> ArcGIS timeout, retry, and circuit breaker behavior is configured through the typed <code>HttpClient</code> registration in <code>Program.cs</code>.</li>
+			<li><strong>Observability:</strong> Controller logging records upstream circuit-breaker failures; unexpected exceptions flow through centralized middleware.</li>
+			<li><strong>Container/cloud readiness:</strong> Because the workflow is stateless, it works well in Docker, Kubernetes, Azure Container Apps, AKS, or any horizontally scaled container platform.</li>
+			<li><strong>Secrets:</strong> No hard-coded credentials are required for the sample ArcGIS endpoint; production geocoding providers would move API keys to environment variables or a secret store.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Data Flow</h2>
-		<ol>
-			<li>User enters a freeform address and chooses Parse or Validate.</li>
-			<li>Client POSTs an <code>AddressParseRequestDto</code> (<code>{ RawAddress }</code>) to either <code>/api/addressstandardization/parse</code> or <code>/validate</code>.</li>
-			<li>The controller validates that <code>RawAddress</code> is non-empty (returns 400 otherwise) and delegates to the service.</li>
-			<li><strong>Parse path:</strong> the service returns an <code>AddressParsedDto</code> with all extracted components and a <code>ParseConfidence</code> score.</li>
-			<li><strong>Validate path:</strong> the service calls <code>ParseAsync</code>, builds a standardised address string, calls ArcGIS, applies the fallback if needed, maps the score to a <code>ConfidenceTier</code>, and returns an <code>AddressValidationResultDto</code>.</li>
-			<li>The front end renders the structured result and colour-codes the confidence tier badge.</li>
-		</ol>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Implementation Details</h2>
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
-			<li>Street suffix expansion uses a static dictionary mapping abbreviations to full names; the lookup is case-insensitive after normalisation.</li>
-			<li>The fallback geocode query (City + State + ZIP) prevents a hard failure when the full street address is ambiguous or misspelled.</li>
-			<li>ArcGIS wire models (<code>ArcGisGeocodeResponse</code>, <code>ArcGisGeocodeCandidate</code>, <code>ArcGisLocation</code>) are shared with <code>BatchGeocodingService</code> — both target the identical endpoint and response shape.</li>
-			<li>The controller is <code>[AllowAnonymous]</code>; no user identity is touched.</li>
-			<li>Both service methods throw <code>ArgumentException</code> on null/empty input, which the controller translates to a 400 response with an <code>{ error }</code> body.</li>
+			<li><strong>Regex-based parsing:</strong> Keeps the implementation transparent and dependency-light, but does not match the coverage of a specialized address parsing library.</li>
+			<li><strong>Server-side parsing:</strong> Centralizes business rules and testability rather than duplicating parsing logic in JavaScript.</li>
+			<li><strong>Fallback query:</strong> Improves recovery for noisy addresses but may produce less specific matches; the confidence tier communicates that uncertainty.</li>
+			<li><strong>Future improvements:</strong> Add provider abstraction, per-country parsing strategies, normalized-address caching, rate limiting, telemetry by failure reason, and human-review queues for unresolved addresses.</li>
 		</ul>
 	</section>
 
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How would you separate deterministic parsing confidence from geocoder match confidence?</li>
+			<li>When would you add caching to address validation, and what would the cache key include?</li>
+			<li>How would you internationalize the parser without creating unmaintainable regex rules?</li>
+			<li>What observability would help distinguish bad input from upstream geocoder quality issues?</li>
+			<li>How would this service fit into a larger batch enrichment or ETL pipeline?</li>
+		</ul>
+	</section>
 </div>

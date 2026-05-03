@@ -6,8 +6,8 @@
     "use strict";
 
     // ── Constants ──────────────────────────────────────────────────────────────
-    var PARSE_API    = "/api/v1/addresses/parse";
-    var VALIDATE_API = "/api/v1/addresses/validate";
+    var PARSE_API    = window.PortfolioApi.routes.addresses.parse;
+    var VALIDATE_API = window.PortfolioApi.routes.addresses.validate;
     var SCORE_KEY    = "as_score_history";
     var MAX_SCORES   = 5;
     var DEBOUNCE_MS  = 600;
@@ -327,8 +327,8 @@
     }
 
     // ── API helpers ────────────────────────────────────────────────────────────
-    function callParse(raw, callback) {
-        return fetch(PARSE_API, {
+    function callParse(raw) {
+        return window.apiFetch(PARSE_API, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ RawAddress: raw })
@@ -336,7 +336,7 @@
     }
 
     function callValidate(raw) {
-        return fetch(VALIDATE_API, {
+        return window.apiFetch(VALIDATE_API, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ RawAddress: raw })

@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="~/css/gis.css" />
 
 <div class="container py-5">
-
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
 		<h1 class="mb-0"><i class="fa-solid fa-map-pin me-2"></i>Reverse Geocoding – Technical Details</h1>
 		<a href="/Projects/ReverseGeocoding" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Reverse Geocoding demo">
@@ -17,65 +16,93 @@
 	</div>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Architecture</h2>
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Resolve WGS84 latitude/longitude input into structured address and place metadata using ArcGIS <code>reverseGeocode</code>.</li>
+			<li><strong>Business problem:</strong> Demonstrates low-latency geospatial lookup suitable for map-click workflows, field operations, asset lookup, and location validation.</li>
+			<li><strong>Architecture:</strong> Razor Page and ArcGIS MapView → versioned ASP.NET Core API → <code>IReverseGeocodingService</code> → grid-snapped distributed cache → ArcGIS REST API.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, ArcGIS JavaScript SDK, typed <code>HttpClient</code>, Polly resilience, <code>IDistributedCache</code>, Redis or in-memory fallback.</li>
+			<li><strong>Deployment model:</strong> Runs inside the Portfolio web application on Render and can scale horizontally with Redis sharing cached coordinate results across replicas.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
-			Reverse Geocoding is served by <code>ReverseGeocodingController</code>, a single GET endpoint that
-			accepts latitude and longitude query parameters and delegates to <code>IReverseGeocodingService</code>.
-			The service combines an <strong>IMemoryCache with grid-snapping</strong> and a typed
-			<code>HttpClient</code> to ArcGIS to deliver fast, cache-friendly reverse geocode lookups.
+			The front end uses a Razor Page with <code>wwwroot/js/ReverseGeocoding/app.js</code> and ArcGIS JavaScript SDK map interactions. State is intentionally lightweight: the selected coordinate, current lookup result, and recent lookup history are managed in browser JavaScript.
 		</p>
+		<ul>
+			<li><strong>Map interaction:</strong> Map click events provide coordinates that are sent to the backend API; users can also enter coordinates manually.</li>
+			<li><strong>API communication:</strong> <code>api-config.js</code> defines <code>/api/v1/geocoding/reverse</code>, and shared fetch helpers provide consistent cookie and error behavior.</li>
+			<li><strong>State management:</strong> Lookup history is page-local, avoiding server persistence for demo interactions that do not require identity.</li>
+			<li><strong>UX decisions:</strong> The page separates raw coordinate input from structured returned address components, making geocoding accuracy and location type easy to discuss.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>ReverseGeocodingController</code> is versioned at <code>/api/v1/geocoding/reverse</code> and is <code>[AllowAnonymous]</code>.</li>
+			<li><strong>Endpoint:</strong> <code>GET /api/v1/geocoding/reverse?lat={lat}&amp;lng={lng}</code> returns <code>ReverseGeocodingResultDto</code>.</li>
+			<li><strong>Validation:</strong> The service validates latitude in −90..90 and longitude in −180..180, throwing <code>ArgumentException</code> for invalid coordinates.</li>
+			<li><strong>Error handling:</strong> Bad coordinates return 400, no usable ArcGIS address returns 404, and an open circuit breaker returns 503 with retry guidance.</li>
+			<li><strong>Security:</strong> The endpoint is read-only, accepts numeric query values only, and does not require or mutate user identity.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>Service boundary:</strong> <code>ReverseGeocodingService</code> owns coordinate validation, grid snapping, cache key creation, ArcGIS request construction, response handling, and DTO mapping.</li>
+			<li><strong>Geospatial optimization:</strong> Coordinates are snapped to <code>ReverseGeocoding:GridResolutionDegrees</code> before cache lookup so nearby clicks reuse a single cached result.</li>
+			<li><strong>External integration:</strong> A typed <code>HttpClient</code> calls ArcGIS <code>reverseGeocode</code> through timeout, retry, and circuit breaker policies.</li>
+			<li><strong>Mapping:</strong> ArcGIS wire models live in <code>Portfolio.Common/ArcGis</code>; <code>MapToDto</code> prefers <code>StAddr</code> with <code>Address</code> fallback because ArcGIS field population varies by address type.</li>
+			<li><strong>Service contract:</strong> Public service methods accept <code>CancellationToken</code>, return DTOs, and throw typed exceptions for controller translation.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<p>
-			The service is registered as both a scoped service and via
-			<code>AddHttpClient&lt;IReverseGeocodingService, ReverseGeocodingService&gt;()</code>.
-			<code>IMemoryCache</code> is the same singleton instance shared with <code>BatchGeocodingService</code>,
-			registered once in <code>Program.cs</code> via <code>AddMemoryCache()</code>.
+			Reverse geocoding does not require relational persistence. Its state is cache-oriented because the expensive operation is an upstream geospatial lookup, not an internal database query.
 		</p>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Technology Stack</h2>
 		<ul>
-			<li><strong>ASP.NET Core (.NET 10)</strong> – Razor Pages host, <code>ReverseGeocodingController</code> REST API</li>
-			<li><strong>IMemoryCache</strong> – grid-snapped lat/lng cache with sliding expiration to deduplicate nearby coordinate lookups</li>
-			<li><strong>ArcGIS REST API</strong> – <code>reverseGeocode</code> endpoint on <code>sampleserver6.arcgisonline.com</code></li>
-			<li><strong>ArcGIS JavaScript SDK 4.x</strong> – interactive MapView; click events supply coordinates to the API</li>
-			<li><strong>Bootstrap 5</strong> – responsive layout with history panel and coordinate entry form</li>
+			<li><strong>Caching strategy:</strong> Results are serialized with shared JSON options into <code>IDistributedCache</code> using a sliding expiration configured by <code>ReverseGeocoding:CacheSlidingExpirationMinutes</code>.</li>
+			<li><strong>Scale-out behavior:</strong> Redis lets multiple app replicas share cache entries; local development falls back to <code>MemoryDistributedCache</code>.</li>
+			<li><strong>Query optimization:</strong> Grid snapping trades exact per-click precision for dramatically better cache hit rates in dense click workflows.</li>
+			<li><strong>Database role:</strong> PostgreSQL remains available for other domains, but this workflow avoids unnecessary writes for ephemeral lookup results.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Key Features</h2>
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
-			<li><strong>Map-click geocoding</strong> – clicking anywhere on the ArcGIS MapView captures the coordinates and calls the reverse geocode API</li>
-			<li><strong>Manual coordinate entry</strong> – users can also type lat/lng directly into a form</li>
-			<li><strong>Grid-snapped caching</strong> – coordinates are snapped to a configurable grid resolution (<code>ReverseGeocoding:GridResolutionDegrees</code>, default 0.001°) before use as a cache key, so nearby points share a cached result</li>
-			<li><strong>Sliding expiration cache</strong> – cached results expire after a configurable idle period (<code>ReverseGeocoding:CacheSlidingExpirationMinutes</code>, default 30 minutes)</li>
-			<li><strong>Lookup history</strong> – recent lookups are displayed in a scrollable panel on the page</li>
-			<li><strong>Graceful not-found</strong> – the service throws <code>KeyNotFoundException</code> when ArcGIS returns no usable address; the controller returns 404</li>
+			<li><strong>Hosting:</strong> Deployed with the main Portfolio application on Render; configuration is provided through <code>appsettings</code> and environment variables.</li>
+			<li><strong>Distributed cache:</strong> <code>Redis__ConnectionString</code> switches the app from in-process cache to Redis-backed <code>IDistributedCache</code>.</li>
+			<li><strong>Reliability:</strong> Polly protects the app and ArcGIS dependency from long waits, transient failures, and repeated calls during upstream instability.</li>
+			<li><strong>Containers:</strong> Docker Compose includes Redis for local cache behavior close to production; Kubernetes manifests support replica scaling behind a service.</li>
+			<li><strong>Cloud architecture:</strong> In Azure, this maps cleanly to Azure Container Apps or AKS plus Azure Cache for Redis and managed PostgreSQL while preserving the current service API.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Data Flow</h2>
-		<ol>
-			<li>User clicks on the map or submits coordinates manually.</li>
-			<li>Client calls <code>GET /api/reversegeocoding?lat={lat}&amp;lng={lng}</code>.</li>
-			<li>The controller validates that lat/lng are present (400 on missing values) and delegates to <code>IReverseGeocodingService.ReverseGeocodeAsync</code>.</li>
-			<li>The service validates the ranges (lat −90..90, lng −180..180; throws <code>ArgumentException</code> on violation), snaps the coordinates to the grid, and checks <code>IMemoryCache</code>.</li>
-			<li>On a cache miss, the service calls ArcGIS <code>reverseGeocode</code>, deserialises the response, and stores the result in the cache.</li>
-			<li>The result is mapped to <code>ReverseGeocodingResultDto</code> via <code>private static MapToDto(...)</code> — preferring the <code>StAddr</code> field for the street line with <code>Address</code> as fallback.</li>
-			<li>The controller returns the DTO; the client updates the result panel and prepends to the history list.</li>
-		</ol>
-	</section>
-
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
-		<h2 class="h4 mb-3">Implementation Details</h2>
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
-			<li>The ArcGIS <code>reverseGeocode</code> response is deserialised into <code>ArcGisReverseGeocodeResponse</code> / <code>ArcGisReverseAddress</code> wire models in <code>Portfolio.Common/ArcGis/</code>, each property annotated with <code>[JsonPropertyName]</code>.</li>
-			<li><code>MapToDto</code> uses <code>StAddr ?? Address</code> for the street field because ArcGIS populates <code>StAddr</code> consistently across all <code>Addr_type</code> values, while <code>Address</code> can be empty for some types (e.g. PointAddress).</li>
-			<li>The controller is <code>[AllowAnonymous]</code> — no user identity is required.</li>
-			<li>Input validation (lat/lng range checks) is performed at the top of the service method, throwing <code>ArgumentException</code> which the controller translates to 400.</li>
+			<li><strong>Grid-snapped cache:</strong> Improves latency and reduces ArcGIS calls, but may return a nearby address instead of a unique result for every raw coordinate.</li>
+			<li><strong>Anonymous access:</strong> Reduces friction for a public geospatial demo, but production usage would typically add quotas, API keys, or authenticated tenant limits.</li>
+			<li><strong>No persistence:</strong> Keeps the workflow stateless and scalable, but removes historical lookup analytics unless observability or audit storage is added.</li>
+			<li><strong>Future improvements:</strong> Add rate limiting, precision tiers, cache warming for known assets, telemetry on cache hit ratio, and region-aware upstream failover.</li>
 		</ul>
 	</section>
 
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How would you choose grid resolution for urban, rural, and parcel-level workflows?</li>
+			<li>What metrics would prove the cache is reducing upstream geocoding cost?</li>
+			<li>How should a public reverse-geocoding API enforce fair usage without hurting UX?</li>
+			<li>Where would you add distributed tracing across browser, API, cache, and ArcGIS?</li>
+			<li>How would this design change if reverse geocoding were part of a high-volume mobile fleet system?</li>
+		</ul>
+	</section>
 </div>
