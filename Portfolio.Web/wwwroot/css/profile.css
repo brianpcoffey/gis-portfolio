@@ -103,18 +103,6 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
 /* --- Profile header card banner strip --- */
 .profile-card--header {
     position: relative;
-    padding-top: 0;
-}
-
-.profile-header-banner {
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 0;
-    height: 96px;
-    background: var(--hero-gradient);
-    pointer-events: none;
 }
 
 /* --- Profile header (avatar + name) --- */
@@ -122,9 +110,9 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 1.25rem;
-    padding: 2.5rem 1.5rem 1.5rem;
+    padding: 1.5rem;
 }
 
 .profile-avatar-lg {

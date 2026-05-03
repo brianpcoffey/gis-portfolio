@@ -73,41 +73,50 @@ Razor Page / API Controller  (Portfolio.Web)
 ## Projects Highlighted
 
 ### 🗺️ US State Explorer
-Interactive ArcGIS feature exploration with anonymous saved-feature persistence and authenticated collections. The browser handles ArcGIS map rendering, while versioned APIs manage feature proxying, saved-feature ownership, collection CRUD, EF Core transactions, and user-scoped PostgreSQL queries.
+Interactive ArcGIS feature exploration with anonymous saved-feature persistence and authenticated collections. The browser handles map rendering, while versioned APIs manage ArcGIS proxying, saved-feature ownership, collection CRUD, and user-scoped PostgreSQL queries.
+
+- ArcGIS JavaScript map experience backed by ASP.NET Core API endpoints
+- Anonymous GUID identity for saved features and authenticated identity for collections
+- Repository-owned EF Core queries with owner filtering and transaction handling
 
 **Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL
+
+**API:** `GET /api/v1/features`, `/api/v1/features/saved`, `/api/v1/collections`
 
 ---
 
 ### 🏠 Redlands Smart Home Finder
-Authenticated property scoring API that ranks Redlands properties using weighted preferences and stores named searches per user. The scoring service is isolated from API and repository concerns so the ranking algorithm can evolve toward spatial indexes, search services, or dedicated scoring infrastructure.
+Property scoring API that ranks Redlands homes using weighted preferences and stores named searches per user. The scoring service is isolated from controller and repository concerns so the ranking algorithm can evolve without changing the API surface.
+
+- Preference-based scoring for property search and comparison workflows
+- Saved-search CRUD with user-scoped persistence
+- Repository abstraction that can evolve toward spatial indexes or search services
 
 **Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL
+
+**API:** `POST /api/v1/homefinder/score`, `GET /api/v1/homefinder/properties/{id}`, `/api/v1/homefinder/searches`
 
 ---
 
 ### 🗂️ Batch Geocoding
-Upload a CSV of addresses and process them through an asynchronous ArcGIS `findAddressCandidates` workflow. The recommended API returns `202 Accepted` with a polling URL, while Redis-backed job state allows any scaled replica to serve status requests.
+CSV address upload workflow that processes records asynchronously through ArcGIS `findAddressCandidates`. The API returns `202 Accepted` with a polling URL, while distributed job state allows scaled replicas to serve status requests.
 
-- Producer/consumer pipeline using `System.Threading.Channels` with configurable concurrency (`BatchGeocoding:MaxConcurrency`, default 4)
-- `IDistributedCache` deduplication — repeated addresses in the same upload hit the cache instead of ArcGIS (Redis in production, in-process fallback locally)
-- Configurable minimum match score (`BatchGeocoding:MinMatchScore`, default 80)
-- Job store abstraction (`IBatchJobStore`) backed by Redis when configured or an in-memory store for local development
-- Polly timeout/retry/circuit breaker policies around ArcGIS calls
-- Sample CSV files included under `wwwroot/samples/batch-geocoding/`
+- Channel-based producer/consumer pipeline with configurable concurrency
+- `IDistributedCache` deduplication for repeated addresses and reduced ArcGIS calls
+- Redis-backed or in-memory `IBatchJobStore` depending on environment configuration
 
 **Stack:** ArcGIS, C#, .NET, Channels
 
-**API:** `POST /api/v1/geocoding/batch` (accepts `multipart/form-data` CSV), then poll `GET /api/v1/geocoding/batch/{jobId}/status`
+**API:** `POST /api/v1/geocoding/batch`, `GET /api/v1/geocoding/batch/{jobId}/status`
 
 ---
 
 ### 📍 Reverse Geocoding
-Click anywhere on an interactive ArcGIS map to instantly resolve the address at that location. Supports manual coordinate entry and displays a history of recent lookups.
+Interactive map workflow that resolves a clicked or manually entered coordinate into a street address. The service validates coordinate bounds, normalizes cache keys, and calls ArcGIS only when a cached result is unavailable.
 
-- Coordinate grid-snapping before cache lookup so nearby clicks share cached results (`ReverseGeocoding:GridResolutionDegrees`, default 0.001°)
-- Sliding-expiration `IDistributedCache` (`ReverseGeocoding:CacheSlidingExpirationMinutes`, default 30 min)
-- Validates lat (−90..90) and lng (−180..180) with descriptive error messages
+- Coordinate grid-snapping so nearby lookups share cached results
+- Sliding-expiration `IDistributedCache` for repeated coordinate lookups
+- Typed ArcGIS reverse-geocode integration with service-level validation
 
 **Stack:** ArcGIS, C#, .NET, Maps
 
@@ -116,23 +125,28 @@ Click anywhere on an interactive ArcGIS map to instantly resolve the address at 
 ---
 
 ### 🪪 Address Standardization & Validation
-Parse freeform address strings into structured components using NLP-style regex extraction, then validate and score them against ArcGIS geocoding. Returns a `ConfidenceTier` result (`High` / `Medium` / `Low` / `Unresolved`).
+Freeform address parsing and validation workflow that turns user-entered addresses into structured components, then scores the standardized result against ArcGIS geocoding.
 
-- **Parse** — normalizes whitespace/case, expands street suffix abbreviations (e.g. `St` → `Street`), extracts house number, street name, unit designator, city, state (50 states + territories), and ZIP; computes a `ParseConfidence` score (0–1)
-- **Validate** — geocodes the standardized address via ArcGIS; falls back to City+State+ZIP query if the first candidate scores below 75; maps score to `ConfidenceTier` (≥90 High, ≥75 Medium, ≥50 Low, else Unresolved)
+- Regex-based parsing for house number, street, unit, city, state, and ZIP components
+- Street-suffix normalization and standardized-address formatting
+- ArcGIS validation mapped to `ConfidenceTier` values for downstream decision-making
 
 **Stack:** ArcGIS, Address Parsing, C#, .NET
 
-**API:**
-- `POST /api/v1/addresses/parse`
-- `POST /api/v1/addresses/validate`
+**API:** `POST /api/v1/addresses/parse`, `POST /api/v1/addresses/validate`
 
 ---
 
 ### 🏭 Plant Operations Dashboard
-Authenticated operations dashboard for fiber orders, materials, shipments, clients, and KPI aggregation. The API layer is split into domain controllers under `/api/v1/fiber/*`, with services enforcing user identity and repositories handling EF Core owner filtering and PostgreSQL persistence.
+Authenticated operations dashboard for fiber orders, materials, shipments, clients, and KPI aggregation. Domain services enforce user identity, while repositories handle EF Core owner filtering and PostgreSQL persistence.
+
+- CRUD workflows for orders, materials, shipments, and clients
+- Dashboard aggregation for revenue, open orders, active shipments, and inventory alerts
+- User-scoped service and repository boundaries for authenticated operations data
 
 **Stack:** ASP.NET Core, DataTables, Esri GIS, PostgreSQL
+
+**API:** `/api/v1/fiber/orders`, `/api/v1/fiber/materials`, `/api/v1/fiber/shipments`, `/api/v1/fiber/dashboard/stats`
 
 ---
 
