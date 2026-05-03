@@ -153,6 +153,7 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
 
 .profile-header-info {
     padding-bottom: 0.25rem;
+    min-width: 0;
 }
 
 .profile-header-info h4 {
@@ -163,9 +164,18 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
 }
 
 .profile-header-info .profile-email {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.5rem;
     margin: 0;
     font-size: 0.9rem;
     color: var(--text-muted);
+}
+
+.profile-email-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 /* --- Detail rows --- */
@@ -318,6 +328,10 @@ body.dark-mode .profile-alert .btn-close {
 
     .profile-header-info {
         padding-bottom: 0;
+    }
+
+    .profile-header-info .profile-email {
+        justify-content: center;
     }
 
     .profile-detail-row {
