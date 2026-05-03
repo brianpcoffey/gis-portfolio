@@ -55,7 +55,7 @@
                                 <i class="fa-brands fa-google" aria-hidden="true"></i> Google Linked
                             </span>
                         }
-                        @Model.Email
+                        @(Model.Email ?? "No email on file")
                     </p>
                 </div>
             </div>
@@ -74,15 +74,15 @@
                 </div>
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">Email</div>
-                    <div class="profile-detail-value">@(Model.Email ?? "&mdash;")</div>
+                    <div class="profile-detail-value">@(Model.Email ?? "—")</div>
                 </div>
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">Google Name</div>
-                    <div class="profile-detail-value">@(Model.GoogleName ?? "&mdash;")</div>
+                    <div class="profile-detail-value">@(Model.GoogleName ?? "—")</div>
                 </div>
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">Google ID</div>
-                    <div class="profile-detail-value"><code>@(Model.GoogleId ?? "&mdash;")</code></div>
+                    <div class="profile-detail-value"><code>@(Model.GoogleId ?? "—")</code></div>
                 </div>
             </div>
         </div>
@@ -122,9 +122,11 @@
                 <p class="form-text" style="margin-top: 0;">
                     Sign out of your account. Your saved features and collections will remain linked to your profile.
                 </p>
-                <a href="/Logout" class="btn btn-outline-danger">
-                    <i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Sign Out
-                </a>
+                <form method="post" asp-page="/Logout">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Sign Out
+                    </button>
+                </form>
             </div>
         </div>
 

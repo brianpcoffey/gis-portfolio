@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Portfolio.Common.Constants;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
+using System.Security.Claims;
 
 namespace Portfolio.Web.Middleware
 {
@@ -33,10 +36,16 @@ namespace Portfolio.Web.Middleware
             var now = timeProvider.GetUtcNow().UtcDateTime;
             Guid userId;
 
+            var authResult = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (authResult.Succeeded && authResult.Principal?.Identity?.IsAuthenticated == true)
+            {
+                context.User = authResult.Principal;
+            }
+
             if (context.User?.Identity?.IsAuthenticated == true)
             {
                 // Authenticated user: resolve their internal UserId from the GoogleId claim and store it.
-                var googleId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var googleId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!string.IsNullOrEmpty(googleId))
                 {
                     var claim = await db.UserClaims
@@ -51,7 +60,7 @@ namespace Portfolio.Web.Middleware
 
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
-var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
+                var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
                 if (profile == null)
                 {
                     profile = new UserProfile
