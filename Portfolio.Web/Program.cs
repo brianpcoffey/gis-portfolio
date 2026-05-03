@@ -24,7 +24,13 @@ using Scalar.AspNetCore;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
-Console.WriteLine("EF Core Connection String: " + builder.Configuration.GetConnectionString("DefaultConnection"));
+
+// --------------------------
+// Startup Diagnostics
+// --------------------------
+var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("Startup");
+logger.LogInformation("EF Core Connection String: {ConnectionString}", 
+    builder.Configuration.GetConnectionString("DefaultConnection"));
 // --------------------------
 // Razor Pages & Services
 // --------------------------
@@ -168,33 +174,40 @@ builder.Services.AddHttpClient<IAddressStandardizationService, AddressStandardiz
             BreakDuration     = TimeSpan.FromSeconds(15)
         });
     });
-if (!string.IsNullOrEmpty(builder.Configuration["Redis:ConnectionString"]))
+
+// --------------------------
+// Redis Configuration & Job Store
+// --------------------------
+var redisConnectionString = NormalizeRedisConnectionString(
+    builder.Configuration["Redis__ConnectionString"] 
+    ?? builder.Configuration["Redis:ConnectionString"] 
+    ?? string.Empty);
+
+var isRedisEnabled = !string.IsNullOrWhiteSpace(redisConnectionString);
+
+if (isRedisEnabled)
 {
+    logger.LogInformation("Redis ENABLED - Connection: {RedisConnection}", 
+        MaskRedisPassword(redisConnectionString));
     builder.Services.AddSingleton<IBatchJobStore, RedisBatchJobStore>();
 }
 else
 {
+    logger.LogWarning("Redis DISABLED - using in-memory fallback for caching and job store");
     builder.Services.AddSingleton<IBatchJobStore, InMemoryBatchJobStore>();
 }
 
 // --------------------------
 // Caching & Session
 // --------------------------
-var redisConnectionString = builder.Configuration["Redis:ConnectionString"];
-
-if (!string.IsNullOrEmpty(redisConnectionString))
+if (isRedisEnabled)
 {
-    // Production / staging: shared Redis cache and Data Protection key ring
+    // Production / staging: shared Redis cache
     builder.Services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = redisConnectionString;
         options.InstanceName  = "portfolio:";
     });
-
-    var redis = ConnectionMultiplexer.Connect(redisConnectionString);
-    builder.Services.AddDataProtection()
-        .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
-        .SetApplicationName("portfolio");
 }
 else
 {
@@ -374,14 +387,41 @@ var npgsqlBuilder = ParsePostgresConnectionString(databaseUrl);
 // Use the parsed/normalized connection string (handles postgres:// URI format)
 builder.Services.AddDbContext<PortfolioDbContext>(options =>
     options.UseNpgsql(npgsqlBuilder.ConnectionString));
+
 // --------------------------
-// Data Protection Keys Folder (fallback for local dev without Redis)
+// Data Protection Key Persistence
 // --------------------------
-if (string.IsNullOrEmpty(redisConnectionString))
+if (isRedisEnabled)
 {
+    // Production: persist keys to Redis so all replicas share the same key ring
+    try
+    {
+        var redis = ConnectionMultiplexer.Connect(redisConnectionString!);
+        builder.Services.AddDataProtection()
+            .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
+            .SetApplicationName("portfolio");
+        logger.LogInformation("Data Protection keys will be stored in Redis");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to connect to Redis for Data Protection keys. Falling back to filesystem.");
+        builder.Services.AddDataProtection()
+            .PersistKeysToFileSystem(new DirectoryInfo("/app/DataProtection-Keys"))
+            .SetApplicationName("portfolio");
+    }
+}
+else
+{
+    // Local dev: persist keys to filesystem
+    var keysPath = builder.Environment.IsDevelopment() 
+        ? Path.Combine(Directory.GetCurrentDirectory(), "DataProtection-Keys")
+        : "/app/DataProtection-Keys";
+
+    Directory.CreateDirectory(keysPath);
     builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo("/app/DataProtection-Keys"))
-        .SetApplicationName("PortfolioApp");
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+        .SetApplicationName("portfolio");
+    logger.LogInformation("Data Protection keys will be stored in filesystem: {KeysPath}", keysPath);
 }
 
 var app = builder.Build();
@@ -513,3 +553,73 @@ static NpgsqlConnectionStringBuilder ParsePostgresConnectionString(string connec
 
     return npgsqlBuilder;
 }
+
+// --------------------------
+// Helper: Normalize Redis connection string
+// --------------------------
+static string NormalizeRedisConnectionString(string connectionString)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+        return string.Empty;
+
+    connectionString = connectionString.Trim();
+
+    // If it's already in StackExchange.Redis format (contains comma-separated options), return as-is
+    if (!connectionString.StartsWith("redis://", StringComparison.OrdinalIgnoreCase) &&
+        !connectionString.StartsWith("rediss://", StringComparison.OrdinalIgnoreCase))
+    {
+        return connectionString;
+    }
+
+    // Parse rediss:// or redis:// URI format (Upstash/Redis Cloud style)
+    if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+    {
+        throw new ArgumentException($"Invalid Redis connection string format: {connectionString}");
+    }
+
+    var useSsl = uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase);
+    var host = uri.Host;
+    var port = uri.Port > 0 ? uri.Port : (useSsl ? 6380 : 6379);
+    var password = string.IsNullOrEmpty(uri.UserInfo) ? null : Uri.UnescapeDataString(uri.UserInfo.Split(':').Last());
+
+    // Build StackExchange.Redis-compatible connection string
+    var configOptions = new List<string>
+    {
+        $"{host}:{port}"
+    };
+
+    if (!string.IsNullOrEmpty(password))
+    {
+        configOptions.Add($"password={password}");
+    }
+
+    if (useSsl)
+    {
+        configOptions.Add("ssl=True");
+    }
+
+    configOptions.Add("abortConnect=False");
+
+    return string.Join(",", configOptions);
+}
+
+// --------------------------
+// Helper: Mask Redis password for logging
+// --------------------------
+static string MaskRedisPassword(string connectionString)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+        return string.Empty;
+
+    // Mask password= portion
+    var parts = connectionString.Split(',');
+    var masked = parts.Select(part =>
+    {
+        if (part.Trim().StartsWith("password=", StringComparison.OrdinalIgnoreCase))
+            return "password=***";
+        return part;
+    });
+
+    return string.Join(",", masked);
+}
+

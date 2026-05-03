@@ -24,6 +24,8 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Create DataProtection-Keys directory for fallback when Redis is not configured
+# In production with Redis, keys are stored in Redis instead
 RUN mkdir -p /app/DataProtection-Keys
 
 COPY --from=build /app/publish .
