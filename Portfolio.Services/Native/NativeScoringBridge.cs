@@ -80,9 +80,8 @@ namespace Portfolio.Services.Native
                 logger.LogInformation(
                     "Native scoring kernel loaded. Batch scoring will use the C++ fast path.");
             else
-                logger.LogWarning(
-                    "Native scoring kernel (portfolio_scoring.dll/.so) not found. " +
-                    "Falling back to managed scoring implementation.");
+                logger.LogInformation(
+                    "Native scoring kernel unavailable; using managed scoring implementation.");
         }
 
         // ── Mapping helpers ──────────────────────────────────────────────────────

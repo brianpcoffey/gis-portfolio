@@ -24,6 +24,9 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Install Kerberos GSS library required by Npgsql's SSPI/Kerberos negotiation
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
+
 # Create DataProtection-Keys directory for fallback when Redis is not configured
 # In production with Redis, keys are stored in Redis instead
 RUN mkdir -p /app/DataProtection-Keys

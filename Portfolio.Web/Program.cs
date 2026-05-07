@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 using Microsoft.Extensions.Http.Resilience;
@@ -198,6 +199,22 @@ else
 }
 
 // --------------------------
+// Forwarded Headers (Render / reverse-proxy TLS termination)
+// --------------------------
+// Render terminates TLS at its proxy and forwards plain HTTP to the container.
+// Clearing KnownNetworks and KnownProxies trusts the X-Forwarded-* headers
+// regardless of the proxy IP, making Request.IsHttps, HTTPS redirection,
+// and secure cookie detection accurate inside the container.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// --------------------------
 // Caching & Session
 // --------------------------
 if (isRedisEnabled)
@@ -223,6 +240,9 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 });
 
 // --------------------------
@@ -429,13 +449,24 @@ var app = builder.Build();
 // --------------------------
 // Middleware
 // --------------------------
+
+// Apply X-Forwarded-For / X-Forwarded-Proto from Render's TLS-terminating proxy.
+// Must be first so every downstream middleware sees the correct scheme and IP.
+// Options (KnownNetworks/KnownProxies cleared) are registered in the services section above.
+app.UseForwardedHeaders();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Only redirect to HTTPS in development; Render handles TLS externally and
+// the container only binds to HTTP, so redirecting here would produce a redirect loop.
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
