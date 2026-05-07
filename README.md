@@ -89,13 +89,15 @@ Interactive ArcGIS feature exploration with anonymous saved-feature persistence 
 ---
 
 ### 🏠 Redlands Smart Home Finder
-Property scoring API that ranks Redlands homes using weighted preferences and stores named searches per user. The scoring service is isolated from controller and repository concerns so the ranking algorithm can evolve without changing the API surface.
+Property scoring API that ranks Redlands homes using weighted preferences and stores named searches per user. The scoring service is isolated from controller and repository concerns so the ranking algorithm can evolve without changing the API surface. A native C++ kernel accelerates the compute-intensive ranking math when the shared library is present; the managed C# fallback activates automatically when it is not.
 
-- Preference-based scoring for property search and comparison workflows
+- Preference-based scoring for property search and comparison workflows using a ten-dimension weighted model
+- Native C++ scoring kernel (`portfolio_scoring`) compiled with AVX2/`-O3 -march=haswell` for SIMD-friendly batch processing, called via P/Invoke from `NativeScoringBridge`
+- Transparent managed fallback: `NativeScoringBridge.IsAvailable` gates the native path; identical C# helpers execute otherwise
 - Saved-search CRUD with user-scoped persistence
 - Repository abstraction that can evolve toward spatial indexes or search services
 
-**Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL
+**Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL, C++20/CMake, P/Invoke
 
 **API:** `POST /api/v1/homefinder/score`, `GET /api/v1/homefinder/properties/{id}`, `/api/v1/homefinder/searches`
 
@@ -165,6 +167,7 @@ Authenticated operations dashboard for fiber orders, materials, shipments, clien
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
+| Native Performance | C++20 scoring kernel (`portfolio_scoring`) with AVX2/`-march=haswell` + P/Invoke bridge; managed C# fallback |
 | API Docs | Scalar / OpenAPI in development, XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
@@ -254,7 +257,7 @@ These endpoints are mapped only in development in `Program.cs` via `MapOpenApi()
 dotnet test
 ```
 
-351 tests — all passing (xUnit + Moq, no integration/DB tests).
+359 tests — all passing (xUnit + Moq, no integration/DB tests).
 
 ---
 

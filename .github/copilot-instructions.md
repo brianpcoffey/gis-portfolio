@@ -41,6 +41,7 @@ service layer. All API controllers are versioned under `api/v{version}` using
 - **Address Standardization & Validation** - freeform parse -> suffix normalization -> ArcGIS validation with fallback and `ConfidenceTier`
 - **Fiber Order Management** - CRUD for orders, materials, shipments, and clients; dashboard aggregation (MTD revenue, open orders, active shipments, low-stock alerts, top clients, orders-by-status)
 - **Home Finder** - preference-based property scoring, saved searches, property detail lookup
+- **Native C++ Scoring Kernel** - compute-intensive home-scoring math extracted to a C++ shared library (`portfolio_scoring`) called via P/Invoke; managed C# fallback activates automatically when the native library is absent
 
 ---
 
@@ -575,7 +576,60 @@ Each controller exposes standard CRUD (`GET` all, `GET {id}`, `POST`, `PUT {id}`
 
 ---
 
-## 14. Deployment & Containerization
+### 9f. Native C++ Scoring Kernel
+
+**Location:** `native/portfolio_scoring/` (C++ sources) + `Portfolio.Services/Native/` (.NET interop layer)
+
+**Purpose:** Extracts the compute-intensive home-ranking math from `HomeScoringService` into a
+native shared library (`portfolio_scoring.dll` / `libportfolio_scoring.so`) compiled with AVX2 /
+`-O3 -march=haswell -ffast-math`. The managed C# path remains the fallback and is functionally
+identical to the native kernel.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `native/portfolio_scoring/include/portfolio_scoring.h` | C ABI — blittable structs + `ScoreProperty` / `ScorePropertyBatch` exports |
+| `native/portfolio_scoring/src/scoring_kernel.cpp` | C++20 implementation; anonymous-namespace helpers mirror managed sub-scores |
+| `native/portfolio_scoring/CMakeLists.txt` | `portfolio_scoring` shared-library target; AVX2/`-march=haswell` flags; post-build copy to .NET output dir |
+| `native/README.md` | Build instructions (Windows/Linux/Docker), library placement, parity test notes |
+| `Portfolio.Services/Native/NativeStructs.cs` | `[StructLayout(LayoutKind.Sequential, Pack = 8)]` interop structs (`PropertyInputNative`, `PreferencesInputNative`, `ScoreOutputNative`) |
+| `Portfolio.Services/Native/NativeScoringInterop.cs` | Raw `[DllImport("portfolio_scoring")]` P/Invoke declarations |
+| `Portfolio.Services/Native/NativeScoringBridge.cs` | Safe static façade: `IsAvailable`, `ScoreProperty`, `ScorePropertyBatch`, `LogAvailability`, entity→native mappers |
+| `Portfolio.Services/AssemblyInfo.cs` | `[assembly: InternalsVisibleTo("Portfolio.Tests")]` — grants test project access to internal native types |
+
+**Runtime dispatch in `HomeScoringService.GetTopPropertiesAsync`:**
+1. Load filtered properties from `IPropertyRepository`.
+2. If `NativeScoringBridge.IsAvailable` → delegate entire scoring loop to `ScoreWithNativeKernel(...)`.
+3. Otherwise → execute managed LINQ scoring fallback.
+4. Sort by `CompositeScore` descending, take top-N, assign `Rank`.
+
+**Rules for this feature — DO NOT violate:**
+- The managed scoring path (`ScoreAffordability`, `ScoreNeighborhood`, etc.) MUST NOT be removed.
+  It is the production fallback when the native library is absent (CI, Render free tier, fresh Docker builds).
+- `NativeScoringBridge` and `NativeStructs` are `internal` to `Portfolio.Services`.
+  Access from tests is granted via `InternalsVisibleTo`. Do not make them `public`.
+- The blittable struct layout (`Pack = 8`) must stay in sync with `portfolio_scoring.h`.
+  Any field addition to `PropertyInputNative` / `PreferencesInputNative` / `ScoreOutputNative`
+  requires a matching change in the C header **and** vice versa.
+- `NativeScoringBridge.MapPreferences(...)` passes `DateTime.UtcNow.Year` as `currentYear`
+  so condition-renovation scoring is deterministic in tests without mocking time.
+- `NativeScoringBridge.ScorePropertyBatch` returns a `ScoreOutputNative[]` array of length
+  equal to the input `IReadOnlyList<Property>.Count`. Callers must not assume a shorter result.
+
+**Build the native library (Windows):**
+```bash
+cmake -S native/portfolio_scoring -B native/build -DCMAKE_BUILD_TYPE=Release
+cmake --build native/build --config Release
+```
+Place the resulting `portfolio_scoring.dll` beside `Portfolio.Services.dll` or in the
+.NET output directory. The post-build CMake step does this automatically.
+
+**Tests:**
+- `Portfolio.Tests/Services/NativeScoringBridgeTests.cs` — 9 parity tests (native-gated) + 11 always-run managed helper tests covering monthly cost, affordability, neighborhood, commute, environment, and composite clamping.
+- `Portfolio.Tests/Services/HomeScoringServiceTests.cs` — ranking order, top-N truncation, sub-score clamping, all-weights-zero guard, DTO field mapping, monthly cost positivity, and cancellation token forwarding.
+
+---
 
 ### Docker
 - **`Dockerfile`** (repo root) — multi-stage build: `mcr.microsoft.com/dotnet/sdk:10.0` build stage
@@ -794,7 +848,7 @@ Do not use `IMemoryCache` / `MemoryCache` in new geocoding or job-store tests.
 - `ApiVersioningAttributeTests` -- reflection-based tests that assert every
   versioned controller carries `[ApiVersion("1.0")]` and the correct route prefix.
 
-Total test count as of last verified run: **351 passing, 0 failing**.
+Total test count as of last verified run: **359 passing, 0 failing**.
 
 ---
 

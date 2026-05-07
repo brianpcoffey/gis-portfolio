@@ -1,19 +1,26 @@
-﻿using Portfolio.Common.DTOs;
+﻿using Microsoft.Extensions.Logging;
+using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
+using Portfolio.Services.Native;
 
 namespace Portfolio.Services.Services;
 
 public class HomeScoringService : IHomeScoringService
 {
     private readonly IPropertyRepository _propertyRepo;
+    private readonly ILogger<HomeScoringService> _logger;
     private const decimal AnnualInterestRate = 0.065m;
     private const int LoanTermMonths = 360; // 30 years
 
-    public HomeScoringService(IPropertyRepository propertyRepo)
+    public HomeScoringService(
+        IPropertyRepository propertyRepo,
+        ILogger<HomeScoringService> logger)
     {
         _propertyRepo = propertyRepo;
+        _logger = logger;
+        NativeScoringBridge.LogAvailability(_logger);
     }
 
     public async Task<List<ScoredPropertyDto>> GetTopPropertiesAsync(
@@ -33,7 +40,11 @@ public class HomeScoringService : IHomeScoringService
         if (properties.Count == 0)
             return [];
 
-        // 2. Normalize weights
+        // 2. Native fast path: delegate entire scoring loop to the C++ kernel.
+        if (NativeScoringBridge.IsAvailable)
+            return ScoreWithNativeKernel(properties, prefs, top);
+
+        // 3. Managed fallback: normalize weights and score in-process.
         var totalWeight = prefs.WeightAffordability + prefs.WeightNeighborhood
             + prefs.WeightSize + prefs.WeightAppreciation + prefs.WeightCondition
             + prefs.WeightCommute + prefs.WeightAmenities + prefs.WeightTaxUtilities
@@ -43,7 +54,7 @@ public class HomeScoringService : IHomeScoringService
 
         double Norm(double w) => w / totalWeight;
 
-        // 3. Score each property
+        // Score each property
         var scored = properties.Select(p =>
         {
             var monthlyCost = EstimateMonthlyCost(p);
@@ -106,6 +117,55 @@ public class HomeScoringService : IHomeScoringService
             scored[i].Rank = i + 1;
 
         return scored;
+    }
+
+    // Uses the native C++ scoring kernel to score all properties in one batch call,
+    // then maps the output array to ScoredPropertyDto, sorts, and returns the top-N.
+    private static List<ScoredPropertyDto> ScoreWithNativeKernel(
+        IReadOnlyList<Property> properties,
+        HomeSearchPreferencesDto prefs,
+        int top)
+    {
+        var outputs = NativeScoringBridge.ScorePropertyBatch(properties, prefs);
+
+        var scored = new List<ScoredPropertyDto>(properties.Count);
+        for (var i = 0; i < properties.Count; i++)
+        {
+            var p   = properties[i];
+            var out_ = outputs[i];
+            scored.Add(new ScoredPropertyDto
+            {
+                PropertyId           = p.Id,
+                Street               = p.Street,
+                City                 = p.City,
+                ZipCode              = p.ZipCode,
+                Price                = p.Price,
+                Bedrooms             = p.Bedrooms,
+                Bathrooms            = p.Bathrooms,
+                LotSqft              = p.LotSqft,
+                Latitude             = p.Latitude,
+                Longitude            = p.Longitude,
+                EstimatedMonthlyCost = (decimal)Math.Round(out_.EstimatedMonthlyCost, 2),
+                AffordabilityScore   = out_.Affordability,
+                NeighborhoodScore    = out_.Neighborhood,
+                SizeScore            = out_.Size,
+                AppreciationScore    = out_.Appreciation,
+                ConditionScore       = out_.Condition,
+                CommuteScore         = out_.Commute,
+                AmenitiesScore       = out_.Amenities,
+                TaxUtilitiesScore    = out_.TaxUtilities,
+                ResaleScore          = out_.Resale,
+                EnvironmentScore     = out_.Environment,
+                CompositeScore       = Math.Round(out_.Composite, 2)
+            });
+        }
+
+        scored.Sort((a, b) => b.CompositeScore.CompareTo(a.CompositeScore));
+        var result = scored.Take(top).ToList();
+        for (var i = 0; i < result.Count; i++)
+            result[i].Rank = i + 1;
+
+        return result;
     }
 
     // Gets a single property by ID and maps it to a ScoredPropertyDto (unscored, rank 0).
