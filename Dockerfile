@@ -33,7 +33,7 @@ RUN mkdir -p /app/DataProtection-Keys
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:${PORT:-10000}
+ENV ASPNETCORE_HTTP_PORTS=${PORT:-10000}
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_RUNNING_IN_CONTAINER=true
 
