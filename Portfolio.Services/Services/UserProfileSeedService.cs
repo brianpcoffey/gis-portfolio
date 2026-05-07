@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
 
@@ -8,11 +9,13 @@ namespace Portfolio.Services.Services;
 public class UserProfileSeedService
 {
     private readonly PortfolioDbContext _db;
+    private readonly ILogger<UserProfileSeedService> _logger;
     private const string InMemoryProviderName = "Microsoft.EntityFrameworkCore.InMemory";
 
-    public UserProfileSeedService(PortfolioDbContext db)
+    public UserProfileSeedService(PortfolioDbContext db, ILogger<UserProfileSeedService> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     public async Task SeedForUserAsync(Guid userId)
@@ -1440,11 +1443,11 @@ public class UserProfileSeedService
             {
                 await tx.CommitAsync();
             }
-            Console.WriteLine($"[UserProfileSeedService] Seed complete for user {userId}");
+            _logger.LogDebug("Seed complete for user {UserId}", userId);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UserProfileSeedService] Error seeding data for user {userId}: {ex.Message}");
+            _logger.LogError(ex, "Error seeding data for user {UserId}", userId);
             if (tx != null)
             {
                 await tx.RollbackAsync();

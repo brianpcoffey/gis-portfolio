@@ -66,6 +66,12 @@ namespace Portfolio.Web.Middleware
                 return;
             }
 
+            // Health probes and non-browser API clients cannot persist cookies, so creating a
+            // new profile + seeding for them is wasteful. Only create a new user identity for
+            // requests that can actually receive and store a cookie (i.e. browser requests that
+            // declare an Accept header containing text/html).
+            var acceptsHtml = context.Request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase);
+
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
                 var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
@@ -88,6 +94,15 @@ namespace Portfolio.Web.Middleware
             }
             else
             {
+                // No cookie present. Only create a new profile for browser requests — probes
+                // and API clients cannot store the cookie, so creating a profile for them
+                // would generate a new anonymous user on every probe request.
+                if (!acceptsHtml)
+                {
+                    await _next(context);
+                    return;
+                }
+
                 userId = Guid.NewGuid();
                 var profile = new UserProfile
                 {
