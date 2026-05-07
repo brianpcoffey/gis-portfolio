@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Portfolio.Common.Constants;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
@@ -16,12 +17,19 @@ namespace Portfolio.Web.Middleware
     public class AnonymousUserMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<AnonymousUserMiddleware> _logger;
         private const string CookieName = "AnonUserId";
         private const string HttpContextItemKey = "PortfolioIdentity";
 
-        public AnonymousUserMiddleware(RequestDelegate next)
+        public AnonymousUserMiddleware(
+            RequestDelegate next,
+            IWebHostEnvironment environment,
+            ILogger<AnonymousUserMiddleware> logger)
         {
             _next = next;
+            _environment = environment;
+            _logger = logger;
         }
 
         public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider, Portfolio.Services.Services.UserProfileSeedService seedService)
@@ -93,13 +101,20 @@ namespace Portfolio.Web.Middleware
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = context.Request.IsHttps,
+                    // Always Secure in production: Render terminates TLS at the proxy, so
+                    // Request.IsHttps is false for internal health probes even on a live HTTPS
+                    // deployment. Tying Secure to IsHttps would produce a non-Secure cookie
+                    // whenever a probe triggers the new-user path. Use the environment instead.
+                    Secure = !_environment.IsDevelopment(),
                     SameSite = SameSiteMode.Lax,
                     Expires = timeProvider.GetUtcNow().AddYears(1),
                     IsEssential = true
                 };
                 context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
-                Console.WriteLine($"[AnonymousUserMiddleware] Created anon profile and cookie for {userId} (IsHttps={context.Request.IsHttps})");
+                _logger.LogInformation(
+                    "Created anon profile and cookie for {UserId} (Scheme={Scheme})",
+                    userId,
+                    context.Request.Scheme);
             }
 
             context.Items[HttpContextItemKey] = userId;
