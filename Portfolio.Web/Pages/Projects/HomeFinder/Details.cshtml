@@ -20,9 +20,9 @@
 		<ul>
 			<li><strong>Purpose:</strong> Score and rank Redlands-area properties against user-defined home search preferences, then display the best matches on a map and in result cards.</li>
 			<li><strong>Business problem:</strong> Converts subjective search criteria into a repeatable ranking API that can explain tradeoffs across affordability, commute, amenities, property condition, and resale factors.</li>
-			<li><strong>Architecture:</strong> Razor Page + ArcGIS map UI → authenticated versioned API → <code>IHomeScoringService</code> and <code>ISavedSearchService</code> → repositories → PostgreSQL via EF Core.</li>
-			<li><strong>Technologies:</strong> .NET 10, Razor Pages, ArcGIS JavaScript SDK, Bootstrap, vanilla JavaScript, EF Core/Npgsql, Google OAuth cookie authentication.</li>
-			<li><strong>Deployment model:</strong> Runs in the Portfolio web app on Render with PostgreSQL backing property and saved-search data; container and Kubernetes manifests support cloud portability.</li>
+			<li><strong>Architecture:</strong> Razor Page + ArcGIS map UI → versioned API → <code>IHomeScoringService</code> and <code>ISavedSearchService</code> → repositories → PostgreSQL via EF Core. The scoring hot path dispatches to a native C++ kernel when the shared library is present, with a managed C# fallback that is functionally identical.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, ArcGIS JavaScript SDK, Bootstrap, vanilla JavaScript, EF Core/Npgsql, Google OAuth cookie authentication, C++20/CMake native scoring library, P/Invoke interop.</li>
+			<li><strong>Deployment model:</strong> Runs in the Portfolio web app on Render with PostgreSQL backing property and saved-search data. The managed C# scoring path is active on Render (no native build step in the current Dockerfile); the native kernel activates locally after a CMake build and can be enabled in production by adding a build stage to the Dockerfile.</li>
 		</ul>
 	</section>
 
@@ -55,11 +55,13 @@
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
-			<li><strong>Scoring service:</strong> <code>HomeScoringService</code> retrieves property data and applies a weighted composite scoring model based on the submitted preferences and top-N limit.</li>
+			<li><strong>Scoring service:</strong> <code>HomeScoringService</code> retrieves filtered property data from <code>IPropertyRepository</code>, scores each property across ten weighted dimensions, sorts by composite score descending, and assigns sequential rank before returning the top-N result set as DTOs.</li>
+			<li><strong>Native C++ scoring kernel:</strong> The compute-intensive ranking math is extracted into a native shared library (<code>portfolio_scoring.dll</code> / <code>libportfolio_scoring.so</code>) built with C++20, <code>/arch:AVX2</code>, and <code>-O3 -march=haswell -ffast-math</code>. The library exposes two C-ABI functions — <code>ScoreProperty</code> (single) and <code>ScorePropertyBatch</code> (SIMD-friendly batch) — over blittable structs with <code>Pack = 8</code> layout to eliminate marshalling overhead.</li>
+			<li><strong>P/Invoke interop layer:</strong> <code>NativeScoringInterop</code> declares the raw <code>[DllImport]</code> signatures. <code>NativeScoringBridge</code> is a safe static façade that probes <code>NativeLibrary.TryLoad</code> at startup, exposes <code>IsAvailable</code>, and maps managed <code>Property</code> and <code>HomeSearchPreferencesDto</code> objects to the native structs. Both types are <code>internal</code> to <code>Portfolio.Services</code>; the test project accesses them via <code>[assembly: InternalsVisibleTo]</code>.</li>
+			<li><strong>Transparent fallback:</strong> <code>GetTopPropertiesAsync</code> checks <code>NativeScoringBridge.IsAvailable</code> and branches to either <code>ScoreWithNativeKernel</code> (native) or the managed LINQ scoring helpers. The managed path is functionally identical to the native kernel and is the active path on Render today.</li>
 			<li><strong>Saved-search service:</strong> <code>SavedSearchService</code> owns named search persistence, uniqueness rules, timestamps, and owner scoping.</li>
 			<li><strong>Separation of concerns:</strong> The controller handles HTTP translation; services own business rules and DTO mapping; repositories own EF Core queries.</li>
-			<li><strong>Extensibility:</strong> The scoring model is isolated behind <code>IHomeScoringService</code>, allowing future replacement with richer spatial, ML, or search-index scoring without changing the controller contract.</li>
-			<li><strong>Geospatial workflow:</strong> The backend returns scored properties with location data, while the browser handles map visualization and interaction.</li>
+			<li><strong>Extensibility:</strong> The scoring model is isolated behind <code>IHomeScoringService</code>, allowing future replacement with richer spatial, ML, or search-index scoring without changing the controller contract. The native kernel can be extended independently of the managed API surface.</li>
 		</ul>
 	</section>
 
@@ -81,18 +83,21 @@
 			<li><strong>Authentication infrastructure:</strong> Cookie authentication uses Google as the challenge scheme, with API requests receiving 401 instead of HTML redirects.</li>
 			<li><strong>Shared Redis infrastructure:</strong> Home Finder persists through PostgreSQL rather than Redis, while the host application uses Redis for geocoding caches, batch job state, and production Data Protection keys when configured.</li>
 			<li><strong>Database operations:</strong> EF Core migrations run at startup, supporting automated schema rollout for portfolio-scale deployments.</li>
+			<li><strong>Native library deployment:</strong> The C++ scoring library is built separately via CMake. On Render the native library is absent and the managed C# fallback runs automatically — no application code changes required. To activate the native path in production, a CMake build stage would be added before the dotnet publish stage in the Dockerfile and the resulting <code>libportfolio_scoring.so</code> copied to the output directory. The post-build CMake target handles this automatically for local development.</li>
 			<li><strong>Containerization:</strong> The same application can run from the root Dockerfile and Docker Compose; Kubernetes manifests provide replica, service, and HPA definitions.</li>
-			<li><strong>Cloud evolution:</strong> For larger scale, the property ranking path could move toward managed PostgreSQL read replicas, search indexes, Azure Cache for Redis, or a dedicated scoring service.</li>
+			<li><strong>Cloud evolution:</strong> For larger scale, the property ranking path could move toward managed PostgreSQL read replicas, search indexes, Azure Cache for Redis, or a dedicated scoring service. The native kernel could be containerized as a sidecar gRPC service if scoring load justified isolation from the web process.</li>
 		</ul>
 	</section>
 
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
-			<li><strong>Weighted scoring:</strong> A transparent scoring formula is easy to explain and test, but less adaptive than ML-based recommendation models.</li>
-			<li><strong>Server-side ranking:</strong> Keeps scoring rules authoritative and avoids exposing full property datasets to the browser, at the cost of server CPU per search.</li>
+			<li><strong>Weighted scoring:</strong> A transparent ten-dimension scoring formula is easy to explain and test, but less adaptive than ML-based recommendation models. Every sub-score is a pure function of entity fields and preference weights, making unit testing and parity checks between the managed and native paths straightforward.</li>
+			<li><strong>Native C++ fast path with managed fallback:</strong> Extracting the scoring kernel to a native library demonstrates SIMD-friendly data layout, P/Invoke interop, and deployment awareness — the same decision a backend team faces when introducing a Rust or C++ compute module. The fallback design means the feature degrades gracefully rather than failing in environments where the native build is unavailable.</li>
+			<li><strong>Blittable struct layout:</strong> <code>PropertyInputNative</code>, <code>PreferencesInputNative</code>, and <code>ScoreOutputNative</code> use <code>[StructLayout(LayoutKind.Sequential, Pack = 8)]</code> to match the C header exactly, avoiding runtime marshalling copies. Any field addition requires a synchronized change in both the C header and the managed struct.</li>
+			<li><strong>Server-side ranking:</strong> Keeps scoring rules authoritative and avoids exposing full property datasets to the browser, at the cost of server CPU per search. The native batch path amortizes that cost across AVX2 vector lanes when the library is present.</li>
 			<li><strong>Authenticated saved searches:</strong> Provides durable user value and ownership guarantees, but requires login even for some interactions in the current controller configuration.</li>
-			<li><strong>Future improvements:</strong> Add spatial indexes, bounding-box filtering, cached property feature vectors, pagination, search telemetry, and background recomputation of market-derived signals.</li>
+			<li><strong>Future improvements:</strong> Add spatial indexes, bounding-box filtering, cached property feature vectors, pagination, search telemetry, background recomputation of market-derived signals, and a Dockerfile CMake build stage to activate the native kernel on Render.</li>
 		</ul>
 	</section>
 
@@ -104,6 +109,9 @@
 			<li>How do you enforce saved-search ownership without trusting client-supplied user ids?</li>
 			<li>What indexes would matter for property search once the dataset grows beyond in-memory scoring?</li>
 			<li>How would you design A/B testing or telemetry around ranking quality?</li>
+			<li>Why keep the managed C# fallback instead of requiring the native library?</li>
+			<li>What are the risks of a blittable struct ABI shared between C++ and .NET, and how would you version it safely?</li>
+			<li>How would you isolate the native scoring kernel as a sidecar service if it needed to scale independently of the web process?</li>
 		</ul>
 	</section>
 </div>
