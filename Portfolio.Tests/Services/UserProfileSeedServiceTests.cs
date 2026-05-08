@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
 using Portfolio.Services.Services;
@@ -17,7 +18,7 @@ namespace Portfolio.Tests.Services
                 .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
                 .Options;
             _dbContext = new PortfolioDbContext(dbOptions);
-            _service = new UserProfileSeedService(_dbContext);
+            _service = new UserProfileSeedService(_dbContext, NullLogger<UserProfileSeedService>.Instance);
         }
 
         [Fact]

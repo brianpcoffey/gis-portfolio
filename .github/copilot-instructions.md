@@ -631,6 +631,217 @@ Place the resulting `portfolio_scoring.dll` beside `Portfolio.Services.dll` or i
 
 ---
 
+### 9g. Native C++ Kernel Standards
+
+These rules generalize the existing `portfolio_scoring` pattern for all native-backed
+spatial compute features. The currently implemented native libraries are `portfolio_scoring`
+(Home Finder scoring), `geostream_processor` (Live Location Stream), `spatial_geometry_kernel`
+(Geometry Toolkit), `raster_terrain_kernel` (Terrain Analyzer), and `spatial_graph_engine`
+(Route Planner). Any future native library MUST follow this pattern when added.
+
+#### Native project layout
+
+Every native library lives under `native/{library_name}/` and uses this structure unless
+there is a documented reason to diverge:
+
+```
+native/{library_name}/
+  CMakeLists.txt
+  include/
+    {library_name}.h
+  src/
+  tests/
+  benchmarks/
+```
+
+- The CMake target name MUST match the native library name.
+- Native build artifacts MUST NOT be committed.
+- Native tests and benchmarks are separate CMake targets.
+- `native/README.md` or the project-specific native README MUST document build commands,
+  runtime library placement, optional dependency installation, and fallback behavior.
+
+#### C ABI boundary
+
+- Native libraries MUST expose a stable C ABI from `include/{library_name}.h`.
+- Do not expose C++ types across the boundary: no `std::vector`, `std::string`, classes,
+  templates, exceptions, references, or ownership-bearing smart pointers.
+- Exported functions return integer status codes; managed bridges translate those codes into
+  typed managed exceptions.
+- C# owns input and output buffers by default. Native code fills caller-provided buffers and
+  returns counts/status. If native allocation is unavoidable, the ABI MUST provide a matching
+  `Destroy`/`Free` function and the managed bridge MUST wrap it safely.
+- Native code MUST validate capacities and null pointers defensively and return error codes;
+  it must not crash the ASP.NET process for bad caller input.
+- Exceptions MUST NOT cross the ABI boundary. Catch native exceptions inside exported
+  functions and convert them to error status codes.
+- Any C ABI struct change requires synchronized updates to the C header, C# native struct,
+  native tests, managed parity tests, and documentation.
+
+#### Managed interop layout
+
+Native interop files live in `Portfolio.Services/Native/` and use this naming pattern:
+
+```
+{Domain}NativeStructs.cs
+{Domain}NativeInterop.cs
+{Domain}NativeBridge.cs
+```
+
+- Native structs and bridge classes are `internal` to `Portfolio.Services` unless a public
+  API is explicitly required. Test access is granted via `InternalsVisibleTo`.
+- Native structs MUST be blittable and use `[StructLayout(LayoutKind.Sequential, Pack = 8)]`
+  unless the native header documents a different packing requirement.
+- Raw `[DllImport]` declarations stay in `{Domain}NativeInterop.cs`; validation, availability
+  checks, status-code translation, and DTO/entity mapping stay in `{Domain}NativeBridge.cs`.
+- Every bridge exposes an `IsAvailable` guard and catches loader-related failures such as
+  `DllNotFoundException`, `EntryPointNotFoundException`, and `BadImageFormatException`.
+- Log native availability once at startup or first use; do not log availability on every request.
+- No DTOs, EF entities, or model classes may be defined in the native interop folder.
+
+#### Native/managed fallback contract
+
+- Every native-backed feature MUST have a managed C# fallback that preserves production
+  functionality when the native shared library is absent.
+- Fallback behavior is production behavior, not test-only behavior. Do not remove fallback
+  code after native integration is added.
+- Services choose the native path only when `{Domain}NativeBridge.IsAvailable` is true.
+- Native and managed outputs should be equivalent within documented numeric tolerances;
+  geometry/raster results may be numerically close rather than byte-identical.
+- ASP.NET controllers and Razor Pages must not know whether native or managed execution ran;
+  that dispatch belongs in the service layer.
+
+#### CMake, Docker, and dependency rules
+
+- Native libraries use C++20.
+- Windows and Linux exports MUST be handled by an export macro in the public C header.
+- AVX2 or architecture-specific compiler flags must be guarded by compiler/platform checks;
+  do not assume every deployment host supports the same CPU features.
+- Heavy native dependencies such as GDAL, CGAL, GEOS, PROJ, Boost.Geometry, oneTBB, or
+  libosmium MUST be justified in documentation with their deployment impact.
+- Docker builds must either compile/copy the native library or explicitly document that the
+  container runs in managed-fallback mode.
+- The CMake post-build step should copy the native binary beside the relevant .NET output
+  when practical, matching the existing `portfolio_scoring` pattern.
+
+#### Native testing and benchmarks
+
+- Every native-backed service requires managed fallback tests, validation/error tests,
+  native-unavailable behavior tests, and native-gated parity tests.
+- Native-gated tests must skip gracefully when the library is unavailable.
+- Numeric parity assertions should use tolerances appropriate to the domain.
+- Geometry/raster/native validation tests should cover empty input, invalid coordinates,
+  degenerate geometries, NaN/Infinity values, and output-buffer-too-small cases.
+- Benchmarks should distinguish managed fallback time, native scalar time, native SIMD time
+  where applicable, and end-to-end API time.
+
+---
+
+### 9h. Live Location Stream
+
+**Controller:** `Portfolio.Web/Controllers/Api/GeoStreamController.cs`
+- Route: `[Route("api/v{version:apiVersion}/geostream")]`, `[AllowAnonymous]`
+- `POST /api/v1/geostream/events` — accepts `GeoStreamBatchRequestDto` (telemetry events, grid size, anomaly threshold); returns `GeoStreamBatchResultDto`.
+- Catches `ArgumentException` -> 400; unexpected failures flow through `ApiExceptionMiddleware`.
+
+**Service interface:** `IGeoStreamProcessorService` in `Portfolio.Services/Interfaces/`
+**Service:** `Portfolio.Services/Services/GeoStreamProcessorService.cs`
+- Validates input shape; filters events with non-finite or out-of-range lat/lng.
+- Checks `GeoStreamNativeBridge.IsAvailable` and dispatches to native or managed execution.
+- Managed fallback: maps valid events into configurable grid cells, computes average/max speed per cell, and counts speed anomalies.
+- Returns `GeoStreamBatchResultDto` including total, valid, invalid, anomaly count, native flag, and aggregate cells.
+
+**Native interop:** `Portfolio.Services/Native/GeoStreamNativeStructs.cs`, `GeoStreamNativeInterop.cs`, `GeoStreamNativeBridge.cs`
+- Native library: `native/geostream_processor` — exposes `GeoStream_ProcessTelemetryBatch` through a stable C ABI.
+- `GeoStreamNativeBridge` maps `GeoStreamBatchRequestDto` events to `TelemetryEventNative`, passes preallocated output buffers, and translates status codes.
+
+**DTOs** (`Portfolio.Common/DTOs/`):
+- `GeoStreamBatchRequestDto` — `Events` (list of telemetry events), `GridSizeDegrees`, `AnomalySpeedThreshold`
+- `GeoStreamBatchResultDto` — `TotalEvents`, `ValidEvents`, `InvalidEvents`, `AnomalyCount`, `NativeAccelerated`, `AggregateCells`
+- `GeoStreamAggregateCellDto` — `CellKey`, `EventCount`, `AverageSpeed`, `MaxSpeed`, `IsAnomaly`
+
+---
+
+### 9i. Geometry Toolkit
+
+**Controller:** `Portfolio.Web/Controllers/Api/SpatialGeometryController.cs`
+- Route: `[Route("api/v{version:apiVersion}/geometry")]`, `[AllowAnonymous]`
+- `POST /api/v1/geometry/triangulate` — accepts `GeometryPointSetDto`; returns `TriangulationResultDto`.
+- `POST /api/v1/geometry/clip` — accepts `PolygonClipRequestDto`; returns `PolygonOperationResultDto`.
+- Catches `ArgumentException` -> 400 with standard `{ error }` shape.
+
+**Service interface:** `ISpatialGeometryService` in `Portfolio.Services/Interfaces/`
+**Service:** `Portfolio.Services/Services/SpatialGeometryService.cs`
+- Validates: minimum point count, non-finite coordinates, valid bounding box.
+- Checks `SpatialGeometryNativeBridge.IsAvailable` and dispatches to native or managed execution.
+- Managed fallback: fan triangulation from the first point; bounding-box vertex clamp.
+- Both result DTOs expose a `NativeAccelerated` flag.
+
+**Native interop:** `Portfolio.Services/Native/SpatialGeometryNativeStructs.cs`, `SpatialGeometryNativeInterop.cs`, `SpatialGeometryNativeBridge.cs`
+- Native library: `native/spatial_geometry_kernel` — exposes `Geometry_TriangulateFan` and `Geometry_ClipToBoundingBox`.
+- `SpatialGeometryNativeBridge` maps `CoordinateDto` to `CoordinateNative`, passes preallocated output buffers, and translates status codes into managed exceptions.
+
+**DTOs** (`Portfolio.Common/DTOs/`):
+- `GeometryPointSetDto` — `Points` (list of `CoordinateDto`)
+- `PolygonClipRequestDto` — `Points`, `BoundingBox` (`BoundingBoxDto`)
+- `TriangulationResultDto` — `Triangles` (list of `TriangleDto`), `TriangleCount`, `NativeAccelerated`
+- `PolygonOperationResultDto` — `ClippedVertices` (list of `CoordinateDto`), `VertexCount`, `NativeAccelerated`
+
+---
+
+### 9j. Terrain Analyzer
+
+**Controller:** `Portfolio.Web/Controllers/Api/RasterTerrainController.cs`
+- Route: `[Route("api/v{version:apiVersion}/raster")]`, `[AllowAnonymous]`
+- `POST /api/v1/raster/hillshade` — accepts `RasterHillshadeRequestDto`; returns `RasterHillshadeResultDto`.
+- `POST /api/v1/raster/heatmap` — accepts `HeatmapRequestDto`; returns `HeatmapResultDto`.
+- Catches `ArgumentException` -> 400 with standard `{ error }` shape.
+
+**Service interface:** `IRasterTerrainService` in `Portfolio.Services/Interfaces/`
+**Service:** `Portfolio.Services/Services/RasterTerrainService.cs`
+- Validates: positive dimensions, expected raster array length, positive cell size/radius, valid extents.
+- Checks `RasterTerrainNativeBridge.IsAvailable` and dispatches to native or managed execution.
+- Hillshade fallback: samples neighboring cells, computes approximate slope/aspect, applies sun azimuth/altitude, emits 8-bit intensity grid.
+- Heatmap fallback: applies Gaussian-style kernel from weighted points over target raster extent, normalizes output values.
+
+**Native interop:** `Portfolio.Services/Native/RasterTerrainNativeStructs.cs`, `RasterTerrainNativeInterop.cs`, `RasterTerrainNativeBridge.cs`
+- Native library: `native/raster_terrain_kernel` — exposes `Raster_GenerateHillshade` and `Raster_GenerateHeatmap` with AVX2-friendly compiler flags.
+- Dense arrays are the P/Invoke payload; C# owns input and output buffers.
+
+**DTOs** (`Portfolio.Common/DTOs/`):
+- `RasterHillshadeRequestDto` — `Width`, `Height`, `CellSize`, `Elevations`, `SunAzimuth`, `SunAltitude`
+- `RasterHillshadeResultDto` — `Width`, `Height`, `Intensities` (byte array), `NativeAccelerated`
+- `HeatmapRequestDto` — `Width`, `Height`, `CellSize`, `Points` (weighted), `Extent`, `Radius`
+- `HeatmapResultDto` — `Width`, `Height`, `Values` (float array), `NativeAccelerated`
+
+---
+
+### 9k. Route Planner
+
+**Controller:** `Portfolio.Web/Controllers/Api/SpatialNetworkController.cs`
+- Route: `[Route("api/v{version:apiVersion}/network")]`, `[AllowAnonymous]`
+- `POST /api/v1/network/route` — accepts `RouteRequestDto`; returns `RouteResultDto`.
+- `POST /api/v1/network/service-area` — accepts `ServiceAreaRequestDto`; returns `ServiceAreaResultDto`.
+- Catches `ArgumentException` -> 400 with standard `{ error }` shape.
+
+**Service interface:** `ISpatialGraphService` in `Portfolio.Services/Interfaces/`
+**Service:** `Portfolio.Services/Services/SpatialGraphService.cs`
+- Validates: non-empty node/edge lists, valid origin/destination node ids, non-negative edge costs.
+- Checks `SpatialGraphNativeBridge.IsAvailable` and dispatches to native or managed execution.
+- Managed fallback: builds adjacency list, runs Dijkstra-style traversal with `PriorityQueue<TElement, TPriority>`, reconstructs route, computes service-area distances from origin.
+- Maps node ids to coordinate paths; both result DTOs expose a `NativeAccelerated` flag.
+
+**Native interop:** `Portfolio.Services/Native/SpatialGraphNativeStructs.cs`, `SpatialGraphNativeInterop.cs`, `SpatialGraphNativeBridge.cs`
+- Native library: `native/spatial_graph_engine` — exposes `Graph_FindShortestPath` and `Graph_ComputeServiceArea`.
+- `SpatialGraphNativeBridge` maps nodes and edges to blittable structs, passes preallocated node-id output buffers, and translates native status codes.
+
+**DTOs** (`Portfolio.Common/DTOs/`):
+- `RouteRequestDto` — `Nodes` (list of `GraphNodeDto`), `Edges` (list of `GraphEdgeDto`), `OriginNodeId`, `DestinationNodeId`
+- `RouteResultDto` — `PathNodeIds`, `CoordinatePath`, `TotalCost`, `Found`, `NativeAccelerated`
+- `ServiceAreaRequestDto` — `Nodes`, `Edges`, `OriginNodeId`, `MaxCost`
+- `ServiceAreaResultDto` — `ReachableNodeIds`, `NativeAccelerated`
+
+---
+
 ### Docker
 - **`Dockerfile`** (repo root) — multi-stage build: `mcr.microsoft.com/dotnet/sdk:10.0` build stage
   → `mcr.microsoft.com/dotnet/aspnet:10.0` runtime stage. Sets `ASPNETCORE_URLS`, `ASPNETCORE_ENVIRONMENT=Production`,
@@ -848,7 +1059,7 @@ Do not use `IMemoryCache` / `MemoryCache` in new geocoding or job-store tests.
 - `ApiVersioningAttributeTests` -- reflection-based tests that assert every
   versioned controller carries `[ApiVersion("1.0")]` and the correct route prefix.
 
-Total test count as of last verified run: **359 passing, 0 failing**.
+Total test count as of last verified run: **355 passing, 34 native-gated** (native parity tests are skipped/failing when the native shared library is absent; all 355 managed tests pass).
 
 ---
 

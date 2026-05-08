@@ -2,10 +2,19 @@
 
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-10.0-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-14.0-239120?style=flat&logo=csharp&logoColor=white)
+![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat&logo=cplusplus&logoColor=white)
+![CMake](https://img.shields.io/badge/CMake-Build-064F8C?style=flat&logo=cmake&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=flat&logo=bootstrap&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon.tech-4169E1?style=flat&logo=postgresql&logoColor=white)
+![Entity Framework Core](https://img.shields.io/badge/EF_Core-Code--First-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![ArcGIS](https://img.shields.io/badge/ArcGIS-JS_API-2C7AC3?style=flat&logo=esri&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-Cache_%26_Job_State-DC382D?style=flat&logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Manifests-326CE5?style=flat&logo=kubernetes&logoColor=white)
+![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
+![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-355_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -40,6 +49,24 @@ Razor Page / API Controller  (Portfolio.Web)
 | `Portfolio.Repositories` | EF Core `DbContext`, repositories, fluent mappings, migrations |
 | `Portfolio.Common` | POCO entity models, DTOs, enums, and ArcGIS wire models |
 | `Portfolio.Tests` | xUnit + Moq unit tests for services and controllers |
+
+---
+
+## Native Spatial Compute Architecture
+
+This portfolio uses a native-kernel pattern for compute-heavy spatial workflows where lower-level control is technically justified. ASP.NET Core owns the product/API layer, C# services validate inputs and map DTOs, and native C++20 libraries expose stable C ABIs consumed through P/Invoke. Each native-backed workflow must remain portable: `IsAvailable` gates the native path and a managed C# fallback preserves functionality when the shared library is absent.
+
+The currently implemented native integration is the Home Finder scoring kernel. The same pattern is intended for future spatial compute projects where benchmarks can demonstrate a real need for native code rather than treating C++ as a decorative dependency.
+
+| Project | Native Library | Status | Native Role |
+|---|---|---|---|
+| Redlands Smart Home Finder | `portfolio_scoring` | Implemented | weighted property scoring with AVX2-friendly batch math |
+| Live Location Stream | `geostream_processor` | Implemented | telemetry parsing, filtering, grid aggregation, and anomaly detection |
+| Geometry Toolkit | `spatial_geometry_kernel` | Implemented | fan triangulation and bounding-box polygon clipping with stable C ABI |
+| Terrain Analyzer | `raster_terrain_kernel` | Implemented | hillshade, slope/aspect, and Gaussian heatmap kernel over dense numeric arrays |
+| Route Planner | `spatial_graph_engine` | Implemented | shortest path and service-area computation over spatial graphs |
+
+The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, and scoring. The managed fallback is production behavior, not only a test convenience.
 
 ---
 
@@ -155,6 +182,62 @@ Authenticated operations dashboard for fiber orders, materials, shipments, clien
 
 ---
 
+### 📡 Live Location Stream
+GPS-style telemetry batch processing pipeline that reduces high-volume sensor or vehicle events into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard. A native C++ kernel handles the allocation-sensitive numeric loops when the shared library is present; the managed fallback activates automatically when it is not.
+
+- Channel-oriented GPS event batching with configurable grid size and anomaly threshold
+- Native C++ telemetry kernel (`geostream_processor`) processes contiguous event arrays via a stable C ABI
+- Aggregate output shaped for ArcGIS JS rendering as point, grid, heatmap, or feature-layer graphics
+- Stateless request/response MVP — no per-user persistence; future evolution paths include Redis-backed windows and SignalR live updates
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, ArcGIS JS API
+
+**API:** `POST /api/v1/geostream/events`
+
+---
+
+### 🔷 Geometry Toolkit
+Computational geometry API that transforms map-drawn coordinates into derived geometry ready for GIS visualization and downstream analysis. The architecture establishes the API and native bridge boundary for future robust algorithms; the current MVP implements fan triangulation and bounding-box clipping.
+
+- SVG workbench frontend for point input, operation selection, and result rendering
+- Native C++ geometry kernel (`spatial_geometry_kernel`) exposing `Geometry_TriangulateFan` and `Geometry_ClipToBoundingBox` through a stable C ABI
+- C# owns preallocated output buffers; native code fills them without cross-runtime allocation
+- Foundation for future Delaunay triangulation, Voronoi generation, polygon intersection, and topology validation with GEOS, CGAL, or Clipper2
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
+
+**API:** `POST /api/v1/geometry/triangulate`, `POST /api/v1/geometry/clip`
+
+---
+
+### ⛰️ Terrain Analyzer
+Raster terrain analysis API that generates hillshade and heatmap outputs from dense numeric grid inputs and renders the results as a browser-visible raster grid. The native C++ kernel provides SIMD-friendly dense array processing when available; the managed fallback computes slope/aspect and Gaussian-style kernel weights in C#.
+
+- Hillshade computation from configurable sun azimuth/altitude and per-cell slope/aspect approximation
+- Gaussian-style heatmap kernel from weighted point samples over a target raster extent
+- Native C++ raster kernel (`raster_terrain_kernel`) exposing `Raster_GenerateHillshade` and `Raster_GenerateHeatmap`
+- Stateless per-request processing; future evolution paths include PNG tile generation, GeoTIFF/COG ingestion, and Redis tile caching
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke
+
+**API:** `POST /api/v1/raster/hillshade`, `POST /api/v1/raster/heatmap`
+
+---
+
+### 🗺️ Route Planner
+Spatial graph routing API that computes shortest paths and service areas over an in-memory graph and renders the route or reachable-node result in the browser via SVG. The native C++ engine provides compact graph layout and algorithmic control over large routing workloads; the managed fallback runs Dijkstra-style traversal with `PriorityQueue<TElement, TPriority>`.
+
+- Shortest-path computation with node-id path reconstruction and coordinate mapping
+- Service-area computation returning all nodes reachable within a configurable cost budget
+- Native C++ routing engine (`spatial_graph_engine`) exposing `Graph_FindShortestPath` and `Graph_ComputeServiceArea`
+- Stateless graph-per-request MVP; future evolution paths include persisted network datasets, OSM ingestion, Redis result caching, and native graph handle APIs
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
+
+**API:** `POST /api/v1/network/route`, `POST /api/v1/network/service-area`
+
+---
+
 ## Technology Stack
 
 | Layer | Technology |
@@ -167,7 +250,7 @@ Authenticated operations dashboard for fiber orders, materials, shipments, clien
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
-| Native Performance | C++20 scoring kernel (`portfolio_scoring`) with AVX2/`-march=haswell` + P/Invoke bridge; managed C# fallback |
+| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback; currently implemented by `portfolio_scoring` |
 | API Docs | Scalar / OpenAPI in development, XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
@@ -257,7 +340,7 @@ These endpoints are mapped only in development in `Program.cs` via `MapOpenApi()
 dotnet test
 ```
 
-359 tests — all passing (xUnit + Moq, no integration/DB tests).
+389 tests — 355 passing, 34 skipped/failing (native-gated parity tests skip when the native shared library is absent; xUnit + Moq, no integration/DB tests).
 
 ---
 

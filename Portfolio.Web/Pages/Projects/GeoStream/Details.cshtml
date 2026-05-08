@@ -1,0 +1,101 @@
+@page
+@model Portfolio.Web.Pages.Projects.GeoStream.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Live Location Stream – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-satellite-dish me-2"></i>Live Location Stream – Technical Details</h1>
+		<a href="/Projects/GeoStream" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Live Location Stream demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Process GPS-style telemetry batches into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard.</li>
+			<li><strong>Business problem:</strong> Demonstrates how high-volume sensor or vehicle events can be reduced into map-ready summaries before they hit the UI, avoiding one-symbol-per-event rendering overload.</li>
+			<li><strong>Architecture:</strong> Razor Page demo → <code>POST /api/v1/geostream/events</code> → <code>IGeoStreamProcessorService</code> → optional <code>geostream_processor</code> native library → managed fallback.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, vanilla JavaScript, ASP.NET Core API versioning, C++20/CMake, P/Invoke, blittable structs.</li>
+			<li><strong>Deployment model:</strong> Runs inside the Portfolio web app on Render. The C++ library is optional; the managed fallback remains active when the native shared library is not deployed.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
+		<ul>
+			<li><strong>Page:</strong> <code>Pages/Projects/GeoStream/Index.cshtml</code> provides a telemetry JSON editor, processing controls, KPI cards, and a grid-style visualization panel.</li>
+			<li><strong>Script:</strong> <code>wwwroot/js/GeoStream/app.js</code> follows the existing self-contained IIFE pattern, uses <code>apiPost</code>, and stores only page-local state.</li>
+			<li><strong>Visualization:</strong> The MVP renders aggregate cells as positioned markers over a GIS-styled panel. Anomaly cells receive a distinct visual treatment.</li>
+			<li><strong>API routing:</strong> <code>api-config.js</code> exposes <code>PortfolioApi.routes.spatialCompute.geostream.events</code> so route versioning stays centralized.</li>
+			<li><strong>Future map integration:</strong> The aggregate output is already shaped for ArcGIS JS rendering as point, grid, heatmap, or feature-layer graphics.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>GeoStreamController</code> is versioned at <code>/api/v1/geostream</code> and marked <code>[AllowAnonymous]</code> for portfolio demo access.</li>
+			<li><strong>Endpoint:</strong> <code>POST /api/v1/geostream/events</code> accepts <code>GeoStreamBatchRequestDto</code> with telemetry events, grid size, and anomaly threshold.</li>
+			<li><strong>Response:</strong> <code>GeoStreamBatchResultDto</code> returns total, valid, invalid, anomaly count, native acceleration flag, and aggregate cells.</li>
+			<li><strong>Error handling:</strong> Invalid batch shape maps to <code>BadRequest(new { error = ... })</code>; unexpected failures flow through the app exception middleware.</li>
+			<li><strong>Security:</strong> The endpoint is stateless and does not accept user ownership fields or persist caller-provided identity.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>Service:</strong> <code>GeoStreamProcessorService</code> validates input, checks <code>GeoStreamNativeBridge.IsAvailable</code>, and dispatches to native or managed execution.</li>
+			<li><strong>Managed fallback:</strong> Filters invalid latitude/longitude values, maps valid events into configurable grid cells, computes average/max speed, and counts speed anomalies.</li>
+			<li><strong>Native bridge:</strong> <code>GeoStreamNativeBridge</code> maps DTOs to <code>TelemetryEventNative</code>, passes output buffers to the C ABI, translates status codes, and maps aggregates back to DTOs.</li>
+			<li><strong>C++ library:</strong> <code>native/geostream_processor</code> exposes <code>GeoStream_ProcessTelemetryBatch</code> and performs the same validation and aggregation over contiguous arrays.</li>
+			<li><strong>Why C++ here:</strong> Telemetry processing is batch-oriented, allocation-sensitive, and naturally suited to cache-local numeric loops before results are handed back to the ASP.NET Core layer.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
+		<ul>
+			<li><strong>Current MVP:</strong> No PostgreSQL persistence is used; requests are processed synchronously and returned as DTOs.</li>
+			<li><strong>Reasoning:</strong> Keeping the MVP stateless isolates the compute path and makes native/managed parity easier to validate.</li>
+			<li><strong>Future persistence:</strong> Entity tracks, aggregate snapshots, or anomaly events could be stored through a repository with per-user or per-feed ownership filters.</li>
+			<li><strong>Cache evolution:</strong> Redis could hold recent aggregate windows or feed state when multiple replicas serve a live dashboard.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
+		<ul>
+			<li><strong>Native build:</strong> <code>native/geostream_processor/CMakeLists.txt</code> builds a shared library and copies it beside the .NET output when built locally.</li>
+			<li><strong>Runtime behavior:</strong> <code>NativeLibrary.TryLoad</code> controls the fast path. Missing libraries do not break the web app.</li>
+			<li><strong>Container behavior:</strong> The current Dockerfile can run in managed-fallback mode. A future native-enabled image would add CMake compilation before dotnet publish.</li>
+			<li><strong>Scale-out path:</strong> Redis-backed windows, SignalR/WebSockets, or a queue-backed ingestion worker would be the next production step.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Grid aggregation over raw event rendering:</strong> Improves map readability and reduces browser load, but loses individual-event detail unless a drill-down path is added.</li>
+			<li><strong>Stateless MVP:</strong> Easy to demo and test, but not yet a true streaming architecture with windows, back-pressure, and durable ingestion.</li>
+			<li><strong>Native fallback contract:</strong> Demonstrates production-safe native integration without requiring every deployment host to compile C++.</li>
+			<li><strong>Future improvements:</strong> Add geofence indexing, sliding time windows, SignalR updates, Redis state, binary payload support, and native parsing with a library such as simdjson.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>Where should a real system draw the boundary between ingestion, processing, caching, and rendering?</li>
+			<li>How would you prevent live-feed updates from overwhelming the browser or ArcGIS graphics layer?</li>
+			<li>Which parts of the pipeline are SIMD-friendly and which are branch-heavy?</li>
+			<li>When would this move from an in-process service to a dedicated worker or stream processor?</li>
+		</ul>
+	</section>
+</div>

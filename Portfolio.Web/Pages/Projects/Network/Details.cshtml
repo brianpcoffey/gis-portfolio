@@ -1,0 +1,101 @@
+@page
+@model Portfolio.Web.Pages.Projects.Network.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Route Planner – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-route me-2"></i>Route Planner – Technical Details</h1>
+		<a href="/Projects/Network" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Route Planner demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Compute shortest paths and service areas over a spatial graph and render the route/network result in the browser.</li>
+			<li><strong>Business problem:</strong> Demonstrates routing and connectivity analysis patterns used in roads, utilities, logistics, and network datasets.</li>
+			<li><strong>Architecture:</strong> Razor Page graph demo → <code>/api/v1/network</code> endpoints → <code>ISpatialGraphService</code> → optional <code>spatial_graph_engine</code> native library → managed fallback.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, SVG, vanilla JavaScript, C++20/CMake, P/Invoke, Dijkstra-style traversal.</li>
+			<li><strong>Scope:</strong> The MVP operates on a small in-memory sample graph submitted with each request. It does not yet ingest OSM or persist network datasets.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
+		<ul>
+			<li><strong>Page:</strong> <code>Pages/Projects/Network/Index.cshtml</code> exposes origin/destination selectors, service-area cost control, KPI cards, and an SVG network viewport.</li>
+			<li><strong>Script:</strong> <code>wwwroot/js/Network/app.js</code> defines a deterministic sample graph, posts route/service-area requests, and renders highlighted paths.</li>
+			<li><strong>Visualization:</strong> The MVP renders graph edges, node ids, shortest-path polylines, and service-area highlights through SVG.</li>
+			<li><strong>State:</strong> The browser owns only demo graph input and current result state; path computation remains server-side.</li>
+			<li><strong>Future map integration:</strong> Node coordinates and route output already map naturally to ArcGIS JS graphics layers.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>SpatialNetworkController</code> is versioned at <code>/api/v1/network</code> and allows anonymous access for the portfolio demo.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/network/route</code> computes a least-cost path; <code>POST /api/v1/network/service-area</code> computes reachable nodes within a cost budget.</li>
+			<li><strong>Requests:</strong> <code>RouteRequestDto</code> and <code>ServiceAreaRequestDto</code> carry nodes, edges, and operation parameters.</li>
+			<li><strong>Responses:</strong> <code>RouteResultDto</code> returns path node ids, coordinate path, total cost, and found flag. <code>ServiceAreaResultDto</code> returns reachable node ids.</li>
+			<li><strong>Error handling:</strong> Invalid graphs, missing nodes, and negative costs map to 400 with the standard error response shape.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>Service:</strong> <code>SpatialGraphService</code> validates graph shape, dispatches to <code>SpatialGraphNativeBridge</code> when available, and maps node ids to coordinate paths.</li>
+			<li><strong>Managed fallback:</strong> Builds an adjacency list, runs Dijkstra-style shortest path with <code>PriorityQueue&lt;TElement, TPriority&gt;</code>, reconstructs the route, and computes service-area distances from the origin.</li>
+			<li><strong>Native bridge:</strong> <code>SpatialGraphNativeBridge</code> maps nodes and edges to blittable structs, passes preallocated node-id buffers, and translates native status codes.</li>
+			<li><strong>C++ library:</strong> <code>native/spatial_graph_engine</code> exposes <code>Graph_FindShortestPath</code> and <code>Graph_ComputeServiceArea</code>.</li>
+			<li><strong>Why C++ here:</strong> Large routing workloads benefit from compact graph layouts, cache-local adjacency structures, optimized priority queues, and native preprocessing.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
+		<ul>
+			<li><strong>Current MVP:</strong> No repository or PostgreSQL persistence is used; sample graph data is sent with each request.</li>
+			<li><strong>Reasoning:</strong> The MVP focuses on routing contracts and native/managed execution rather than graph ingestion.</li>
+			<li><strong>Future persistence:</strong> Road or utility network datasets could be persisted as nodes/edges with repository-owned filtering and EF Core mappings.</li>
+			<li><strong>Import path:</strong> A full implementation could ingest OSM PBF through <code>libosmium</code>, normalize ids, and store preprocessed graph snapshots or metadata.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
+		<ul>
+			<li><strong>Native build:</strong> <code>native/spatial_graph_engine/CMakeLists.txt</code> builds the shared routing library and copies it into the .NET output directory.</li>
+			<li><strong>Runtime fallback:</strong> The managed graph implementation runs automatically on hosts where the native library is absent.</li>
+			<li><strong>Scale-out path:</strong> Repeated route queries could use Redis result caching by graph version and origin/destination pair.</li>
+			<li><strong>Full-version dependencies:</strong> OSM ingestion with <code>libosmium</code> or parallel preprocessing with oneTBB would add deployment complexity and should be justified with benchmarks.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Stateless graph submission:</strong> Easy to demo and test, but inefficient for large graphs because the graph is rebuilt every request.</li>
+			<li><strong>No native graph handles yet:</strong> Avoids lifetime bugs across ASP.NET scopes, but sacrifices repeated-query performance. A full version could add explicit create/destroy handle APIs.</li>
+			<li><strong>Graph traversal and SIMD:</strong> Dijkstra is branch-heavy and not a strong SIMD candidate; C++ is justified by data layout and algorithmic control rather than vectorization alone.</li>
+			<li><strong>Future improvements:</strong> Add A*, graph snapping, blocked-edge scenarios, connected components, persisted datasets, native handles, benchmarks, and ArcGIS route rendering.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>When should a graph be rebuilt per request versus held in a native handle or cache?</li>
+			<li>How would you snap arbitrary map clicks to the nearest graph node or edge?</li>
+			<li>What data structure changes matter when the graph grows from five nodes to millions?</li>
+			<li>Why is managed fallback important for native graph code deployed inside a web process?</li>
+		</ul>
+	</section>
+</div>

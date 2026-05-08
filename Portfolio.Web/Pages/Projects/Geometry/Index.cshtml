@@ -1,0 +1,73 @@
+@page
+@model Portfolio.Web.Pages.Projects.Geometry.IndexModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Geometry Toolkit";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+<link rel="stylesheet" href="~/css/spatialcompute.css" />
+
+<div class="spatial-compute-page">
+	<div class="spatial-hero py-4 mb-4">
+		<div class="container">
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+				<div>
+					<h1 class="mb-1"><i class="fa-solid fa-draw-polygon me-2"></i>Geometry Toolkit</h1>
+					<p class="text-muted mb-0">Run native-backed computational geometry operations and render the result as vector shapes.</p>
+				</div>
+				<div class="d-flex align-items-center gap-2">
+					<span class="badge badge-gis fs-6"><i class="fa-solid fa-vector-square me-1"></i>C++ Geometry Kernel MVP</span>
+					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Geometry/Details" aria-label="View technical details for Geometry Toolkit" title="Technical Details">
+						<i class="fa-solid fa-circle-info"></i>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="container pb-5">
+		<div id="geometryAlert" class="alert alert-danger d-none" role="alert"></div>
+		<div class="row g-4">
+			<div class="col-lg-4">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-code text-accent"></i><strong>Geometry Input</strong></div>
+					<div class="card-body d-flex flex-column gap-3">
+						<label for="geometryPoints" class="form-label small mb-0">Point set JSON</label>
+						<textarea id="geometryPoints" class="form-control font-monospace" rows="9"></textarea>
+						<button id="geometryTriangulateBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Triangulate</button>
+						<hr />
+						<label class="form-label small mb-0">Clip bounding box</label>
+						<div class="row g-2">
+							<div class="col-6"><input id="clipMinX" class="form-control" type="number" step="0.1" value="0.15" aria-label="Minimum X" /></div>
+							<div class="col-6"><input id="clipMinY" class="form-control" type="number" step="0.1" value="0.15" aria-label="Minimum Y" /></div>
+							<div class="col-6"><input id="clipMaxX" class="form-control" type="number" step="0.1" value="0.85" aria-label="Maximum X" /></div>
+							<div class="col-6"><input id="clipMaxY" class="form-control" type="number" step="0.1" value="0.85" aria-label="Maximum Y" /></div>
+						</div>
+						<button id="geometryClipBtn" class="btn btn-outline-accent"><i class="fa-solid fa-crop-simple me-1"></i>Clip Vertices</button>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-8">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-bezier-curve text-accent"></i><strong>Geometry Visualization</strong></div>
+					<div class="card-body">
+						<div class="row g-3 mb-3">
+							<div class="col-md-4"><div class="kpi-card text-center"><div id="geometryKpiShapes" class="kpi-value">0</div><div class="kpi-label">Shapes</div></div></div>
+							<div class="col-md-4"><div class="kpi-card text-center"><div id="geometryKpiNative" class="kpi-value">No</div><div class="kpi-label">Native</div></div></div>
+							<div class="col-md-4"><div class="kpi-card text-center"><div id="geometryKpiMode" class="kpi-value">—</div><div class="kpi-label">Operation</div></div></div>
+						</div>
+						<div class="spatial-map-panel p-2">
+							<svg id="geometrySvg" viewBox="0 0 100 100" width="100%" height="420" role="img" aria-label="Geometry operation visualization"></svg>
+						</div>
+						<pre id="geometryResult" class="sample-json mt-3 mb-0"></pre>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script src="~/js/Geometry/app.js" asp-append-version="true"></script>
+}

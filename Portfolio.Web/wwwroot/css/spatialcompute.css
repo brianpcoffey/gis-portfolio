@@ -1,0 +1,118 @@
+.spatial-compute-page .spatial-hero {
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.10), rgba(32, 201, 151, 0.10));
+    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+}
+
+.spatial-compute-page .spatial-card {
+    background: var(--bs-body-bg);
+    border: 1px solid rgba(128, 128, 128, 0.22);
+    border-radius: 0.85rem;
+}
+
+.spatial-compute-page .spatial-map-panel {
+    min-height: 420px;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        radial-gradient(circle at 30% 30%, rgba(32, 201, 151, 0.18), transparent 35%),
+        radial-gradient(circle at 70% 65%, rgba(13, 110, 253, 0.18), transparent 38%);
+    background-size: 32px 32px, 32px 32px, auto, auto;
+    border-radius: 0.85rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.spatial-compute-page .spatial-stage {
+    position: relative;
+    min-height: 420px;
+}
+
+.spatial-compute-page .spatial-point,
+.spatial-compute-page .spatial-node {
+    position: absolute;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 999px;
+    background: var(--bs-info);
+    box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.18);
+    transform: translate(-50%, -50%);
+}
+
+.spatial-compute-page .spatial-point.anomaly {
+    background: var(--bs-danger);
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.22);
+}
+
+.spatial-compute-page .spatial-node.route {
+    background: var(--bs-success);
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.22);
+}
+
+.spatial-compute-page .spatial-line {
+    stroke: var(--bs-success);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+}
+
+.spatial-compute-page .triangle-shape {
+    fill: rgba(13, 110, 253, 0.24);
+    stroke: rgba(13, 110, 253, 0.9);
+    stroke-width: 2;
+}
+
+.spatial-compute-page .clip-shape {
+    fill: rgba(32, 201, 151, 0.24);
+    stroke: rgba(32, 201, 151, 0.95);
+    stroke-width: 2;
+}
+
+.spatial-compute-page .raster-grid {
+    display: grid;
+    gap: 1px;
+    width: min(100%, 420px);
+    aspect-ratio: 1;
+    margin: 0 auto;
+    background: rgba(128, 128, 128, 0.25);
+    border: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.spatial-compute-page .raster-cell {
+    min-width: 0;
+    min-height: 0;
+}
+
+.spatial-compute-page .kpi-card {
+    border: 1px solid rgba(128, 128, 128, 0.18);
+    border-radius: 0.75rem;
+    padding: 0.85rem;
+    background: rgba(128, 128, 128, 0.06);
+}
+
+.spatial-compute-page .kpi-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+}
+
+.spatial-compute-page .kpi-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--bs-secondary-color);
+}
+
+.spatial-compute-page .sample-json {
+    max-height: 220px;
+    overflow: auto;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(128, 128, 128, 0.10);
+    font-size: 0.8rem;
+}
+
+.spatial-compute-page .result-list {
+    max-height: 320px;
+    overflow: auto;
+}

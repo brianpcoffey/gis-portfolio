@@ -64,6 +64,10 @@ builder.Services.AddScoped<IFiberMaterialService, FiberMaterialService>();
 builder.Services.AddScoped<IFiberDashboardService, FiberDashboardService>();
 builder.Services.AddScoped<ICollectionService, CollectionService>();
 builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
+builder.Services.AddScoped<IGeoStreamProcessorService, GeoStreamProcessorService>();
+builder.Services.AddScoped<ISpatialGeometryService, SpatialGeometryService>();
+builder.Services.AddScoped<IRasterTerrainService, RasterTerrainService>();
+builder.Services.AddScoped<ISpatialGraphService, SpatialGraphService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
@@ -363,10 +367,6 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Authenticated", policy =>
         policy.RequireAuthenticatedUser());
-
-    options.AddPolicy("Admin", policy =>
-        policy.RequireAuthenticatedUser()
-              .RequireClaim("role", "admin"));
 });
 
 builder.Services.AddControllers();

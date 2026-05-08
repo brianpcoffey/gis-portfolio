@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
+using Portfolio.Repositories;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Services;
 
@@ -15,8 +18,7 @@ namespace Portfolio.Tests.Services
         private readonly FakeTimeProvider _timeProvider;
         private readonly UserProfileService _service;
         private readonly Guid _testUserId = Guid.NewGuid();
-        private readonly Mock<Portfolio.Repositories.PortfolioDbContext> _dbContextMock;
-        private readonly Mock<UserProfileSeedService> _seedServiceMock;
+        private readonly UserProfileSeedService _seedService;
 
         public UserProfileServiceTests()
         {
@@ -24,16 +26,24 @@ namespace Portfolio.Tests.Services
             _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
             _timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 3, 6, 12, 0, 0, TimeSpan.Zero));
 
-            // Setup DbContext mock for UserProfileSeedService
-            var dbOptions = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<Portfolio.Repositories.PortfolioDbContext>().Options;
-            _dbContextMock = new Mock<Portfolio.Repositories.PortfolioDbContext>(dbOptions);
-            _seedServiceMock = new Mock<UserProfileSeedService>(_dbContextMock.Object);
+            // Use a real in-memory DbContext + real SeedService.
+            // SeedForUserAsync is never invoked by these unit tests — all repo calls are mocked.
+            var dbOptions = new DbContextOptionsBuilder<PortfolioDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options;
+            var db = new PortfolioDbContext(dbOptions);
+            _seedService = new UserProfileSeedService(db, NullLogger<UserProfileSeedService>.Instance);
 
             var httpContext = new DefaultHttpContext();
             httpContext.Items["PortfolioIdentity"] = _testUserId;
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
 
-            _service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedServiceMock.Object, new Mock<ILogger<UserProfileService>>().Object);
+            _service = new UserProfileService(
+                _httpContextAccessorMock.Object,
+                _repoMock.Object,
+                _timeProvider,
+                _seedService,
+                NullLogger<UserProfileService>.Instance);
         }
 
         [Fact]
@@ -51,7 +61,12 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedServiceMock.Object, new Mock<ILogger<UserProfileService>>().Object);
+            var service = new UserProfileService(
+                _httpContextAccessorMock.Object,
+                _repoMock.Object,
+                _timeProvider,
+                _seedService,
+                NullLogger<UserProfileService>.Instance);
 
             // Act
             var result = service.GetCurrentUserId();
@@ -85,7 +100,12 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedServiceMock.Object, new Mock<ILogger<UserProfileService>>().Object);
+            var service = new UserProfileService(
+                _httpContextAccessorMock.Object,
+                _repoMock.Object,
+                _timeProvider,
+                _seedService,
+                NullLogger<UserProfileService>.Instance);
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetClaimsAsync());
@@ -384,8 +404,8 @@ namespace Portfolio.Tests.Services
                 _httpContextAccessorMock.Object,
                 _repoMock.Object,
                 _timeProvider,
-                _seedServiceMock.Object,
-                new Mock<Microsoft.Extensions.Logging.ILogger<UserProfileService>>().Object);
+                _seedService,
+                NullLogger<UserProfileService>.Instance);
 
             // Act
             var result = await service.IsGoogleLinkedAsync();

@@ -1,0 +1,102 @@
+@page
+@model Portfolio.Web.Pages.Projects.Terrain.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Terrain Analyzer – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-mountain-sun me-2"></i>Terrain Analyzer – Technical Details</h1>
+		<a href="/Projects/Terrain" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Terrain Analyzer demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Generate hillshade and heatmap raster outputs from dense grid inputs and render the results as a browser-visible raster grid.</li>
+			<li><strong>Business problem:</strong> Demonstrates imagery/terrain analysis patterns where raw numeric grids are transformed into visualization-ready products for GIS users.</li>
+			<li><strong>Architecture:</strong> Razor Page controls → <code>/api/v1/raster</code> endpoints → <code>IRasterTerrainService</code> → optional <code>raster_terrain_kernel</code> native library → managed fallback.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, vanilla JavaScript, C++20/CMake, P/Invoke, dense numeric arrays.</li>
+			<li><strong>Scope:</strong> The MVP uses generated elevation and weighted point samples. It does not yet ingest GeoTIFF, COG, or GDAL-backed datasets.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
+		<ul>
+			<li><strong>Page:</strong> <code>Pages/Projects/Terrain/Index.cshtml</code> exposes raster dimensions, hillshade azimuth, and operation buttons.</li>
+			<li><strong>Script:</strong> <code>wwwroot/js/Terrain/app.js</code> generates deterministic sample elevation grids and heatmap point sets, then posts to the backend through <code>apiPost</code>.</li>
+			<li><strong>Rendering:</strong> Hillshade values render as grayscale cells; heatmap values render as normalized red-opacity cells.</li>
+			<li><strong>UX:</strong> KPI cards expose cell count, native/fallback mode, and active operation so the demo can support a technical walkthrough.</li>
+			<li><strong>Future ArcGIS path:</strong> The same output could be encoded as PNG tiles or exposed through an ArcGIS-compatible tile endpoint.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>RasterTerrainController</code> is versioned at <code>/api/v1/raster</code> and allows anonymous demo access.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/raster/hillshade</code> accepts <code>RasterHillshadeRequestDto</code>; <code>POST /api/v1/raster/heatmap</code> accepts <code>HeatmapRequestDto</code>.</li>
+			<li><strong>Responses:</strong> <code>RasterHillshadeResultDto</code> returns 8-bit intensity values; <code>HeatmapResultDto</code> returns normalized floating-point raster values.</li>
+			<li><strong>Validation:</strong> The service verifies positive dimensions, expected raster length, positive cell size/radius, and valid extents.</li>
+			<li><strong>Error handling:</strong> Invalid input maps to the standard 400 response shape; unexpected failures are handled by middleware.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>Service:</strong> <code>RasterTerrainService</code> validates raster requests and dispatches to <code>RasterTerrainNativeBridge</code> when available.</li>
+			<li><strong>Hillshade fallback:</strong> Samples neighboring cells, computes approximate slope/aspect, applies sun azimuth/altitude, and emits an 8-bit intensity grid.</li>
+			<li><strong>Heatmap fallback:</strong> Applies a Gaussian-style kernel from weighted points over a target raster extent, then normalizes output values.</li>
+			<li><strong>Native bridge:</strong> <code>RasterTerrainNativeBridge</code> passes dense arrays and preallocated output buffers into C++ and maps the returned buffers to DTOs.</li>
+			<li><strong>C++ library:</strong> <code>native/raster_terrain_kernel</code> exposes <code>Raster_GenerateHillshade</code> and <code>Raster_GenerateHeatmap</code>.</li>
+			<li><strong>Why C++ here:</strong> Raster analysis is dense numeric grid processing where SIMD, cache locality, and low-level memory control can materially affect tile-generation latency.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
+		<ul>
+			<li><strong>Current MVP:</strong> No PostgreSQL persistence is used; raster inputs are generated client-side and processed per request.</li>
+			<li><strong>Reasoning:</strong> The MVP isolates the compute kernel and avoids introducing heavy raster storage before the API and UI shape are proven.</li>
+			<li><strong>Future storage:</strong> Real DEM/imagery metadata could live in PostgreSQL while raster files live in object storage or a cloud-native tile store.</li>
+			<li><strong>Cache path:</strong> Redis could cache generated tiles by z/x/y or by request hash once tile endpoints are introduced.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
+		<ul>
+			<li><strong>Native build:</strong> <code>native/raster_terrain_kernel/CMakeLists.txt</code> builds the shared library with AVX2-friendly compiler flags and copies it to the .NET output directory.</li>
+			<li><strong>Runtime fallback:</strong> The service uses managed C# when the native library is absent, keeping Render deployment portable.</li>
+			<li><strong>Dependency strategy:</strong> The MVP avoids GDAL to keep deployment light. A production raster pipeline would likely add GDAL/PROJ and document their image-size and runtime-package implications.</li>
+			<li><strong>Scale-out path:</strong> Tile caching, precomputed pyramids, and queue-backed raster jobs are natural next steps for larger datasets.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Grid output over image tiles:</strong> The current UI is transparent and easy to inspect, but real map overlays should use PNG or vector-tile style endpoints.</li>
+			<li><strong>Generated data:</strong> Keeps the demo self-contained, but does not test file ingestion, georeferencing, nodata handling, or reprojection.</li>
+			<li><strong>Native kernel boundary:</strong> Dense arrays are a good P/Invoke fit because they avoid object-heavy marshalling and keep memory layout predictable.</li>
+			<li><strong>Future improvements:</strong> Add slope/aspect outputs, PNG tile generation, GeoTIFF/COG ingestion, GDAL integration, native benchmarks, and ArcGIS raster overlay rendering.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>Why are raster kernels stronger SIMD candidates than graph traversal or topology validation?</li>
+			<li>Where would GDAL fit, and what deployment cost would it add?</li>
+			<li>How would tile caching change API design and frontend rendering?</li>
+			<li>How would you validate numeric parity between native and managed raster outputs?</li>
+		</ul>
+	</section>
+</div>

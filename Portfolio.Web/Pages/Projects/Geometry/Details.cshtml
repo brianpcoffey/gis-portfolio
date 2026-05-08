@@ -1,0 +1,101 @@
+@page
+@model Portfolio.Web.Pages.Projects.Geometry.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Geometry Toolkit – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-draw-polygon me-2"></i>Geometry Toolkit – Technical Details</h1>
+		<a href="/Projects/Geometry" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Geometry Toolkit demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Demonstrate computational geometry workflows through triangulation and bounding-box clipping exposed as clean versioned APIs.</li>
+			<li><strong>Business problem:</strong> Shows how map-drawn coordinates can be transformed into derived geometry that is ready for GIS visualization and downstream analysis.</li>
+			<li><strong>Architecture:</strong> Razor Page SVG workbench → <code>/api/v1/geometry</code> endpoints → <code>ISpatialGeometryService</code> → optional <code>spatial_geometry_kernel</code> native library → managed fallback.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, SVG, vanilla JavaScript, C++20/CMake, C ABI, P/Invoke.</li>
+			<li><strong>Scope:</strong> The current MVP intentionally implements simple fan triangulation and vertex clipping. It establishes the API/native boundary for future robust algorithms such as Delaunay triangulation, Voronoi generation, and topology validation.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Frontend Architecture</h2>
+		<ul>
+			<li><strong>Page:</strong> <code>Pages/Projects/Geometry/Index.cshtml</code> provides JSON coordinate input, bounding-box controls, operation buttons, KPI cards, and an SVG viewport.</li>
+			<li><strong>Script:</strong> <code>wwwroot/js/Geometry/app.js</code> uses the existing IIFE pattern and shared <code>apiPost</code> helper.</li>
+			<li><strong>Rendering:</strong> Triangle and clipped polygon results are rendered as SVG polygons, which maps cleanly to future ArcGIS graphics or feature layers.</li>
+			<li><strong>State:</strong> The browser stores only the active point set and result payload; geometry rules remain server-side.</li>
+			<li><strong>Route config:</strong> API paths are centralized under <code>PortfolioApi.routes.spatialCompute.geometry</code>.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>SpatialGeometryController</code> is versioned at <code>/api/v1/geometry</code> and allows anonymous portfolio access.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/geometry/triangulate</code> accepts <code>GeometryPointSetDto</code>; <code>POST /api/v1/geometry/clip</code> accepts <code>PolygonClipRequestDto</code>.</li>
+			<li><strong>Responses:</strong> <code>TriangulationResultDto</code> returns triangles; <code>PolygonOperationResultDto</code> returns clipped vertices. Both expose a native acceleration flag.</li>
+			<li><strong>Validation:</strong> The service rejects insufficient points, invalid bounding boxes, and non-finite coordinates.</li>
+			<li><strong>Error translation:</strong> <code>ArgumentException</code> maps to 400 with the standard <code>{ error }</code> response shape.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Business Logic</h2>
+		<ul>
+			<li><strong>Service:</strong> <code>SpatialGeometryService</code> validates requests, branches through <code>SpatialGeometryNativeBridge.IsAvailable</code>, and returns DTOs only.</li>
+			<li><strong>Managed fallback:</strong> Produces a fan triangulation from the first point and clamps polygon vertices into a bounding box. This keeps behavior deterministic and easy to test.</li>
+			<li><strong>Native bridge:</strong> <code>SpatialGeometryNativeBridge</code> maps <code>CoordinateDto</code> to <code>CoordinateNative</code>, passes preallocated output buffers, and translates native status codes into managed exceptions.</li>
+			<li><strong>C++ library:</strong> <code>native/spatial_geometry_kernel</code> exposes <code>Geometry_TriangulateFan</code> and <code>Geometry_ClipToBoundingBox</code> through a stable C ABI.</li>
+			<li><strong>Why C++ here:</strong> Production geometry engines depend on robust predicates, exactness tradeoffs, specialized memory layouts, and native libraries such as GEOS, CGAL, Clipper2, or Boost.Geometry.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Data Access Layer</h2>
+		<ul>
+			<li><strong>Current MVP:</strong> Geometry operations are stateless and do not use EF Core or PostgreSQL.</li>
+			<li><strong>Reasoning:</strong> The current feature focuses on request/response geometry processing rather than persisted datasets.</li>
+			<li><strong>Future persistence:</strong> Saved geometries, uploaded datasets, or benchmark cases could be represented by models in <code>Portfolio.Common</code> and repositories in <code>Portfolio.Repositories</code>.</li>
+			<li><strong>Spatial database path:</strong> PostgreSQL/PostGIS would be a natural future complement if persisted geometry queries become part of the feature.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
+		<ul>
+			<li><strong>Native build:</strong> <code>native/spatial_geometry_kernel/CMakeLists.txt</code> builds the shared library and copies it to the .NET output path when compiled locally.</li>
+			<li><strong>Runtime fallback:</strong> The app remains functional without the native library, which keeps Render deployment simple.</li>
+			<li><strong>Dependency strategy:</strong> The MVP avoids heavy native dependencies. A full version could add GEOS, CGAL, or Clipper2, but deployment impact would need explicit documentation.</li>
+			<li><strong>Container path:</strong> Native-enabled Docker builds would install the required C++ dependencies and copy the shared object before application publish.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>MVP algorithm choice:</strong> Fan triangulation is not a replacement for Delaunay triangulation, but it validates the API shape, native bridge, output-buffer contract, and frontend rendering pipeline.</li>
+			<li><strong>Correctness over SIMD:</strong> Geometry is often branch-heavy and numerically sensitive. The C++ value is robust algorithms and data structures more than blanket AVX2 acceleration.</li>
+			<li><strong>Output-buffer ownership:</strong> C# owns buffers and native code fills them, avoiding cross-runtime allocation/free bugs.</li>
+			<li><strong>Future improvements:</strong> Add Delaunay/Voronoi, polygon intersection, topology validation, coordinate projection, native benchmarks, and ArcGIS sketch-tool integration.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>When is a simple polygon operation safe to implement directly, and when should it use GEOS or CGAL?</li>
+			<li>How do floating-point precision and degeneracy affect geometry correctness?</li>
+			<li>Why should C# own native output buffers across P/Invoke?</li>
+			<li>What would change to support user-drawn ArcGIS geometries instead of JSON sample points?</li>
+		</ul>
+	</section>
+</div>

@@ -59,6 +59,25 @@
                 materials : BASE + "/fiber/materials",
                 shipments : BASE + "/fiber/shipments",
                 dashboard : BASE + "/fiber/dashboard/stats"
+            },
+
+            // ── Native Spatial Compute MVPs ───────────────────────────────────
+            spatialCompute: {
+                geostream: {
+                    events: BASE + "/geostream/events"
+                },
+                geometry: {
+                    triangulate: BASE + "/geometry/triangulate",
+                    clip       : BASE + "/geometry/clip"
+                },
+                raster: {
+                    hillshade: BASE + "/raster/hillshade",
+                    heatmap  : BASE + "/raster/heatmap"
+                },
+                network: {
+                    route      : BASE + "/network/route",
+                    serviceArea: BASE + "/network/service-area"
+                }
             }
         }
     };

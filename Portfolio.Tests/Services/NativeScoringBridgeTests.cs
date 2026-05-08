@@ -307,7 +307,7 @@ namespace Portfolio.Tests.Services
         }
 
         [Theory]
-        [InlineData(100, 20, 70, 60,   62.5)]   // (100 + 70 + 60 + 80) / 4
+        [InlineData(100, 20, 70, 60,   77.5)]   // (100 + 70 + 60 + 80) / 4
         [InlineData(80,  0, 80, 80,    85.0)]   // crime 0 → 100-0=100
         public void ManagedNeighborhood_ComputesCorrectly(
             int school, int crime, int walk, int transit, double expected)

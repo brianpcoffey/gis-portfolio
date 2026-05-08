@@ -384,6 +384,5 @@ namespace Portfolio.Tests.Services
             FloodRisk           = floodRisk,
             NoiseLevel          = noiseLevel
         };
-        }
     }
 }
