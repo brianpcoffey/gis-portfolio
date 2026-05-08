@@ -80,7 +80,7 @@
         polygon.setAttribute("points", result.vertices.map(toSvgPoint).join(" "));
         svg.appendChild(polygon);
         renderPoints(result.vertices);
-        kpiShapes.textContent = result.vertices.length;
+        kpiShapes.textContent = result.vertices.length > 0 ? 1 : 0;
         kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
         kpiMode.textContent = "Clip";
         resultText.textContent = JSON.stringify(result, null, 2);

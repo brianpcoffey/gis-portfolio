@@ -70,9 +70,9 @@
             stage.appendChild(point);
 
             var item = document.createElement("div");
-            item.className = "border rounded p-2 mb-2";
+            item.className = "geo-cell-item" + (aggregate.anomalyCount > 0 ? " geo-cell-anomaly" : "");
             item.innerHTML = "<strong>Cell " + aggregate.cellX + ", " + aggregate.cellY + "</strong>" +
-                "<div class='small text-muted'>" + aggregate.count + " events · avg " + aggregate.averageSpeedMetersPerSecond +
+                "<div class='geo-cell-meta'>" + aggregate.count + " events · avg " + aggregate.averageSpeedMetersPerSecond +
                 " m/s · max " + aggregate.maxSpeedMetersPerSecond + " m/s · anomalies " + aggregate.anomalyCount + "</div>";
             aggregateList.appendChild(item);
         });

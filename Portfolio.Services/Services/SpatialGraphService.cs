@@ -75,6 +75,7 @@ namespace Portfolio.Services.Services
         {
             var distances = request.Nodes.ToDictionary(n => n.Id, _ => double.PositiveInfinity);
             var previous = new Dictionary<int, int>();
+            var settled = new HashSet<int>();
             var queue = new PriorityQueue<int, double>();
 
             distances[request.StartNodeId] = 0;
@@ -85,6 +86,8 @@ namespace Portfolio.Services.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var current = queue.Dequeue();
+                if (!settled.Add(current))
+                    continue;
                 if (current == request.EndNodeId)
                     break;
                 if (!adjacency.TryGetValue(current, out var edges))
@@ -92,6 +95,8 @@ namespace Portfolio.Services.Services
 
                 foreach (var edge in edges)
                 {
+                    if (settled.Contains(edge.ToNodeId))
+                        continue;
                     var candidate = distances[current] + edge.Cost;
                     if (candidate >= distances[edge.ToNodeId])
                         continue;
@@ -126,6 +131,7 @@ namespace Portfolio.Services.Services
         private static Dictionary<int, double> ComputeDistances(IReadOnlyList<GraphNodeDto> nodes, IReadOnlyList<GraphEdgeDto> edges, int originNodeId, CancellationToken cancellationToken)
         {
             var distances = nodes.ToDictionary(n => n.Id, _ => double.PositiveInfinity);
+            var settled = new HashSet<int>();
             var queue = new PriorityQueue<int, double>();
             var adjacency = BuildAdjacency(edges);
 
@@ -136,11 +142,15 @@ namespace Portfolio.Services.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var current = queue.Dequeue();
+                if (!settled.Add(current))
+                    continue;
                 if (!adjacency.TryGetValue(current, out var outgoing))
                     continue;
 
                 foreach (var edge in outgoing)
                 {
+                    if (settled.Contains(edge.ToNodeId))
+                        continue;
                     var candidate = distances[current] + edge.Cost;
                     if (candidate >= distances[edge.ToNodeId])
                         continue;

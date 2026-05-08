@@ -33,7 +33,7 @@
 
     routeBtn.addEventListener("click", findRoute);
     serviceAreaBtn.addEventListener("click", computeServiceArea);
-    renderGraph([]);
+    renderGraph([], []);
 
     function findRoute() {
         hideAlert();
@@ -47,7 +47,7 @@
         setBusy(true);
         apiPost(window.PortfolioApi.routes.spatialCompute.network.route, request)
             .then(function (result) {
-                renderGraph(result.nodeIds || []);
+                renderGraph(result.nodeIds || [], []);
                 kpiCost.textContent = result.totalCost;
                 kpiNodes.textContent = result.nodeIds.length;
                 kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
@@ -69,7 +69,7 @@
         setBusy(true);
         apiPost(window.PortfolioApi.routes.spatialCompute.network.serviceArea, request)
             .then(function (result) {
-                renderGraph(result.reachableNodeIds || []);
+                renderGraph([], result.reachableNodeIds || []);
                 kpiCost.textContent = request.maxCost;
                 kpiNodes.textContent = result.reachableNodeIds.length;
                 kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
@@ -79,8 +79,9 @@
             .finally(function () { setBusy(false); });
     }
 
-    function renderGraph(highlightNodeIds) {
+    function renderGraph(routeNodeIds, serviceAreaNodeIds) {
         svg.innerHTML = "";
+
         edges.forEach(function (edge) {
             var a = findNode(edge.fromNodeId);
             var b = findNode(edge.toNodeId);
@@ -94,19 +95,25 @@
             svg.appendChild(line);
         });
 
-        if (highlightNodeIds.length > 1) {
+        // Draw the ordered route path as a polyline connecting nodes in sequence.
+        if (routeNodeIds.length > 1) {
             var path = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
             path.setAttribute("class", "spatial-line");
-            path.setAttribute("points", highlightNodeIds.map(function (id) { var n = findNode(id); return toX(n) + "," + toY(n); }).join(" "));
+            path.setAttribute("points", routeNodeIds.map(function (id) { var n = findNode(id); return toX(n) + "," + toY(n); }).join(" "));
             svg.appendChild(path);
         }
 
         nodes.forEach(function (node) {
+            var inRoute = routeNodeIds.indexOf(node.id) >= 0;
+            var inArea = serviceAreaNodeIds.indexOf(node.id) >= 0;
             var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             circle.setAttribute("cx", toX(node));
             circle.setAttribute("cy", toY(node));
-            circle.setAttribute("r", highlightNodeIds.indexOf(node.id) >= 0 ? "3" : "2.2");
-            circle.setAttribute("fill", highlightNodeIds.indexOf(node.id) >= 0 ? "var(--bs-success)" : "var(--bs-info)");
+            circle.setAttribute("r", (inRoute || inArea) ? "3" : "2.2");
+            circle.setAttribute("fill",
+                inRoute ? "var(--bs-success)" :
+                inArea  ? "var(--bs-warning)"  :
+                          "var(--bs-info)");
             svg.appendChild(circle);
 
             var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
