@@ -1,22 +1,33 @@
 .spatial-compute-page .spatial-hero {
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.10), rgba(32, 201, 151, 0.10));
-    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.10), rgba(56, 161, 105, 0.12));
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
 }
 
 .spatial-compute-page .spatial-card {
-    background: var(--bs-body-bg);
-    border: 1px solid rgba(128, 128, 128, 0.22);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
     border-radius: 0.85rem;
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.spatial-compute-page .spatial-card .card-header {
+    background: transparent;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
 }
 
 .spatial-compute-page .spatial-map-panel {
     min-height: 420px;
     background:
-        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-        radial-gradient(circle at 30% 30%, rgba(32, 201, 151, 0.18), transparent 35%),
-        radial-gradient(circle at 70% 65%, rgba(13, 110, 253, 0.18), transparent 38%);
-    background-size: 32px 32px, 32px 32px, auto, auto;
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px),
+        radial-gradient(circle at 30% 30%, rgba(56, 161, 105, 0.15), transparent 35%),
+        radial-gradient(circle at 70% 65%, rgba(26, 54, 93, 0.15), transparent 38%),
+        var(--background);
+    background-size: 32px 32px, 32px 32px, auto, auto, auto;
+    border: 1px solid var(--border);
     border-radius: 0.85rem;
     overflow: hidden;
     position: relative;
@@ -74,8 +85,8 @@
     width: min(100%, 420px);
     aspect-ratio: 1;
     margin: 0 auto;
-    background: rgba(128, 128, 128, 0.25);
-    border: 1px solid rgba(128, 128, 128, 0.25);
+    background: var(--border);
+    border: 1px solid var(--border);
 }
 
 .spatial-compute-page .raster-cell {
@@ -84,23 +95,24 @@
 }
 
 .spatial-compute-page .kpi-card {
-    border: 1px solid rgba(128, 128, 128, 0.18);
+    border: 1px solid var(--border);
     border-radius: 0.75rem;
     padding: 0.85rem;
-    background: rgba(128, 128, 128, 0.06);
+    background: var(--background);
+    color: var(--text);
 }
 
 .spatial-compute-page .kpi-value {
     font-size: 1.35rem;
     font-weight: 700;
-    color: var(--bs-primary);
+    color: var(--accent);
 }
 
 .spatial-compute-page .kpi-label {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--bs-secondary-color);
+    color: var(--text-muted);
 }
 
 .spatial-compute-page .sample-json {
@@ -108,7 +120,9 @@
     overflow: auto;
     border-radius: 0.5rem;
     padding: 0.75rem;
-    background: rgba(128, 128, 128, 0.10);
+    background: var(--background);
+    color: var(--text);
+    border: 1px solid var(--border);
     font-size: 0.8rem;
 }
 
