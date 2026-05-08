@@ -5,7 +5,7 @@
    ====================================================== */
 
 /* ── Hero / Header ─────────────────────────────────── */
-.batch-geocoding-page .geocoding-hero {
+.batch-geocoding-page .project-hero {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
 }

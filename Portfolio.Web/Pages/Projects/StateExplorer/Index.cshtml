@@ -14,18 +14,16 @@
 <!-- Typeahead CSS (local) -->
 <link rel="stylesheet" href="~/lib/typeahead/typeahead.css" />
 
-<div class="container-fluid py-3 theme-root">
-    <!-- PAGE TITLE -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="theme-surface shadow-sm rounded p-3 d-flex align-items-start justify-content-between gap-2">
-                <div>
-                    <h2 class="mb-0"><i class="fa-solid fa-map me-2"></i>US State Explorer</h2>
-                    <div class="text-muted theme-text-muted small">
-                        Explore, compare, and save U.S. states using interactive GIS tools.
-                    </div>
-                </div>
-                <a class="btn btn-outline-accent btn-sm project-info-btn flex-shrink-0"
+<div class="project-hero py-4 mb-4">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-1"><i class="fa-solid fa-map me-2"></i>US State Explorer</h1>
+                <p class="text-muted theme-text-muted mb-0">Explore, compare, and save U.S. states using interactive GIS tools.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge badge-gis fs-6"><i class="fa-solid fa-globe me-1"></i>ArcGIS Feature Layer</span>
+                <a class="btn btn-outline-accent btn-sm project-info-btn"
                    href="/Projects/StateExplorer/Details"
                    aria-label="View technical details for US State Explorer"
                    title="Technical Details">
@@ -34,7 +32,9 @@
             </div>
         </div>
     </div>
+</div>
 
+<div class="container-fluid py-3 theme-root">
     <!-- TOOLBAR -->
     <div class="row mb-3">
         <!-- Align search with left sidebar (matches col sizes used below) -->

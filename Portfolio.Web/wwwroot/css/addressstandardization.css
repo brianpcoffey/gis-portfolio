@@ -5,7 +5,7 @@
    ====================================================== */
 
 /* ── Hero / Header ─────────────────────────────────── */
-.address-standardization-page .as-hero {
+.address-standardization-page .project-hero {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
 }
@@ -272,7 +272,7 @@
 }
 
 /* ── Dark mode overrides ────────────────────────────── */
-body.dark-mode .address-standardization-page .as-hero {
+body.dark-mode .address-standardization-page .project-hero {
     background: var(--surface);
     border-bottom-color: var(--border);
 }

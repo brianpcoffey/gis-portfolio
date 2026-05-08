@@ -8,10 +8,29 @@
     ViewData["Title"] = "Plant Operations Dashboard";
 }
 
-<!-- Include shared GIS/theme utilities so theme-surface and badges match other pages -->
 <link rel="stylesheet" href="~/css/gis.css" />
 <link rel="stylesheet" href="~/css/plantoperationsdashboard.css" />
 <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+
+<div class="project-hero py-4 mb-4">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-1"><i class="fa-solid fa-industry me-2"></i>Plant Operations Dashboard</h1>
+                <p class="text-muted theme-text-muted mb-0">Live operations, shipments, orders, and inventory for plant manufacturing.</p>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge badge-gis fs-6"><i class="fa-solid fa-network-wired me-1"></i>Fiber Order Management</span>
+                <a class="btn btn-outline-accent btn-sm project-info-btn"
+                   href="/Projects/PlantOperationsDashboard/Details"
+                   aria-label="View technical details for Plant Operations Dashboard"
+                   title="Technical Details">
+                    <i class="fa-solid fa-circle-info"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="container-fluid py-3 theme-root">
     <!-- Toast Container for User Feedback -->
@@ -21,28 +40,12 @@
         <div id="fiberflowToastContainer" class="toast-container w-100"></div>
     </div>
 
-    <!-- DASHBOARD HEADER -->
+    <!-- Live KPI badges -->
     <div class="row mb-3">
-        <div class="col-12">
-            <div class="theme-surface shadow-sm rounded p-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-                <div>
-                    <h2 class="mb-1"><i class="fa-solid fa-industry me-2"></i>Plant Operations Dashboard</h2>
-                    <p class="text-muted theme-text-muted small mb-0">
-                        Live operations, shipments, orders, and inventory for plant manufacturing.
-                    </p>
-                </div>
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="badge bg-success theme-badge" id="badgeActiveShipments">0 Active Shipments</span>
-                    <span class="badge bg-primary theme-badge" id="badgeOpenOrders">0 Open Orders</span>
-                    <span class="badge bg-danger theme-badge fiberflow-low-stock" id="badgeLowStock">0 Low Stock</span>
-                    <a class="btn btn-outline-accent btn-sm project-info-btn"
-                       href="/Projects/PlantOperationsDashboard/Details"
-                       aria-label="View technical details for Plant Operations Dashboard"
-                       title="Technical Details">
-                        <i class="fa-solid fa-circle-info"></i>
-                    </a>
-                </div>
-            </div>
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <span class="badge bg-success theme-badge" id="badgeActiveShipments">0 Active Shipments</span>
+            <span class="badge bg-primary theme-badge" id="badgeOpenOrders">0 Open Orders</span>
+            <span class="badge bg-danger theme-badge fiberflow-low-stock" id="badgeLowStock">0 Low Stock</span>
         </div>
     </div>
 

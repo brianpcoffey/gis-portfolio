@@ -442,3 +442,15 @@ body.dark-mode #comparisonContent .card * {
     background: transparent !important;
     box-shadow: none !important;
 }
+
+/* ── Unified project hero bar (all project Index pages) ──────────────── */
+.project-hero {
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.10), rgba(56, 161, 105, 0.12));
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+body.dark-mode .project-hero {
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.18), rgba(56, 161, 105, 0.18));
+    border-bottom-color: var(--border);
+}
