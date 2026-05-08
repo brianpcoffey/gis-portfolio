@@ -287,7 +287,7 @@ When Redis is not configured, geocoding cache falls back to `MemoryDistributedCa
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/brianpcoffey/portfolio.git
+   git clone https://github.com/brianpcoffey/gis-portfolio.git
    cd portfolio
    ```
 
@@ -375,7 +375,7 @@ Leaving `Redis:ConnectionString` empty activates the in-process `MemoryDistribut
 ## Deployment
 
 ### Render (current production)
-- Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/portfolio).
+- Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/gis-portfolio).
 - Database hosted on **Neon.tech** PostgreSQL.
 - EF Core migrations run automatically at startup — no manual migration step required.
 - HTTPS redirection and HSTS enabled in non-development environments.
