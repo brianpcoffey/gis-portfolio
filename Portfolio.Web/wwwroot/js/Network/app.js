@@ -1,150 +1,357 @@
-// Route Planner Page — self-contained IIFE, no ES module syntax.
+// Route Planner — Redlands, CA  |  Leaflet + /api/v1/network
 (function () {
     "use strict";
 
-    var nodes = [
-        { id: 1, latitude: 34.04, longitude: -117.22 },
-        { id: 2, latitude: 34.07, longitude: -117.20 },
-        { id: 3, latitude: 34.05, longitude: -117.18 },
-        { id: 4, latitude: 34.08, longitude: -117.16 },
-        { id: 5, latitude: 34.045, longitude: -117.145 }
-    ];
+    // ── DOM refs ──────────────────────────────────────────────────────────
+    var startSelect      = document.getElementById("networkStart");
+    var routeBtn         = document.getElementById("networkRouteBtn");
+    var serviceAreaBtn   = document.getElementById("networkServiceAreaBtn");
+    var maxCostInput     = document.getElementById("networkMaxCost");
+    var alertBox         = document.getElementById("networkAlert");
+    var kpiDistance      = document.getElementById("kpiDistance");
+    var kpiTime          = document.getElementById("kpiTime");
+    var kpiExplored      = document.getElementById("kpiExplored");
+    var kpiAlgo          = document.getElementById("kpiAlgo");
+    var routeStepsList   = document.getElementById("routeSteps");
+    var routeStepsEmpty  = document.getElementById("routeStepsEmpty");
+    var nativeStatus     = document.getElementById("nativeStatus");
+    var loadingSpinner   = document.getElementById("loadingSpinner");
+    var mapHint          = document.getElementById("mapOverlayHint");
+    var algoHint         = document.getElementById("algoHint");
 
-    var edges = [
-        { fromNodeId: 1, toNodeId: 2, cost: 3, bidirectional: true },
-        { fromNodeId: 1, toNodeId: 3, cost: 6, bidirectional: true },
-        { fromNodeId: 2, toNodeId: 3, cost: 2, bidirectional: true },
-        { fromNodeId: 2, toNodeId: 4, cost: 5, bidirectional: true },
-        { fromNodeId: 3, toNodeId: 5, cost: 4, bidirectional: true },
-        { fromNodeId: 4, toNodeId: 5, cost: 2, bidirectional: true }
-    ];
+    // ── State ─────────────────────────────────────────────────────────────
+    var graph            = null;   // RoadGraphDto
+    var originNodeId     = null;
+    var nodeMarkers      = {};     // id -> L.CircleMarker
+    var routePolyline    = null;
+    var serviceAreaLayer = null;
 
-    var startSelect = document.getElementById("networkStart");
-    var endSelect = document.getElementById("networkEnd");
-    var maxCostInput = document.getElementById("networkMaxCost");
-    var routeBtn = document.getElementById("networkRouteBtn");
-    var serviceAreaBtn = document.getElementById("networkServiceAreaBtn");
-    var alertBox = document.getElementById("networkAlert");
-    var svg = document.getElementById("networkSvg");
-    var resultText = document.getElementById("networkResult");
-    var kpiCost = document.getElementById("networkKpiCost");
-    var kpiNodes = document.getElementById("networkKpiNodes");
-    var kpiNative = document.getElementById("networkKpiNative");
+    // ── Leaflet map ───────────────────────────────────────────────────────
+    var map = L.map("networkMap", {
+        center: [34.0550, -117.1820],
+        zoom: 14,
+        zoomControl: true
+    });
 
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    // ── Bootstrap ────────────────────────────────────────────────────────
     routeBtn.addEventListener("click", findRoute);
     serviceAreaBtn.addEventListener("click", computeServiceArea);
-    renderGraph([], []);
 
-    function findRoute() {
-        hideAlert();
-        var request = {
-            nodes: nodes,
-            edges: edges,
-            startNodeId: Number(startSelect.value),
-            endNodeId: Number(endSelect.value)
-        };
+    document.querySelectorAll("input[name='algoRadio']").forEach(function (radio) {
+        radio.addEventListener("change", function () {
+            algoHint.textContent = radio.value === "astar"
+                ? "A* uses a haversine heuristic to Esri HQ."
+                : "Dijkstra explores all reachable nodes by cost.";
+        });
+    });
 
-        setBusy(true);
-        apiPost(window.PortfolioApi.routes.spatialCompute.network.route, request)
-            .then(function (result) {
-                renderGraph(result.nodeIds || [], []);
-                kpiCost.textContent = result.totalCost;
-                kpiNodes.textContent = result.nodeIds.length;
-                kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
-                resultText.textContent = JSON.stringify(result, null, 2);
+    startSelect.addEventListener("change", function () {
+        var id = parseInt(startSelect.value, 10);
+        if (!isNaN(id)) setOrigin(id);
+    });
+
+    fetchGraph();
+
+    // ── Graph fetch ───────────────────────────────────────────────────────
+    function fetchGraph() {
+        fetch(window.PortfolioApi.routes.spatialCompute.network.graph)
+            .then(function (r) {
+                if (!r.ok) throw new Error("Graph load failed (" + r.status + ")");
+                return r.json();
             })
-            .catch(function (err) { showAlert(err.message || "Route calculation failed."); })
-            .finally(function () { setBusy(false); });
+            .then(function (data) {
+                graph = data;
+                populateOriginSelect();
+                renderGraphOnMap();
+                routeBtn.disabled = false;
+                serviceAreaBtn.disabled = false;
+                mapHint.classList.remove("d-none");
+            })
+            .catch(function (err) {
+                showAlert("Could not load road graph: " + err.message);
+            });
     }
 
-    function computeServiceArea() {
-        hideAlert();
-        var request = {
-            nodes: nodes,
-            edges: edges,
-            originNodeId: Number(startSelect.value),
-            maxCost: Number(maxCostInput.value)
-        };
+    // ── Origin select ─────────────────────────────────────────────────────
+    function populateOriginSelect() {
+        startSelect.innerHTML = "";
+        var placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "— click map or choose —";
+        startSelect.appendChild(placeholder);
 
-        setBusy(true);
-        apiPost(window.PortfolioApi.routes.spatialCompute.network.serviceArea, request)
-            .then(function (result) {
-                renderGraph([], result.reachableNodeIds || []);
-                kpiCost.textContent = request.maxCost;
-                kpiNodes.textContent = result.reachableNodeIds.length;
-                kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
-                resultText.textContent = JSON.stringify(result, null, 2);
-            })
-            .catch(function (err) { showAlert(err.message || "Service-area calculation failed."); })
-            .finally(function () { setBusy(false); });
+        graph.nodes.forEach(function (node) {
+            if (node.id === graph.destinationNodeId) return;
+            var opt = document.createElement("option");
+            opt.value = node.id;
+            opt.textContent = node.label || ("Node " + node.id);
+            startSelect.appendChild(opt);
+        });
     }
 
-    function renderGraph(routeNodeIds, serviceAreaNodeIds) {
-        svg.innerHTML = "";
-
-        edges.forEach(function (edge) {
+    // ── Map rendering ─────────────────────────────────────────────────────
+    function renderGraphOnMap() {
+        // Draw edges first (polylines)
+        graph.edges.forEach(function (edge) {
             var a = findNode(edge.fromNodeId);
             var b = findNode(edge.toNodeId);
-            var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", toX(a));
-            line.setAttribute("y1", toY(a));
-            line.setAttribute("x2", toX(b));
-            line.setAttribute("y2", toY(b));
-            line.setAttribute("stroke", "rgba(128,128,128,0.55)");
-            line.setAttribute("stroke-width", "1.4");
-            svg.appendChild(line);
+            if (!a || !b) return;
+            L.polyline([[a.latitude, a.longitude], [b.latitude, b.longitude]], {
+                color: "rgba(100,116,139,0.4)",
+                weight: 2,
+                interactive: false
+            }).addTo(map);
         });
 
-        // Draw the ordered route path as a polyline connecting nodes in sequence.
-        if (routeNodeIds.length > 1) {
-            var path = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-            path.setAttribute("class", "spatial-line");
-            path.setAttribute("points", routeNodeIds.map(function (id) { var n = findNode(id); return toX(n) + "," + toY(n); }).join(" "));
-            svg.appendChild(path);
+        // Draw nodes
+        graph.nodes.forEach(function (node) {
+            var isDestination = node.id === graph.destinationNodeId;
+            var marker;
+
+            if (isDestination) {
+                marker = L.circleMarker([node.latitude, node.longitude], {
+                    radius: 10,
+                    fillColor: "#198754",
+                    color: "#fff",
+                    weight: 2.5,
+                    fillOpacity: 0.95
+                }).addTo(map);
+
+                marker.bindTooltip(
+                    "<strong>🏁 " + (node.label || "Esri HQ") + "</strong>",
+                    { permanent: false, direction: "top", className: "network-tooltip" }
+                );
+            } else {
+                marker = L.circleMarker([node.latitude, node.longitude], {
+                    radius: 6,
+                    fillColor: "#64748b",
+                    color: "#fff",
+                    weight: 1.5,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                marker.bindTooltip(node.label || ("Node " + node.id), {
+                    direction: "top",
+                    className: "network-tooltip"
+                });
+
+                (function (n) {
+                    marker.on("click", function () { setOrigin(n.id); });
+                }(node));
+            }
+
+            nodeMarkers[node.id] = marker;
+        });
+    }
+
+    // ── Origin selection ─────────────────────────────────────────────────
+    function setOrigin(id) {
+        originNodeId = id;
+        startSelect.value = id;
+        mapHint.classList.add("d-none");
+
+        // Reset previous origin style
+        graph.nodes.forEach(function (node) {
+            if (node.id === graph.destinationNodeId) return;
+            nodeMarkers[node.id].setStyle({
+                fillColor: "#64748b",
+                radius: 6
+            });
+        });
+
+        // Highlight selected origin
+        if (nodeMarkers[id]) {
+            nodeMarkers[id].setStyle({
+                fillColor: "#2563eb",
+                radius: 9
+            });
         }
 
-        nodes.forEach(function (node) {
-            var inRoute = routeNodeIds.indexOf(node.id) >= 0;
-            var inArea = serviceAreaNodeIds.indexOf(node.id) >= 0;
-            var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", toX(node));
-            circle.setAttribute("cy", toY(node));
-            circle.setAttribute("r", (inRoute || inArea) ? "3" : "2.2");
-            circle.setAttribute("fill",
-                inRoute ? "var(--bs-success)" :
-                inArea  ? "var(--bs-warning)"  :
-                          "var(--bs-info)");
-            svg.appendChild(circle);
+        clearRoute();
+    }
 
-            var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute("x", toX(node) + 2.5);
-            text.setAttribute("y", toY(node) - 2.5);
-            text.setAttribute("font-size", "4");
-            text.setAttribute("fill", "currentColor");
-            text.textContent = node.id;
-            svg.appendChild(text);
+    // ── Find route ────────────────────────────────────────────────────────
+    function findRoute() {
+        if (!graph) return;
+        var start = parseInt(startSelect.value, 10);
+        if (isNaN(start) || start === graph.destinationNodeId) {
+            showAlert("Please select a valid origin.");
+            return;
+        }
+        originNodeId = start;
+
+        var algo = document.querySelector("input[name='algoRadio']:checked").value;
+
+        var request = {
+            nodes: graph.nodes,
+            edges: graph.edges,
+            startNodeId: start,
+            endNodeId: graph.destinationNodeId,
+            algorithm: algo
+        };
+
+        hideAlert();
+        setBusy(true);
+        clearRoute();
+
+        apiPost(window.PortfolioApi.routes.spatialCompute.network.route, request)
+            .then(function (result) {
+                renderRoute(result);
+                updateKpis(result);
+                updateTurnByTurn(result);
+                setNativeStatus(result.nativeAccelerated);
+            })
+            .catch(function (err) {
+                showAlert(err.message || "Route calculation failed.");
+            })
+            .finally(function () {
+                setBusy(false);
+            });
+    }
+
+    // ── Compute service area ─────────────────────────────────────────────
+    function computeServiceArea() {
+        if (!graph) return;
+        var origin = parseInt(startSelect.value, 10);
+        if (isNaN(origin)) {
+            showAlert("Please select an origin first.");
+            return;
+        }
+
+        var request = {
+            nodes: graph.nodes,
+            edges: graph.edges,
+            originNodeId: origin,
+            maxCost: parseFloat(maxCostInput.value) || 1.5
+        };
+
+        hideAlert();
+        setBusy(true);
+        clearRoute();
+
+        apiPost(window.PortfolioApi.routes.spatialCompute.network.serviceArea, request)
+            .then(function (result) {
+                renderServiceArea(result.reachableNodeIds || []);
+                kpiExplored.textContent = result.reachableNodeIds.length;
+                kpiAlgo.textContent = "area";
+                setNativeStatus(result.nativeAccelerated);
+            })
+            .catch(function (err) {
+                showAlert(err.message || "Service-area calculation failed.");
+            })
+            .finally(function () {
+                setBusy(false);
+            });
+    }
+
+    // ── Route rendering ───────────────────────────────────────────────────
+    function renderRoute(result) {
+        if (!result.found || !result.path || result.path.length < 2) {
+            showAlert("No route found between selected nodes.");
+            return;
+        }
+
+        var latlngs = result.path.map(function (c) { return [c.y, c.x]; });
+        routePolyline = L.polyline(latlngs, {
+            color: "#2563eb",
+            weight: 5,
+            opacity: 0.9,
+            lineJoin: "round",
+            lineCap: "round",
+            className: "network-route-line"
+        }).addTo(map);
+
+        // Highlight route nodes
+        result.nodeIds.forEach(function (id) {
+            if (nodeMarkers[id] && id !== graph.destinationNodeId && id !== originNodeId) {
+                nodeMarkers[id].setStyle({ fillColor: "#2563eb", radius: 7 });
+            }
+        });
+
+        map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+    }
+
+    function renderServiceArea(reachableIds) {
+        var idSet = {};
+        reachableIds.forEach(function (id) { idSet[id] = true; });
+
+        graph.nodes.forEach(function (node) {
+            if (node.id === graph.destinationNodeId) return;
+            var inArea = idSet[node.id];
+            nodeMarkers[node.id].setStyle({
+                fillColor: inArea ? "#f59e0b" : "#64748b",
+                radius: inArea ? 8 : 5,
+                fillOpacity: inArea ? 0.9 : 0.5
+            });
         });
     }
 
+    function clearRoute() {
+        if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+        if (serviceAreaLayer) { map.removeLayer(serviceAreaLayer); serviceAreaLayer = null; }
+
+        // Reset all non-origin, non-destination nodes
+        if (graph) {
+            graph.nodes.forEach(function (node) {
+                if (node.id === graph.destinationNodeId) return;
+                if (node.id === originNodeId) return;
+                nodeMarkers[node.id].setStyle({ fillColor: "#64748b", radius: 6, fillOpacity: 0.8 });
+            });
+        }
+
+        routeStepsList.classList.add("d-none");
+        routeStepsList.innerHTML = "";
+        routeStepsEmpty.style.display = "";
+    }
+
+    // ── KPIs and turn-by-turn ─────────────────────────────────────────────
+    function updateKpis(result) {
+        kpiDistance.textContent = result.distanceKm != null ? result.distanceKm.toFixed(2) : "—";
+        kpiTime.textContent     = result.estimatedMinutes != null ? result.estimatedMinutes.toFixed(1) : "—";
+        kpiExplored.textContent = result.exploredNodes != null ? result.exploredNodes : "—";
+        kpiAlgo.textContent     = result.algorithmUsed ? result.algorithmUsed.toUpperCase() : "—";
+    }
+
+    function updateTurnByTurn(result) {
+        if (!result.nodeIds || result.nodeIds.length === 0) return;
+        routeStepsList.innerHTML = "";
+
+        result.nodeIds.forEach(function (id, idx) {
+            var node = findNode(id);
+            var li = document.createElement("li");
+            var label = (node && node.label) ? node.label : ("Node " + id);
+            li.textContent = (idx === 0 ? "🟦 Start — " : idx === result.nodeIds.length - 1 ? "🏁 Arrive — " : (idx + 1) + ". ") + label;
+            routeStepsList.appendChild(li);
+        });
+
+        routeStepsList.classList.remove("d-none");
+        routeStepsEmpty.style.display = "none";
+    }
+
+    function setNativeStatus(native) {
+        nativeStatus.textContent = native ? "Native: ON" : "Native: OFF";
+        nativeStatus.className   = native ? "badge bg-success" : "badge bg-secondary";
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
     function findNode(id) {
-        return nodes.filter(function (node) { return node.id === id; })[0];
-    }
-
-    function toX(node) {
-        return 8 + ((node.longitude + 117.23) / 0.10) * 84;
-    }
-
-    function toY(node) {
-        return 92 - ((node.latitude - 34.035) / 0.055) * 84;
+        if (!graph) return null;
+        return graph.nodes.filter(function (n) { return n.id === id; })[0] || null;
     }
 
     function setBusy(busy) {
-        routeBtn.disabled = busy;
+        routeBtn.disabled      = busy;
         serviceAreaBtn.disabled = busy;
+        loadingSpinner.classList.toggle("d-none", !busy);
     }
 
-    function showAlert(message) {
-        alertBox.textContent = message;
+    function showAlert(msg) {
+        alertBox.textContent = msg;
         alertBox.classList.remove("d-none");
     }
 
@@ -152,4 +359,16 @@
         alertBox.classList.add("d-none");
         alertBox.textContent = "";
     }
+
+    function apiPost(url, body) {
+        return fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        }).then(function (r) {
+            if (!r.ok) return r.json().then(function (e) { throw new Error(e.error || r.statusText); });
+            return r.json();
+        });
+    }
 }());
+

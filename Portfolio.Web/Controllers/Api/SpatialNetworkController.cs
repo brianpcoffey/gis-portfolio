@@ -24,6 +24,19 @@ namespace Portfolio.Web.Controllers.Api
         }
 
         /// <summary>
+        /// Returns the pre-built Redlands, CA road graph centered on Esri HQ.
+        /// </summary>
+        /// <param name="cancellationToken">Request cancellation token.</param>
+        /// <returns>Graph nodes, edges, and destination node id.</returns>
+        [HttpGet("graph")]
+        [ProducesResponseType(typeof(RoadGraphDto), 200)]
+        public async Task<ActionResult<RoadGraphDto>> GetGraph(CancellationToken cancellationToken)
+        {
+            var graph = await _spatialGraphService.GetRedlandsGraphAsync(cancellationToken);
+            return Ok(graph);
+        }
+
+        /// <summary>
         /// Computes the least-cost route between two graph nodes.
         /// </summary>
         /// <param name="request">Spatial graph and route endpoints.</param>

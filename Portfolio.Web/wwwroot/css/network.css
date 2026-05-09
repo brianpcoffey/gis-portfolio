@@ -1,0 +1,206 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   network.css — Route Planner / Redlands GIS product styles
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Page shell ──────────────────────────────────────────────────────── */
+.network-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 62px); /* subtract navbar */
+    overflow: hidden;
+    background: var(--background, #f8fafc);
+    color: var(--text, #1a202c);
+}
+
+.network-hero {
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.10), rgba(56, 161, 105, 0.12));
+    border-bottom: 1px solid var(--border, #e2e8f0);
+    flex-shrink: 0;
+}
+
+.network-shell {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ── Side panel ──────────────────────────────────────────────────────── */
+.network-panel {
+    width: 320px;
+    min-width: 280px;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface, #ffffff);
+    border-right: 1px solid var(--border, #e2e8f0);
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.panel-section {
+    padding: 0.75rem 1rem 0.5rem;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.panel-section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #64748b);
+}
+
+.panel-body {
+    padding: 0;
+}
+
+.hint-text {
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 0;
+}
+
+.panel-footer {
+    margin-top: auto;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border, #e2e8f0);
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+/* ── Destination chip ────────────────────────────────────────────────── */
+.destination-chip {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(25, 135, 84, 0.12);
+    color: #198754;
+    border: 1px solid rgba(25, 135, 84, 0.3);
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* ── KPI grid ────────────────────────────────────────────────────────── */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.kpi-tile {
+    background: var(--background, #f8fafc);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    text-align: center;
+}
+
+.kpi-val {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent, #38a169);
+    line-height: 1.2;
+}
+
+.kpi-label {
+    font-size: 0.7rem;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 0.1rem;
+}
+
+/* ── Turn-by-turn list ───────────────────────────────────────────────── */
+.route-steps-list {
+    padding-left: 1.25rem;
+    margin-bottom: 0;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.route-steps-list li {
+    font-size: 0.78rem;
+    color: var(--text, #1a202c);
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.route-steps-list li:last-child {
+    border-bottom: none;
+}
+
+/* ── Map container ───────────────────────────────────────────────────── */
+.network-map-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.network-map {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* ── Map overlay hint ────────────────────────────────────────────────── */
+.map-click-hint {
+    position: absolute;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+}
+
+.map-click-hint.d-none {
+    opacity: 0;
+}
+
+/* ── Leaflet override: route polyline pulse ──────────────────────────── */
+.network-route-line {
+    stroke: #2563eb;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.55));
+}
+
+/* ── Responsive collapse ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .network-page {
+        height: auto;
+        overflow: visible;
+    }
+
+    .network-shell {
+        flex-direction: column;
+        overflow: visible;
+    }
+
+    .network-panel {
+        width: 100%;
+        max-width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border, #e2e8f0);
+        overflow-y: visible;
+        max-height: none;
+    }
+
+    .network-map-container {
+        height: 55vh;
+        flex: none;
+    }
+}

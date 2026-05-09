@@ -64,7 +64,7 @@ The currently implemented native integration is the Home Finder scoring kernel. 
 | Live Location Stream | `geostream_processor` | Implemented | telemetry parsing, filtering, grid aggregation, and anomaly detection |
 | Geometry Toolkit | `spatial_geometry_kernel` | Implemented | fan triangulation and bounding-box polygon clipping with stable C ABI |
 | Terrain Analyzer | `raster_terrain_kernel` | Implemented | hillshade, slope/aspect, and Gaussian heatmap kernel over dense numeric arrays |
-| Route Planner | `spatial_graph_engine` | Implemented | shortest path and service-area computation over spatial graphs |
+| Route Planner | `spatial_graph_engine` | Implemented | Dijkstra and A* shortest path, service-area computation, and route metric enrichment over a curated Redlands road graph |
 
 The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, and scoring. The managed fallback is production behavior, not only a test convenience.
 
@@ -225,16 +225,19 @@ Raster terrain analysis API that generates hillshade and heatmap outputs from de
 ---
 
 ### 🗺️ Route Planner
-Spatial graph routing API that computes shortest paths and service areas over an in-memory graph and renders the route or reachable-node result in the browser via SVG. The native C++ engine provides compact graph layout and algorithmic control over large routing workloads; the managed fallback runs Dijkstra-style traversal with `PriorityQueue<TElement, TPriority>`.
+Spatial graph routing API that computes shortest paths and service areas over a curated 109-node / ~340-edge Redlands road network, rendered on a real Leaflet/OpenStreetMap map. Supports Dijkstra and A* with a haversine heuristic; the native C++ engine accelerates Dijkstra when the shared library is present, while A* runs managed-only so the heuristic has full access to node coordinates at query time.
 
-- Shortest-path computation with node-id path reconstruction and coordinate mapping
-- Service-area computation returning all nodes reachable within a configurable cost budget
-- Native C++ routing engine (`spatial_graph_engine`) exposing `Graph_FindShortestPath` and `Graph_ComputeServiceArea`
-- Stateless graph-per-request MVP; future evolution paths include persisted network datasets, OSM ingestion, Redis result caching, and native graph handle APIs
+- **Dijkstra and A\*** algorithm selection via UI toggle; A* uses haversine great-circle distance as an admissible heuristic and explores measurably fewer nodes on typical road layouts
+- Route metrics surfaced per request: `ExploredNodes`, `DistanceKm` (haversine sum along path), `EstimatedMinutes` (distance ÷ 40 km/h average road speed), and `AlgorithmUsed`
+- 109-node / ~340-edge curated Redlands–San Bernardino road network (`RedlandsRoadNetwork`) spanning 7 east–west arterials × 15 north–south corridors, I-10 ramp clusters, diagonal arterial shortcuts, directed residential dead-end stubs, and Esri HQ as the fixed destination
+- Leaflet 1.9 map on OpenStreetMap tiles with edge polylines, clickable `L.circleMarker` nodes, blue route polyline with drop-shadow, amber service-area highlighting, and map auto-fit to route bounds
+- Client fetches full `RoadGraphDto` once via `GET /api/v1/network/graph` and submits it with each route request, keeping the API stateless
+- Native C++ routing engine (`spatial_graph_engine`) exposing `Graph_FindShortestPath` and `Graph_ComputeServiceArea`; managed fallback runs `PriorityQueue<TElement, TPriority>`-based Dijkstra/A* automatically when the library is absent
+- Turn-by-turn panel with human-readable street-intersection labels; `ExploredNodes` metric drives interviewer discussion of graph search theory
 
-**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Leaflet 1.9, OpenStreetMap
 
-**API:** `POST /api/v1/network/route`, `POST /api/v1/network/service-area`
+**API:** `GET /api/v1/network/graph`, `POST /api/v1/network/route`, `POST /api/v1/network/service-area`
 
 ---
 

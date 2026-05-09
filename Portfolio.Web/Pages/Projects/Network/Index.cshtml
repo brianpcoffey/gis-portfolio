@@ -2,23 +2,26 @@
 @model Portfolio.Web.Pages.Projects.Network.IndexModel
 @{
 	Layout = "/Pages/Shared/_Layout.cshtml";
-	ViewData["Title"] = "Route Planner";
+	ViewData["Title"] = "Route Planner — Redlands";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/spatialcompute.css" />
+<link rel="stylesheet" href="~/css/network.css" asp-append-version="true" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+	  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
-<div class="spatial-compute-page theme-root">
-	<div class="project-hero py-4 mb-4">
-		<div class="container">
+<div class="network-page">
+	<div class="network-hero py-3 mb-0">
+		<div class="container-fluid px-4">
 			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
 				<div>
-					<h1 class="mb-1"><i class="fa-solid fa-route me-2"></i>Route Planner</h1>
-					<p class="text-muted theme-text-muted mb-0">Compute shortest paths and service areas over a spatial network graph.</p>
+					<h1 class="mb-1 h3"><i class="fa-solid fa-route me-2 text-accent"></i>Route Planner — Redlands, CA</h1>
+					<p class="text-muted theme-text-muted mb-0 small">
+						Click any intersection to route to <strong>Esri HQ</strong> using Dijkstra or A* over a real street network.
+					</p>
 				</div>
 				<div class="d-flex align-items-center gap-2">
-					<span class="badge badge-gis fs-6"><i class="fa-solid fa-diagram-project me-1"></i>C++ Graph Kernel MVP</span>
-					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Network/Details" aria-label="View technical details for Route Planner" title="Technical Details">
+					<span class="badge badge-gis fs-6"><i class="fa-solid fa-diagram-project me-1"></i>Spatial Graph Engine</span>
+					<a class="btn btn-outline-accent btn-sm" href="/Projects/Network/Details" aria-label="Technical details" title="Technical Details">
 						<i class="fa-solid fa-circle-info"></i>
 					</a>
 				</div>
@@ -26,52 +29,143 @@
 		</div>
 	</div>
 
-	<div class="container pb-5">
-		<div id="networkAlert" class="alert alert-danger d-none" role="alert"></div>
-		<div class="row g-4">
-			<div class="col-lg-4">
-				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Network Controls</strong></div>
-					<div class="card-body d-flex flex-column gap-3">
-						<div class="row g-2">
-							<div class="col-6">
-								<label for="networkStart" class="form-label small">Start node</label>
-								<select id="networkStart" class="form-select"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
-							</div>
-							<div class="col-6">
-								<label for="networkEnd" class="form-label small">End node</label>
-								<select id="networkEnd" class="form-select"><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select>
-							</div>
-						</div>
-						<button id="networkRouteBtn" class="btn btn-accent"><i class="fa-solid fa-location-arrow me-1"></i>Find Route</button>
-						<div>
-							<label for="networkMaxCost" class="form-label small">Service-area max cost</label>
-							<input id="networkMaxCost" class="form-control" type="number" min="1" step="1" value="6" />
-						</div>
-						<button id="networkServiceAreaBtn" class="btn btn-outline-accent"><i class="fa-solid fa-circle-nodes me-1"></i>Compute Service Area</button>
-						<pre id="networkResult" class="sample-json mt-auto mb-0"></pre>
+	<div class="network-shell">
+		<!-- ── Side Panel ─────────────────────────────────────────────── -->
+		<aside class="network-panel">
+			<div id="networkAlert" class="alert alert-danger alert-sm d-none py-2 px-3 mb-0 mx-3 mt-3" role="alert"></div>
+
+			<!-- Origin picker -->
+			<div class="panel-section">
+				<div class="panel-section-header">
+					<i class="fa-solid fa-location-dot text-accent me-1"></i>
+					<span class="fw-semibold small">Origin</span>
+				</div>
+				<div class="panel-body">
+					<select id="networkStart" class="form-select form-select-sm">
+						<option value="">Loading graph…</option>
+					</select>
+					<p class="hint-text mt-1">Or <strong>click any node</strong> on the map.</p>
+				</div>
+			</div>
+
+			<!-- Destination (fixed) -->
+			<div class="panel-section">
+				<div class="panel-section-header">
+					<i class="fa-solid fa-flag-checkered text-success me-1"></i>
+					<span class="fw-semibold small">Destination</span>
+				</div>
+				<div class="panel-body">
+					<div class="destination-chip">
+						<i class="fa-solid fa-building me-1"></i>Esri HQ — 380 New York St
 					</div>
 				</div>
 			</div>
-			<div class="col-lg-8">
-				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-map-location-dot text-accent"></i><strong>Network Visualization</strong></div>
-					<div class="card-body">
-						<div class="row g-3 mb-3">
-							<div class="col-md-4"><div class="kpi-card text-center"><div id="networkKpiCost" class="kpi-value">0</div><div class="kpi-label">Cost</div></div></div>
-							<div class="col-md-4"><div class="kpi-card text-center"><div id="networkKpiNodes" class="kpi-value">0</div><div class="kpi-label">Nodes</div></div></div>
-							<div class="col-md-4"><div class="kpi-card text-center"><div id="networkKpiNative" class="kpi-value">No</div><div class="kpi-label">Native</div></div></div>
+
+			<!-- Algorithm -->
+			<div class="panel-section">
+				<div class="panel-section-header">
+					<i class="fa-solid fa-microchip text-accent me-1"></i>
+					<span class="fw-semibold small">Algorithm</span>
+				</div>
+				<div class="panel-body">
+					<div class="btn-group w-100" role="group" aria-label="Algorithm selection">
+						<input type="radio" class="btn-check" name="algoRadio" id="algoAstar"    value="astar"    checked />
+						<label class="btn btn-outline-accent btn-sm" for="algoAstar">A*</label>
+						<input type="radio" class="btn-check" name="algoRadio" id="algoDijkstra" value="dijkstra" />
+						<label class="btn btn-outline-accent btn-sm" for="algoDijkstra">Dijkstra</label>
+					</div>
+					<p class="hint-text mt-1" id="algoHint">A* uses a haversine heuristic to Esri HQ.</p>
+				</div>
+			</div>
+
+			<!-- Route button -->
+			<div class="panel-section pb-2">
+				<div class="panel-body">
+					<button id="networkRouteBtn" class="btn btn-accent w-100" disabled>
+						<i class="fa-solid fa-location-arrow me-1"></i>Find Route
+					</button>
+				</div>
+			</div>
+
+			<!-- KPI cards -->
+			<div class="panel-section">
+				<div class="panel-section-header">
+					<i class="fa-solid fa-chart-bar text-accent me-1"></i>
+					<span class="fw-semibold small">Route Metrics</span>
+				</div>
+				<div class="panel-body">
+					<div class="kpi-grid">
+						<div class="kpi-tile">
+							<div id="kpiDistance" class="kpi-val">—</div>
+							<div class="kpi-label">Distance (km)</div>
 						</div>
-						<div class="spatial-map-panel spatial-stage">
-							<svg id="networkSvg" viewBox="0 0 100 100" width="100%" height="420" role="img" aria-label="Spatial graph visualization"></svg>
+						<div class="kpi-tile">
+							<div id="kpiTime" class="kpi-val">—</div>
+							<div class="kpi-label">Est. Time (min)</div>
+						</div>
+						<div class="kpi-tile">
+							<div id="kpiExplored" class="kpi-val">—</div>
+							<div class="kpi-label">Nodes Explored</div>
+						</div>
+						<div class="kpi-tile">
+							<div id="kpiAlgo" class="kpi-val">—</div>
+							<div class="kpi-label">Algorithm</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		</div>
+
+			<!-- Route summary -->
+			<div class="panel-section flex-grow-1 d-flex flex-column">
+				<div class="panel-section-header">
+					<i class="fa-solid fa-list-ol text-accent me-1"></i>
+					<span class="fw-semibold small">Turn-by-Turn</span>
+				</div>
+				<div class="panel-body flex-grow-1">
+					<ol id="routeSteps" class="route-steps-list d-none"></ol>
+					<p id="routeStepsEmpty" class="hint-text">Select an origin and compute a route.</p>
+				</div>
+			</div>
+
+			<!-- Service area -->
+			<div class="panel-section border-top pt-3">
+				<div class="panel-section-header">
+					<i class="fa-solid fa-circle-nodes text-accent me-1"></i>
+					<span class="fw-semibold small">Service Area</span>
+				</div>
+				<div class="panel-body">
+					<div class="d-flex align-items-center gap-2">
+						<label for="networkMaxCost" class="form-label small mb-0 text-nowrap">Max km</label>
+						<input id="networkMaxCost" class="form-control form-control-sm" type="number" min="0.1" step="0.1" value="1.5" style="max-width:90px;" />
+						<button id="networkServiceAreaBtn" class="btn btn-outline-accent btn-sm" disabled>
+							<i class="fa-solid fa-circle-dot me-1"></i>Compute
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Native status -->
+			<div class="panel-footer">
+				<span id="nativeStatus" class="badge bg-secondary">Native: —</span>
+				<span id="loadingSpinner" class="d-none ms-2 text-muted small">
+					<i class="fa-solid fa-spinner fa-spin me-1"></i>Computing…
+				</span>
+			</div>
+		</aside>
+
+		<!-- ── Map ───────────────────────────────────────────────────── -->
+		<main class="network-map-container">
+			<div id="networkMap" class="network-map"></div>
+			<div id="mapOverlayHint" class="map-click-hint">
+				<i class="fa-solid fa-hand-pointer me-1"></i>Click a node to set origin
+			</div>
+		</main>
 	</div>
 </div>
 
 @section Scripts {
+	<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+		integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLEo=" crossorigin=""></script>
 	<script src="~/js/Network/app.js" asp-append-version="true"></script>
 }
+

@@ -75,6 +75,7 @@
                     heatmap  : BASE + "/raster/heatmap"
                 },
                 network: {
+                    graph      : BASE + "/network/graph",
                     route      : BASE + "/network/route",
                     serviceArea: BASE + "/network/service-area"
                 }

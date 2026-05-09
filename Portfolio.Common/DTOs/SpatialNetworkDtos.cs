@@ -5,6 +5,7 @@ namespace Portfolio.Common.DTOs
         public int Id { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }
+        public string? Label { get; set; }
     }
 
     public class GraphEdgeDto
@@ -21,6 +22,8 @@ namespace Portfolio.Common.DTOs
         public List<GraphEdgeDto> Edges { get; set; } = [];
         public int StartNodeId { get; set; }
         public int EndNodeId { get; set; }
+        /// <summary>"dijkstra" (default) or "astar"</summary>
+        public string Algorithm { get; set; } = "dijkstra";
     }
 
     public class RouteResultDto
@@ -30,6 +33,10 @@ namespace Portfolio.Common.DTOs
         public double TotalCost { get; set; }
         public List<int> NodeIds { get; set; } = [];
         public List<CoordinateDto> Path { get; set; } = [];
+        public int ExploredNodes { get; set; }
+        public double DistanceKm { get; set; }
+        public double EstimatedMinutes { get; set; }
+        public string AlgorithmUsed { get; set; } = "dijkstra";
     }
 
     public class ServiceAreaRequestDto
@@ -44,5 +51,13 @@ namespace Portfolio.Common.DTOs
     {
         public bool NativeAccelerated { get; set; }
         public List<int> ReachableNodeIds { get; set; } = [];
+    }
+
+    public class RoadGraphDto
+    {
+        public List<GraphNodeDto> Nodes { get; set; } = [];
+        public List<GraphEdgeDto> Edges { get; set; } = [];
+        public int DestinationNodeId { get; set; }
+        public string GraphName { get; set; } = string.Empty;
     }
 }

@@ -4,6 +4,8 @@ namespace Portfolio.Services.Interfaces
 {
     public interface ISpatialGraphService
     {
+        Task<RoadGraphDto> GetRedlandsGraphAsync(CancellationToken cancellationToken = default);
+
         Task<RouteResultDto> FindShortestPathAsync(
             RouteRequestDto request,
             CancellationToken cancellationToken = default);
