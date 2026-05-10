@@ -96,6 +96,8 @@
 
     // ── Map rendering ─────────────────────────────────────────────────────
     function renderGraphOnMap() {
+        var lats = [], lngs = [];
+
         // Draw edges first (polylines)
         graph.edges.forEach(function (edge) {
             var a = findNode(edge.fromNodeId);
@@ -110,6 +112,8 @@
 
         // Draw nodes
         graph.nodes.forEach(function (node) {
+            lats.push(node.latitude);
+            lngs.push(node.longitude);
             var isDestination = node.id === graph.destinationNodeId;
             var marker;
 
@@ -147,6 +151,15 @@
 
             nodeMarkers[node.id] = marker;
         });
+
+        // Fit the map to the full extent of the road network.
+        if (lats.length > 0) {
+            var south = Math.min.apply(null, lats);
+            var north = Math.max.apply(null, lats);
+            var west  = Math.min.apply(null, lngs);
+            var east  = Math.max.apply(null, lngs);
+            map.fitBounds([[south, west], [north, east]], { padding: [32, 32] });
+        }
     }
 
     // ── Origin selection ─────────────────────────────────────────────────

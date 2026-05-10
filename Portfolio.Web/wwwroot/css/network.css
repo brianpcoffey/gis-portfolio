@@ -117,7 +117,8 @@
 
 /* ── Turn-by-turn list ───────────────────────────────────────────────── */
 .route-steps-list {
-    padding-left: 1.25rem;
+    padding-left: 0;
+    list-style: none;
     margin-bottom: 0;
     max-height: 220px;
     overflow-y: auto;
