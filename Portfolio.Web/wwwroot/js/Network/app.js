@@ -325,7 +325,12 @@
             var node = findNode(id);
             var li = document.createElement("li");
             var label = (node && node.label) ? node.label : ("Node " + id);
-            li.textContent = (idx === 0 ? "🟦 Start — " : idx === result.nodeIds.length - 1 ? "🏁 Arrive — " : (idx + 1) + ". ") + label;
+            var prefix = idx === 0
+                ? "🟦 Start — "
+                : idx === result.nodeIds.length - 1
+                    ? "🏁 Arrive — "
+                    : "";
+            li.textContent = prefix + label;
             routeStepsList.appendChild(li);
         });
 
