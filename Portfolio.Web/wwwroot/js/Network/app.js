@@ -339,9 +339,9 @@
             var li = document.createElement("li");
             var label = (node && node.label) ? node.label : ("Node " + id);
             var prefix = idx === 0
-                ? "🟦 Start — "
+                ? "🟦 "
                 : idx === result.nodeIds.length - 1
-                    ? "🏁 Arrive — "
+                    ? "🏁 "
                     : "";
             li.textContent = prefix + label;
             routeStepsList.appendChild(li);
