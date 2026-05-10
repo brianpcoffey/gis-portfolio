@@ -1,22 +1,23 @@
-using Portfolio.Common.DTOs;
+﻿using Portfolio.Common.DTOs;
 using Portfolio.Services.Data;
 
 namespace Portfolio.Tests.Services
 {
     // Validates the structural integrity and geographic correctness of the
-    // pre-built 109-node Redlands / San Bernardino road network.
+    // real-intersection 55-node Redlands, CA road network.
     public class RedlandsRoadNetworkTests
     {
-        // Build once for the whole test class — mirrors the static cache in the service.
+        // Build once for the whole test class.
         private static readonly RoadGraphDto _graph = RedlandsRoadNetwork.Build();
 
-        // ── Node count and ID uniqueness ────────────────────────────────────────
+        // Node count and ID uniqueness
 
         [Fact]
         public void Build_ReturnsCorrectNodeCount()
         {
-            // 90 grid (rows A-F) + 14 row-G + 1 Esri HQ + 4 freeway ramps = 109
-            Assert.Equal(109, _graph.Nodes.Count);
+            // 8 Barton Rd + 8 Lugonia + 8 New York St + 8 Colton + 8 University
+            // + 5 Highland + 5 Cypress + 1 Esri HQ + 4 I-10 ramps = 55
+            Assert.Equal(55, _graph.Nodes.Count);
         }
 
         [Fact]
@@ -29,21 +30,24 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void Build_NodeIdsFormContiguousRangeWithNoGaps()
         {
-            // IDs 1-105 (grid + HQ) and 106-109 (ramps) — all 109 are present.
             var idSet = _graph.Nodes.Select(n => n.Id).ToHashSet();
-            for (int i = 1; i <= 109; i++)
+            for (int i = 1; i <= 55; i++)
                 Assert.Contains(i, idSet);
         }
 
-        // ── Edge count and minimum connectivity ─────────────────────────────────
+        // Edge count and minimum connectivity
 
         [Fact]
         public void Build_EdgeCountIsAboveMinimumExpected()
         {
-            // 90 EW arterial segs + 13 row-G segs + ~90 NS segs + ~35 diagonals
-            // + 7 stubs + 9 ramp edges + 5 HQ edges = 239 total.
-            Assert.True(_graph.Edges.Count >= 235,
-                $"Expected ≥235 edges but got {_graph.Edges.Count}.");
+            // 7 Barton + 7 Lugonia + 9 NewYorkSt (incl HQ) + 7 Colton + 7 University
+            // + 4 Highland + 4 Cypress (EW) = 45 EW
+            // + 4 Orange + 6 Church + 6 State + 6 Fifth + 6 Ninth + 6 Brookside
+            // + 4 Tennessee + 4 Brockton (NS) = 42 NS
+            // + 7 I-10 ramp edges + 1 HQ shortcut = 8 specials
+            // Total minimum: 95
+            Assert.True(_graph.Edges.Count >= 90,
+                $"Expected >=90 edges but got {_graph.Edges.Count}.");
         }
 
         [Fact]
@@ -63,7 +67,7 @@ namespace Portfolio.Tests.Services
             foreach (var edge in _graph.Edges)
             {
                 Assert.True(edge.Cost > 0 && double.IsFinite(edge.Cost),
-                    $"Edge {edge.FromNodeId}→{edge.ToNodeId} has invalid cost {edge.Cost}.");
+                    $"Edge {edge.FromNodeId}>{edge.ToNodeId} has invalid cost {edge.Cost}.");
             }
         }
 
@@ -74,7 +78,7 @@ namespace Portfolio.Tests.Services
                 Assert.NotEqual(edge.FromNodeId, edge.ToNodeId);
         }
 
-        // ── Special node identity ────────────────────────────────────────────────
+        // Special node identity
 
         [Fact]
         public void Build_DestinationNodeIdIsEsriHq()
@@ -92,36 +96,38 @@ namespace Portfolio.Tests.Services
         }
 
         [Fact]
-        public void Build_EsriHqHasAtLeastFourConnections()
+        public void Build_EsriHqHasAtLeastThreeConnections()
         {
             int hqId = RedlandsRoadNetwork.EsriHqNodeId;
             int connections = _graph.Edges.Count(
                 e => e.FromNodeId == hqId || (e.Bidirectional && e.ToNodeId == hqId));
-            Assert.True(connections >= 4,
-                $"Esri HQ should have ≥4 connections but has {connections}.");
+            Assert.True(connections >= 3,
+                $"Esri HQ should have >=3 connections but has {connections}.");
         }
+
+        // I-10 ramp nodes
 
         [Fact]
         public void Build_FreewayRampNodesExist()
         {
             var nodeIds = _graph.Nodes.Select(n => n.Id).ToHashSet();
-            foreach (int rampId in new[] { 106, 107, 108, 109 })
+            foreach (int rampId in new[] { 52, 53, 54, 55 })
                 Assert.Contains(rampId, nodeIds);
         }
 
         [Fact]
-        public void Build_FreewayRampNodesHaveWestOfGridLongitudes()
+        public void Build_FreewayRampNodesAreWestOfMainGrid()
         {
-            // All four ramp nodes sit west of column 1 (-117.230).
-            foreach (int rampId in new[] { 106, 107, 108, 109 })
+            // All four ramp nodes sit west of the westernmost main-grid longitude (-117.222).
+            foreach (int rampId in new[] { 52, 53, 54, 55 })
             {
                 var node = _graph.Nodes.Single(n => n.Id == rampId);
-                Assert.True(node.Longitude < -117.230,
-                    $"Ramp node {rampId} longitude {node.Longitude} should be west of -117.230.");
+                Assert.True(node.Longitude < -117.222,
+                    $"Ramp node {rampId} longitude {node.Longitude} should be west of -117.222.");
             }
         }
 
-        // ── Coordinate sanity ────────────────────────────────────────────────────
+        // Coordinate sanity
 
         [Fact]
         public void Build_AllNodeCoordinatesAreFinite()
@@ -138,38 +144,44 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void Build_AllNodesAreWithinRedlandsBoundingBox()
         {
-            // Generous bounding box: lat 34.03–34.09, lng -117.26–117.05
+            // Generous bounding box covering Redlands + Highland + I-10 ramps.
             foreach (var node in _graph.Nodes)
             {
-                Assert.InRange(node.Latitude,  34.03, 34.09);
-                Assert.InRange(node.Longitude, -117.26, -117.05);
+                Assert.InRange(node.Latitude,  34.03, 34.13);
+                Assert.InRange(node.Longitude, -117.25, -117.10);
             }
         }
 
-        // ── Grid row / column label sanity ───────────────────────────────────────
+        // Arterial label sanity
 
         [Fact]
-        public void Build_RowANodeLabelsContainBartonRd()
+        public void Build_BartonRdNodesHaveCorrectLabel()
         {
-            // Row A = node IDs 1-15
-            var rowA = _graph.Nodes.Where(n => n.Id >= 1 && n.Id <= 15).ToList();
-            Assert.All(rowA, n => Assert.Contains("Barton Rd", n.Label, StringComparison.OrdinalIgnoreCase));
+            // Barton Rd nodes are IDs 1-8.
+            var bartonNodes = _graph.Nodes.Where(n => n.Id >= 1 && n.Id <= 8).ToList();
+            Assert.All(bartonNodes, n => Assert.Contains("Barton Rd", n.Label, StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void Build_NewYorkStNodesHaveCorrectLabel()
+        {
+            // New York St nodes are IDs 17-24.
+            var nyNodes = _graph.Nodes.Where(n => n.Id >= 17 && n.Id <= 24).ToList();
+            Assert.All(nyNodes, n => Assert.Contains("New York St", n.Label, StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
         public void Build_GraphNameContainsNodeCountAndCity()
         {
-            Assert.Contains("109", _graph.GraphName, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("55", _graph.GraphName, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Redlands", _graph.GraphName, StringComparison.OrdinalIgnoreCase);
         }
 
-        // ── Reachability smoke test via BFS ──────────────────────────────────────
+        // Reachability smoke test via BFS
 
         [Fact]
-        public void Build_EsriHqIsReachableFromAllGridRowOrigins()
+        public void Build_EsriHqIsReachableFromAllArterialOrigins()
         {
-            // BFS over the full adjacency to confirm HQ is reachable from the
-            // first node in each of the six main grid rows.
             var adjacency = new Dictionary<int, List<int>>();
             foreach (var edge in _graph.Edges)
             {
@@ -182,7 +194,9 @@ namespace Portfolio.Tests.Services
                 }
             }
 
-            int[] rowOrigins = [1, 16, 31, 46, 61, 76]; // first node of rows A-F
+            // First node on each arterial row: Barton(1), Lugonia(9), NewYorkSt(17),
+            // Colton(25), University(33), Highland(41)
+            int[] rowOrigins = [1, 9, 17, 25, 33, 41];
             int destination = RedlandsRoadNetwork.EsriHqNodeId;
 
             foreach (int origin in rowOrigins)
@@ -204,7 +218,7 @@ namespace Portfolio.Tests.Services
                 }
 
                 Assert.True(visited.Contains(destination),
-                    $"Esri HQ is not reachable from row origin node {origin}.");
+                    $"Esri HQ is not reachable from arterial origin node {origin}.");
             }
         }
     }
