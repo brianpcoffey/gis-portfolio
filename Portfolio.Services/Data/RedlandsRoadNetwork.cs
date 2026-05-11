@@ -80,12 +80,12 @@ namespace Portfolio.Services.Data
                 new() { Id =  49, Latitude = 34.0950, Longitude = -117.1712, Label = "Cypress Ave & Tennessee St (S)" },
                 new() { Id =  50, Latitude = 34.0948, Longitude = -117.1591, Label = "Cypress Ave & Brookside Ave" },
                 // ── Special ──────────────────────────────────────────────────────────────
-                new() { Id =  51, Latitude = 34.0564, Longitude = -117.1956, Label = "Esri HQ - 380 New York St" },
+                new() { Id =  51, Latitude = 34.0565, Longitude = -117.1950, Label = "Esri HQ - 380 New York St" },
                 // ── I-10 ramps: Tippecanoe Ave and Mountain View Ave ─────────────────────
-                new() { Id =  52, Latitude = 34.0503, Longitude = -117.2430, Label = "I-10 @ Tippecanoe Ave (WB off-ramp)" },
-                new() { Id =  53, Latitude = 34.0499, Longitude = -117.2424, Label = "I-10 @ Tippecanoe Ave (EB on-ramp)" },
-                new() { Id =  54, Latitude = 34.0514, Longitude = -117.2251, Label = "I-10 @ Mountain View Ave (WB off-ramp)" },
-                new() { Id =  55, Latitude = 34.0510, Longitude = -117.2245, Label = "I-10 @ Mountain View Ave (EB on-ramp)" },
+                new() { Id =  52, Latitude = 34.0448, Longitude = -117.2428, Label = "I-10 @ Tippecanoe Ave (WB off-ramp)" },
+                new() { Id =  53, Latitude = 34.0443, Longitude = -117.2412, Label = "I-10 @ Tippecanoe Ave (EB on-ramp)" },
+                new() { Id =  54, Latitude = 34.0451, Longitude = -117.2251, Label = "I-10 @ Mountain View Ave (WB off-ramp)" },
+                new() { Id =  55, Latitude = 34.0447, Longitude = -117.2238, Label = "I-10 @ Mountain View Ave (EB on-ramp)" },
                 // ── W Redlands Blvd ──────────────────────────────────────────────────────
                 new() { Id =  56, Latitude = 34.0515, Longitude = -117.2201, Label = "W Redlands Blvd & Orange St" },
                 new() { Id =  57, Latitude = 34.0516, Longitude = -117.2075, Label = "W Redlands Blvd & Church St" },
@@ -138,22 +138,22 @@ namespace Portfolio.Services.Data
                 new() { Id =  98, Latitude = 34.0559, Longitude = -117.2101, Label = "New York St & California St" },
                 new() { Id =  99, Latitude = 34.0629, Longitude = -117.2101, Label = "Colton Ave & California St" },
                 // ── I-10 interchange chain ────────────────────────────────────────────────
-                new() { Id = 100, Latitude = 34.0491, Longitude = -117.2075, Label = "I-10 @ California St (WB off-ramp)" },
-                new() { Id = 101, Latitude = 34.0496, Longitude = -117.2063, Label = "I-10 @ California St (EB on-ramp)" },
-                new() { Id = 102, Latitude = 34.0492, Longitude = -117.1884, Label = "I-10 @ Alabama St (WB off-ramp)" },
-                new() { Id = 103, Latitude = 34.0497, Longitude = -117.1876, Label = "I-10 @ Alabama St (EB on-ramp)" },
-                new() { Id = 104, Latitude = 34.0494, Longitude = -117.1793, Label = "I-10 @ Tennessee St / SR-210 (WB)" },
-                new() { Id = 105, Latitude = 34.0499, Longitude = -117.1786, Label = "I-10 @ Tennessee St / SR-210 (EB)" },
-                new() { Id = 106, Latitude = 34.0492, Longitude = -117.1591, Label = "I-10 @ SR-38 / Orange St (WB off-ramp)" },
-                new() { Id = 107, Latitude = 34.0497, Longitude = -117.1583, Label = "I-10 @ SR-38 / Orange St (EB on-ramp)" },
-                new() { Id = 108, Latitude = 34.0491, Longitude = -117.1408, Label = "I-10 @ University St (WB off-ramp)" },
-                new() { Id = 109, Latitude = 34.0496, Longitude = -117.1400, Label = "I-10 @ University St (EB on-ramp)" },
-                new() { Id = 110, Latitude = 34.0489, Longitude = -117.1174, Label = "I-10 @ Ford St / Redlands Blvd (WB off-ramp)" },
-                new() { Id = 111, Latitude = 34.0494, Longitude = -117.1166, Label = "I-10 @ Ford St / Redlands Blvd (EB on-ramp)" },
+                new() { Id = 100, Latitude = 34.0461, Longitude = -117.2098, Label = "I-10 @ California St (WB off-ramp)" },
+                new() { Id = 101, Latitude = 34.0457, Longitude = -117.2071, Label = "I-10 @ California St (EB on-ramp)" },
+                new() { Id = 102, Latitude = 34.0462, Longitude = -117.1893, Label = "I-10 @ Alabama St (WB off-ramp)" },
+                new() { Id = 103, Latitude = 34.0457, Longitude = -117.1867, Label = "I-10 @ Alabama St (EB on-ramp)" },
+                new() { Id = 104, Latitude = 34.0463, Longitude = -117.1805, Label = "I-10 @ Tennessee St / SR-210 (WB)" },
+                new() { Id = 105, Latitude = 34.0458, Longitude = -117.1778, Label = "I-10 @ Tennessee St / SR-210 (EB)" },
+                new() { Id = 106, Latitude = 34.0462, Longitude = -117.1601, Label = "I-10 @ SR-38 / Orange St (WB off-ramp)" },
+                new() { Id = 107, Latitude = 34.0457, Longitude = -117.1573, Label = "I-10 @ SR-38 / Orange St (EB on-ramp)" },
+                new() { Id = 108, Latitude = 34.0461, Longitude = -117.1418, Label = "I-10 @ University St (WB off-ramp)" },
+                new() { Id = 109, Latitude = 34.0456, Longitude = -117.1390, Label = "I-10 @ University St (EB on-ramp)" },
+                new() { Id = 110, Latitude = 34.0459, Longitude = -117.1185, Label = "I-10 @ Ford St / Redlands Blvd (WB off-ramp)" },
+                new() { Id = 111, Latitude = 34.0454, Longitude = -117.1155, Label = "I-10 @ Ford St / Redlands Blvd (EB on-ramp)" },
                 // ── SR-210 Foothill Freeway ───────────────────────────────────────────────
-                new() { Id = 112, Latitude = 34.0718, Longitude = -117.1710, Label = "SR-210 @ Tennessee St on-ramp (EB)" },
-                new() { Id = 113, Latitude = 34.0724, Longitude = -117.1715, Label = "SR-210 @ Tennessee St off-ramp (WB)" },
-                new() { Id = 114, Latitude = 34.0755, Longitude = -117.1590, Label = "SR-210 @ Brookside Ave interchange" },
+                new() { Id = 112, Latitude = 34.0718, Longitude = -117.1706, Label = "SR-210 @ Tennessee St on-ramp (EB)" },
+                new() { Id = 113, Latitude = 34.0724, Longitude = -117.1711, Label = "SR-210 @ Tennessee St off-ramp (WB)" },
+                new() { Id = 114, Latitude = 34.0755, Longitude = -117.1586, Label = "SR-210 @ Brookside Ave interchange" },
                 new() { Id = 115, Latitude = 34.0820, Longitude = -117.1435, Label = "SR-210 mainline (NE corridor)" },
                 new() { Id = 116, Latitude = 34.0914, Longitude = -117.1380, Label = "SR-210 @ Greenspot Rd interchange" },
                 new() { Id = 117, Latitude = 34.1020, Longitude = -117.1270, Label = "SR-210 → SR-330 / Highland junction" },
@@ -190,8 +190,8 @@ namespace Portfolio.Services.Data
                 new() { Id = 143, Latitude = 34.0628, Longitude = -117.0966, Label = "Colton Ave & Pioneer Ave" },
                 new() { Id = 144, Latitude = 34.0694, Longitude = -117.0967, Label = "University St & Pioneer Ave" },
                 // ── I-10 @ Wabash Ave ─────────────────────────────────────────────────────
-                new() { Id = 145, Latitude = 34.0488, Longitude = -117.0942, Label = "I-10 @ Wabash Ave (WB off-ramp)" },
-                new() { Id = 146, Latitude = 34.0493, Longitude = -117.0934, Label = "I-10 @ Wabash Ave (EB on-ramp)" },
+                new() { Id = 145, Latitude = 34.0458, Longitude = -117.0955, Label = "I-10 @ Wabash Ave (WB off-ramp)" },
+                new() { Id = 146, Latitude = 34.0453, Longitude = -117.0927, Label = "I-10 @ Wabash Ave (EB on-ramp)" },
                 // ── Ford St / I-10 surface link ───────────────────────────────────────────
                 new() { Id = 147, Latitude = 34.0500, Longitude = -117.1179, Label = "Ford St & Brockton Ave (I-10 link)" },
                 // ── West approach: Tippecanoe & Mountain View surface roads ───────────────
@@ -217,7 +217,7 @@ namespace Portfolio.Services.Data
                 new() { Id = 164, Latitude = 34.0547, Longitude = -117.1132, Label = "SR-38 & Brockton Ave" },
                 new() { Id = 165, Latitude = 34.0544, Longitude = -117.0963, Label = "SR-38 & Wabash Ave (Mentone)" },
                 // ── SR-210 Brookside WB surface ramp ──────────────────────────────────────
-                new() { Id = 166, Latitude = 34.0728, Longitude = -117.1594, Label = "SR-210 @ Brookside Ave (WB off-ramp surface)" },
+                new() { Id = 166, Latitude = 34.0728, Longitude = -117.1590, Label = "SR-210 @ Brookside Ave (WB off-ramp surface)" },
                 // ── Lugonia Ave intermediate node ─────────────────────────────────────────
                 new() { Id = 167, Latitude = 34.0448, Longitude = -117.2228, Label = "Lugonia Ave & Plympton Ave" },
                 // ── E Redlands Blvd east extension ────────────────────────────────────────
@@ -530,10 +530,10 @@ namespace Portfolio.Services.Data
                 new() { FromNodeId = 111, ToNodeId = 145, Cost = Km(111, 145, nodes), Bidirectional = false },
                 new() { FromNodeId = 145, ToNodeId = 146, Cost = 0.10, Bidirectional = false },
                 // ── I-10 ramp surface connections ─────────────────────────────────────────
-                new() { FromNodeId =  55, ToNodeId =  10, Cost = Km( 55,  10, nodes), Bidirectional = false },
-                new() { FromNodeId =  10, ToNodeId =  53, Cost = Km( 10,  53, nodes), Bidirectional = false },
-                new() { FromNodeId =  52, ToNodeId =  11, Cost = Km( 52,  11, nodes), Bidirectional = false },
-                new() { FromNodeId =  54, ToNodeId =   9, Cost = Km( 54,   9, nodes), Bidirectional = true  },
+                new() { FromNodeId =  55, ToNodeId = 149, Cost = Km( 55, 149, nodes), Bidirectional = false }, // EB on-ramp -> Lugonia & Mountain View Ave
+                new() { FromNodeId = 148, ToNodeId =  53, Cost = Km(148,  53, nodes), Bidirectional = false }, // Lugonia & Tippecanoe -> EB on-ramp
+                new() { FromNodeId =  52, ToNodeId = 148, Cost = Km( 52, 148, nodes), Bidirectional = false }, // WB off-ramp -> Lugonia & Tippecanoe Ave
+                new() { FromNodeId =  54, ToNodeId = 149, Cost = Km( 54, 149, nodes), Bidirectional = true  }, // Mountain View WB off-ramp <-> Lugonia & Mountain View Ave
                 new() { FromNodeId = 100, ToNodeId =  96, Cost = Km(100,  96, nodes), Bidirectional = false },
                 new() { FromNodeId =  97, ToNodeId = 101, Cost = Km( 97, 101, nodes), Bidirectional = false },
                 new() { FromNodeId = 102, ToNodeId =  12, Cost = Km(102,  12, nodes), Bidirectional = false },
