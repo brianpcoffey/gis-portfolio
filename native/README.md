@@ -26,97 +26,143 @@ so it is configured and built from its own directory.
 
 ### Measured speedup
 
-`cat_risk_kernel` measures **~1.1×** against its managed fallback, with bit-identical outputs:
+All thirteen kernels are measured by `Portfolio.Benchmarks`, a console harness in this
+solution. It runs itself twice as a child process — once with `PORTFOLIO_DISABLE_NATIVE=0`
+and once with `=1` — because each bridge probes its shared library exactly once in a static
+constructor, so a single process can only ever measure one path.
 
-| Workload | Native | Managed | Speedup |
-|---|---:|---:|---:|
-| Ring accumulation, 900 locations | 5.4 ms | 5.9 ms | 1.09× |
-| Ring accumulation, 5,000 locations | 166 ms | 186 ms | 1.12× |
-| Simulation, 900 × 5,000 events | 51.6 ms | 56.3 ms | 1.09× |
-| Simulation, 5,000 × 12,000 events | 568 ms | 645 ms | 1.13× |
+**Methodology.** 3 warmup iterations discarded, then 9 timed iterations, reporting the
+**median** with min and max alongside it. Both children are pinned to one performance core at
+high priority. Every workload folds its result into a deterministic checksum, and the two
+paths' checksums are compared; a row whose checksums disagree is a correctness defect and its
+speedup means nothing.
 
-`change_detection_kernel` measures **1.24×** over its four compute stages, also with
-bit-identical outputs (512×512×4 stack, warm, best of 50 per stage):
+Measured on 20 logical cores, .NET 10.0.9, Windows 11:
 
-| Stage | Native | Managed | Speedup |
-|---|---:|---:|---:|
-| CVA magnitude | 1.18 ms | 1.72 ms | 1.46× |
-| Otsu threshold + histogram | 0.24 ms | 0.50 ms | 2.11× |
-| Morphological open, 2 iterations | 2.90 ms | 3.16 ms | 1.09× |
-| Connected components | 0.62 ms | 0.75 ms | 1.20× |
-| Compute total | 4.93 ms | 6.13 ms | 1.24× |
-| End-to-end `DetectAsync` | 7.74 ms | 8.45 ms | 1.09× |
+| Kernel | Workload | Native | Managed | Speedup | Native min–max | Managed min–max | Parity |
+|---|---|---:|---:|---:|---:|---:|---|
+| `vrp_solver_kernel` | CVRPTW solve, 120 stops, 8 solves | 24.3 ms | 55.2 ms | **2.27×** | 24.2–25.3 | 53.2–64.0 | exact |
+| `vrp_solver_kernel` | CVRPTW solve, shipped "fullday" preset, 40 stops, 30 solves | 10.3 ms | 21.3 ms | **2.06×** | 10.3–10.7 | 20.9–21.8 | exact |
+| `spatial_overlay_kernel` | point-in-polygon join, 30 × 10,000 points × 48 zones | 156 ms | 302 ms | **1.94×** | 154–167 | 302–304 | exact |
+| `facility_location_kernel` | shipped scenario 450×24, p=4, p90, 4 solves | 21.8 ms | 41.9 ms | **1.92×** | 21.7–22.6 | 41.7–42.6 | exact |
+| `facility_location_kernel` | p-median 1,400×64, p=8, weighted p90 | 136 ms | 244 ms | **1.80×** | 135–136 | 243–245 | exact |
+| `facility_location_kernel` | p-median 1,400×64, p=8, weighted mean, 10 solves | 22.5 ms | 37.1 ms | **1.65×** | 20.9–44.2 | 34.8–39.9 | exact |
+| `spatial_graph_engine` | 40×40 cost matrix, 10 builds | 61.1 ms | 89.3 ms | **1.46×** | 58.9–69.0 | 88.6–96.4 | exact |
+| `raster_terrain_kernel` | Gaussian heatmap, 500² over 200 points | 214 ms | 276 ms | **1.29×** | 213–215 | 274–277 | exact |
+| `spatial_graph_engine` | one-to-all Dijkstra, 40 × (2,530 nodes / 3,187 edges) | 35.0 ms | 44.2 ms | 1.26× | 26.7–46.7 | 13.0–67.7 | exact |
+| `network_trace_kernel` | downstream trace sweep, 267 elements × 266 faults | 16.6 ms | 20.5 ms | **1.24×** | 16.4–16.8 | 20.0–39.3 | exact |
+| `network_trace_kernel` | trace + restoration plan, 266 faults | 30.5 ms | 36.1 ms | 1.18× | 30.4–43.3 | 18.2–45.3 | exact |
+| `cat_risk_kernel` | Monte Carlo loss simulation, 900 × 5,000 events | 48.4 ms | 52.6 ms | **1.09×** | 46.3–53.1 | 50.6–57.6 | exact |
+| `change_detection_kernel` | CVA + Otsu + open + components, 512²×4 | 10.4 ms | 11.1 ms | 1.06× | 9.35–21.2 | 10.3–22.0 | exact |
+| `spatial_cluster_kernel` | DBSCAN, 8 × 5,000 points, eps 0.16 / minPts 6 | 183 ms | 188 ms | 1.03× | 178–187 | 177–202 | exact |
+| `cat_risk_kernel` | ring accumulation, 20 × 900 locations, 3 km | 102 ms | 100 ms | 0.98× | 101–107 | 98.9–106 | exact |
+| `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 98.8 ms | 95.6 ms | 0.97× | 92.1–104 | 76.2–113 | exact |
+| `raster_terrain_kernel` | hillshade, 20 × 500² elevation grid | 190 ms | 156 ms | **0.82×** | 180–196 | 155–170 | exact |
+| `spatial_geometry_kernel` | bounding-box clip, 400 × 5,000-vertex polygon | 67.3 ms | 53.6 ms | **0.80×** | 64.7–84.1 | 52.9–55.0 | **MISMATCH** |
+| `viewshed_kernel` | line-of-sight viewshed, 3 × 500² grid | 296 ms | 226 ms | **0.76×** | 295–308 | 224–228 | **MISMATCH** |
+| `geostream_processor` | parse + filter + grid aggregate, 40 × 10,000 events | 88.6 ms | 53.9 ms | **0.61×** | 72.0–131 | 30.4–111 | exact |
+| `spatial_geometry_kernel` | fan triangulation, 400 × 5,000 vertices | 169 ms | 57.9 ms | **0.34×** | 158–174 | 57.4–74.1 | exact |
 
-The gradient inside that table is the useful result: the flatter and more branch-free the
-inner loop, the more native buys. Otsu's single histogram pass wins most; morphological
-open, which short-circuits on nearly every pixel, barely beats the JIT. End-to-end is lower
-than compute because roughly a third of `DetectAsync` is `List<double>` ⇄ `double[]`
-conversion at the DTO edge, which is identical on both paths.
+Reading notes:
 
-`spatial_graph_engine`, over the real 2,530-node / 3,187-edge Redlands network:
+- The `p-median` and `CVRPTW` rows time the **solver stage only**, using the duration the
+  service itself reports (`SolveMs`). The road-network distance-matrix build that precedes
+  them is `spatial_graph_engine` work and would otherwise dominate the row.
+- Several workloads are a burst of full-size calls rather than one large call, because the
+  services cap their inputs (10,000 telemetry events, 5,000 geometry points, 250,000 raster
+  cells). Those caps are production guardrails, so the per-call marshalling is counted — it
+  is part of what a caller actually pays.
+- `portfolio_scoring` is the only native-backed service whose public entry point reads from a
+  repository. The harness supplies a fixed-seed in-memory one; every other kernel runs on an
+  in-repo deterministic dataset reached through its public API.
+- Where the two min–max spreads overlap — the Dijkstra row most obviously — read the row as
+  "no measurable difference", not as the ratio of the medians.
 
-| Workload | Native | Managed | Speedup |
-|---|---:|---:|---:|
-| One-to-all Dijkstra from Esri HQ | 6.2 ms | 10.3 ms | 1.66× |
-| 40×40 cost matrix | 32.6 ms | 38.8 ms | 1.19× |
+#### Two parity failures
 
-`network_trace_kernel`, integer graph traversal with no floating point, so checksums are
-exactly equal rather than merely close:
+Nineteen of twenty-one workloads produce bit-identical checksums on both paths. Two do not,
+and both are genuine defects in the native kernel rather than measurement noise:
 
-| Workload | Native | Managed | Speedup |
-|---|---:|---:|---:|
-| Trace + restore, 267-element circuit, 1,290 faults | 149 ms | 192 ms | 1.29× |
-| Energization sweeps only, 4,603 elements, 720 sweeps | 413 ms | 423 ms | 1.02× |
-| Trace + restore, 4,603-element circuit, 600 faults | 882 ms | 768 ms | **0.87×** |
+- **`spatial_geometry_kernel`, `Geometry_ClipToBoundingBox`.** The managed fallback runs
+  Sutherland–Hodgman polygon clipping; the C++ implementation calls `std::clamp` on each
+  vertex independently. Clipping a 5,000-vertex star to a box gives 2,549 vertices managed and
+  5,000 vertices squashed onto the box edges natively. Different shapes, not different
+  rounding. The two agree only when every vertex already lies inside the box.
+- **`viewshed_kernel`, `Viewshed_Compute`.** The ray walk rounds sample coordinates with
+  `Math.Round` in C# (banker's rounding, half-to-even) and `std::lround` in C++ (half away
+  from zero). Any ray whose sample lands exactly on `.5` walks a different cell — 43 cells out
+  of 250,000 on a 500×500 grid.
 
-That last row is native **losing**. A trace is three P/Invoke calls, each re-marshalling the
-whole element array; at 267 elements that is noise and the CSR traversal wins, at 4,603 it
-dominates. Worth keeping in the table rather than quietly dropping.
+Both are recorded here rather than quietly fixed alongside a measurement change; the parity
+check exists precisely to surface them.
 
-`facility_location_kernel`:
+#### Superseded numbers
 
-| Workload | Native | Managed | Speedup |
-|---|---:|---:|---:|
-| Shipped scenario 450×24, p=4, p90 | 8.5 ms | 10.6 ms | 1.25× |
-| Synthetic 1,600×120, p=10, p90 | 1,164 ms | 1,685 ms | 1.45× |
-| Synthetic 1,600×120, p=10, weighted mean | 12.0 ms | 26.8 ms | 2.23× |
+Earlier revisions of this file published single timed runs after one warmup, measured ad hoc
+and by different methods per kernel. Those figures are withdrawn in favour of the table above.
+Best-of-N and single-shot both reward a lucky run, and they systematically flatter whichever
+path has the higher variance — the previously published 1.66× for `spatial_graph_engine` was
+exactly that artifact. Where the new data disagrees with the old, the new number stands:
+`facility_location_kernel` weighted mean 2.23× → 1.65×, `spatial_graph_engine` Dijkstra
+1.66× → 1.26×, `change_detection_kernel` pipeline 1.24× → 1.06×, and `cat_risk_kernel` ring
+accumulation 1.09× → **0.98×**, which reverses the direction of the result. The 0.87× figure
+for a 4,603-element trace could not be reproduced at all: no public API yields a network that
+size, and the shipped one has 267 elements.
 
-The mean objective shows the bigger gap because it is a flat arithmetic loop; the p90
-objective spends most of its time sorting, and `Array.Sort` through a comparer delegate
-versus an inlined `std::sort` compresses the ratio.
+### Running the benchmarks
 
-`vrp_solver_kernel`, solve time only (matrix build and polyline expansion excluded):
+```powershell
+dotnet run --project Portfolio.Benchmarks -c Release
+```
 
-| Workload | Native | Managed | Speedup |
-|---|---:|---:|---:|
-| 60 stops, 5 improvement passes | 0.64 ms | 1.66 ms | 2.59× |
-| 90 stops, 31 passes | 4.89 ms | 11.41 ms | 2.33× |
-| 120 stops, 26 passes | 7.33 ms | 16.78 ms | 2.29× |
+That is the whole thing. The command builds both children, runs every workload on both paths,
+and prints the markdown table above plus the parity verdict. It takes a few minutes.
+
+The benchmark project copies the built kernels out of `Portfolio.Services/bin/Debug/net10.0`
+into its own output directory, so build the native libraries first (below) — otherwise the
+"native" child silently runs managed code and every row reads 1.00×. The harness reports which
+workloads that happened to.
+
+`--run` executes the workloads in the current process and emits JSON only; the parent uses it
+for the two children, and it is also how you measure one path by hand:
+
+```powershell
+$env:PORTFOLIO_DISABLE_NATIVE = "1"; dotnet run --project Portfolio.Benchmarks -c Release -- --run
+```
+
+`--diag` prints the raw results behind the parity checksums for the workloads that disagree,
+so a mismatch can be diffed rather than guessed at.
+
+`Portfolio.Benchmarks` is deliberately outside the test suite and outside CI: it is a
+measurement tool, and a timing assertion in CI is a flaky test waiting to happen.
 
 ### The lesson: it is not about the language
 
-**Two kernels were slower than the C# they were written to replace on first implementation**,
-and both for the same reason — allocation and hashing inside the hot loop:
+**Three kernels were slower than the C# they were written to replace**, all for the same
+reason — allocation and hashing inside the hot loop:
 
 - `network_trace_kernel` used `std::unordered_map<int, std::vector<int>>` for adjacency and
   measured **2.5× slower** than managed: a heap allocation per node plus a hash lookup per
   edge visit. Densified node ids, a CSR incidence array and cached per-element endpoint
-  indices — no hashing in the inner loop — turned it into a 1.29× win.
+  indices — no hashing in the inner loop — turned it into the 1.24× win above.
 - `vrp_solver_kernel` allocated a fresh `std::vector` per candidate move and measured
   **1.7× slower** (27 ms vs 16 ms at n=120). Hoisting three scratch buffers and reusing
-  capacity via `assign` produced the 2.29× win.
+  capacity via `assign` produced 2.27×.
+- `spatial_graph_engine` used `std::map<int, std::vector<Edge>>` — the same losing shape — and
+  lost on every workload it was tried on until it was rewritten to CSR.
 
 The .NET nursery allocator beats naive `malloc`/`new` in a tight loop. If a kernel here is
 losing to its fallback, look for allocation or hashing in the inner loop before blaming the
-runtime. **`spatial_graph_engine` still uses `std::map<int, std::vector<Edge>>`** — the same
-losing shape — and is a prime candidate for a CSR rewrite.
+runtime — and then look at how many times per second the boundary is crossed, because that is
+what the bottom of the table is really measuring. Fan triangulation at **0.34×** does three
+index assignments per triangle, so a full array marshal in and out buys nothing whatsoever.
 
 RyuJIT generates good scalar code for tight `double` loops, branch-heavy inner loops defeat
-auto-vectorisation on both sides, and P/Invoke array pinning costs part of the rest. **Seven
-kernels remain unmeasured and should be assumed to sit in the 1–2× range until they are.**
-The value demonstrated is the ABI boundary and the verified-identical fallback, not
-throughput. Making native genuinely win needs explicit SIMD intrinsics, thread-level
-parallelism, or batching to amortise the crossing — none of which any kernel does today.
+auto-vectorisation on both sides, and P/Invoke array pinning and copying cost the rest. The
+value demonstrated is the ABI boundary and the verified-identical fallback, not throughput.
+Making native genuinely win needs explicit SIMD intrinsics, thread-level parallelism, or
+batching to amortise the crossing — none of which any kernel does today.
+
 
 ### Two compilers' worth of flags
 

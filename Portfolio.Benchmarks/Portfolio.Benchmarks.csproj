@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>Portfolio.Benchmarks</RootNamespace>
+		<!-- Tiered PGO and OSR would change the shape of a 12-iteration measurement loop
+		     differently on each path. Nothing here is disabled: the point is to measure the
+		     runtime the application actually ships with. -->
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<InvariantGlobalization>true</InvariantGlobalization>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Portfolio.Common\Portfolio.Common.csproj" />
+		<ProjectReference Include="..\Portfolio.Repositories\Portfolio.Repositories.csproj" />
+		<ProjectReference Include="..\Portfolio.Services\Portfolio.Services.csproj" />
+	</ItemGroup>
+
+	<!--
+	  The native kernels are copied by each CMakeLists into Portfolio.Services/bin/Debug/net10.0
+	  and Portfolio.Web/bin/Debug/net10.0. The bridges probe AssemblyDirectory | ApplicationDirectory,
+	  so the benchmark host needs its own copy next to the executable. Missing libraries are not an
+	  error — the harness reports which kernels resolved natively, and a missing one shows up as a
+	  1.00x row with both paths managed.
+	-->
+	<Target Name="CopyNativeKernels" AfterTargets="Build">
+		<PropertyGroup>
+			<NativeKernelSourceDir>$(MSBuildThisFileDirectory)..\Portfolio.Services\bin\Debug\net10.0\</NativeKernelSourceDir>
+		</PropertyGroup>
+		<ItemGroup>
+			<NativeKernelName Include="portfolio_scoring;geostream_processor;spatial_geometry_kernel;raster_terrain_kernel;spatial_graph_engine;spatial_cluster_kernel;viewshed_kernel;spatial_overlay_kernel;cat_risk_kernel;change_detection_kernel;network_trace_kernel;facility_location_kernel;vrp_solver_kernel" />
+			<NativeKernelFile Include="@(NativeKernelName->'$(NativeKernelSourceDir)%(Identity).dll')" />
+			<NativeKernelFile Include="@(NativeKernelName->'$(NativeKernelSourceDir)lib%(Identity).so')" />
+			<NativeKernelFile Include="@(NativeKernelName->'$(NativeKernelSourceDir)%(Identity).so')" />
+			<NativeKernelFile Include="@(NativeKernelName->'$(NativeKernelSourceDir)lib%(Identity).dylib')" />
+			<NativeKernelPresent Include="@(NativeKernelFile)" Condition="Exists('%(Identity)')" />
+		</ItemGroup>
+		<Copy SourceFiles="@(NativeKernelPresent)"
+		      DestinationFolder="$(OutputPath)"
+		      SkipUnchangedFiles="true"
+		      Condition="'@(NativeKernelPresent)' != ''" />
+	</Target>
+
+</Project>
