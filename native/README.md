@@ -16,6 +16,7 @@ application runs correctly when the native library is absent.
 | `viewshed_kernel` | `native/viewshed_kernel/` | `ViewshedNativeBridge` | `ViewshedService` |
 | `spatial_overlay_kernel` | `native/spatial_overlay_kernel/` | `SpatialOverlayNativeBridge` | `SpatialOverlayService` |
 | `cat_risk_kernel` | `native/cat_risk_kernel/` | `CatRiskNativeBridge` | `CatRiskService` |
+| `vrp_solver_kernel` | `native/vrp_solver_kernel/` | `VrpSolverNativeBridge` | `FleetRoutingService` |
 
 Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`),
 so it is configured and built from its own directory.
@@ -185,7 +186,8 @@ native/
 ├── spatial_cluster_kernel/    ← DBSCAN density-based clustering
 ├── viewshed_kernel/           ← line-of-sight ray casting over elevation grids
 ├── spatial_overlay_kernel/    ← point-in-polygon spatial join
-└── cat_risk_kernel/           ← ring accumulation and Monte Carlo catastrophe loss simulation
+├── cat_risk_kernel/           ← ring accumulation and Monte Carlo catastrophe loss simulation
+└── vrp_solver_kernel/         ← CVRPTW: Clarke-Wright savings plus 2-opt / Or-opt local search
 ```
 
 Each kernel directory contains:

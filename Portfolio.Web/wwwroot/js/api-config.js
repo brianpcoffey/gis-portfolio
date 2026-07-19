@@ -92,6 +92,10 @@
                     book        : BASE + "/catrisk/book",
                     accumulation: BASE + "/catrisk/accumulation",
                     simulate    : BASE + "/catrisk/simulate"
+                },
+                fleet: {
+                    scenario: BASE + "/fleet/scenario",
+                    optimize: BASE + "/fleet/optimize"
                 }
             }
         }
