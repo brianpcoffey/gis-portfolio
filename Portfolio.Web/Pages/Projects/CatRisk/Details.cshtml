@@ -1,0 +1,109 @@
+@page
+@model Portfolio.Web.Pages.Projects.CatRisk.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Catastrophe Risk Analyzer – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-fire-flame-curved me-2"></i>Catastrophe Risk Analyzer – Technical Details</h1>
+		<a href="/Projects/CatRisk" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Catastrophe Risk Analyzer demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Answer the three questions that decide whether a property carrier stays solvent — where is my hazard, where am I concentrated, and what could a single season cost me.</li>
+			<li><strong>Domain:</strong> Catastrophe modelling for wildfire exposure. The deliverables are the same ones a real CAT model produces: exposure accumulation, <code>AAL</code> (average annual loss), <code>PML</code> (probable maximum loss), and the <code>OEP</code> (occurrence exceedance probability) curve.</li>
+			<li><strong>Dataset:</strong> A deterministic synthetic book of ~900 insured locations across six San Bernardino and Riverside county communities — genuine wildland-urban interface territory — paired with a 5,000-event stochastic wildfire catalog normalised to ~1.5 events per year.</li>
+			<li><strong>Statelessness:</strong> No database and no persistence. The book is generated once from a fixed-seed LCG, exactly like the OpenStreetMap road network powering the Route Planner, so every run is byte-identical.</li>
+			<li><strong>Scale:</strong> A default run is 900 locations × 5,000 events = 4.5 million site-event evaluations, plus an O(n²) ring accumulation pass over the book.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>Ring accumulation:</strong> For each location, sum the Total Insured Value of every location within a radius. Brute-force O(n²) haversine, guarded by a conservative bounding-box reject that skips the trigonometry when a pair is provably too far apart. This is the classic concentration control — one canyon fire can consume a year of premium.</li>
+			<li><strong>Hazard decay:</strong> Event intensity falls linearly from the epicenter to zero at the footprint edge, then scales by the location's own site hazard (derived from a slope proxy and distance to open fuel).</li>
+			<li><strong>Vulnerability curve:</strong> Mean damage ratio is <code>1 − e^(−α·i)</code> where <code>i</code> is site intensity. Monotone, bounded on [0, 1), and steep at low intensity — the α slider on the demo reshapes it live.</li>
+			<li><strong>Financial terms:</strong> Ground-up loss is TIV × MDR. Gross loss applies a percentage deductible and a limit: <code>clamp(groundUp − TIV·deductibleRate, 0, TIV·limitRate)</code>. Wildfire deductibles are percentage-of-value, not flat dollars.</li>
+			<li><strong>Exceedance curve:</strong> For a loss level L the annual exceedance rate is the summed frequency of every event whose loss exceeds L. Sorting descending by loss and accumulating rate yields one curve point per event, with return period = 1 / cumulative rate. Benchmark losses are interpolated log-linearly at 10, 25, 50, 100, 250 and 500 years; PML is the 250-year loss.</li>
+			<li><strong>Average annual loss:</strong> The rate-weighted mean of the per-event losses — the number that has to be priced into premium.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Endpoints:</strong> <code>GET /api/v1/catrisk/book</code>, <code>POST /api/v1/catrisk/accumulation</code>, <code>POST /api/v1/catrisk/simulate</code>.</li>
+			<li><strong>Versioning:</strong> <code>Asp.Versioning</code> with the version in the route template, matching every other API in the portfolio.</li>
+			<li><strong>Payload guards:</strong> <code>[RequestSizeLimit(8_000_000)]</code> on both POSTs — a full book plus a 20,000-event catalog is a large body — and <code>[EnableRateLimiting("expensive")]</code> on the controller, since each call is millions of floating-point evaluations.</li>
+			<li><strong>Caching:</strong> The book is a compile-time constant, so <code>GET /book</code> carries <code>[ResponseCache(Duration = 3600)]</code>.</li>
+			<li><strong>Error contract:</strong> Only <code>ArgumentException</code> is caught, returning <code>400</code> with <code>{ "error": "..." }</code>. The service's validation messages are therefore the public API contract and are written as user-facing text.</li>
+			<li><strong>Curve downsampling:</strong> A 20,000-event catalog would produce 20,000 curve points. The response emits 120 log-spaced samples instead, so the payload stays plottable regardless of catalog size.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Kernel:</strong> <code>cat_risk_kernel</code>, a C++20 shared library exposing <code>Cat_ComputeRingAccumulation</code> and <code>Cat_SimulateEventLosses</code> through a stable C ABI with <code>#pragma pack(push, 8)</code> structs and status-code returns.</li>
+			<li><strong>Where the boundary sits:</strong> The kernel returns raw per-event losses and per-location ring totals. AAL, the exceedance curve, and the benchmark interpolation are derived in C#. Dense parallel arithmetic goes native; statistical shaping stays managed where it is readable and unit-testable.</li>
+			<li><strong>Marshalling:</strong> Blittable <code>[StructLayout(Sequential, Pack = 8)]</code> structs with preallocated managed output arrays and explicit <code>[In]</code>/<code>[Out]</code> direction attributes. Native code never allocates across the boundary.</li>
+			<li><strong>Managed fallback:</strong> <code>CatRiskNativeBridge.IsAvailable</code> gates the native path. The managed implementation mirrors the kernel line for line — same haversine, same decay, same clamp order — so results are identical either way. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries, so what runs in production today is the managed path.</li>
+			<li><strong>Optimisation worth naming:</strong> Both paths bounding-box reject a pair before computing haversine. On a spatially clustered book most locations lie outside most event footprints, so the reject eliminates the majority of the trigonometry — the difference between a naive loop and one that understands its data.</li>
+			<li>
+				<strong>Measured speedup — and the honest answer:</strong> Native is only about <strong>1.1×</strong> faster than the managed fallback, with numerically identical results. Measured on the same machine, warm, over the shipped book:
+				<div class="table-responsive mt-2 mb-2">
+					<table class="table table-sm w-auto mb-0">
+						<thead>
+							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+						</thead>
+						<tbody>
+							<tr><td>Ring accumulation, 900 locations</td><td class="text-end">5.4 ms</td><td class="text-end">5.9 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><td>Ring accumulation, 5,000 locations</td><td class="text-end">166 ms</td><td class="text-end">186 ms</td><td class="text-end">1.12×</td></tr>
+							<tr><td>Simulation, 900 × 5,000 events</td><td class="text-end">51.6 ms</td><td class="text-end">56.3 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><td>Simulation, 5,000 × 12,000 events</td><td class="text-end">568 ms</td><td class="text-end">645 ms</td><td class="text-end">1.13×</td></tr>
+						</tbody>
+					</table>
+				</div>
+				Ring-TIV checksums match bit-for-bit; AAL differs only in the final ULP from floating-point summation order under <code>/fp:fast</code>.
+			</li>
+			<li><strong>Why the gap is small:</strong> RyuJIT generates good scalar code for tight <code>double</code> loops, so there is little headroom to reclaim. The inner loop is branch-heavy — the bounding-box reject short-circuits most iterations — which defeats auto-vectorisation on both sides, and P/Invoke array pinning eats part of what remains. Native code wins on this shape of workload only when it can do something the JIT will not: explicit SIMD intrinsics, thread-level parallelism over the event loop, or a memory layout the managed representation cannot express. None of those are in this kernel today.</li>
+			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across all nine kernels and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Stateless over persisted:</strong> The book could have been an EF Core entity with a seeded migration. It is generated in code instead — the portfolio already demonstrates EF seeding six times over, and a stateless kernel is the honest shape for a compute demo.</li>
+			<li><strong>O(n²) accumulation, deliberately:</strong> Ring analysis is quadratic and stays quadratic here. At 5,000 locations that is 25 million distance tests, which is exactly the workload that justifies the native path. A grid index or k-d tree would be the answer at 500,000 locations, and that is the interesting follow-up conversation rather than something to pre-optimise.</li>
+			<li><strong>Catalog subsampling preserves frequency:</strong> Shrinking the catalog in the UI resamples events and rescales their annual rates so total regional frequency stays fixed. Dropping events without rescaling would silently lower the modelled hazard and quietly flatter the results.</li>
+			<li><strong>Percentage deductibles:</strong> Modelled as a fraction of TIV rather than a flat dollar amount, because that is the wildfire convention. It materially changes the loss distribution's left tail — small events produce no claim at all.</li>
+			<li><strong>Hazard is terrain-driven:</strong> Site hazard is derived from position within the community and a slope proxy rather than drawn independently, so the exposure map reads as a gradient rather than noise.</li>
+			<li><strong>Self-contained SVG:</strong> Both the exposure map and the EP curve are hand-built SVG with CSS custom properties for colour, so the visuals follow the light/dark theme and the page carries no map-tile dependency.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>This kernel measures at 1.1× over managed C#. Was the native path worth building, and how would you decide that before writing it rather than after?</li>
+			<li>What would you change to make the native path genuinely faster — SIMD intrinsics, parallelising the event loop, or restructuring the data layout? Which gives the most speedup per unit of complexity, and what does each cost in portability?</li>
+			<li>Why does the EP curve use exceedance <em>rate</em> rather than a simple percentile of the loss distribution — and what breaks if events are not independent?</li>
+			<li>Where is the boundary between OEP and AEP, and which one does a reinsurance treaty attach to?</li>
+			<li>The vulnerability curve is <code>1 − e^(−α·i)</code>. What real-world properties does that shape have, and where does it fail?</li>
+			<li>Ring accumulation is O(n²). At what book size does that stop being acceptable, and what would you replace it with — a grid index, an R-tree, or a k-d tree? What does each cost you?</li>
+			<li>Deductibles here are percentage-of-TIV rather than flat dollars. Why is that the wildfire convention, and how would flat deductibles change the loss distribution?</li>
+			<li>The native kernel returns per-event losses and the managed layer derives AAL and the EP curve. Why draw the boundary there instead of returning the finished curve from C++?</li>
+			<li>How would you validate this model against actual loss experience?</li>
+		</ul>
+	</section>
+</div>

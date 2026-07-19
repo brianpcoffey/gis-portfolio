@@ -15,9 +15,30 @@ application runs correctly when the native library is absent.
 | `spatial_cluster_kernel` | `native/spatial_cluster_kernel/` | `SpatialClusterNativeBridge` | `SpatialClusterService` |
 | `viewshed_kernel` | `native/viewshed_kernel/` | `ViewshedNativeBridge` | `ViewshedService` |
 | `spatial_overlay_kernel` | `native/spatial_overlay_kernel/` | `SpatialOverlayNativeBridge` | `SpatialOverlayService` |
+| `cat_risk_kernel` | `native/cat_risk_kernel/` | `CatRiskNativeBridge` | `CatRiskService` |
 
 Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`),
 so it is configured and built from its own directory.
+
+### Measured speedup
+
+Only `cat_risk_kernel` has been benchmarked against its managed fallback so far. The result
+is **~1.1×**, with bit-identical outputs:
+
+| Workload | Native | Managed | Speedup |
+|---|---:|---:|---:|
+| Ring accumulation, 900 locations | 5.4 ms | 5.9 ms | 1.09× |
+| Ring accumulation, 5,000 locations | 166 ms | 186 ms | 1.12× |
+| Simulation, 900 × 5,000 events | 51.6 ms | 56.3 ms | 1.09× |
+| Simulation, 5,000 × 12,000 events | 568 ms | 645 ms | 1.13× |
+
+RyuJIT generates good scalar code for tight `double` loops, the branch-heavy inner loops
+defeat auto-vectorisation on both sides, and P/Invoke array pinning costs part of the rest.
+**Do not assume the other eight kernels are faster than their fallbacks until they are
+measured.** The value demonstrated here is the ABI boundary and the verified-identical
+fallback, not throughput. Making native genuinely win on these workloads needs explicit
+SIMD intrinsics, thread-level parallelism, or a memory layout the managed side cannot
+express — none of which any kernel does today.
 
 ---
 
@@ -34,7 +55,7 @@ so it is configured and built from its own directory.
 ## Building on Windows (Visual Studio)
 
 Build a single kernel by pointing `-S` at its directory (repeat per kernel, or script
-a loop over the eight directories):
+a loop over the nine directories):
 
 ```powershell
 # From the repo root — example: the scoring kernel
@@ -55,7 +76,8 @@ cmake --build build/native/portfolio_scoring --config Release
 
 Swap `portfolio_scoring` for `geostream_processor`, `spatial_geometry_kernel`,
 `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`,
-`viewshed_kernel`, or `spatial_overlay_kernel` to build the other kernels.
+`viewshed_kernel`, `spatial_overlay_kernel`, or `cat_risk_kernel` to build the
+other kernels.
 
 ---
 
@@ -107,7 +129,16 @@ COPY --from=build /src/build/native/geostream_processor/geostream_processor.so /
 COPY --from=build /src/build/native/spatial_geometry_kernel/spatial_geometry_kernel.so /app/publish/
 COPY --from=build /src/build/native/raster_terrain_kernel/raster_terrain_kernel.so /app/publish/
 COPY --from=build /src/build/native/spatial_graph_engine/spatial_graph_engine.so /app/publish/
+COPY --from=build /src/build/native/spatial_cluster_kernel/spatial_cluster_kernel.so /app/publish/
+COPY --from=build /src/build/native/viewshed_kernel/viewshed_kernel.so /app/publish/
+COPY --from=build /src/build/native/spatial_overlay_kernel/spatial_overlay_kernel.so /app/publish/
+COPY --from=build /src/build/native/cat_risk_kernel/cat_risk_kernel.so /app/publish/
 ```
+
+> **The repository `Dockerfile` does not do this today** — it contains no CMake stage and
+> copies no native libraries. Every kernel therefore runs its managed fallback in the
+> deployed container, and the UI correctly reports "Native: No". The block above is what
+> would need to be added, together with a build stage that configures and builds each kernel.
 
 ---
 
@@ -121,13 +152,22 @@ is present (absent → both sides run the managed path). Run it:
 dotnet test Portfolio.Tests --filter "FullyQualifiedName~NativeScoringBridgeTests"
 ```
 
-The other four kernels (geostream, geometry, raster terrain, spatial graph) are currently covered by
-managed-path correctness tests in `SpatialComputeServiceTests` (asserting results with
-`NativeAccelerated == false`) rather than dedicated native-parity tests. Run that suite:
+The other kernels are covered by managed-path correctness tests (asserting results with
+`NativeAccelerated == false`) rather than dedicated native-parity tests, spread across three suites:
 
 ```powershell
+# geostream, geometry, raster terrain, spatial graph
 dotnet test Portfolio.Tests --filter "FullyQualifiedName~SpatialComputeServiceTests"
+# clustering, viewshed, overlay
+dotnet test Portfolio.Tests --filter "FullyQualifiedName~HotspotViewshedOverlayServiceTests"
+# catastrophe risk
+dotnet test Portfolio.Tests --filter "FullyQualifiedName~CatRiskServiceTests"
 ```
+
+`cat_risk_kernel` additionally has an out-of-band parity check: running the same workload
+with and without the shared library present produced bit-identical ring-TIV checksums, with
+AAL differing only in the final ULP from floating-point summation order under `/fp:fast`.
+That comparison is not yet automated in the test suite.
 
 Numeric kernels assert equality within a small floating-point tolerance (rounding only).
 
@@ -141,7 +181,11 @@ native/
 ├── geostream_processor/       ← GPS telemetry parsing, filtering, grid aggregation, anomaly detection
 ├── spatial_geometry_kernel/   ← fan triangulation and bounding-box clipping
 ├── raster_terrain_kernel/     ← hillshade, slope/aspect, Gaussian heatmap
-└── spatial_graph_engine/      ← Dijkstra / A* shortest path and service-area computation
+├── spatial_graph_engine/      ← Dijkstra / A* shortest path and service-area computation
+├── spatial_cluster_kernel/    ← DBSCAN density-based clustering
+├── viewshed_kernel/           ← line-of-sight ray casting over elevation grids
+├── spatial_overlay_kernel/    ← point-in-polygon spatial join
+└── cat_risk_kernel/           ← ring accumulation and Monte Carlo catastrophe loss simulation
 ```
 
 Each kernel directory contains:

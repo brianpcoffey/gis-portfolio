@@ -14,7 +14,7 @@
 ![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
 ![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
-![xUnit](https://img.shields.io/badge/xUnit-494_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-534_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -56,7 +56,9 @@ Razor Page / API Controller  (Portfolio.Web)
 
 This portfolio uses a native-kernel pattern for compute-heavy spatial workflows where lower-level control is technically justified. ASP.NET Core owns the product/API layer, C# services validate inputs and map DTOs, and native C++20 libraries expose stable C ABIs consumed through P/Invoke. Each native-backed workflow must remain portable: `IsAvailable` gates the native path and a managed C# fallback preserves functionality when the shared library is absent.
 
-Eight native integrations are implemented today — the Home Finder scoring kernel plus the geostream, geometry, raster-terrain, routing, clustering, viewshed, and overlay kernels listed in the table below, each with C++ source, a P/Invoke bridge, and a managed C# fallback. The same pattern is intended for future spatial compute projects where benchmarks can demonstrate a real need for native code rather than treating C++ as a decorative dependency.
+Nine native integrations are implemented today — the Home Finder scoring kernel plus the geostream, geometry, raster-terrain, routing, clustering, viewshed, overlay, and catastrophe-risk kernels listed in the table below, each with C++ source, a P/Invoke bridge, and a managed C# fallback.
+
+**On the actual speedup:** the catastrophe-risk kernel is the first one benchmarked against its managed fallback, and the honest result is **~1.1×** — 568 ms vs 645 ms on a 5,000-location × 12,000-event simulation, with bit-identical ring checksums. RyuJIT generates good scalar code for tight `double` loops, the branch-heavy inner loop defeats auto-vectorisation on both sides, and P/Invoke array pinning eats part of what is left. Native code wins on this shape of workload only when it does something the JIT will not — explicit SIMD intrinsics, thread-level parallelism, or a memory layout the managed representation cannot express — and this kernel does none of those yet. The remaining eight kernels are not yet benchmarked and should be assumed to be in the same range until they are. The architectural value here is the *boundary* — a stable C ABI with a verified-identical managed fallback — not a performance claim.
 
 | Project | Native Library | Status | Native Role |
 |---|---|---|---|
@@ -68,6 +70,7 @@ Eight native integrations are implemented today — the Home Finder scoring kern
 | Hotspot Clusterer | `spatial_cluster_kernel` | Implemented | density-based (DBSCAN) clustering with a tight neighbor-query distance loop over contiguous points |
 | Viewshed Analyzer | `viewshed_kernel` | Implemented | line-of-sight ray casting over dense elevation grids with observer-height modeling |
 | Spatial Overlay / Zone Tagger | `spatial_overlay_kernel` | Implemented | point-in-polygon spatial join (even-odd ray casting) over a flat zone-vertex buffer |
+| Catastrophe Risk Analyzer | `cat_risk_kernel` | Implemented | O(n²) ring accumulation and Monte Carlo event-loss simulation over contiguous exposure/event buffers |
 
 The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, clustering, visibility, spatial overlay, and scoring. The managed fallback is production behavior, not only a test convenience.
 
@@ -289,6 +292,22 @@ Point-in-polygon spatial join API that tags each point with the zone that contai
 
 ---
 
+### 🔥 Catastrophe Risk Analyzer
+Property-insurance catastrophe model for wildfire exposure. Answers the three questions that decide whether a carrier stays solvent: where the hazard is, where the book is concentrated, and what a bad year could cost. Produces the same deliverables a real CAT model does — exposure accumulation, average annual loss, probable maximum loss, and the occurrence exceedance probability curve.
+
+- **Ring accumulation** — for each location, the summed Total Insured Value within a radius, flagging concentration-limit breaches. Brute-force O(n²) haversine with a conservative bounding-box reject that skips the trigonometry when a pair is provably too far apart
+- **Monte Carlo event-loss simulation** — a 5,000-event stochastic wildfire catalog against ~900 insured locations (4.5M site-event evaluations). Intensity decays linearly from the epicenter, scales by site hazard, maps through a `1 − e^(−α·i)` vulnerability curve to a mean damage ratio, then applies a percentage deductible and a limit
+- **OEP curve, AAL, and PML** — exceedance rate is the summed frequency of every event exceeding a loss level, so sorting by loss and accumulating rate yields the curve directly. Benchmark losses are interpolated log-linearly at 10/25/50/100/250/500 years; PML is the 250-year loss
+- Deterministic synthetic book across six San Bernardino / Riverside wildland-urban-interface communities, generated from a fixed-seed LCG with terrain-driven site hazard — no database, no persistence
+- **Benchmarked against its own managed fallback: ~1.1× speedup, bit-identical results.** The Details page carries the measurement table and explains why the gap is small
+- Self-contained SVG throughout — an exposure map (marker size = TIV, colour = site hazard) and a log-scale EP curve, both theme-aware
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
+
+**API:** `GET /api/v1/catrisk/book`, `POST /api/v1/catrisk/accumulation`, `POST /api/v1/catrisk/simulate`
+
+---
+
 ## Technology Stack
 
 | Layer | Technology |
@@ -301,7 +320,7 @@ Point-in-polygon spatial join API that tags each point with the zone that contai
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
-| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across eight kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`, `spatial_overlay_kernel`) |
+| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across nine kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`, `spatial_overlay_kernel`, `cat_risk_kernel`) |
 | API Docs | Scalar / OpenAPI (all environments), XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
@@ -389,7 +408,7 @@ The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Program.cs` via 
 dotnet test
 ```
 
-494 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
+534 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
 
 ---
 

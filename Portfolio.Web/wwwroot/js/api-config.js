@@ -87,6 +87,11 @@
                 },
                 overlay: {
                     spatialJoin: BASE + "/overlay/spatial-join"
+                },
+                catRisk: {
+                    book        : BASE + "/catrisk/book",
+                    accumulation: BASE + "/catrisk/accumulation",
+                    simulate    : BASE + "/catrisk/simulate"
                 }
             }
         }

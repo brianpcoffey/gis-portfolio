@@ -1,0 +1,100 @@
+@page
+@model Portfolio.Web.Pages.Projects.CatRisk.IndexModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Catastrophe Risk Analyzer";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+<link rel="stylesheet" href="~/css/spatialcompute.css" />
+
+<div class="spatial-compute-page theme-root">
+	<div class="project-hero py-4 mb-4">
+		<div class="container">
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+				<div>
+					<h1 class="mb-1"><i class="fa-solid fa-fire-flame-curved me-2"></i>Catastrophe Risk Analyzer</h1>
+					<p class="text-muted theme-text-muted mb-0">Wildfire exposure concentration and Monte Carlo loss simulation over a property book — ring accumulation, average annual loss, and the occurrence exceedance probability curve, backed by a native C++ kernel.</p>
+				</div>
+				<div class="d-flex align-items-center gap-2">
+					<span class="badge badge-gis fs-6"><i class="fa-solid fa-chart-line me-1"></i>C++ CAT Kernel</span>
+					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/CatRisk/Details" aria-label="View technical details for Catastrophe Risk Analyzer" title="Technical Details">
+						<i class="fa-solid fa-circle-info"></i>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="container pb-5">
+		<div id="catAlert" class="alert alert-danger d-none" role="alert"></div>
+		<div class="row g-4">
+			<div class="col-lg-4">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Analysis Controls</strong></div>
+					<div class="card-body d-flex flex-column gap-3">
+						<div>
+							<label for="catRadius" class="form-label small">Ring radius (km)</label>
+							<input id="catRadius" class="form-control" type="number" min="1" max="50" step="1" value="3" />
+						</div>
+						<div>
+							<label for="catLimit" class="form-label small">Concentration limit ($M)</label>
+							<input id="catLimit" class="form-control" type="number" min="1" max="1000" step="5" value="200" />
+						</div>
+						<div>
+							<label for="catAlpha" class="form-label small">
+								Vulnerability &alpha; <span id="catAlphaValue" class="text-accent fw-semibold">3.0</span>
+							</label>
+							<input id="catAlpha" class="form-range" type="range" min="0.5" max="8" step="0.1" value="3" />
+						</div>
+						<div>
+							<label for="catCatalog" class="form-label small">Event catalog size</label>
+							<select id="catCatalog" class="form-select">
+								<option value="1000">1,000 events</option>
+								<option value="5000" selected>5,000 events</option>
+							</select>
+						</div>
+						<button id="catRunBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Run Analysis</button>
+						<button id="catReloadBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Reload Book</button>
+						<div>
+							<div class="small text-muted theme-text-muted mb-2">Exposure by community</div>
+							<div id="catCommunityTable"></div>
+						</div>
+						<pre id="catSummary" class="sample-json mt-auto mb-0"></pre>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-8">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-chart-area text-accent"></i><strong>Portfolio Risk</strong></div>
+					<div class="card-body">
+						<div class="row g-3 mb-3">
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="catKpiTiv" class="kpi-value">&ndash;</div><div class="kpi-label">Total Insured Value</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="catKpiAal" class="kpi-value">&ndash;</div><div class="kpi-label">Average Annual Loss</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="catKpiPml" class="kpi-value">&ndash;</div><div class="kpi-label">PML (1-in-250)</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="catKpiBreaches" class="kpi-value">&ndash;</div><div class="kpi-label">Concentration Breaches</div></div></div>
+						</div>
+
+						<div class="mb-2 small text-muted theme-text-muted">
+							<i class="fa-solid fa-location-dot me-1"></i>Exposure map &mdash; marker size is TIV, colour is site hazard. Rings above the concentration limit are outlined.
+						</div>
+						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3 mb-4">
+							<svg id="catExposureSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 560px; aspect-ratio: 1;" aria-label="Wildfire exposure map of the policy book"></svg>
+						</div>
+
+						<div class="mb-2 small text-muted theme-text-muted">
+							<i class="fa-solid fa-chart-line me-1"></i>Occurrence exceedance probability curve &mdash; loss against return period, log scale.
+						</div>
+						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
+							<svg id="catCurveSvg" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 620px;" aria-label="Occurrence exceedance probability curve"></svg>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script src="~/js/CatRisk/app.js" asp-append-version="true"></script>
+}
