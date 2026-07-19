@@ -40,6 +40,7 @@ speedup means nothing.
 Measured on 20 logical cores, .NET 10.0.9, Windows 11:
 
 | Kernel | Workload | Native median | Managed median | Speedup | Native min–max | Managed min–max | Parity |
+|---|---|---:|---:|---:|---:|---:|---|
 | `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 108 ms | 107 ms | 0.99x | 98.4 ms–112 ms | 79.3 ms–117 ms | exact |
 | `geostream_processor` | parse + filter + grid aggregate, 40 x 10,000 events | 92.4 ms | 54.9 ms | 0.59x | 73.1 ms–153 ms | 32.0 ms–114 ms | exact |
 | `spatial_geometry_kernel` | fan triangulation, 400 x 5,000 vertices | 188 ms | 70.2 ms | 0.37x | 170 ms–192 ms | 66.0 ms–86.4 ms | exact |
