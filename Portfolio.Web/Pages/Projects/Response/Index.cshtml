@@ -1,0 +1,123 @@
+@page
+@model Portfolio.Web.Pages.Projects.Response.IndexModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Emergency Response Coverage Optimizer";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+<link rel="stylesheet" href="~/css/spatialcompute.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.css"
+	  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+<div class="spatial-compute-page theme-root">
+	<div class="project-hero py-4 mb-4">
+		<div class="container">
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+				<div>
+					<h1 class="mb-1"><i class="fa-solid fa-truck-medical me-2"></i>Emergency Response Coverage Optimizer</h1>
+					<p class="text-muted theme-text-muted mb-0">Where do the fire stations go? Drive-time isochrones over the real Redlands street network plus p-median station siting against call-weighted demand, scored on the NFPA 1710 four-minute travel standard.</p>
+				</div>
+				<div class="d-flex align-items-center gap-2">
+					<span class="badge badge-gis fs-6"><i class="fa-solid fa-location-crosshairs me-1"></i>C++ Facility Location</span>
+					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Response/Details" aria-label="View technical details for the Emergency Response Coverage Optimizer" title="Technical Details">
+						<i class="fa-solid fa-circle-info"></i>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="container pb-5">
+		<div id="responseAlert" class="alert alert-danger d-none" role="alert"></div>
+		<div class="row g-4">
+			<div class="col-lg-4">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Coverage Controls</strong></div>
+					<div class="card-body d-flex flex-column gap-3">
+						<div>
+							<label for="responseStations" class="form-label small">
+								Stations to site <span id="responseStationsValue" class="text-accent fw-semibold">4</span>
+							</label>
+							<input id="responseStations" class="form-range" type="range" min="1" max="8" step="1" value="4" />
+						</div>
+						<div>
+							<div class="form-label small mb-1">Objective</div>
+							<div class="form-check">
+								<input class="form-check-input" type="radio" name="responseObjective" id="responseObjectiveMean" value="0" />
+								<label class="form-check-label small" for="responseObjectiveMean">Mean response time</label>
+							</div>
+							<div class="form-check">
+								<input class="form-check-input" type="radio" name="responseObjective" id="responseObjectiveP90" value="1" checked />
+								<label class="form-check-label small" for="responseObjectiveP90">90th percentile (NFPA 1710)</label>
+							</div>
+							<div class="form-check">
+								<input class="form-check-input" type="radio" name="responseObjective" id="responseObjectiveCoverage" value="2" />
+								<label class="form-check-label small" for="responseObjectiveCoverage">Maximum coverage</label>
+							</div>
+						</div>
+						<div>
+							<label for="responseSpeed" class="form-label small">Average apparatus speed (km/h)</label>
+							<input id="responseSpeed" class="form-control" type="number" min="5" max="120" step="1" value="40" />
+						</div>
+						<div class="row g-2">
+							<div class="col-6">
+								<label for="responseFirstThreshold" class="form-label small">First-due (min)</label>
+								<input id="responseFirstThreshold" class="form-control" type="number" min="1" max="20" step="0.5" value="4" />
+							</div>
+							<div class="col-6">
+								<label for="responseSecondThreshold" class="form-label small">ALS (min)</label>
+								<input id="responseSecondThreshold" class="form-control" type="number" min="1" max="30" step="0.5" value="8" />
+							</div>
+						</div>
+						<div class="form-check">
+							<input class="form-check-input" type="checkbox" id="responseShowIsochrone" checked />
+							<label class="form-check-label small" for="responseShowIsochrone">Paint isochrone bands when a station is clicked</label>
+						</div>
+						<button id="responseOptimizeBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Optimize Stations</button>
+						<button id="responseIsochroneBtn" class="btn btn-outline-accent"><i class="fa-solid fa-clock me-1"></i>Show Isochrone</button>
+						<button id="responseResetBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Reset to Existing</button>
+						<div>
+							<div class="small text-muted theme-text-muted mb-2">Chosen stations</div>
+							<div id="responseStationList" class="result-list"></div>
+						</div>
+						<pre id="responseSummary" class="sample-json mt-auto mb-0"></pre>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-8">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-shield-halved text-accent"></i><strong>Coverage Performance</strong></div>
+					<div class="card-body">
+						<div class="row g-3 mb-3">
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="responseKpiP90" class="kpi-value">&ndash;</div><div class="kpi-label">p90 Response</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="responseKpiFirst" class="kpi-value">&ndash;</div><div class="kpi-label">Within First-Due</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="responseKpiSecond" class="kpi-value">&ndash;</div><div class="kpi-label">Within ALS</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="responseKpiNfpa" class="kpi-value">&ndash;</div><div class="kpi-label">NFPA 1710</div></div></div>
+						</div>
+
+						<div id="responseComparison" class="alert alert-secondary py-2 px-3 small mb-3 d-none" role="status"></div>
+
+						<div class="mb-2 small text-muted theme-text-muted">
+							<i class="fa-solid fa-location-dot me-1"></i>Demand and districting &mdash; circle size is call volume, colour is response time. Click any station marker to paint its drive-time bands.
+						</div>
+						<div id="responseMap" class="spatial-map-panel mb-4" style="min-height: 460px;" aria-label="Redlands response coverage map"></div>
+
+						<div class="mb-2 small text-muted theme-text-muted">
+							<i class="fa-solid fa-chart-column me-1"></i>Response-time distribution &mdash; call volume per one-minute bin. The outline is today's stations, the bars are the optimized siting.
+						</div>
+						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
+							<svg id="responseHistogramSvg" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px;" aria-label="Response-time histogram"></svg>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script src="https://unpkg.com/leaflet@@1.9.4/dist/leaflet.js"
+		integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<script src="~/js/Response/app.js" asp-append-version="true"></script>
+}

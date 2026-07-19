@@ -92,6 +92,11 @@
                     book        : BASE + "/catrisk/book",
                     accumulation: BASE + "/catrisk/accumulation",
                     simulate    : BASE + "/catrisk/simulate"
+                },
+                response: {
+                    scenario : BASE + "/response/scenario",
+                    isochrone: BASE + "/response/isochrone",
+                    optimize : BASE + "/response/optimize"
                 }
             }
         }
