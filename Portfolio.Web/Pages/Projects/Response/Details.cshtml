@@ -1,0 +1,115 @@
+@page
+@model Portfolio.Web.Pages.Projects.Response.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Emergency Response Coverage Optimizer – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-truck-medical me-2"></i>Emergency Response Coverage Optimizer – Technical Details</h1>
+		<a href="/Projects/Response" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to the Emergency Response Coverage Optimizer demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Answer the question a fire chief has to defend in front of a city council — where do the stations go, and does the result meet the standard we are measured against?</li>
+			<li><strong>Domain:</strong> Public-safety response planning. The deliverables are the ones a deployment analyst actually produces: drive-time <code>isochrones</code>, a <code>p-median</code> siting, first-due <code>districting</code>, and an <code>NFPA 1710</code> compliance verdict.</li>
+			<li><strong>NFPA 1710:</strong> The career-department standard. A first-due engine on scene within four minutes of travel time and an ALS unit within eight, for 90% of incidents. Both thresholds are request parameters so the model can be re-scored against a local target.</li>
+			<li><strong>Dataset:</strong> 450 demand points and 24 candidate sites, every one of them a real node on the 2,530-node OpenStreetMap Redlands street network. Two of the candidates are the stations in service today, which supplies the baseline.</li>
+			<li><strong>Demand is clustered, not uniform:</strong> Call volume follows six districts — a downtown core and hospital corridor generating the bulk of the medical-aid volume, dense residential moderate, and a remote industrial fringe low. Uniform demand makes every siting look equally good and the optimizer has nothing to find.</li>
+			<li><strong>Statelessness:</strong> No database. The scenario is generated once from a fixed-seed LCG against the cached road graph, so every run is byte-identical. The graph is fetched server-side; the page never uploads it.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>Travel-time matrix:</strong> One row-major cost matrix of every candidate against every demand point, built by running Dijkstra once per candidate over a single prebuilt adjacency structure. 24 × 450 = 10,800 cells in roughly 18 ms.</li>
+			<li><strong>Distance to time happens outside the search:</strong> Edge costs stay in along-road kilometres and are converted to minutes only after the graph search finishes. A*'s haversine heuristic is admissible only while costs are distances; if minutes ever leaked into the edges it would quietly start returning suboptimal routes.</li>
+			<li><strong>Greedy seed:</strong> Open the single candidate that scores best alone, then repeatedly open whichever remaining candidate improves the objective most, until the requested station count is reached.</li>
+			<li><strong>Teitz-Bart vertex substitution:</strong> Each pass evaluates every (open facility, closed candidate) swap and applies the single best improving one, stopping when no swap helps. p-median is NP-hard; this is a local-search heuristic with no optimality guarantee.</li>
+			<li><strong>The optimization that makes it tractable:</strong> The loop caches the <em>nearest</em> and <em>second-nearest</em> open facility per demand point. Dropping the facility in a given slot leaves the points it served on their second-nearest and leaves everything else on its current nearest, so one pass over the incoming candidate's row finishes the trial. That turns each of the p × (candidates − p) trials per pass from <code>O(demand × p)</code> into <code>O(demand)</code>. Caching only the nearest breaks it: on removal there is no way to know what a point falls back to without rescanning every open facility.</li>
+			<li><strong>Weighted p90, and why it is not the p90 of the list:</strong> Demand points are ordered by response time, call volume is accumulated, and the reported value is the response time at which cumulative volume first crosses 90% of the total. A single heavy neighbourhood can set the p90 on its own. Taking the unweighted 90th element instead is the single most revealing bug in this problem — it silently reports the geometry of the demand points rather than the experience of the callers.</li>
+			<li><strong>Three objectives, one comparator:</strong> Weighted mean, weighted p90, and maximum coverage (expressed as the fraction of demand <em>not</em> reached within the threshold) all return "lower is better", so the search treats them uniformly. Switching between them moves the chosen stations — on the shipped scenario at four stations the mean objective picks sites 1, 2, 3, 5 and the p90 objective picks 1, 2, 3, 4.</li>
+			<li><strong>Isochrones:</strong> The graph engine's one-to-all pass returns the cost to every node; the service converts to minutes and buckets into ascending half-open bands. Every reachable node lands in exactly one band, and nodes with no path are counted separately rather than silently dropped.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Endpoints:</strong> <code>GET /api/v1/response/scenario</code>, <code>POST /api/v1/response/isochrone</code>, <code>POST /api/v1/response/optimize</code>.</li>
+			<li><strong>Versioning:</strong> <code>Asp.Versioning</code> with the version in the route template, matching every other API in the portfolio.</li>
+			<li><strong>Payload guards:</strong> <code>[RequestSizeLimit(4_000_000)]</code> on both POSTs and <code>[EnableRateLimiting("expensive")]</code> on the controller — a solve is thousands of Dijkstras' worth of derived work plus a heuristic search.</li>
+			<li><strong>Caching:</strong> The scenario is deterministic, so <code>GET /scenario</code> carries <code>[ResponseCache(Duration = 3600)]</code>.</li>
+			<li><strong>The graph stays server-side:</strong> The Route Planner page downloads ~425 KB of graph and re-uploads it on every request. This page never sees the graph — it posts 450 demand points and 24 sites, and the service resolves node ids against the cached network itself.</li>
+			<li><strong>Error contract:</strong> Only <code>ArgumentException</code> is caught, returning <code>400</code> with <code>{ "error": "..." }</code>. The service's validation messages are therefore the public API contract and are written as user-facing text.</li>
+			<li><strong>Infinity does not survive JSON:</strong> Unreachable demand points would carry <code>+∞</code> through the assignment array. They are projected to candidate <code>0</code> and zero minutes at the DTO boundary rather than serialised as a value the client cannot parse.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Kernel:</strong> <code>facility_location_kernel</code>, a C++20 shared library exposing <code>Facility_SolvePMedian</code> and <code>Facility_EvaluateCoverage</code> through a stable C ABI with status-code returns and caller-allocated output buffers.</li>
+			<li><strong>Where the boundary sits:</strong> The kernel takes flat primitive buffers — a cost matrix, a weight vector, a facility count — and returns candidate indices, an assignment array, and the distribution statistics. Everything that needs domain identifiers (candidate ids, demand ids, the NFPA verdict) is assembled in C#, so DTO construction lives in exactly one place.</li>
+			<li><strong>Two kernels, one page:</strong> The travel-time matrix and the isochrone come from <code>spatial_graph_engine</code>; the siting search comes from <code>facility_location_kernel</code>. The isochrone result reports the graph engine's availability, the optimization result reports the facility kernel's.</li>
+			<li><strong>Managed fallback:</strong> <code>FacilityLocationNativeBridge.IsAvailable</code> gates the native path. The managed implementation mirrors the kernel line for line — same greedy seed, same substitution order, same improvement epsilon, same tie-breaking comparator — so both paths choose the same stations. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries.</li>
+			<li><strong>No fast math, deliberately:</strong> Every other kernel compiles with <code>/fp:fast</code>. This one does not. Unreachable demand points carry positive infinity through the entire search, and fast math permits the compiler to assume infinities never occur. Precise semantics also keep the objective identical to the managed path, which is what the parity check asserts.</li>
+			<li><strong>Tie-breaking is part of the contract:</strong> Sorting demand points by response time alone is not a total order, and two sort implementations may order equal values differently — which changes the weighted percentile. Both paths sort on (response time, index), which is total, so the percentile is reproducible across the boundary.</li>
+			<li>
+				<strong>Measured speedup:</strong> Native runs between <strong>1.2×</strong> and <strong>2.2×</strong> the managed fallback depending on the objective, with identical results. Measured on the same machine, warm, averaged over repeated runs:
+				<div class="table-responsive mt-2 mb-2">
+					<table class="table table-sm w-auto mb-0">
+						<thead>
+							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+						</thead>
+						<tbody>
+							<tr><td>Shipped scenario, 450 × 24, 4 stations, p90</td><td class="text-end">8.5 ms</td><td class="text-end">10.6 ms</td><td class="text-end">1.25×</td></tr>
+							<tr><td>Synthetic 800 × 60, 8 stations, p90</td><td class="text-end">139 ms</td><td class="text-end">170 ms</td><td class="text-end">1.22×</td></tr>
+							<tr><td>Synthetic 1,600 × 120, 10 stations, p90</td><td class="text-end">1,164 ms</td><td class="text-end">1,685 ms</td><td class="text-end">1.45×</td></tr>
+							<tr><td>Synthetic 1,600 × 120, 10 stations, weighted mean</td><td class="text-end">12.0 ms</td><td class="text-end">26.8 ms</td><td class="text-end">2.23×</td></tr>
+						</tbody>
+					</table>
+				</div>
+				Chosen station sets, per-demand assignments, the full iteration trace, and all five distribution statistics match exactly on every case.
+			</li>
+			<li><strong>Why the p90 gap is smaller than the mean gap:</strong> The mean objective is a flat arithmetic loop, which is where native code has the most room. The p90 objective sorts the demand array on every trial, and the two sorts are not comparable work — <code>std::sort</code> inlines its comparator while <code>Array.Sort</code> dispatches through a <code>Comparer&lt;int&gt;</code> delegate. Most of the p90 run time is that sort on both sides, which compresses the ratio. Replacing the per-trial sort with an incremental order-statistic structure would speed up both paths far more than the language choice does.</li>
+			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across every kernel in the portfolio and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Travel time only:</strong> The model reports travel time, not response time. Turnout time, dispatch processing, and traffic are all excluded, and the page says so. Real NFPA reporting adds roughly 60–80 seconds of turnout on top of everything shown here, so the absolute numbers are optimistic even though the comparisons between sitings are not.</li>
+			<li><strong>Nearest station always responds:</strong> Every demand point is assigned to its closest open station. Reality is unit availability — the first-due engine is frequently already on a call, and the second-due unit is the one that actually arrives. Modelling that needs a queueing model with call arrival rates and service times, which is a different project.</li>
+			<li><strong>Isochrones as node sets, not polygons:</strong> The result is a coloured set of road-network nodes. That is honest about what was actually computed; a polygon would imply coverage of the space between the roads, which the model never evaluated.</li>
+			<li><strong>Bands are 2/4/8/12, not 4/8/12:</strong> The plan called for the three NFPA bands. On a network with a 6.7 km maximum extent that painted almost everything one colour, so an extra two-minute band was added purely so the visualisation carries information. Calibrating to the measured behaviour of the data rather than to round numbers is the point.</li>
+			<li><strong>Existing stations are also candidates:</strong> The optimizer may keep them, which is what makes the baseline comparison fair. It is not forced to — a real siting study operates under the political constraint that closing a station is usually off the table, and that would be a hard constraint on the search rather than an incentive.</li>
+			<li><strong>Best-improvement, not first-improvement:</strong> Each substitution pass evaluates every swap and applies the best one. First-improvement converges in fewer evaluations per pass but takes more passes and lands somewhere different; best-improvement makes the objective trace monotone and easy to explain.</li>
+			<li><strong>A reusable graph handle is the obvious next step:</strong> Every native call re-marshals the entire node and edge array. A <code>Graph_Create</code>/<code>Graph_Destroy</code> pair would amortise that across the whole matrix build, and it is the single highest-leverage change available — but it breaks the stateless-kernel convention every other kernel here follows, so it is a conversation rather than a commit.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>NFPA 1710 is written as a 90th percentile, not a mean. Why does that distinction change where you put stations, and what does optimizing the mean hide?</li>
+			<li>p-median is NP-hard and Teitz-Bart is a local-search heuristic. How far from optimal can it be, and how would you bound that?</li>
+			<li>Weighted p90 is not the p90 of the unweighted list. Why does that matter here, and what would you see in the output if someone got it wrong?</li>
+			<li>The substitution loop caches nearest and second-nearest distances per demand point. Explain the speedup, and what breaks if you only cache the nearest.</li>
+			<li>Response time here is travel only — no turnout, no dispatch delay, no traffic. Which of those most distorts the answer, and how would you get real numbers?</li>
+			<li>Isochrones are computed as node sets, not polygons. When would you need real polygons, and how would you build them from the node set?</li>
+			<li>This model assumes the nearest station always responds. What actually happens when it is already on a call, and how would you model unit availability?</li>
+			<li>How would you handle the political constraint that you cannot close an existing station?</li>
+			<li>The native kernel is 1.2× to 2.2× faster depending on the objective. What does that spread tell you about where the time is actually going, and would you have predicted it before measuring?</li>
+		</ul>
+	</section>
+</div>

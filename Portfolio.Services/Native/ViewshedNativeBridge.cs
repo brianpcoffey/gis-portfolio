@@ -12,6 +12,12 @@ namespace Portfolio.Services.Native
         {
             try
             {
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "viewshed_kernel",
                     typeof(ViewshedNativeBridge).Assembly,

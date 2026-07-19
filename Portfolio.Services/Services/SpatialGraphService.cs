@@ -10,6 +10,7 @@ namespace Portfolio.Services.Services
     {
         private const int MaxNodeCount = 5000;
         private const int MaxEdgeCount = 20000;
+        private const int MaxMatrixCells = 250_000;
         // Average road speed assumed for travel-time estimates (km/h).
         private const double AvgSpeedKmh = 40.0;
 
@@ -98,6 +99,112 @@ namespace Portfolio.Services.Services
                     .OrderBy(id => id)
                     .ToList()
             });
+        }
+
+        // Computes the cost from one origin to every node, parallel to graph.Nodes.
+        // Unlike ComputeServiceAreaAsync this keeps the costs, which is what isochrone
+        // banding and facility-location assignment need.
+        public Task<double[]> ComputeDistancesAsync(
+            RoadGraphDto graph,
+            int originNodeId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(graph);
+            ValidateGraph(graph.Nodes, graph.Edges);
+
+            var nodeIds = new HashSet<int>(graph.Nodes.Count);
+            foreach (var n in graph.Nodes) nodeIds.Add(n.Id);
+            if (!nodeIds.Contains(originNodeId))
+                throw new ArgumentException("Origin node must exist in the graph.", nameof(originNodeId));
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (SpatialGraphNativeBridge.TryComputeDistances(graph.Nodes, graph.Edges, originNodeId, _logger, out var native))
+                return Task.FromResult(native!);
+
+            var distances = ComputeDistances(graph.Nodes, graph.Edges, originNodeId, cancellationToken);
+            var result = new double[graph.Nodes.Count];
+            for (var i = 0; i < graph.Nodes.Count; i++)
+                result[i] = distances.TryGetValue(graph.Nodes[i].Id, out var d) ? d : double.PositiveInfinity;
+
+            return Task.FromResult(result);
+        }
+
+        // Row-major cost matrix between two node sets. The managed fallback builds the
+        // adjacency structure once and reuses it across every source, mirroring the native
+        // kernel — rebuilding it per source is what makes a naive matrix quadratic.
+        public Task<double[]> ComputeDistanceMatrixAsync(
+            RoadGraphDto graph,
+            IReadOnlyList<int> sourceIds,
+            IReadOnlyList<int> targetIds,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(graph);
+            ValidateGraph(graph.Nodes, graph.Edges);
+
+            if (sourceIds is null || sourceIds.Count == 0)
+                throw new ArgumentException("At least one source node is required.", nameof(sourceIds));
+            if (targetIds is null || targetIds.Count == 0)
+                throw new ArgumentException("At least one target node is required.", nameof(targetIds));
+            if ((long)sourceIds.Count * targetIds.Count > MaxMatrixCells)
+                throw new ArgumentException($"Distance matrices are limited to {MaxMatrixCells} cells.", nameof(sourceIds));
+
+            var nodeIds = new HashSet<int>(graph.Nodes.Count);
+            foreach (var n in graph.Nodes) nodeIds.Add(n.Id);
+            foreach (var id in sourceIds)
+                if (!nodeIds.Contains(id))
+                    throw new ArgumentException("Every source node must exist in the graph.", nameof(sourceIds));
+            foreach (var id in targetIds)
+                if (!nodeIds.Contains(id))
+                    throw new ArgumentException("Every target node must exist in the graph.", nameof(targetIds));
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (SpatialGraphNativeBridge.TryComputeDistanceMatrix(graph.Nodes, graph.Edges, sourceIds, targetIds, _logger, out var native))
+                return Task.FromResult(native!);
+
+            var adjacency = BuildAdjacency(graph.Edges, graph.Nodes.Count);
+            var matrix = new double[sourceIds.Count * targetIds.Count];
+
+            for (var s = 0; s < sourceIds.Count; s++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var distances = ComputeDistances(adjacency, graph.Nodes, sourceIds[s], cancellationToken);
+                for (var t = 0; t < targetIds.Count; t++)
+                {
+                    matrix[s * targetIds.Count + t] =
+                        distances.TryGetValue(targetIds[t], out var d) ? d : double.PositiveInfinity;
+                }
+            }
+
+            return Task.FromResult(matrix);
+        }
+
+        // Linear scan over the node list. At ~2,500 nodes this is well under a millisecond,
+        // so a spatial index would be complexity without benefit.
+        public int SnapToNearestNode(RoadGraphDto graph, double latitude, double longitude)
+        {
+            ArgumentNullException.ThrowIfNull(graph);
+            if (graph.Nodes is null || graph.Nodes.Count == 0)
+                throw new ArgumentException("Graph must contain at least one node.", nameof(graph));
+            if (double.IsNaN(latitude) || double.IsInfinity(latitude) || double.IsNaN(longitude) || double.IsInfinity(longitude))
+                throw new ArgumentException("Coordinates must be finite values.", nameof(latitude));
+
+            var probe = new GraphNodeDto { Latitude = latitude, Longitude = longitude };
+            var bestId = graph.Nodes[0].Id;
+            var bestDistance = double.PositiveInfinity;
+
+            foreach (var node in graph.Nodes)
+            {
+                var d = Haversine(probe, node);
+                if (d < bestDistance)
+                {
+                    bestDistance = d;
+                    bestId = node.Id;
+                }
+            }
+
+            return bestId;
         }
 
         private static RouteResultDto FindShortestPathDijkstra(RouteRequestDto request, CancellationToken cancellationToken)
@@ -298,12 +405,24 @@ namespace Portfolio.Services.Services
 
         private static Dictionary<int, double> ComputeDistances(IReadOnlyList<GraphNodeDto> nodes, IReadOnlyList<GraphEdgeDto> edges, int originNodeId, CancellationToken cancellationToken)
         {
+            var adjacency = BuildAdjacency(edges, nodes.Count);
+            return ComputeDistances(adjacency, nodes, originNodeId, cancellationToken);
+        }
+
+        // Single-source Dijkstra over a prebuilt adjacency structure. Split out so the
+        // distance matrix can build the adjacency once and reuse it across every source
+        // rather than rebuilding it per search.
+        private static Dictionary<int, double> ComputeDistances(
+            Dictionary<int, List<AdjEdge>> adjacency,
+            IReadOnlyList<GraphNodeDto> nodes,
+            int originNodeId,
+            CancellationToken cancellationToken)
+        {
             var distances = new Dictionary<int, double>(nodes.Count);
             foreach (var n in nodes) distances[n.Id] = double.PositiveInfinity;
 
             var settled = new HashSet<int>(nodes.Count);
             var queue = new PriorityQueue<int, double>(nodes.Count);
-            var adjacency = BuildAdjacency(edges, nodes.Count);
 
             distances[originNodeId] = 0;
             queue.Enqueue(originNodeId, 0);
@@ -322,8 +441,15 @@ namespace Portfolio.Services.Services
                 {
                     if (settled.Contains(edge.To))
                         continue;
+                    // Edges may reference a node that was never declared. Skip them rather
+                    // than indexing (which throws) — this mirrors the native kernel, where
+                    // the equivalent std::map lookup would silently insert a zero-cost
+                    // phantom node instead.
+                    if (!distances.TryGetValue(edge.To, out var known))
+                        continue;
+
                     var candidate = curDist + edge.Cost;
-                    if (candidate >= distances[edge.To])
+                    if (candidate >= known)
                         continue;
 
                     distances[edge.To] = candidate;

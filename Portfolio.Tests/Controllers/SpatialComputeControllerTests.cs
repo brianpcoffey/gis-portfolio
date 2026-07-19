@@ -257,5 +257,111 @@ namespace Portfolio.Tests.Controllers
             var dto = Assert.IsType<GeoStreamBatchResultDto>(ok.Value);
             Assert.True(dto.NativeAccelerated);
         }
+
+        // ── Catastrophe Risk Analyzer ───────────────────────────────────────────
+
+        [Fact]
+        public async Task CatRiskGetBook_ReturnsOk()
+        {
+            // Arrange
+            var service = new Mock<ICatRiskService>();
+            service.Setup(s => s.GetPolicyBookAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new PolicyBookDto { BookName = "Test Book", LocationCount = 3 });
+            var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
+
+            // Act
+            var result = await controller.GetBook(CancellationToken.None);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var dto = Assert.IsType<PolicyBookDto>(ok.Value);
+            Assert.Equal(3, dto.LocationCount);
+        }
+
+        [Fact]
+        public async Task CatRiskAccumulation_ValidRequest_ReturnsOk()
+        {
+            // Arrange
+            var service = new Mock<ICatRiskService>();
+            service.Setup(s => s.ComputeAccumulationAsync(It.IsAny<AccumulationRequestDto>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new AccumulationResultDto { BreachCount = 2, RadiusKm = 5 });
+            var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
+
+            // Act
+            var result = await controller.Accumulation(new AccumulationRequestDto(), CancellationToken.None);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var dto = Assert.IsType<AccumulationResultDto>(ok.Value);
+            Assert.Equal(2, dto.BreachCount);
+        }
+
+        [Fact]
+        public async Task CatRiskAccumulation_ServiceArgumentException_ReturnsBadRequest()
+        {
+            // Arrange
+            var service = new Mock<ICatRiskService>();
+            service.Setup(s => s.ComputeAccumulationAsync(It.IsAny<AccumulationRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Ring radius must be between 0 and 200 km."));
+            var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
+
+            // Act
+            var result = await controller.Accumulation(new AccumulationRequestDto(), CancellationToken.None);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task CatRiskSimulate_ValidRequest_ReturnsOk()
+        {
+            // Arrange
+            var service = new Mock<ICatRiskService>();
+            service.Setup(s => s.SimulateAsync(It.IsAny<SimulationRequestDto>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new SimulationResultDto { AverageAnnualLoss = 1234, ProbableMaximumLoss = 98765 });
+            var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
+
+            // Act
+            var result = await controller.Simulate(new SimulationRequestDto(), CancellationToken.None);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var dto = Assert.IsType<SimulationResultDto>(ok.Value);
+            Assert.Equal(1234, dto.AverageAnnualLoss);
+        }
+
+        [Fact]
+        public async Task CatRiskSimulate_ServiceArgumentException_ReturnsBadRequest()
+        {
+            // Arrange
+            var service = new Mock<ICatRiskService>();
+            service.Setup(s => s.SimulateAsync(It.IsAny<SimulationRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("At least one catastrophe event is required."));
+            var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
+
+            // Act
+            var result = await controller.Simulate(new SimulationRequestDto(), CancellationToken.None);
+
+            // Assert
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task CatRiskSimulate_ReturnsNativeAcceleratedFlag()
+        {
+            // Arrange — service reports native acceleration used
+            var service = new Mock<ICatRiskService>();
+            service.Setup(s => s.SimulateAsync(It.IsAny<SimulationRequestDto>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new SimulationResultDto { NativeAccelerated = true });
+            var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
+
+            // Act
+            var result = await controller.Simulate(new SimulationRequestDto(), CancellationToken.None);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var dto = Assert.IsType<SimulationResultDto>(ok.Value);
+            Assert.True(dto.NativeAccelerated);
+        }
     }
 }

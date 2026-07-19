@@ -87,6 +87,29 @@
                 },
                 overlay: {
                     spatialJoin: BASE + "/overlay/spatial-join"
+                },
+                catRisk: {
+                    book        : BASE + "/catrisk/book",
+                    accumulation: BASE + "/catrisk/accumulation",
+                    simulate    : BASE + "/catrisk/simulate"
+                },
+                change: {
+                    scene : BASE + "/change/scene",
+                    detect: BASE + "/change/detect"
+                },
+                outage: {
+                    network: BASE + "/outage/network",
+                    trace  : BASE + "/outage/trace",
+                    restore: BASE + "/outage/restore"
+                },
+                response: {
+                    scenario : BASE + "/response/scenario",
+                    isochrone: BASE + "/response/isochrone",
+                    optimize : BASE + "/response/optimize"
+                },
+                fleet: {
+                    scenario: BASE + "/fleet/scenario",
+                    optimize: BASE + "/fleet/optimize"
                 }
             }
         }

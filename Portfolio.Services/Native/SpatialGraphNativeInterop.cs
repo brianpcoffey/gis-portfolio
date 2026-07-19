@@ -17,7 +17,10 @@ namespace Portfolio.Services.Native
             int endNodeId,
             [Out] int[] outputNodeIds,
             int outputCapacity,
-            out GraphPathResultNative result);
+            out GraphPathResultNative result,
+            [Out] int[] outExploredNodeIds,
+            int exploredCapacity,
+            out int outExploredCount);
 
         [DllImport(LibName, EntryPoint = "Graph_ComputeServiceArea", CallingConvention = CallingConvention.Cdecl)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory)]
@@ -31,5 +34,30 @@ namespace Portfolio.Services.Native
             [Out] int[] reachableNodeIds,
             int outputCapacity,
             out int reachableCount);
+
+        [DllImport(LibName, EntryPoint = "Graph_ComputeDistances", CallingConvention = CallingConvention.Cdecl)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory)]
+        internal static extern int ComputeDistances(
+            [In] GraphNodeNative[] nodes,
+            int nodeCount,
+            [In] GraphEdgeNative[] edges,
+            int edgeCount,
+            int originNodeId,
+            [Out] double[] outDistances,
+            int outputLength);
+
+        [DllImport(LibName, EntryPoint = "Graph_ComputeDistanceMatrix", CallingConvention = CallingConvention.Cdecl)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory)]
+        internal static extern int ComputeDistanceMatrix(
+            [In] GraphNodeNative[] nodes,
+            int nodeCount,
+            [In] GraphEdgeNative[] edges,
+            int edgeCount,
+            [In] int[] sourceIds,
+            int sourceCount,
+            [In] int[] targetIds,
+            int targetCount,
+            [Out] double[] outMatrix,
+            int outputLength);
     }
 }

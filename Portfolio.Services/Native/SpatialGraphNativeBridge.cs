@@ -12,6 +12,12 @@ namespace Portfolio.Services.Native
         {
             try
             {
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "spatial_graph_engine",
                     typeof(SpatialGraphNativeBridge).Assembly,
@@ -75,12 +81,98 @@ namespace Portfolio.Services.Native
             }
         }
 
+        internal static bool TryComputeDistances(
+            IReadOnlyList<GraphNodeDto> nodes,
+            IReadOnlyList<GraphEdgeDto> edges,
+            int originNodeId,
+            ILogger logger,
+            out double[]? distances)
+        {
+            distances = null;
+            if (!_available)
+                return false;
+
+            try
+            {
+                var nativeNodes = nodes.Select(MapNode).ToArray();
+                var nativeEdges = edges.Select(MapEdge).ToArray();
+                var output = new double[Math.Max(1, nativeNodes.Length)];
+
+                var status = SpatialGraphNativeInterop.ComputeDistances(
+                    nativeNodes, nativeNodes.Length,
+                    nativeEdges, nativeEdges.Length,
+                    originNodeId,
+                    output, output.Length);
+
+                // A non-negative status is the reachable-node count, not a failure.
+                if (status < 0)
+                    throw new InvalidOperationException($"Native spatial graph engine failed with status {status}.");
+
+                distances = output;
+                return true;
+            }
+            catch (Exception ex) when (IsNativeInvocationException(ex))
+            {
+                logger.LogWarning(ex, "Native one-to-all distance computation failed; falling back to managed graph implementation.");
+                return false;
+            }
+        }
+
+        internal static bool TryComputeDistanceMatrix(
+            IReadOnlyList<GraphNodeDto> nodes,
+            IReadOnlyList<GraphEdgeDto> edges,
+            IReadOnlyList<int> sourceIds,
+            IReadOnlyList<int> targetIds,
+            ILogger logger,
+            out double[]? matrix)
+        {
+            matrix = null;
+            if (!_available)
+                return false;
+
+            try
+            {
+                var nativeNodes = nodes.Select(MapNode).ToArray();
+                var nativeEdges = edges.Select(MapEdge).ToArray();
+                var sources = sourceIds.ToArray();
+                var targets = targetIds.ToArray();
+                var output = new double[Math.Max(1, sources.Length * targets.Length)];
+
+                var status = SpatialGraphNativeInterop.ComputeDistanceMatrix(
+                    nativeNodes, nativeNodes.Length,
+                    nativeEdges, nativeEdges.Length,
+                    sources, sources.Length,
+                    targets, targets.Length,
+                    output, output.Length);
+
+                ThrowIfFailed(status);
+
+                matrix = output;
+                return true;
+            }
+            catch (Exception ex) when (IsNativeInvocationException(ex))
+            {
+                logger.LogWarning(ex, "Native distance-matrix computation failed; falling back to managed graph implementation.");
+                return false;
+            }
+        }
+
         internal static RouteResultDto FindShortestPath(RouteRequestDto request)
         {
             var nodes = request.Nodes.Select(MapNode).ToArray();
             var edges = request.Edges.Select(MapEdge).ToArray();
             var output = new int[Math.Max(1, nodes.Length)];
-            var status = SpatialGraphNativeInterop.FindShortestPath(nodes, nodes.Length, edges, edges.Length, request.StartNodeId, request.EndNodeId, output, output.Length, out var result);
+            // The search settles at most every node once, so the node count is an exact
+            // upper bound on the explored set — it can never be truncated.
+            var explored = new int[Math.Max(1, nodes.Length)];
+            var status = SpatialGraphNativeInterop.FindShortestPath(
+                nodes, nodes.Length,
+                edges, edges.Length,
+                request.StartNodeId, request.EndNodeId,
+                output, output.Length,
+                out var result,
+                explored, explored.Length,
+                out var exploredCount);
             ThrowIfFailed(status);
 
             return new RouteResultDto
@@ -88,7 +180,9 @@ namespace Portfolio.Services.Native
                 NativeAccelerated = true,
                 Found = result.Found == 1,
                 TotalCost = result.TotalCost,
-                NodeIds = output.Take(result.PathCount).ToList()
+                NodeIds = output.Take(result.PathCount).ToList(),
+                ExploredNodes = exploredCount,
+                ExploredNodeIds = explored.Take(exploredCount).ToList()
             };
         }
 

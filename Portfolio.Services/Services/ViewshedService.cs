@@ -73,8 +73,13 @@ namespace Portfolio.Services.Services
                     for (var i = 1; i < steps; i++)
                     {
                         var fraction = (double)i / steps;
-                        var cx = (int)Math.Round(request.ObserverX + dx * fraction);
-                        var cy = (int)Math.Round(request.ObserverY + dy * fraction);
+                        // Half-up, stated explicitly. Math.Round rounds half to even and the
+                        // native kernel's std::lround rounds half away from zero, so relying
+                        // on either default made the two paths walk a different cell whenever
+                        // a sample landed exactly on .5. Sample coordinates are always
+                        // non-negative here, so Floor(v + 0.5) is unambiguous.
+                        var cx = (int)Math.Floor(request.ObserverX + dx * fraction + 0.5);
+                        var cy = (int)Math.Floor(request.ObserverY + dy * fraction + 0.5);
                         var distance = fraction * targetDistance;
                         if (distance <= 0)
                             continue;

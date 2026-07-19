@@ -4,6 +4,8 @@ bin/
 obj/
 TestResults/
 native/build/
+# The documented CMake commands write to <repo>/build/native/<kernel>, not native/build/.
+build/
 
 # Local environment & secrets.
 # appsettings.json is committed as the secret-free base config (ArcGis base URL and
@@ -12,3 +14,6 @@ native/build/
 .env
 Portfolio.Web/appsettings.Development.json
 DataProtection-Keys/
+
+# Agent worktrees created by Claude Code (each is its own checkout).
+.claude/worktrees/

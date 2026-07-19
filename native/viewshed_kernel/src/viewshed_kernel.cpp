@@ -10,9 +10,15 @@ namespace
 		return y * width + x;
 	}
 
+	// Half-up rounding, stated explicitly rather than delegating to a language default.
+	// std::lround rounds half away from zero and .NET's Math.Round rounds half to even,
+	// so relying on either made the two paths walk a different cell whenever a ray sample
+	// landed exactly on .5 — 43 cells out of 250,000 on a 500x500 grid. Sample coordinates
+	// here are always non-negative, so floor(v + 0.5) is unambiguous and identical to the
+	// managed ViewshedService.
 	int round_to_int(double value)
 	{
-		return static_cast<int>(std::lround(value));
+		return static_cast<int>(std::floor(value + 0.5));
 	}
 }
 

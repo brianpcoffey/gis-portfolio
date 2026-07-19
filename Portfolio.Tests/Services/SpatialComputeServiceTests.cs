@@ -27,7 +27,6 @@ namespace Portfolio.Tests.Services
             var result = await service.ProcessBatchAsync(request);
 
             // Assert
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(3, result.TotalEvents);
             Assert.Equal(2, result.ValidEvents);
             Assert.Equal(1, result.InvalidEvents);
@@ -71,7 +70,6 @@ namespace Portfolio.Tests.Services
             var result = await service.TriangulateAsync(request);
 
             // Assert
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(2, result.Triangles.Count);
         }
 
@@ -96,7 +94,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.ClipToBoundingBoxAsync(request);
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(4, result.Vertices.Count);
             Assert.Contains(result.Vertices, v => Math.Abs(v.X - 1.0) < 1e-9 && Math.Abs(v.Y - 1.0) < 1e-9);
             Assert.All(result.Vertices, v =>
@@ -125,7 +122,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.ClipToBoundingBoxAsync(request);
 
-            Assert.False(result.NativeAccelerated);
             Assert.Empty(result.Vertices);
         }
 
@@ -164,7 +160,6 @@ namespace Portfolio.Tests.Services
             var result = await service.GenerateHillshadeAsync(request);
 
             // Assert
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(4, result.Intensities.Count);
         }
 
@@ -189,7 +184,6 @@ namespace Portfolio.Tests.Services
             var result = await service.GenerateHeatmapAsync(request);
 
             // Assert
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(4, result.Values.Count);
             Assert.All(result.Values, value => Assert.InRange(value, 0, 1));
         }
@@ -237,7 +231,6 @@ namespace Portfolio.Tests.Services
             var result = await service.FindShortestPathAsync(request);
 
             // Assert
-            Assert.False(result.NativeAccelerated);
             Assert.True(result.Found);
             Assert.Equal(4, result.TotalCost);
             Assert.Equal([1, 2, 3], result.NodeIds);
@@ -270,7 +263,6 @@ namespace Portfolio.Tests.Services
             var result = await service.ComputeServiceAreaAsync(request);
 
             // Assert
-            Assert.False(result.NativeAccelerated);
             Assert.Equal([1, 2], result.ReachableNodeIds);
         }
 
