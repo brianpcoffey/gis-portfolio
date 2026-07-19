@@ -1,5 +1,6 @@
 # Brian Patrick Coffey – Software Engineering Portfolio
 
+[![CI](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/ci.yml)
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-10.0-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-14.0-239120?style=flat&logo=csharp&logoColor=white)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat&logo=cplusplus&logoColor=white)

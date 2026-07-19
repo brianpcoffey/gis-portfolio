@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # The gate. Runs the suite the way a clean clone does: no native libraries
+  # present, every kernel on its managed fallback.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Central package management means one file pins every version, so it is
+      # an exact cache key for the whole restore graph.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        run: >
+          dotnet test Portfolio.Tests --no-build -c Release
+          --logger "trx;LogFileName=test-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Builds all thirteen C++ kernels and runs the suite again with them present.
+  #
+  # This is the job that matters most. NativeParityTests no-op when the shared
+  # libraries are absent, so the gate above never exercises a single line of
+  # C++. Two real defects shipped precisely because nothing compared the two
+  # implementations: a bounding-box clip that clamped vertices instead of
+  # clipping the polygon, and a viewshed ray walk whose rounding disagreed with
+  # the managed path. Both would have failed here.
+  # ---------------------------------------------------------------------------
+  native-parity:
+    name: Native kernels & parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Debug, because each kernel's CMakeLists copies its output into
+      # bin/Debug/net10.0 by default.
+      - name: Build solution
+        run: dotnet build -c Debug
+
+      - name: Build native kernels
+        run: |
+          set -euo pipefail
+          for dir in native/*/; do
+            kernel=$(basename "$dir")
+            [ -f "$dir/CMakeLists.txt" ] || continue
+            echo "::group::$kernel"
+            cmake -S "$dir" -B "build/native/$kernel" -DCMAKE_BUILD_TYPE=Release
+            cmake --build "build/native/$kernel" --config Release
+            echo "::endgroup::"
+          done
+
+      - name: Stage kernels into the test output
+        run: |
+          set -euo pipefail
+          out=Portfolio.Tests/bin/Debug/net10.0
+          mkdir -p "$out"
+          find build/native -name '*.so' -exec cp -v {} "$out/" \;
+          echo "Kernels staged: $(find "$out" -name '*.so' | wc -l)"
+
+      - name: Test with native kernels present
+        run: dotnet test Portfolio.Tests --no-build -c Debug --logger "console;verbosity=normal"
+
+      # The fallback is production behaviour — the deployed container compiles no
+      # native code — so it gets asserted explicitly rather than assumed.
+      - name: Test again with the native path disabled
+        env:
+          PORTFOLIO_DISABLE_NATIVE: '1'
+        run: dotnet test Portfolio.Tests --no-build -c Debug --logger "console;verbosity=normal"
+
+  # ---------------------------------------------------------------------------
+  # The production image. Adding Portfolio.Benchmarks to the solution once broke
+  # this build and nothing caught it until a deploy failed.
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Optional deploy gate. Inert until BOTH of these are true:
+  #   1. RENDER_DEPLOY_HOOK is set as a repository secret
+  #      (Render -> service -> Settings -> Deploy Hook)
+  #   2. Auto-Deploy is switched OFF in Render
+  #
+  # Until then Render keeps deploying every push to main directly, which means
+  # a red build still ships. With both in place, only a green build deploys.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to Render
+    needs: [test, native-parity, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "${RENDER_DEPLOY_HOOK}" ]; then
+            echo "RENDER_DEPLOY_HOOK is not set — skipping."
+            echo "Render's own auto-deploy is presumably still handling this."
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST "${RENDER_DEPLOY_HOOK}"
+          echo "Deploy triggered."
