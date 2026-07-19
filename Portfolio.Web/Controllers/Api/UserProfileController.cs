@@ -66,10 +66,15 @@ namespace Portfolio.Web.Controllers.Api
         [HttpGet("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ProfileDto), 200)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetById(Guid userId, CancellationToken cancellationToken)
         {
+            // Object-level authorization: a user may only read their own profile.
+            if (_profileService.GetCurrentUserId() != userId)
+                return Forbid();
+
             var profile = await _profileService.GetProfileByIdAsync(userId, cancellationToken);
             if (profile == null) return NotFound();
             return Ok(profile);
@@ -88,7 +93,13 @@ namespace Portfolio.Web.Controllers.Api
         public async Task<IActionResult> GetByGoogleId(string googleId, CancellationToken cancellationToken)
         {
             var profile = await _profileService.GetProfileByGoogleIdAsync(googleId, cancellationToken);
-            if (profile == null) return NotFound();
+
+            // Object-level authorization: a user may only read their own profile. Return an
+            // identical NotFound whether the account is absent or simply not the caller's, so
+            // this cannot be used as an oracle to probe which Google ids have accounts.
+            if (profile == null || profile.UserId != _profileService.GetCurrentUserId())
+                return NotFound();
+
             return Ok(profile);
         }
 

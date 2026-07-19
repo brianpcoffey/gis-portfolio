@@ -1,8 +1,35 @@
-﻿@page
+@page
 @model PrivacyModel
 @{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
+<div class="container py-4">
+    <h1>@ViewData["Title"]</h1>
+    <p class="text-muted">Last updated: @DateTime.Now.ToString("MMMM yyyy")</p>
 
-<p>Use this page to detail your site's privacy policy.</p>
+    <p>
+        This site is a personal software-engineering portfolio. It does not sell products and does
+        not collect personal information for advertising.
+    </p>
+
+    <h2 class="h5 mt-4">What is stored</h2>
+    <ul>
+        <li>An anonymous identifier cookie, so your saved searches, features, and collections persist between visits.</li>
+        <li>If you sign in with Google, your name, email address, and profile picture are stored to identify your account.</li>
+        <li>Standard server logs (request paths, timestamps, error details) for reliability and security.</li>
+    </ul>
+
+    <h2 class="h5 mt-4">Third-party services</h2>
+    <p>
+        Sign-in is handled by Google OAuth. Mapping, geocoding, and address features call Esri/ArcGIS
+        services with the locations you enter. No data is sold or shared for advertising.
+    </p>
+
+    <h2 class="h5 mt-4">Your choices</h2>
+    <p>
+        You can sign out at any time and delete your profile and associated data from your account
+        page. Clearing your browser cookies removes the anonymous identifier.
+    </p>
+
+    <p>Questions? <a href="/#contact">Get in touch</a>.</p>
+</div>

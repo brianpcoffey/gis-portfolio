@@ -98,14 +98,14 @@ body.dark-mode .pagination .page-item.disabled .page-link {
 /* Plant Operations Dashboard custom styles: Only add rules not covered by site/Bootstrap. */
 
 /* Example: Highlight for low stock alert */
-.fiberflow-low-stock {
+.plant-ops-low-stock {
     background: var(--accent-light);
     color: var(--surface);
     font-weight: bold;
 }
 
 /* GIS map container - FIXED: prevent overflow */
-.fiberflow-map-wrapper {
+.plant-ops-map-wrapper {
     height: 100%;
     min-height: 400px;
     width: 100%;
@@ -121,7 +121,7 @@ body.dark-mode .pagination .page-item.disabled .page-link {
     overflow: hidden;
 }
 
-.fiberflow-map {
+.plant-ops-map {
     width: 100%;
     height: 100%;
     min-height: 368px;
@@ -132,9 +132,9 @@ body.dark-mode .pagination .page-item.disabled .page-link {
 }
 
 /* Ensure map canvas and overlays fit perfectly */
-#fiberflowMap .esri-view-root,
-#fiberflowMap .esri-view-surface,
-#fiberflowMap canvas {
+#plantOpsMap .esri-view-root,
+#plantOpsMap .esri-view-surface,
+#plantOpsMap canvas {
     width: 100% !important;
     height: 100% !important;
     border-radius: 8px;
@@ -143,17 +143,17 @@ body.dark-mode .pagination .page-item.disabled .page-link {
 
 /* Responsive: reduce padding on small screens */
 @media (max-width: 600px) {
-    .fiberflow-map-wrapper {
+    .plant-ops-map-wrapper {
         padding: 6px;
         border-radius: 8px;
     }
-    .fiberflow-map {
+    .plant-ops-map {
         border-radius: 6px;
     }
 }
 
 /* D3 chart container */
-.fiberflow-chart {
+.plant-ops-chart {
     min-height: 320px;
     width: 100%;
     margin-bottom: 2rem;
@@ -175,19 +175,19 @@ body.dark-mode .pagination .page-item.disabled .page-link {
 }
 
 /* Responsive tweaks for Orders/Shipments tabs */
-.fiberflow-tabs-card .tab-content {
+.plant-ops-tabs-card .tab-content {
     width: 100%;
     overflow-x: auto;
 }
-.fiberflow-tabs-card .table {
+.plant-ops-tabs-card .table {
     min-width: 600px;
     width: 100%;
 }
 @media (max-width: 767.98px) {
-    .fiberflow-tabs-card .tab-content {
+    .plant-ops-tabs-card .tab-content {
         padding: 0.25rem 0;
     }
-    .fiberflow-tabs-card .table {
+    .plant-ops-tabs-card .table {
         min-width: 400px;
         font-size: 0.95rem;
     }

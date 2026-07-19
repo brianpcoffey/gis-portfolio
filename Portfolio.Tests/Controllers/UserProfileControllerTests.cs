@@ -77,9 +77,10 @@ namespace Portfolio.Tests.Controllers
         // ── GetById ─────────────────────────────────────────────────────
 
         [Fact]
-        public async Task GetById_WhenFound_ReturnsOk()
+        public async Task GetById_WhenSelf_ReturnsOk()
         {
-            // Arrange
+            // Arrange — caller requests their own profile.
+            _serviceMock.Setup(s => s.GetCurrentUserId()).Returns(_testUserId);
             var dto = new ProfileDto { UserId = _testUserId };
             _serviceMock
                 .Setup(s => s.GetProfileByIdAsync(_testUserId, It.IsAny<CancellationToken>()))
@@ -94,9 +95,26 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetById_WhenNotFound_ReturnsNotFound()
+        public async Task GetById_WhenDifferentUser_ReturnsForbid()
+        {
+            // Arrange — caller requests someone else's profile (IDOR guard).
+            _serviceMock.Setup(s => s.GetCurrentUserId()).Returns(Guid.NewGuid());
+
+            // Act
+            var result = await _controller.GetById(_testUserId, CancellationToken.None);
+
+            // Assert — never reaches the profile lookup.
+            Assert.IsType<ForbidResult>(result);
+            _serviceMock.Verify(
+                s => s.GetProfileByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task GetById_WhenSelfButNotFound_ReturnsNotFound()
         {
             // Arrange
+            _serviceMock.Setup(s => s.GetCurrentUserId()).Returns(_testUserId);
             _serviceMock
                 .Setup(s => s.GetProfileByIdAsync(_testUserId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((ProfileDto?)null);
@@ -111,9 +129,10 @@ namespace Portfolio.Tests.Controllers
         // ── GetByGoogleId ───────────────────────────────────────────────
 
         [Fact]
-        public async Task GetByGoogleId_WhenFound_ReturnsOk()
+        public async Task GetByGoogleId_WhenSelf_ReturnsOk()
         {
-            // Arrange
+            // Arrange — the resolved profile belongs to the caller.
+            _serviceMock.Setup(s => s.GetCurrentUserId()).Returns(_testUserId);
             var dto = new ProfileDto { UserId = _testUserId };
             _serviceMock
                 .Setup(s => s.GetProfileByGoogleIdAsync("goog123", It.IsAny<CancellationToken>()))
@@ -125,6 +144,23 @@ namespace Portfolio.Tests.Controllers
             // Assert
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.Equal(dto, ok.Value);
+        }
+
+        [Fact]
+        public async Task GetByGoogleId_WhenDifferentUser_ReturnsNotFound()
+        {
+            // Arrange — the resolved profile belongs to another user (IDOR guard).
+            _serviceMock.Setup(s => s.GetCurrentUserId()).Returns(Guid.NewGuid());
+            var dto = new ProfileDto { UserId = _testUserId };
+            _serviceMock
+                .Setup(s => s.GetProfileByGoogleIdAsync("goog123", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(dto);
+
+            // Act
+            var result = await _controller.GetByGoogleId("goog123", CancellationToken.None);
+
+            // Assert — identical to the not-found case, so no account-existence oracle.
+            Assert.IsType<NotFoundResult>(result);
         }
 
         [Fact]

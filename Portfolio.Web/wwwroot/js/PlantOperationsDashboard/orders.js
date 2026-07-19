@@ -1,11 +1,11 @@
 
-// FiberFlow Orders JS
+// Plant Operations Dashboard - Orders JS
 // Handles DataTable for orders and CRUD modals
 
 let ordersTable;
 
 
-// Use shared toast helper (window.fiberflowToast provided by dashboard script)
+// Use shared toast helper (window.plantOpsToast provided by dashboard script)
 
 $(document).ready(function () {
     loadOrdersTable();
@@ -22,7 +22,7 @@ function formatCurrency(val) {
 
 function loadOrdersTable() {
     if (typeof $.fn.DataTable !== 'function') {
-        fiberflowToast('DataTables library is not loaded. Please check your script order.', 'error');
+        plantOpsToast('DataTables library is not loaded. Please check your script order.', 'error');
         return;
     }
     window.apiFetch(window.PortfolioApi.routes.fiber.orders)
@@ -32,15 +32,15 @@ function loadOrdersTable() {
                 ordersTable.clear().rows.add(data).draw();
                 return;
             }
-            ordersTable = $('#fiberflowOrdersTable').DataTable({
+            ordersTable = $('#plantOpsOrdersTable').DataTable({
                 data: data,
                 columns: [
-                    { title: 'Order #', data: 'orderNumber' },
-                    { title: 'Client', data: 'clientName' },
-                    { title: 'Product', data: 'productName' },
+                    { title: 'Order #', data: 'orderNumber', render: $.fn.dataTable.render.text() },
+                    { title: 'Client', data: 'clientName', render: $.fn.dataTable.render.text() },
+                    { title: 'Product', data: 'productName', render: $.fn.dataTable.render.text() },
                     { title: 'Qty', data: 'quantity', className: 'text-end' },
                     { title: 'Unit Price', data: 'unitPrice', render: function(d) { return formatCurrency(d); }, className: 'text-end' },
-                    { title: 'Status', data: 'status' },
+                    { title: 'Status', data: 'status', render: $.fn.dataTable.render.text() },
                     { title: 'Order Date', data: 'orderDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
                     { title: 'Ship Date', data: 'shipDate', render: d => d ? new Date(d).toLocaleDateString() : '', className: 'text-nowrap' },
                     {
@@ -65,8 +65,8 @@ function loadOrdersTable() {
 // Show modal for create/edit order
 window.showOrderModal = function (orderId) {
     let isEdit = !!orderId;
-    let modalId = 'fiberflowOrderModal';
-    let $modals = $('#fiberflowModals');
+    let modalId = 'plantOpsOrderModal';
+    let $modals = $('#plantOpsModals');
     $modals.empty();
     let order = null;
     if (isEdit) {
@@ -96,11 +96,11 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Client Name</label>
-            <input type="text" class="form-control" name="clientName" value="${order.clientName || ''}" required />
+            <input type="text" class="form-control" name="clientName" value="${plantOpsEscape(order.clientName)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Product Name</label>
-            <input type="text" class="form-control" name="productName" value="${order.productName || ''}" required />
+            <input type="text" class="form-control" name="productName" value="${plantOpsEscape(order.productName)}" required />
           </div>
           <div class="col-md-4">
             <label class="form-label">Quantity</label>
@@ -113,7 +113,7 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
           <div class="col-md-4">
             <label class="form-label">Status</label>
             <select class="form-select" name="status" required>
-              ${['Draft','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${order.status === s ? ' selected' : ''}>${s}</option>`).join('')}
+              ${['Draft','Pending','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${order.status === s ? ' selected' : ''}>${s}</option>`).join('')}
             </select>
           </div>
             <div class="col-md-6">
@@ -164,23 +164,23 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            fiberflowToast(isEdit ? 'Order updated' : 'Order created', 'success');
+            plantOpsToast(isEdit ? 'Order updated' : 'Order created', 'success');
             loadOrdersTable();
         })
         .catch(() => {
-            fiberflowToast('Failed to save order', 'error');
+            plantOpsToast('Failed to save order', 'error');
         });
     });
 }
 
 // Delete order
-window.deleteOrder = function (orderId) {
-    if (!confirm('Delete this order?')) return;
+window.deleteOrder = async function (orderId) {
+    if (!await confirmDialog('Delete this order?')) return;
     window.apiFetch(`${window.PortfolioApi.routes.fiber.orders}/${orderId}`, { method: 'DELETE' })
         .then(r => {
             if (!r.ok) throw new Error('Failed to delete order');
-            fiberflowToast('Order deleted', 'success');
+            plantOpsToast('Order deleted', 'success');
             loadOrdersTable();
         })
-        .catch(() => fiberflowToast('Failed to delete order', 'error'));
+        .catch(() => plantOpsToast('Failed to delete order', 'error'));
 };

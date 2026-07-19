@@ -6,6 +6,10 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoints for managing fiber materials inventory (CRUD and stock receipts)
+    /// scoped to the authenticated user.
+    /// </summary>
     [Authorize(Policy = "Authenticated")]
     [ApiController]
     [ApiVersion("1.0")]
@@ -20,6 +24,18 @@ namespace Portfolio.Web.Controllers.Api
         _materialService = materialService;
         _logger = logger;
     }
+
+    // Maps a create/update request DTO to the internal material DTO (server-computed fields default).
+    // Accepts UpdateFiberMaterialDto too, since it derives from CreateFiberMaterialDto.
+    private static FiberMaterialDto ToDto(CreateFiberMaterialDto dto) => new()
+    {
+        Name = dto.Name,
+        Sku = dto.Sku,
+        Category = dto.Category,
+        QtyOnHand = dto.QtyOnHand,
+        UnitCost = dto.UnitCost,
+        ReorderPoint = dto.ReorderPoint
+    };
 
     /// <summary>Retrieves all fiber materials.</summary>
     [HttpGet]
@@ -77,14 +93,14 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
-    public async Task<IActionResult> Create([FromBody] FiberMaterialDto dto, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([FromBody] CreateFiberMaterialDto dto, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
         try
         {
-            var result = await _materialService.CreateAsync(dto, cancellationToken);
-            return Ok(result);
+            var result = await _materialService.CreateAsync(ToDto(dto), cancellationToken);
+            return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
         }
         catch (Exception ex)
         {
@@ -105,13 +121,13 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<IActionResult> Update(int id, [FromBody] FiberMaterialDto dto, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateFiberMaterialDto dto, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
         try
         {
-            var result = await _materialService.UpdateAsync(id, dto, cancellationToken);
+            var result = await _materialService.UpdateAsync(id, ToDto(dto), cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)

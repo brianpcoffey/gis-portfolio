@@ -1,25 +1,32 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Lets the Microsoft.OpenApi version pin below override the vulnerable 2.0.0 pulled in
+         transitively by Microsoft.AspNetCore.OpenApi (resolves advisory GHSA-v5pm-xwqc-g5wc). -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Asp.Versioning.Mvc" Version="10.0.0" />
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.13.8" />
-    <PackageVersion Include="coverlet.collector" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0" />
+    <!-- Pinned to 2.7.5: patches GHSA-v5pm-xwqc-g5wc while staying on the 2.x API that
+         Microsoft.AspNetCore.OpenApi 10.0.x compiles against (3.x makes IOpenApiMediaType.Example read-only). -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.15" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
 </Project>

@@ -16,18 +16,46 @@ namespace Portfolio.Services.Services
         private const string GeocodeUrl =
             "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates";
 
-        // Full suffix abbreviation → full-word lookup table.
+        // Street-suffix lookup (abbreviation OR full word) → canonical full word.
+        // Covers the common USPS Publication 28 C1 suffixes so the parser reliably finds
+        // the street/city boundary; full words map to themselves.
         private static readonly Dictionary<string, string> SuffixMap = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["St"]   = "Street",
-            ["Ave"]  = "Avenue",
-            ["Blvd"] = "Boulevard",
-            ["Dr"]   = "Drive",
-            ["Rd"]   = "Road",
-            ["Ln"]   = "Lane",
-            ["Ct"]   = "Court",
-            ["Pl"]   = "Place",
-            ["Hwy"]  = "Highway"
+            ["St"] = "Street",       ["Street"] = "Street",
+            ["Ave"] = "Avenue",      ["Av"] = "Avenue",        ["Avenue"] = "Avenue",
+            ["Blvd"] = "Boulevard",  ["Blvd."] = "Boulevard",  ["Boulevard"] = "Boulevard",
+            ["Dr"] = "Drive",        ["Drive"] = "Drive",
+            ["Rd"] = "Road",         ["Road"] = "Road",
+            ["Ln"] = "Lane",         ["Lane"] = "Lane",
+            ["Ct"] = "Court",        ["Court"] = "Court",
+            ["Pl"] = "Place",        ["Place"] = "Place",
+            ["Hwy"] = "Highway",     ["Highway"] = "Highway",
+            ["Way"] = "Way",
+            ["Cir"] = "Circle",      ["Circle"] = "Circle",
+            ["Pkwy"] = "Parkway",    ["Parkway"] = "Parkway",
+            ["Ter"] = "Terrace",     ["Terr"] = "Terrace",     ["Terrace"] = "Terrace",
+            ["Trl"] = "Trail",       ["Trail"] = "Trail",
+            ["Loop"] = "Loop",
+            ["Sq"] = "Square",       ["Square"] = "Square",
+            ["Pike"] = "Pike",
+            ["Row"] = "Row",
+            ["Run"] = "Run",
+            ["Pass"] = "Pass",
+            ["Path"] = "Path",
+            ["Plz"] = "Plaza",       ["Plaza"] = "Plaza",
+            ["Cres"] = "Crescent",   ["Crescent"] = "Crescent",
+            ["Aly"] = "Alley",       ["Alley"] = "Alley",
+            ["Xing"] = "Crossing",   ["Crossing"] = "Crossing",
+            ["Ctr"] = "Center",      ["Center"] = "Center",
+            ["Cv"] = "Cove",         ["Cove"] = "Cove",
+            ["Mnr"] = "Manor",       ["Manor"] = "Manor",
+            ["Pt"] = "Point",        ["Point"] = "Point",
+            ["Rdg"] = "Ridge",       ["Ridge"] = "Ridge",
+            ["Vly"] = "Valley",      ["Valley"] = "Valley",
+            ["Vw"] = "View",         ["View"] = "View",
+            ["Grv"] = "Grove",       ["Grove"] = "Grove",
+            ["Gdns"] = "Gardens",    ["Gardens"] = "Gardens",
+            ["Blf"] = "Bluff",       ["Bluff"] = "Bluff"
         };
 
         // Known US state abbreviations for validation.
@@ -213,18 +241,27 @@ namespace Portfolio.Services.Services
                 cursor++;
             }
 
+            // Fallback: with no recognised suffix the forward walk consumed every remaining
+            // token (including any city) into the street name. Treat the trailing token as the
+            // city so "600 Broadway, Redlands" yields street "Broadway", city "Redlands".
+            if (!suffixFound && streetNameTokens.Count >= 2)
+            {
+                city = ToTitleCase(streetNameTokens[^1]);
+                streetNameTokens.RemoveAt(streetNameTokens.Count - 1);
+            }
+
             streetName = ToTitleCase(string.Join(" ", streetNameTokens));
 
             // ── Step 8: Directional qualifier after suffix ──
             // A directional token immediately after the suffix (e.g. "NW" in "Ave NW") is stored
             // separately so it can be placed after the expanded suffix in the standardized address
-            // ("Pennsylvania Avenue NW"), not before it.
-            // Only consume it if it is not also a valid state abbreviation.
+            // ("Pennsylvania Avenue NW"), not before it. The state and ZIP have already been
+            // consumed from the tail, so a directional that doubles as a state code (e.g. "NE")
+            // here is unambiguously the directional and must NOT be excluded.
             if (suffixFound && cursor <= end)
             {
                 var tok = tokens[cursor];
-                if (Directionals.Contains(tok)
-                    && !UsStateAbbreviations.Contains(tok))
+                if (Directionals.Contains(tok))
                 {
                     directional = tok.ToUpperInvariant();
                     cursor++;

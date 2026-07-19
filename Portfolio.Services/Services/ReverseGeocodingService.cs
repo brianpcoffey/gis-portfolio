@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Portfolio.Common.ArcGis;
+using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Serialization;
 using Portfolio.Services.Interfaces;
@@ -25,13 +26,14 @@ namespace Portfolio.Services.Services
             HttpClient httpClient,
             IDistributedCache cache,
             ILogger<ReverseGeocodingService> logger,
-            IConfiguration configuration)
+            IOptions<ReverseGeocodingOptions> options)
         {
             _httpClient = httpClient;
             _cache = cache;
             _logger = logger;
-            _gridResolution = configuration.GetValue<double>("ReverseGeocoding:GridResolutionDegrees", 0.001);
-            _cacheSlidingExpirationMinutes = configuration.GetValue<int>("ReverseGeocoding:CacheSlidingExpirationMinutes", 30);
+            var opts = options.Value;
+            _gridResolution = opts.GridResolutionDegrees;
+            _cacheSlidingExpirationMinutes = opts.CacheSlidingExpirationMinutes;
         }
 
         // Validates coordinates, snaps to grid, checks cache, then calls ArcGIS if needed.

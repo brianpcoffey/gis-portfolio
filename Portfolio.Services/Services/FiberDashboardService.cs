@@ -10,17 +10,20 @@ public class FiberDashboardService : IFiberDashboardService
     private readonly IFiberShipmentRepository _shipmentRepo;
     private readonly IFiberMaterialRepository _materialRepo;
     private readonly IUserProfileService _userProfileService;
+    private readonly TimeProvider _timeProvider;
 
     public FiberDashboardService(
         IFiberOrderRepository orderRepo,
         IFiberShipmentRepository shipmentRepo,
         IFiberMaterialRepository materialRepo,
-        IUserProfileService userProfileService)
+        IUserProfileService userProfileService,
+        TimeProvider timeProvider)
     {
         _orderRepo = orderRepo;
         _shipmentRepo = shipmentRepo;
         _materialRepo = materialRepo;
         _userProfileService = userProfileService;
+        _timeProvider = timeProvider;
     }
 
     private Guid CurrentUserId =>
@@ -31,19 +34,22 @@ public class FiberDashboardService : IFiberDashboardService
         var orders = await _orderRepo.GetAllAsync(CurrentUserId, cancellationToken);
         var shipments = await _shipmentRepo.GetAllAsync(CurrentUserId, cancellationToken);
         var materials = await _materialRepo.GetAllAsync(CurrentUserId, cancellationToken);
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var mtdStart = new DateTime(now.Year, now.Month, 1);
         var mtdRevenue = orders.Where(o => o.OrderDate >= mtdStart).Sum(o => o.UnitPrice * o.Quantity);
         var revenueByMonth = orders
-            .GroupBy(o => o.OrderDate.ToString("MMM", System.Globalization.CultureInfo.InvariantCulture))
+            .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
             .Select(g => new RevenueByMonthDto
             {
-                Month = g.Key,
+                // Include the year so orders in the same month across different years
+                // are not merged into a single, mis-ordered bucket.
+                Month = new DateTime(g.Key.Year, g.Key.Month, 1)
+                    .ToString("MMM yyyy", System.Globalization.CultureInfo.InvariantCulture),
                 Revenue = g.Sum(x => x.UnitPrice * x.Quantity)
             })
-            .OrderBy(x => System.DateTime.ParseExact(x.Month, "MMM", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).Month)
             .ToList();
-        var allStatuses = new[] { "Draft", "Confirmed", "In Production", "Shipped", "Delivered" };
+        var allStatuses = new[] { "Draft", "Pending", "Confirmed", "In Production", "Shipped", "Delivered" };
         var ordersByStatus = allStatuses
             .Select(status => new OrdersByStatusDto
             {

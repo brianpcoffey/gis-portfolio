@@ -1,8 +1,4 @@
 ﻿@page
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize]
-
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Redlands Smart Home Finder";
@@ -201,7 +197,22 @@
 </div>
 
 @section Scripts {
-    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/dark/main.css">
+    <!-- Load the Esri widget theme matching the site theme (inline + synchronous to avoid a flash),
+         and swap it live when the user toggles the theme. -->
+    <script>
+        (function () {
+            var base = "https://js.arcgis.com/4.29/esri/themes/";
+            function href(dark) { return base + (dark ? "dark" : "light") + "/main.css"; }
+            var link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.id = "esriThemeCss";
+            link.href = href(document.documentElement.getAttribute("data-bs-theme") === "dark");
+            document.head.appendChild(link);
+            window.addEventListener("themeChanged", function (e) {
+                link.href = href(!!(e.detail && e.detail.dark));
+            });
+        })();
+    </script>
     <script src="https://js.arcgis.com/4.29/"></script>
     <script src="~/js/HomeFinder/app.js" asp-append-version="true"></script>
 }

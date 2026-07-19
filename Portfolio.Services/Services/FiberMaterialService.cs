@@ -48,7 +48,7 @@ public class FiberMaterialService : IFiberMaterialService
                 ?? throw new KeyNotFoundException($"Material {id} not found");
             var before = material.QtyOnHand;
             material.QtyOnHand += dto.Quantity;
-            material.LastUpdated = _timeProvider.GetUtcNow().UtcDateTime;
+            // LastUpdated is stamped inside the repository's UpdateAsync (applies to every edit).
             await _materialRepo.UpdateAsync(material.Id, MapToDto(material), userId, cancellationToken);
             var inv = new FiberInventoryTransaction
             {
@@ -85,6 +85,7 @@ public class FiberMaterialService : IFiberMaterialService
             UserId = CurrentUserId,
             Name = dto.Name,
             Sku = dto.Sku,
+            Category = dto.Category,
             QtyOnHand = dto.QtyOnHand,
             UnitCost = dto.UnitCost,
             ReorderPoint = dto.ReorderPoint,
@@ -110,6 +111,7 @@ public class FiberMaterialService : IFiberMaterialService
         Id = m.Id,
         Name = m.Name,
         Sku = m.Sku,
+        Category = m.Category,
         QtyOnHand = m.QtyOnHand,
         UnitCost = m.UnitCost,
         TotalValue = m.QtyOnHand * m.UnitCost,

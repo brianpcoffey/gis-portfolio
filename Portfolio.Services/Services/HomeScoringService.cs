@@ -11,15 +11,18 @@ public class HomeScoringService : IHomeScoringService
 {
     private readonly IPropertyRepository _propertyRepo;
     private readonly ILogger<HomeScoringService> _logger;
+    private readonly TimeProvider _timeProvider;
     private const decimal AnnualInterestRate = 0.065m;
     private const int LoanTermMonths = 360; // 30 years
 
     public HomeScoringService(
         IPropertyRepository propertyRepo,
-        ILogger<HomeScoringService> logger)
+        ILogger<HomeScoringService> logger,
+        TimeProvider timeProvider)
     {
         _propertyRepo = propertyRepo;
         _logger = logger;
+        _timeProvider = timeProvider;
         NativeScoringBridge.LogAvailability(_logger);
     }
 
@@ -231,10 +234,11 @@ public class HomeScoringService : IHomeScoringService
         return Clamp(Math.Min(sqftRatio * 50, 100) + bedroomBonus);
     }
 
-    private static double ScoreCondition(Property p)
+    private double ScoreCondition(Property p)
     {
         var avg = (p.RoofCondition + p.AcCondition + p.PlumbingCondition + p.ElectricalCondition) / 4.0;
-        var reno = p.LastRenovation.HasValue ? Math.Max(0, 10 - (DateTime.UtcNow.Year - p.LastRenovation.Value)) * 2.0 : 0;
+        var currentYear = _timeProvider.GetUtcNow().Year;
+        var reno = p.LastRenovation.HasValue ? Math.Max(0, 10 - (currentYear - p.LastRenovation.Value)) * 2.0 : 0;
         return Clamp(avg + reno);
     }
 

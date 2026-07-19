@@ -6,6 +6,10 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoints for computational geometry operations (fan triangulation and
+    /// bounding-box polygon clipping).
+    /// </summary>
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]

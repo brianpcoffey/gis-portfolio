@@ -6,6 +6,10 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoints for managing fiber shipments (CRUD and status transitions)
+    /// scoped to the authenticated user.
+    /// </summary>
     [Authorize(Policy = "Authenticated")]
     [ApiController]
     [ApiVersion("1.0")]

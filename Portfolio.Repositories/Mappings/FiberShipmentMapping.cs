@@ -12,6 +12,7 @@ public class FiberShipmentMapping : IEntityTypeConfiguration<FiberShipment>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.UserId).HasColumnName("user_id");
+        builder.HasIndex(x => x.UserId); // every shipment query filters by user
         builder.Property(x => x.CarrierName).HasColumnName("carrier_name");
         builder.Property(x => x.TrackingNumber).HasColumnName("tracking_number");
         builder.Property(x => x.Status).HasColumnName("status");

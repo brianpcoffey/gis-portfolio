@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Services.Abstractions;
@@ -15,6 +16,7 @@ namespace Portfolio.Web.Controllers.Api
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/geocoding/batch")]
     [AllowAnonymous]
+    [EnableRateLimiting("expensive")] // fans out to the paid ArcGIS geocoding API
     public class BatchGeocodingController : ControllerBase
     {
         private readonly IBatchGeocodingService _batchGeocodingService;
@@ -31,6 +33,14 @@ namespace Portfolio.Web.Controllers.Api
             _logger = logger;
         }
 
+        // ~2 MB cap on the uploaded CSV (paired with the row-count cap in the service).
+        private const int MaxUploadBytes = 2 * 1024 * 1024;
+
+        // Accept only .csv uploads — defence-in-depth alongside the size limit and row cap.
+        // string.Equals is null-safe, so a multipart part with no filename yields a clean false.
+        private static bool HasCsvExtension(IFormFile file) =>
+            string.Equals(Path.GetExtension(file.FileName), ".csv", StringComparison.OrdinalIgnoreCase);
+
         /// <summary>
         /// Accepts a CSV file upload of addresses, enqueues a background geocoding job,
         /// and returns 202 Accepted with a status URL the client can poll.
@@ -40,6 +50,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Job ID and status polling URL.</returns>
         [HttpPost]
+        [RequestSizeLimit(MaxUploadBytes)]
         [ProducesResponseType(typeof(BatchJobAcceptedDto), StatusCodes.Status202Accepted)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -48,6 +59,8 @@ namespace Portfolio.Web.Controllers.Api
         {
             if (file is null || file.Length == 0)
                 return BadRequest(new ProblemDetails { Title = "File required", Status = 400 });
+            if (!HasCsvExtension(file))
+                return BadRequest(new ProblemDetails { Title = "A .csv file is required", Status = 400 });
 
             try
             {
@@ -102,6 +115,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <returns>List of geocoding results with match status, coordinates, and score.</returns>
         [HttpPost("sync")]
         [HttpPost("/api/batchgeocoding/sync")]
+        [RequestSizeLimit(MaxUploadBytes)]
         [ApiExplorerSettings(IgnoreApi = true)]
         [Obsolete("Use POST /api/v1/geocoding/batch for the recommended async job pattern.")] // kept for test compatibility
         [ProducesResponseType(typeof(List<BatchGeocodingResultDto>), StatusCodes.Status200OK)]
@@ -112,6 +126,8 @@ namespace Portfolio.Web.Controllers.Api
         {
             if (file is null || file.Length == 0)
                 return BadRequest(new { error = "A non-empty CSV file is required." });
+            if (!HasCsvExtension(file))
+                return BadRequest(new { error = "A .csv file is required." });
 
             try
             {

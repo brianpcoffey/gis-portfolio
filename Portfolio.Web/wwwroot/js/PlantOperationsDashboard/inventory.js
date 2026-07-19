@@ -1,10 +1,10 @@
-// FiberFlow Inventory JS
+// Plant Operations Dashboard - Inventory JS
 // Handles DataTable for inventory and low stock alerts
 
 let inventoryTable;
 
 
-// Use shared toast helper (window.fiberflowToast provided by dashboard script)
+// Use shared toast helper (window.plantOpsToast provided by dashboard script)
 
 
 $(document).ready(function () {
@@ -13,7 +13,7 @@ $(document).ready(function () {
         showMaterialModal();
     });
     // Row click for details removed to prevent double modal issue
-    // $('#fiberflowInventoryTable').on('click', 'tbody tr', function () {
+    // $('#plantOpsInventoryTable').on('click', 'tbody tr', function () {
     //     const data = inventoryTable.row(this).data();
     //     if (data) showMaterialDetailModal(data);
     // });
@@ -26,14 +26,14 @@ function loadInventoryTable() {
         .then(data => {
             if (inventoryTable) {
                 inventoryTable.clear().rows.add(data).draw();
-                fiberflowToast('Inventory loaded', 'success');
+                plantOpsToast('Inventory loaded', 'success');
                 return;
             }
-            inventoryTable = $('#fiberflowInventoryTable').DataTable({
+            inventoryTable = $('#plantOpsInventoryTable').DataTable({
                 data: data,
                 columns: [
-                    { title: 'Material', data: 'name' },
-                    { title: 'SKU', data: 'sku' },
+                    { title: 'Material', data: 'name', render: $.fn.dataTable.render.text() },
+                    { title: 'SKU', data: 'sku', render: $.fn.dataTable.render.text() },
                     { title: 'Qty On Hand', data: 'qtyOnHand', className: 'text-end' },
                     { title: 'Unit Cost', data: 'unitCost', render: $.fn.dataTable.render.number(',', '.', 2, '$'), className: 'text-end' },
                     { title: 'Total Value', data: 'totalValue', render: $.fn.dataTable.render.number(',', '.', 2, '$'), className: 'text-end' },
@@ -48,14 +48,14 @@ function loadInventoryTable() {
                                 <button class="btn btn-sm btn-outline-primary me-1" onclick="showMaterialModal(${row.id})" title="Edit"><i class='fa fa-edit'></i></button>
                                 <button class="btn btn-sm btn-outline-success me-1" onclick="showReceiveStockModal(${row.id})" title="Receive Stock"><i class='fa fa-arrow-down'></i></button>
                                 <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteMaterial(${row.id})" title="Delete"><i class='fa fa-trash'></i></button>
-                                ${row.isLowStock ? '<span class="badge bg-danger fiberflow-low-stock">Low</span>' : ''}
+                                ${row.isLowStock ? '<span class="badge bg-danger plant-ops-low-stock">Low</span>' : ''}
                             `;
                         }
                     }
                 ],
                 rowCallback: function (row, data) {
                     if (data.isLowStock) {
-                        $(row).addClass('fiberflow-low-stock');
+                        $(row).addClass('plant-ops-low-stock');
                     }
                 },
                 order: [[2, 'asc']],
@@ -63,16 +63,16 @@ function loadInventoryTable() {
                 autoWidth: false,
                 language: { emptyTable: 'No inventory found.' }
             });
-            fiberflowToast('Inventory loaded', 'success');
+            plantOpsToast('Inventory loaded', 'success');
         })
-        .catch(() => fiberflowToast('Failed to load inventory', 'error'))
+        .catch(() => plantOpsToast('Failed to load inventory', 'error'))
         .finally(() => $('#inventoryTableSpinner').addClass('d-none'));
 }
 
 // Show material detail modal
 function showMaterialDetailModal(material) {
-    let modalId = 'fiberflowMaterialDetailModal';
-    let $modals = $('#fiberflowModals');
+    let modalId = 'plantOpsMaterialDetailModal';
+    let $modals = $('#plantOpsModals');
     $modals.empty();
     let modalHtml = `
 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-modal="true" role="dialog">
@@ -84,8 +84,8 @@ function showMaterialDetailModal(material) {
       </div>
       <div class="modal-body">
         <dl class="row mb-0">
-          <dt class="col-5">Name</dt><dd class="col-7">${material.name}</dd>
-          <dt class="col-5">SKU</dt><dd class="col-7">${material.sku}</dd>
+          <dt class="col-5">Name</dt><dd class="col-7">${plantOpsEscape(material.name)}</dd>
+          <dt class="col-5">SKU</dt><dd class="col-7">${plantOpsEscape(material.sku)}</dd>
           <dt class="col-5">Qty On Hand</dt><dd class="col-7">${material.qtyOnHand}</dd>
           <dt class="col-5">Unit Cost</dt><dd class="col-7">$${material.unitCost.toFixed(2)}</dd>
           <dt class="col-5">Total Value</dt><dd class="col-7">$${material.totalValue.toFixed(2)}</dd>
@@ -106,8 +106,8 @@ function showMaterialDetailModal(material) {
 
 // Show receive stock modal
 window.showReceiveStockModal = function (materialId) {
-    let modalId = 'fiberflowReceiveStockModal';
-    let $modals = $('#fiberflowModals');
+    let modalId = 'plantOpsReceiveStockModal';
+    let $modals = $('#plantOpsModals');
     $modals.empty();
     let modalHtml = `
 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-modal="true" role="dialog">
@@ -155,17 +155,17 @@ window.showReceiveStockModal = function (materialId) {
         })
         .then(() => {
             modal.hide();
-            fiberflowToast('Stock received', 'success');
+            plantOpsToast('Stock received', 'success');
             loadInventoryTable();
         })
-        .catch(() => fiberflowToast('Failed to receive stock', 'error'));
+        .catch(() => plantOpsToast('Failed to receive stock', 'error'));
     });
 };
 
 function showMaterialModal(materialId) {
     let isEdit = !!materialId;
-    let modalId = 'fiberflowMaterialModal';
-    let $modals = $('#fiberflowModals');
+    let modalId = 'plantOpsMaterialModal';
+    let $modals = $('#plantOpsModals');
     $modals.empty();
     let material = null;
     if (isEdit) {
@@ -193,11 +193,22 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Name</label>
-          <input type="text" class="form-control" name="name" value="${material.name || ''}" required />
+          <input type="text" class="form-control" name="name" value="${plantOpsEscape(material.name)}" required />
         </div>
         <div class="mb-3">
           <label class="form-label">SKU</label>
-          <input type="text" class="form-control" name="sku" value="${material.sku || ''}" required />
+          <input type="text" class="form-control" name="sku" value="${plantOpsEscape(material.sku)}" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Category</label>
+          <input type="text" class="form-control" name="category" value="${plantOpsEscape(material.category)}" list="materialCategoryOptions" placeholder="e.g. Reinforcements, Resins" />
+          <datalist id="materialCategoryOptions">
+            <option value="Reinforcements"></option>
+            <option value="Resins"></option>
+            <option value="Coatings"></option>
+            <option value="Hardware"></option>
+            <option value="Consumables"></option>
+          </datalist>
         </div>
         <div class="mb-3">
           <label class="form-label">Qty On Hand</label>
@@ -243,25 +254,25 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            fiberflowToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
+            plantOpsToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
             loadInventoryTable();
         })
-        .catch(() => fiberflowToast('Failed to save material', 'error'));
+        .catch(() => plantOpsToast('Failed to save material', 'error'));
     });
 }
 window.renderMaterialModal = renderMaterialModal;
 
 // Delete material by ID
-function deleteMaterial(materialId) {
-    if (!confirm('Are you sure you want to delete this material?')) return;
+async function deleteMaterial(materialId) {
+    if (!await confirmDialog('Are you sure you want to delete this material?')) return;
     window.apiFetch(`${window.PortfolioApi.routes.fiber.materials}/${materialId}`, {
         method: 'DELETE'
     })
     .then(r => {
         if (!r.ok) throw new Error('Failed to delete material');
-        fiberflowToast('Material deleted', 'success');
+        plantOpsToast('Material deleted', 'success');
         loadInventoryTable();
     })
-    .catch(() => fiberflowToast('Failed to delete material', 'error'));
+    .catch(() => plantOpsToast('Failed to delete material', 'error'));
 }
 window.deleteMaterial = deleteMaterial;

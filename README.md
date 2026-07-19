@@ -14,7 +14,7 @@
 ![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
 ![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
-![xUnit](https://img.shields.io/badge/xUnit-355_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-464_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -56,7 +56,7 @@ Razor Page / API Controller  (Portfolio.Web)
 
 This portfolio uses a native-kernel pattern for compute-heavy spatial workflows where lower-level control is technically justified. ASP.NET Core owns the product/API layer, C# services validate inputs and map DTOs, and native C++20 libraries expose stable C ABIs consumed through P/Invoke. Each native-backed workflow must remain portable: `IsAvailable` gates the native path and a managed C# fallback preserves functionality when the shared library is absent.
 
-The currently implemented native integration is the Home Finder scoring kernel. The same pattern is intended for future spatial compute projects where benchmarks can demonstrate a real need for native code rather than treating C++ as a decorative dependency.
+Five native integrations are implemented today — the Home Finder scoring kernel plus the geostream, geometry, raster-terrain, and routing kernels listed in the table below, each with C++ source, a P/Invoke bridge, and a managed C# fallback. The same pattern is intended for future spatial compute projects where benchmarks can demonstrate a real need for native code rather than treating C++ as a decorative dependency.
 
 | Project | Native Library | Status | Native Role |
 |---|---|---|---|
@@ -64,7 +64,7 @@ The currently implemented native integration is the Home Finder scoring kernel. 
 | Live Location Stream | `geostream_processor` | Implemented | telemetry parsing, filtering, grid aggregation, and anomaly detection |
 | Geometry Toolkit | `spatial_geometry_kernel` | Implemented | fan triangulation and bounding-box polygon clipping with stable C ABI |
 | Terrain Analyzer | `raster_terrain_kernel` | Implemented | hillshade, slope/aspect, and Gaussian heatmap kernel over dense numeric arrays |
-| Route Planner | `spatial_graph_engine` | Implemented | Dijkstra and A* shortest path, service-area computation, and route metric enrichment over a curated Redlands road graph |
+| Route Planner | `spatial_graph_engine` | Implemented | Dijkstra and A* shortest path, service-area computation, and route metric enrichment over a real OpenStreetMap Redlands road graph |
 
 The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, and scoring. The managed fallback is production behavior, not only a test convenience.
 
@@ -88,7 +88,7 @@ The architectural goal is not "C++ everywhere." Native code is isolated behind m
 
 ### API & Backend
 - Versioned RESTful JSON API controllers under `api/v1/` using `Asp.Versioning`
-- OpenAPI document generation via ASP.NET Core OpenAPI, with Scalar as the interactive API reference UI in development
+- OpenAPI document generation via ASP.NET Core OpenAPI, with Scalar as the interactive API reference UI (served in all environments)
 - Structured logging with `ILogger<T>` across all services, repositories, and controllers
 - `ApiExceptionMiddleware` for centralized error handling
 - All async methods accept and forward `CancellationToken`
@@ -126,7 +126,7 @@ Property scoring API that ranks Redlands homes using weighted preferences and st
 
 **Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL, C++20/CMake, P/Invoke
 
-**API:** `POST /api/v1/homefinder/score`, `GET /api/v1/homefinder/properties/{id}`, `/api/v1/homefinder/searches`
+**API:** `POST /api/v1/homefinder/search`, `GET /api/v1/homefinder/property/{id}`, `/api/v1/homefinder/searches` (the earlier `score` / `properties/{id}` paths remain as deprecated aliases)
 
 ---
 
@@ -170,9 +170,9 @@ Freeform address parsing and validation workflow that turns user-entered address
 ---
 
 ### 🏭 Plant Operations Dashboard
-Authenticated operations dashboard for fiber orders, materials, shipments, clients, and KPI aggregation. Domain services enforce user identity, while repositories handle EF Core owner filtering and PostgreSQL persistence.
+Authenticated operations dashboard for fiber orders, materials, shipments, and KPI aggregation. Domain services enforce user identity, while repositories handle EF Core owner filtering and PostgreSQL persistence.
 
-- CRUD workflows for orders, materials, shipments, and clients
+- CRUD workflows for orders, materials, and shipments (clients exist as seeded reference data; there is no client CRUD endpoint)
 - Dashboard aggregation for revenue, open orders, active shipments, and inventory alerts
 - User-scoped service and repository boundaries for authenticated operations data
 
@@ -225,12 +225,14 @@ Raster terrain analysis API that generates hillshade and heatmap outputs from de
 ---
 
 ### 🗺️ Route Planner
-Spatial graph routing API that computes shortest paths and service areas over a curated 109-node / ~340-edge Redlands road network, rendered on a real Leaflet/OpenStreetMap map. Supports Dijkstra and A* with a haversine heuristic; the native C++ engine accelerates Dijkstra when the shared library is present, while A* runs managed-only so the heuristic has full access to node coordinates at query time.
+Spatial graph routing API that computes shortest paths and service areas over a ~2,500-node / ~3,190-edge Redlands road network built from real OpenStreetMap data, rendered on a real Leaflet/OpenStreetMap map. Every node is an actual OSM point with true coordinates — real intersections plus curve vertices chosen by deviation-bounded (Douglas–Peucker) simplification, so no edge strays more than ~4 m from the true road — meaning both the network and computed routes trace the real shape of streets, ramps, and freeway curves on the base tiles. Coverage is dense across downtown Redlands and the area around Esri HQ. Supports Dijkstra and A* with a haversine heuristic; the native C++ engine accelerates Dijkstra when the shared library is present, while A* runs managed-only so the heuristic has full access to node coordinates at query time.
 
 - **Dijkstra and A\*** algorithm selection via UI toggle; A* uses haversine great-circle distance as an admissible heuristic and explores measurably fewer nodes on typical road layouts
 - Route metrics surfaced per request: `ExploredNodes`, `DistanceKm` (haversine sum along path), `EstimatedMinutes` (distance ÷ 40 km/h average road speed), and `AlgorithmUsed`
-- 109-node / ~340-edge curated Redlands–San Bernardino road network (`RedlandsRoadNetwork`) spanning 7 east–west arterials × 15 north–south corridors, I-10 ramp clusters, diagonal arterial shortcuts, directed residential dead-end stubs, and Esri HQ as the fixed destination
-- Leaflet 1.9 map on OpenStreetMap tiles with edge polylines, clickable `L.circleMarker` nodes, blue route polyline with drop-shadow, amber service-area highlighting, and map auto-fit to route bounds
+- ~2,500-node / ~3,190-edge Redlands road network (`RedlandsRoadNetwork`) generated from a dense OpenStreetMap extract (arterials down to residential/local streets) covering downtown Redlands and the area around Esri HQ: real intersections plus curve vertices selected by deviation-bounded Douglas–Peucker simplification (no edge strays more than ~4 m from the true road, so surface streets, on/off ramps, and freeway curves all follow their real geometry), reduced to the largest component reachable to Esri HQ (so every origin routes), with Esri HQ placed at its true campus coordinate as the fixed destination
+- **Search-space visualization** — the API returns every node each algorithm settled (`ExploredNodeIds`); the map paints A*'s tight beam (teal) against Dijkstra's full flood (amber), making the efficiency difference visible, not just a number
+- **Click-anywhere-to-snap** origin selection (nearest-intersection snapping), a junction-only origin picker, and canvas rendering for a smooth 3,000-edge map
+- Leaflet 1.9 map on OpenStreetMap tiles with curved edge/route polylines, clickable `L.circleMarker` junctions, blue route polyline, amber service-area highlighting, and map auto-fit to route bounds
 - Client fetches full `RoadGraphDto` once via `GET /api/v1/network/graph` and submits it with each route request, keeping the API stateless
 - Native C++ routing engine (`spatial_graph_engine`) exposing `Graph_FindShortestPath` and `Graph_ComputeServiceArea`; managed fallback runs `PriorityQueue<TElement, TPriority>`-based Dijkstra/A* automatically when the library is absent
 - Turn-by-turn panel with human-readable street-intersection labels; `ExploredNodes` metric drives interviewer discussion of graph search theory
@@ -253,8 +255,8 @@ Spatial graph routing API that computes shortest paths and service areas over a 
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
-| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback; currently implemented by `portfolio_scoring` |
-| API Docs | Scalar / OpenAPI in development, XML doc comments |
+| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across five kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`) |
+| API Docs | Scalar / OpenAPI (all environments), XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
 | Database Hosting | Neon.tech PostgreSQL |
@@ -290,8 +292,8 @@ When Redis is not configured, geocoding cache falls back to `MemoryDistributedCa
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/brianpcoffey/gis-portfolio.git
-   cd portfolio
+   git clone https://github.com/brianpcoffey/portfolio_v2.git
+   cd portfolio_v2
    ```
 
 2. **Configure credentials** — create `appsettings.Development.json` (never commit secrets):
@@ -330,12 +332,10 @@ When Redis is not configured, geocoding cache falls back to `MemoryDistributedCa
 
 The project uses **OpenAPI** for API metadata and **Scalar** as the interactive API documentation UI. It does not currently use Swagger UI.
 
-When running in the Development environment:
+The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Program.cs` via `MapOpenApi()` and `MapScalarApiReference()`, so they are available in all environments (intentionally public API documentation):
 
-- Interactive API reference: `https://localhost:5001/scalar`
-- Raw OpenAPI document: `https://localhost:5001/openapi/v1.json`
-
-These endpoints are mapped only in development in `Program.cs` via `MapOpenApi()` and `MapScalarApiReference()`.
+- Interactive API reference: `/scalar` (e.g. `https://localhost:5001/scalar` locally)
+- Raw OpenAPI document: `/openapi/v1.json`
 
 ### Running Tests
 
@@ -343,7 +343,7 @@ These endpoints are mapped only in development in `Program.cs` via `MapOpenApi()
 dotnet test
 ```
 
-389 tests — 355 passing, 34 skipped/failing (native-gated parity tests skip when the native shared library is absent; xUnit + Moq, no integration/DB tests).
+464 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
 
 ---
 
@@ -378,10 +378,10 @@ Leaving `Redis:ConnectionString` empty activates the in-process `MemoryDistribut
 ## Deployment
 
 ### Render (current production)
-- Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/gis-portfolio).
+- Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/portfolio_v2).
 - Database hosted on **Neon.tech** PostgreSQL.
 - EF Core migrations run automatically at startup — no manual migration step required.
-- HTTPS redirection and HSTS enabled in non-development environments.
+- HSTS enabled in non-development environments; HTTPS redirection runs only in development (Render terminates TLS at its proxy, so the container serves plain HTTP).
 - Secrets (`DATABASE_URL`, `Redis__ConnectionString`, Google OAuth credentials) are injected as environment variables.
 
 ### Docker (local dev + staging)

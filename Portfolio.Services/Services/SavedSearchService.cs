@@ -9,10 +9,12 @@ namespace Portfolio.Services.Services
     public class SavedSearchService : ISavedSearchService
     {
         private readonly ISavedSearchRepository _repo;
+        private readonly TimeProvider _timeProvider;
 
-        public SavedSearchService(ISavedSearchRepository repo)
+        public SavedSearchService(ISavedSearchRepository repo, TimeProvider timeProvider)
         {
             _repo = repo;
+            _timeProvider = timeProvider;
         }
 
         /// <summary>
@@ -37,7 +39,7 @@ namespace Portfolio.Services.Services
                 Name = name,
                 PreferencesJson = JsonSerializer.Serialize(dto.Preferences),
                 TopPropertyIds = string.Join(",", dto.PropertyIds ?? Array.Empty<int>()),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
             };
 
             var saved = await _repo.AddAsync(entity, cancellationToken);
@@ -54,15 +56,16 @@ namespace Portfolio.Services.Services
         }
 
         /// <summary>
-        /// Deletes a saved search by ID. Throws if not found.
+        /// Deletes a saved search by ID, scoped to its owner so a user can only delete
+        /// their own searches. Throws KeyNotFoundException if the search does not exist
+        /// or belongs to another user (indistinguishable by design, to avoid disclosing
+        /// the existence of other users' records).
         /// </summary>
-        public async Task DeleteSavedSearchAsync(int id, CancellationToken cancellationToken = default)
+        public async Task DeleteSavedSearchAsync(int id, Guid userId, CancellationToken cancellationToken = default)
         {
-            var exists = await _repo.GetByIdAsync(id, cancellationToken);
-            if (exists is null)
+            var deleted = await _repo.DeleteAsync(id, userId, cancellationToken);
+            if (!deleted)
                 throw new KeyNotFoundException($"Saved search with ID {id} was not found.");
-
-            await _repo.DeleteAsync(id, cancellationToken);
         }
 
         private static SavedSearchDto MapToDto(SavedSearch s) => new()
@@ -77,12 +80,18 @@ namespace Portfolio.Services.Services
                 .ToArray() ?? Array.Empty<int>()
         };
 
+        // Cached — allocating JsonSerializerOptions per call defeats System.Text.Json's
+        // internal metadata cache.
+        private static readonly JsonSerializerOptions DeserializeOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         private static HomeSearchPreferencesDto? SafeDeserialize(string json)
         {
             try
             {
-                return JsonSerializer.Deserialize<HomeSearchPreferencesDto>(json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return JsonSerializer.Deserialize<HomeSearchPreferencesDto>(json, DeserializeOptions);
             }
             catch
             {

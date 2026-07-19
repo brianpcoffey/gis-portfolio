@@ -201,7 +201,7 @@ export const UI = {
                             UI.showToast("Collection", "Failed to update collection", "danger");
                         }
                     } else if (action === "delete") {
-                        if (!confirm("Delete this collection? This cannot be undone.")) return;
+                        if (!await confirmDialog("Delete this collection? This cannot be undone.")) return;
                         try {
                             await CollectionService.deleteCollection(id);
                             const state = getState();
@@ -505,10 +505,10 @@ export const UI = {
         }
         const removeBtn = query("btnViewRemove");
         if (removeBtn) {
-            removeBtn.onclick = () => {
+            removeBtn.onclick = async () => {
                 const savedId = removeBtn.dataset.savedId || "";
                 const featureId = removeBtn.dataset.featureId || "";
-                if (!confirm("Remove saved state?")) return;
+                if (!await confirmDialog("Remove saved state?", { confirmText: "Remove" })) return;
                 document.dispatchEvent(new CustomEvent("ui:removeSaved", { detail: { savedId, featureId } }));
                 // close modal after action
                 if (viewModalInstance) viewModalInstance.hide();

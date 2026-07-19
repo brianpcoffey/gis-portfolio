@@ -114,9 +114,9 @@ namespace Portfolio.Tests.Controllers
             // Act
             var result = await _controller.Create(dto, CancellationToken.None);
 
-            // Assert
-            var ok = Assert.IsType<OkObjectResult>(result);
-            Assert.Equal(created, ok.Value);
+            // Assert — 201 Created pointing at the Get action.
+            var createdResult = Assert.IsType<CreatedAtActionResult>(result);
+            Assert.Equal(created, createdResult.Value);
         }
 
         [Fact]

@@ -44,7 +44,7 @@
 					<select id="networkStart" class="form-select form-select-sm">
 						<option value="">Loading graph…</option>
 					</select>
-					<p class="hint-text mt-1">Or <strong>click any node</strong> on the map.</p>
+					<p class="hint-text mt-1">Or <strong>click anywhere</strong> on the map — it snaps to the nearest intersection.</p>
 				</div>
 			</div>
 
@@ -74,7 +74,15 @@
 						<input type="radio" class="btn-check" name="algoRadio" id="algoDijkstra" value="dijkstra" />
 						<label class="btn btn-outline-accent btn-sm" for="algoDijkstra">Dijkstra</label>
 					</div>
-					<p class="hint-text mt-1" id="algoHint">A* uses a haversine heuristic to Esri HQ.</p>
+					<p class="hint-text mt-1" id="algoHint">A* uses a haversine heuristic to Esri HQ — watch it explore far fewer nodes.</p>
+					<div class="form-check form-switch mt-2">
+						<input class="form-check-input" type="checkbox" id="showExplored" checked />
+						<label class="form-check-label small" for="showExplored">
+							Show search space
+							<span class="explored-swatch explored-swatch-astar" title="A* explored"></span>
+							<span class="explored-swatch explored-swatch-dijkstra" title="Dijkstra explored"></span>
+						</label>
+					</div>
 				</div>
 			</div>
 
@@ -97,7 +105,7 @@
 					<div class="kpi-grid">
 						<div class="kpi-tile">
 							<div id="kpiDistance" class="kpi-val">—</div>
-							<div class="kpi-label">Distance (km)</div>
+							<div class="kpi-label">Distance (km / mi)</div>
 						</div>
 						<div class="kpi-tile">
 							<div id="kpiTime" class="kpi-val">—</div>

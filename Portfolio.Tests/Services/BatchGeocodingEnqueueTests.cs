@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Portfolio.Common.Configuration;
 using Portfolio.Common.Models;
 using Portfolio.Services;
 using Portfolio.Services.Services;
@@ -24,21 +25,19 @@ namespace Portfolio.Tests.Services
         private readonly Mock<ILogger<BatchGeocodingService>> _loggerMock = new();
         private readonly IDistributedCache _memoryCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
-        private static IConfiguration MakeConfig(int maxConcurrency = 2, double minScore = 80.0) =>
-            new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["BatchGeocoding:MaxConcurrency"] = maxConcurrency.ToString(),
-                    ["BatchGeocoding:MinMatchScore"]  = minScore.ToString()
-                })
-                .Build();
+        private static IOptions<BatchGeocodingOptions> MakeOptions(int maxConcurrency = 2, double minScore = 80.0) =>
+            Options.Create(new BatchGeocodingOptions
+            {
+                MaxConcurrency = maxConcurrency,
+                MinMatchScore = minScore
+            });
 
         private BatchGeocodingService CreateService(HttpMessageHandler handler, InMemoryBatchJobStore store) =>
-            new(httpClient:    new HttpClient(handler),
-                cache:         _memoryCache,
-                logger:        _loggerMock.Object,
-                jobStore:      store,
-                configuration: MakeConfig());
+            new(httpClient: new HttpClient(handler),
+                cache:      _memoryCache,
+                logger:     _loggerMock.Object,
+                jobStore:   store,
+                options:    MakeOptions());
 
         private static IFormFile BuildCsvFile(string csvContent)
         {

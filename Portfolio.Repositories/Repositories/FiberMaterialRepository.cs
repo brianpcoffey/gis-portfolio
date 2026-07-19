@@ -7,7 +7,13 @@ namespace Portfolio.Repositories.Repositories;
 public class FiberMaterialRepository : IFiberMaterialRepository
 {
     private readonly PortfolioDbContext _db;
-    public FiberMaterialRepository(PortfolioDbContext db) => _db = db;
+    private readonly TimeProvider _timeProvider;
+
+    public FiberMaterialRepository(PortfolioDbContext db, TimeProvider timeProvider)
+    {
+        _db = db;
+        _timeProvider = timeProvider;
+    }
 
     public async Task<List<FiberMaterial>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
     {
@@ -31,13 +37,6 @@ public class FiberMaterialRepository : IFiberMaterialRepository
         return material;
     }
 
-    public async Task<FiberMaterial> UpdateAsync(FiberMaterial material, CancellationToken cancellationToken = default)
-    {
-        _db.FiberMaterials.Update(material);
-        await _db.SaveChangesAsync(cancellationToken);
-        return material;
-    }
-
     public async Task<List<FiberMaterial>> GetLowStockAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _db.FiberMaterials
@@ -52,9 +51,11 @@ public class FiberMaterialRepository : IFiberMaterialRepository
         if (material is null) throw new KeyNotFoundException($"Material {id} not found.");
         material.Name = dto.Name;
         material.Sku = dto.Sku;
+        material.Category = dto.Category;
         material.QtyOnHand = dto.QtyOnHand;
         material.UnitCost = dto.UnitCost;
         material.ReorderPoint = dto.ReorderPoint;
+        material.LastUpdated = _timeProvider.GetUtcNow().UtcDateTime; // stamp on every edit
         await _db.SaveChangesAsync(cancellationToken);
         return material;
     }

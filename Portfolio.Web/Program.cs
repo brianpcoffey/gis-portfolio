@@ -21,6 +21,10 @@ using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 using Portfolio.Web.Middleware;
+using Portfolio.Web.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Scalar.AspNetCore;
 using System.Security.Claims;
 
@@ -29,9 +33,11 @@ var builder = WebApplication.CreateBuilder(args);
 // --------------------------
 // Startup Diagnostics
 // --------------------------
-var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("Startup");
-logger.LogInformation("EF Core Connection String: {ConnectionString}", 
-    builder.Configuration.GetConnectionString("DefaultConnection"));
+using var loggerFactory = LoggerFactory.Create(config => config.AddConsole());
+var logger = loggerFactory.CreateLogger("Startup");
+// NOTE: never log the connection string here — it carries the DB password and
+// would leak into stdout/log aggregation. Redis is masked below; the DB string
+// must not be logged at all.
 // --------------------------
 // Razor Pages & Services
 // --------------------------
@@ -104,6 +110,14 @@ builder.Services.AddHttpClient<IArcGisService, ArcGisService>(client =>
         BreakDuration     = TimeSpan.FromSeconds(30)
     });
 });
+// Strongly-typed, validated geocoding configuration.
+builder.Services.AddOptions<BatchGeocodingOptions>()
+    .Bind(builder.Configuration.GetSection(BatchGeocodingOptions.SectionName))
+    .ValidateDataAnnotations();
+builder.Services.AddOptions<ReverseGeocodingOptions>()
+    .Bind(builder.Configuration.GetSection(ReverseGeocodingOptions.SectionName))
+    .ValidateDataAnnotations();
+
 builder.Services.AddScoped<IBatchGeocodingService, BatchGeocodingService>();
 builder.Services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>()
     .AddResilienceHandler("arcgis-batch", pipeline =>
@@ -357,10 +371,30 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = googleSettings.ClientId;
     options.ClientSecret = googleSettings.ClientSecret;
     options.CallbackPath = "/signin-google";
-    options.SaveTokens = true;
+    // No feature reads the Google access/id tokens, so do not persist them into the
+    // auth cookie (keeps the cookie smaller and avoids holding bearer tokens client-side).
+    options.SaveTokens = false;
     options.Scope.Add("profile");
     options.Scope.Add("email");
     options.ClaimActions.MapJsonKey("picture", "picture");
+
+    // Google is the default challenge scheme, so an unauthenticated request to a
+    // protected endpoint would otherwise 302 straight to accounts.google.com. For
+    // API calls that produces a cross-origin redirect the browser's fetch cannot
+    // follow (no CORS headers), surfacing as an opaque failure instead of a clean
+    // 401. Return 401 for /api paths so the client can react (redirect to /Login);
+    // full-page navigations still get the normal Google redirect.
+    options.Events.OnRedirectToAuthorizationEndpoint = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 builder.Services.AddAuthorization(options =>
@@ -376,6 +410,52 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition      = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
+
+// --------------------------
+// Rate Limiting
+// --------------------------
+// Partitioned per-client (IP) limiting. RemoteIpAddress reflects X-Forwarded-For here because
+// ForwardedHeaders is configured above, so this is the real client behind Render's proxy.
+//   Global   — a generous ceiling on every routed request (blocks blunt flooding).
+//   "expensive" — a tight budget for endpoints that call the paid ArcGIS API or run native
+//                 compute, applied via [EnableRateLimiting("expensive")].
+// This runs EARLY in the pipeline (before auth and the anonymous-profile middleware) so a flood
+// is rejected before it can trigger per-request profile creation/seeding. That early placement
+// means no authenticated identity is available yet, so partitioning is by IP. Trade-off: clients
+// sharing one egress IP (corporate NAT, mobile CGNAT) share a budget — hence the generous global
+// ceiling; tune per deployment if shared-IP 429s appear.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    static string ClientKey(HttpContext ctx) =>
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 300,
+            Window      = TimeSpan.FromMinutes(1),
+            QueueLimit  = 0
+        }));
+
+    options.AddPolicy("expensive", ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 15,
+            Window      = TimeSpan.FromMinutes(1),
+            QueueLimit  = 0
+        }));
+});
+
+// --------------------------
+// Health Checks (Kubernetes probes)
+// --------------------------
+// Liveness (/health/live) runs no checks — it only proves the process is responsive.
+// Readiness (/health/ready) runs checks tagged "ready" (DB connectivity) so a pod is
+// kept out of the Service until its dependencies are up.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseReadyHealthCheck>("database", tags: new[] { "ready" });
 
 // --------------------------
 // API Versioning
@@ -461,6 +541,9 @@ var app = builder.Build();
 // Options (KnownNetworks/KnownProxies cleared) are registered in the services section above.
 app.UseForwardedHeaders();
 
+// Emit security headers on every response (before static files / endpoints run).
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -475,6 +558,11 @@ if (app.Environment.IsDevelopment())
 }
 app.UseStaticFiles();
 app.UseRouting();
+
+// Rate limiting runs after routing (so per-endpoint policies resolve) but before the
+// endpoints. Static files (served above) are intentionally not rate-limited.
+app.UseRateLimiter();
+
 app.UseSession();
 
 // Global exception handler — returns RFC 7807 ProblemDetails for all unhandled exceptions.
@@ -486,12 +574,27 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // --------------------------
-// Swagger UI
+// OpenAPI / Scalar API reference
 // --------------------------
 
 // OpenAPI & Scalar UI are intentionally available in production for public API documentation.
 app.MapOpenApi();
 app.MapScalarApiReference();
+
+// --------------------------
+// Health check endpoints (probed by Kubernetes; anonymous)
+// --------------------------
+// Liveness: process is up. Run NO checks so a transient DB blip never restarts the pod.
+// Probes hit these frequently from the kubelet, so they opt out of rate limiting.
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+}).DisableRateLimiting();
+// Readiness: only receive traffic once dependency checks tagged "ready" pass.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+}).DisableRateLimiting();
 
 // --------------------------
 // Map endpoints
@@ -508,11 +611,11 @@ using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<PortfolioDbContext>();
         db.Database.Migrate();
-        Console.WriteLine("Database migration successful.");
+        logger.LogInformation("Database migration successful.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database migration failed: {ex.Message}");
+        logger.LogError(ex, "Database migration failed.");
     }
 }
 

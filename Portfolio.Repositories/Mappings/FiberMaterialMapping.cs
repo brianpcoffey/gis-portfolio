@@ -12,6 +12,7 @@ public class FiberMaterialMapping : IEntityTypeConfiguration<FiberMaterial>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.UserId).HasColumnName("user_id");
+        builder.HasIndex(x => x.UserId); // every material query filters by user
         builder.Property(x => x.Name).HasColumnName("name");
         builder.Property(x => x.Sku).HasColumnName("sku");
         builder.Property(x => x.UnitOfMeasure).HasColumnName("unit_of_measure");

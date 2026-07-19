@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
@@ -13,6 +14,7 @@ namespace Portfolio.Web.Controllers.Api
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/addresses")]
     [AllowAnonymous]
+    [EnableRateLimiting("expensive")] // calls the paid ArcGIS geocoding API
     public class AddressStandardizationController : ControllerBase
     {
         private readonly IAddressStandardizationService _addressStandardizationService;

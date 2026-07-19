@@ -18,7 +18,7 @@
             </a>
         </nav>
 
-        <h2 class="section-title text-center mb-5">My Profile</h2>
+        <h1 class="section-title text-center mb-5">My Profile</h1>
 
         @if (!string.IsNullOrEmpty(Model.StatusMessage))
         {
@@ -108,6 +108,21 @@
                         <i class="fa-solid fa-save me-1" aria-hidden="true"></i>Save Changes
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Display & Accessibility -->
+        <div class="profile-card">
+            <div class="profile-card-header">
+                <i class="fa-solid fa-universal-access header-icon" aria-hidden="true"></i>
+                <h5>Display &amp; Accessibility</h5>
+            </div>
+            <div class="profile-card-body">
+                <p class="form-text" style="margin-top: 0;">
+                    Saved on this device and applied across the whole site — also available anytime from the
+                    <i class="fa-solid fa-universal-access" aria-hidden="true"></i> button in the top navigation.
+                </p>
+                @await Html.PartialAsync("_PreferencesControls", "profile")
             </div>
         </div>
 

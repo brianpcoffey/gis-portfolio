@@ -24,7 +24,7 @@ namespace Portfolio.Tests.Services
             _materialRepoMock = new Mock<IFiberMaterialRepository>();
             _userProfileServiceMock = new Mock<IUserProfileService>();
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns(_testUserId);
-            _service = new FiberDashboardService(_orderRepoMock.Object, _shipmentRepoMock.Object, _materialRepoMock.Object, _userProfileServiceMock.Object);
+            _service = new FiberDashboardService(_orderRepoMock.Object, _shipmentRepoMock.Object, _materialRepoMock.Object, _userProfileServiceMock.Object, TimeProvider.System);
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace Portfolio.Tests.Services
         public async Task Throws_WhenUserNotIdentified()
         {
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
-            var service = new FiberDashboardService(_orderRepoMock.Object, _shipmentRepoMock.Object, _materialRepoMock.Object, _userProfileServiceMock.Object);
+            var service = new FiberDashboardService(_orderRepoMock.Object, _shipmentRepoMock.Object, _materialRepoMock.Object, _userProfileServiceMock.Object, TimeProvider.System);
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetDashboardAsync());
         }
 

@@ -13,5 +13,4 @@ public class FiberClient
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public DateTime CreatedDate { get; set; }
-    public ICollection<FiberOrder> Orders { get; set; } = new List<FiberOrder>();
 }

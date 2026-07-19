@@ -10,6 +10,7 @@ namespace Portfolio.Tests.Services
     public class SavedFeatureServiceTests
     {
         private readonly Mock<ISavedFeatureRepository> _repoMock;
+        private readonly Mock<ICollectionRepository> _collectionRepoMock;
         private readonly Mock<IUserProfileService> _userProfileServiceMock;
         private readonly SavedFeatureService _service;
         private readonly Guid _testUserId = Guid.NewGuid();
@@ -17,10 +18,15 @@ namespace Portfolio.Tests.Services
         public SavedFeatureServiceTests()
         {
             _repoMock = new Mock<ISavedFeatureRepository>();
+            _collectionRepoMock = new Mock<ICollectionRepository>();
+            // By default any referenced collection resolves as owned by the test user.
+            _collectionRepoMock
+                .Setup(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Collection { Id = 1, OwnerId = _testUserId, Name = "Test" });
             _userProfileServiceMock = new Mock<IUserProfileService>();
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns(_testUserId);
 
-_service = new SavedFeatureService(_repoMock.Object, _userProfileServiceMock.Object, TimeProvider.System, new Mock<Microsoft.Extensions.Logging.ILogger<SavedFeatureService>>().Object);
+            _service = new SavedFeatureService(_repoMock.Object, _collectionRepoMock.Object, _userProfileServiceMock.Object, TimeProvider.System, new Mock<Microsoft.Extensions.Logging.ILogger<SavedFeatureService>>().Object);
         }
 
         [Fact]
@@ -54,7 +60,7 @@ _service = new SavedFeatureService(_repoMock.Object, _userProfileServiceMock.Obj
         public async Task GetAllAsync_WhenNoUser_ThrowsInvalidOperationException()
         {
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
-            var service = new SavedFeatureService(_repoMock.Object, _userProfileServiceMock.Object, TimeProvider.System, new Mock<Microsoft.Extensions.Logging.ILogger<SavedFeatureService>>().Object);
+            var service = new SavedFeatureService(_repoMock.Object, _collectionRepoMock.Object, _userProfileServiceMock.Object, TimeProvider.System, new Mock<Microsoft.Extensions.Logging.ILogger<SavedFeatureService>>().Object);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetAllAsync());
         }

@@ -18,7 +18,7 @@ namespace Portfolio.Tests.Services
         {
             _propertyRepoMock = new Mock<IPropertyRepository>();
             _loggerMock = new Mock<ILogger<HomeScoringService>>();
-            _service = new HomeScoringService(_propertyRepoMock.Object, _loggerMock.Object);
+            _service = new HomeScoringService(_propertyRepoMock.Object, _loggerMock.Object, TimeProvider.System);
         }
 
         [Fact]

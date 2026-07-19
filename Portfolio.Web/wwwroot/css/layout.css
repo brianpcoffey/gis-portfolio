@@ -360,8 +360,10 @@ body.dark-mode .projects-section {
     100% { transform: translateX(-50%); }
 }
 
-/* Pause scroll on hover; transition eases the stop/start */
-.projects-slider:hover .projects-track {
+/* Pause scroll on hover, or when a card inside receives keyboard focus, so keyboard
+   and touch users can stop the motion — not just mouse users (WCAG 2.2.2). */
+.projects-slider:hover .projects-track,
+.projects-slider:focus-within .projects-track {
     animation-play-state: paused;
 }
 

@@ -2,11 +2,16 @@
 const _COLLECTIONS = window.PortfolioApi.routes.collections;
 export const CollectionService = {
     async getCollections() {
-        const res = await window.apiFetch(_COLLECTIONS);
-        if (!res.ok) {
-            throw new Error('Failed to load collections');
+        // Collections require auth; for anonymous visitors (or any transient error)
+        // return an empty list rather than throwing, so a failed collections fetch
+        // never rejects the Promise.all in initialize() and bricks the whole page.
+        try {
+            const res = await window.apiFetch(_COLLECTIONS);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch {
+            return [];
         }
-        return res.json();
     },
 
     async createCollection(name, color) {

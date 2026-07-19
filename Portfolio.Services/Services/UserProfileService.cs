@@ -151,58 +151,61 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("GoogleId is required", nameof(google));
 
             var now = _timeProvider.GetUtcNow().UtcDateTime;
+            Guid userId = Guid.Empty;
 
-            var existing = await _repo.GetProfileByClaimAsync(
-                ProfileClaimTypes.GoogleId, google.GoogleId, cancellationToken);
-
-            Guid userId;
-
-            if (existing != null)
+            // Atomic: the profile upsert, per-user seed, and claim writes commit together, so a
+            // mid-sequence failure never leaves a half-provisioned account.
+            await _repo.RunInTransactionAsync(async ct =>
             {
-                userId = existing.UserId;
-                existing.LastActiveDate = now;
-                await _repo.AddOrUpdateProfileAsync(existing, cancellationToken);
-            }
-            else
-            {
-                var ctx = _httpContextAccessor.HttpContext;
-                Guid? anonId = null;
-                if (ctx != null &&
-                    ctx.Request.Cookies.TryGetValue("AnonUserId", out var cookieVal) &&
-                    Guid.TryParse(cookieVal, out var parsed))
-                {
-                    var anonProfile = await _repo.GetProfileAsync(parsed, cancellationToken);
-                    if (anonProfile != null)
-                        anonId = anonProfile.UserId;
+                var existing = await _repo.GetProfileByClaimAsync(
+                    ProfileClaimTypes.GoogleId, google.GoogleId, ct);
 
-                }
-
-                if (anonId.HasValue)
+                if (existing != null)
                 {
-                    userId = anonId.Value;
-                    var profile = (await _repo.GetProfileAsync(userId, cancellationToken))!;
-                    profile.LastActiveDate = now;
-                    await _repo.AddOrUpdateProfileAsync(profile, cancellationToken);
+                    userId = existing.UserId;
+                    existing.LastActiveDate = now;
+                    await _repo.AddOrUpdateProfileAsync(existing, ct);
                 }
                 else
                 {
-                    userId = Guid.NewGuid();
-                    await _repo.AddOrUpdateProfileAsync(new UserProfile
+                    var ctx = _httpContextAccessor.HttpContext;
+                    Guid? anonId = null;
+                    if (ctx != null &&
+                        ctx.Request.Cookies.TryGetValue("AnonUserId", out var cookieVal) &&
+                        Guid.TryParse(cookieVal, out var parsed))
                     {
-                        UserId = userId,
-                        CreatedDate = now,
-                        LastActiveDate = now
-                    }, cancellationToken);
-                    await _seedService.SeedForUserAsync(userId);
+                        var anonProfile = await _repo.GetProfileAsync(parsed, ct);
+                        if (anonProfile != null)
+                            anonId = anonProfile.UserId;
+                    }
+
+                    if (anonId.HasValue)
+                    {
+                        userId = anonId.Value;
+                        var profile = (await _repo.GetProfileAsync(userId, ct))!;
+                        profile.LastActiveDate = now;
+                        await _repo.AddOrUpdateProfileAsync(profile, ct);
+                    }
+                    else
+                    {
+                        userId = Guid.NewGuid();
+                        await _repo.AddOrUpdateProfileAsync(new UserProfile
+                        {
+                            UserId = userId,
+                            CreatedDate = now,
+                            LastActiveDate = now
+                        }, ct);
+                        await _seedService.SeedForUserAsync(userId, ct);
+                    }
+
+                    await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, ct);
                 }
 
-                await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, cancellationToken);
-            }
-
-            await _repo.SetClaimAsync(userId, ProfileClaimTypes.Email, google.Email, cancellationToken);
-            await _repo.SetClaimAsync(userId, ProfileClaimTypes.Name, google.Name, cancellationToken);
-            if (!string.IsNullOrEmpty(google.Picture))
-                await _repo.SetClaimAsync(userId, ProfileClaimTypes.Picture, google.Picture, cancellationToken);
+                await _repo.SetClaimAsync(userId, ProfileClaimTypes.Email, google.Email, ct);
+                await _repo.SetClaimAsync(userId, ProfileClaimTypes.Name, google.Name, ct);
+                if (!string.IsNullOrEmpty(google.Picture))
+                    await _repo.SetClaimAsync(userId, ProfileClaimTypes.Picture, google.Picture, ct);
+            }, cancellationToken);
 
             return userId;
         }

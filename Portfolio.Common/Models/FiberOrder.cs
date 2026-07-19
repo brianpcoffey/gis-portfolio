@@ -14,5 +14,4 @@ public class FiberOrder
     public DateTime ShipDate { get; set; }
     public double? ClientLat { get; set; }
     public double? ClientLng { get; set; }
-    public ICollection<FiberShipment> Shipments { get; set; } = new List<FiberShipment>();
 }

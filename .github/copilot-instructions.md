@@ -3,6 +3,10 @@
 > Authoritative guide for AI coding agents working in this repo. Only patterns
 > **observed in code** are documented. Anything else is flagged as
 > *"No consistent pattern found"*.
+>
+> **Currency note:** parts of this file may lag the codebase (newer projects/kernels
+> were added after it was written). Treat the source and `README.md` as authoritative
+> over this document when they disagree.
 
 ---
 
@@ -12,7 +16,10 @@ A .NET 10 Razor Pages web application that lets visitors explore ArcGIS map
 features (the "State Explorer" project), save those features, and organize
 them into named collections. It also exposes a small claims/profile API for
 anonymous users, plus three ArcGIS-backed geocoding microservices, a fiber
-order management domain, and a home-finder property scoring feature.
+order management domain, and a home-finder property scoring feature. Several
+additional demo projects each pair a Razor UI with a native compute kernel:
+Geometry Toolkit, Terrain Analyzer, Live Location Stream (GeoStream), and Route
+Planner (spatial network / shortest path).
 
 **Projects (5):**
 
@@ -39,9 +46,10 @@ service layer. All API controllers are versioned under `api/v{version}` using
 - **Batch Geocoding** - CSV upload -> async job pipeline -> ArcGIS `findAddressCandidates` -> `IBatchJobStore` + Polly circuit breaker
 - **Reverse Geocoding** - lat/lng -> grid-snapped `IDistributedCache` -> ArcGIS `reverseGeocode`
 - **Address Standardization & Validation** - freeform parse -> suffix normalization -> ArcGIS validation with fallback and `ConfidenceTier`
-- **Fiber Order Management** - CRUD for orders, materials, shipments, and clients; dashboard aggregation (MTD revenue, open orders, active shipments, low-stock alerts, top clients, orders-by-status)
+- **Fiber Order Management** - CRUD for orders, materials, and shipments (clients are seeded reference data with no CRUD endpoint); dashboard aggregation (MTD revenue, open orders, active shipments, low-stock alerts, top clients, orders-by-status)
 - **Home Finder** - preference-based property scoring, saved searches, property detail lookup
-- **Native C++ Scoring Kernel** - compute-intensive home-scoring math extracted to a C++ shared library (`portfolio_scoring`) called via P/Invoke; managed C# fallback activates automatically when the native library is absent
+- **Geometry Toolkit / Terrain Analyzer / Live Location Stream / Route Planner** - additional compute demos, each with a Razor UI and its own native kernel
+- **Native compute kernels** - compute-intensive math extracted to C++ shared libraries called via P/Invoke, each with an automatic managed C# fallback when the native library is absent. Kernels: `portfolio_scoring` (home scoring), `spatial_geometry_kernel`, `raster_terrain_kernel`, `geostream_processor`, and `spatial_graph_engine`. Only the scoring kernel currently has a native-vs-managed parity test; the others are covered by managed-path tests in `SpatialComputeServiceTests`.
 
 ---
 

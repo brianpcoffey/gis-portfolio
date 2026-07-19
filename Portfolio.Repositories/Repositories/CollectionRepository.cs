@@ -19,6 +19,7 @@ namespace Portfolio.Repositories.Repositories
         public async Task<List<Collection>> GetAllAsync(Guid ownerId, CancellationToken cancellationToken = default)
         {
             return await _db.Collections
+                .AsNoTracking()
                 .Where(c => c.OwnerId == ownerId)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync(cancellationToken);

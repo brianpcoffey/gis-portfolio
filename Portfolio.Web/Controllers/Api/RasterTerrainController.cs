@@ -6,6 +6,10 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoints for raster terrain analysis (hillshade and heatmap generation
+    /// over dense numeric grids).
+    /// </summary>
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]

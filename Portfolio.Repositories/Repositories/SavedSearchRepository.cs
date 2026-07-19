@@ -13,13 +13,6 @@ namespace Portfolio.Repositories.Repositories
             _db = db;
         }
 
-        public async Task<SavedSearch?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-        {
-            return await _db.SavedSearches
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
-        }
-
         public async Task<List<SavedSearch>> GetAllAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return await _db.SavedSearches
@@ -65,16 +58,6 @@ namespace Portfolio.Repositories.Repositories
         {
             var search = await _db.SavedSearches
                 .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId, cancellationToken);
-            if (search == null) return false;
-            _db.SavedSearches.Remove(search);
-            await _db.SaveChangesAsync(cancellationToken);
-            return true;
-        }
-
-        public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
-        {
-            var search = await _db.SavedSearches
-                .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
             if (search == null) return false;
             _db.SavedSearches.Remove(search);
             await _db.SaveChangesAsync(cancellationToken);

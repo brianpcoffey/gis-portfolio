@@ -72,22 +72,70 @@ namespace Portfolio.Services.Services
             if (SpatialGeometryNativeBridge.TryClipToBoundingBox(request, _logger, out var nativeResult))
                 return Task.FromResult(nativeResult!);
 
-            var vertices = new List<CoordinateDto>(request.Subject.Count);
-            foreach (var point in request.Subject)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                vertices.Add(new CoordinateDto
-                {
-                    X = Math.Clamp(point.X, request.MinX, request.MaxX),
-                    Y = Math.Clamp(point.Y, request.MinY, request.MaxY)
-                });
-            }
+            // Sutherland–Hodgman: clip the subject polygon against each of the four box
+            // half-planes in turn. Unlike per-vertex clamping this computes true edge/box
+            // intersection points, emits box-corner vertices, and yields an EMPTY polygon
+            // when the subject lies entirely outside the box.
+            var poly = request.Subject.Select(p => new CoordinateDto { X = p.X, Y = p.Y }).ToList();
+            poly = ClipHalfPlane(poly, p => p.X >= request.MinX, (a, b) => IntersectX(a, b, request.MinX));
+            poly = ClipHalfPlane(poly, p => p.X <= request.MaxX, (a, b) => IntersectX(a, b, request.MaxX));
+            poly = ClipHalfPlane(poly, p => p.Y >= request.MinY, (a, b) => IntersectY(a, b, request.MinY));
+            poly = ClipHalfPlane(poly, p => p.Y <= request.MaxY, (a, b) => IntersectY(a, b, request.MaxY));
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             return Task.FromResult(new PolygonOperationResultDto
             {
                 NativeAccelerated = false,
-                Vertices = vertices
+                Vertices = poly
             });
+        }
+
+        // Clips a closed polygon against a single half-plane (Sutherland–Hodgman step).
+        private static List<CoordinateDto> ClipHalfPlane(
+            List<CoordinateDto> polygon,
+            Func<CoordinateDto, bool> inside,
+            Func<CoordinateDto, CoordinateDto, CoordinateDto> intersect)
+        {
+            var output = new List<CoordinateDto>();
+            if (polygon.Count == 0)
+                return output;
+
+            for (var i = 0; i < polygon.Count; i++)
+            {
+                var current = polygon[i];
+                var previous = polygon[(i - 1 + polygon.Count) % polygon.Count];
+                var currentInside = inside(current);
+                var previousInside = inside(previous);
+
+                if (currentInside)
+                {
+                    if (!previousInside)
+                        output.Add(intersect(previous, current)); // entering the box
+                    output.Add(current);
+                }
+                else if (previousInside)
+                {
+                    output.Add(intersect(previous, current)); // leaving the box
+                }
+            }
+
+            return output;
+        }
+
+        // Intersection of segment a→b with the vertical line X = x (a.X != b.X guaranteed
+        // by the caller: it is only invoked when the endpoints straddle the boundary).
+        private static CoordinateDto IntersectX(CoordinateDto a, CoordinateDto b, double x)
+        {
+            var t = (x - a.X) / (b.X - a.X);
+            return new CoordinateDto { X = x, Y = a.Y + t * (b.Y - a.Y) };
+        }
+
+        // Intersection of segment a→b with the horizontal line Y = y.
+        private static CoordinateDto IntersectY(CoordinateDto a, CoordinateDto b, double y)
+        {
+            var t = (y - a.Y) / (b.Y - a.Y);
+            return new CoordinateDto { X = a.X + t * (b.X - a.X), Y = y };
         }
 
         private static void ValidateCoordinates(IEnumerable<CoordinateDto> coordinates)

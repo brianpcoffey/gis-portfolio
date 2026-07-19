@@ -21,13 +21,23 @@ namespace Portfolio.Services.Services
                 ?? throw new InvalidOperationException("ArcGis:BaseUrl configuration is missing.");
         }
 
-        public async Task<List<FeatureDto>> QueryFeaturesAsync(string layerId, string? bbox = null, CancellationToken cancellationToken = default)
+        public Task<List<FeatureDto>> QueryFeaturesAsync(string layerId, string? bbox = null, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(layerId, nameof(layerId));
+            return QueryFeaturesCoreAsync(layerId, "1=1", bbox, cancellationToken);
+        }
 
-            // Encode caller-supplied values to prevent URL injection / malformed requests.
+        // Core query shared by the public list query and the single-feature lookup. whereClause is
+        // always code-supplied ("1=1" or "OBJECTID=<validated int>"), never raw user input, so it
+        // cannot inject into the ArcGIS where filter.
+        private async Task<List<FeatureDto>> QueryFeaturesCoreAsync(string layerId, string whereClause, string? bbox, CancellationToken cancellationToken)
+        {
+            // Encode the caller-supplied layerId to prevent URL injection. whereClause is NOT
+            // encoded: it is always code-supplied ("1=1" or "OBJECTID=<validated int>"), never user
+            // input, and ArcGIS expects the raw `where=1=1` form (percent-encoding the '=' can break
+            // servers that don't decode it inside the where value).
             var encodedLayerId = Uri.EscapeDataString(layerId);
-            var url = $"{_baseUrl}/{encodedLayerId}/query?where=1=1&f=json&outFields=*";
+            var url = $"{_baseUrl}/{encodedLayerId}/query?where={whereClause}&f=json&outFields=*";
             if (!string.IsNullOrEmpty(bbox))
             {
                 // bbox is caller-supplied; encode it to prevent URL injection.
@@ -73,8 +83,15 @@ namespace Portfolio.Services.Services
 
         public async Task<FeatureDto?> GetFeatureAsync(string layerId, string featureId, CancellationToken cancellationToken = default)
         {
-            var features = await QueryFeaturesAsync(layerId, null, cancellationToken);
-            return features.Find(f => f.FeatureId == featureId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(layerId, nameof(layerId));
+
+            // featureId is the ArcGIS OBJECTID (an integer). Validate it so it can be placed in the
+            // where clause safely, and query just that one feature rather than the entire layer.
+            if (!long.TryParse(featureId, out var objectId))
+                return null;
+
+            var features = await QueryFeaturesCoreAsync(layerId, $"OBJECTID={objectId}", null, cancellationToken);
+            return features.FirstOrDefault();
         }
 
         private static string GetFeatureName(Dictionary<string, object?> attributes)

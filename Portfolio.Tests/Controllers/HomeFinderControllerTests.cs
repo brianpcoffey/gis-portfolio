@@ -215,14 +215,15 @@ namespace Portfolio.Tests.Controllers
             // Arrange
             _profileMock.Setup(p => p.GetCurrentUserId()).Returns(_testUserId);
             _savedSearchMock
-                .Setup(s => s.DeleteSavedSearchAsync(1, It.IsAny<CancellationToken>()))
+                .Setup(s => s.DeleteSavedSearchAsync(1, _testUserId, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
             var result = await _controller.DeleteSearch(1, CancellationToken.None);
 
-            // Assert
+            // Assert — the delete is scoped to the current user's id.
             Assert.IsType<NoContentResult>(result);
+            _savedSearchMock.Verify(s => s.DeleteSavedSearchAsync(1, _testUserId, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -231,7 +232,7 @@ namespace Portfolio.Tests.Controllers
             // Arrange
             _profileMock.Setup(p => p.GetCurrentUserId()).Returns(_testUserId);
             _savedSearchMock
-                .Setup(s => s.DeleteSavedSearchAsync(999, It.IsAny<CancellationToken>()))
+                .Setup(s => s.DeleteSavedSearchAsync(999, _testUserId, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new KeyNotFoundException("not found"));
 
             // Act

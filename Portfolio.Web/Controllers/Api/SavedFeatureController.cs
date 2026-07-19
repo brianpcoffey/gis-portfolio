@@ -59,6 +59,11 @@ namespace Portfolio.Web.Controllers.Api
                 var created = await _service.CreateAsync(dto, cancellationToken);
                 return Ok(created);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning("Invalid saved-feature request: {Message}", ex.Message);
+                return BadRequest(new { error = ex.Message });
+            }
             catch (InvalidOperationException)
             {
                 _logger.LogWarning("Conflict saving feature: layer={LayerId} feature={FeatureId}", dto.LayerId, dto.FeatureId);

@@ -30,29 +30,39 @@ namespace Portfolio.Web.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+                // A client that disconnects mid-request surfaces as OperationCanceledException;
+                // that is not a server fault, so log it at Debug rather than Error to avoid noise.
+                if (ex is OperationCanceledException && context.RequestAborted.IsCancellationRequested)
+                    _logger.LogDebug("Request aborted by client on {Method} {Path}", context.Request.Method, context.Request.Path);
+                else
+                    _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+
                 await WriteProblemDetailsAsync(context, ex);
             }
         }
 
         private static async Task WriteProblemDetailsAsync(HttpContext context, Exception ex)
         {
-            var (status, title) = ex switch
+            // Detail is only safe to surface for the explicitly-mapped client (4xx)
+            // errors, whose messages are validation/lookup text. For anything
+            // unmapped (5xx) the raw exception message may leak schema/internal
+            // details, so return a generic detail instead of ex.Message.
+            var (status, title, detail) = ex switch
             {
                 ArgumentNullException
-                or ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request"),
-                KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
-                InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
-                UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
-                OperationCanceledException => (StatusCodes.Status499ClientClosedRequest, "Request Cancelled"),
-                _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
+                or ArgumentException => (StatusCodes.Status400BadRequest, "Bad Request", ex.Message),
+                KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found", ex.Message),
+                InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict", ex.Message),
+                UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized", ex.Message),
+                OperationCanceledException => (StatusCodes.Status499ClientClosedRequest, "Request Cancelled", "The request was cancelled."),
+                _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.", "An unexpected error occurred.")
             };
 
             var problem = new ProblemDetails
             {
                 Status = status,
                 Title = title,
-                Detail = ex.Message,
+                Detail = detail,
                 Instance = context.Request.Path
             };
 

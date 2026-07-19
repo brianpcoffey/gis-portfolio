@@ -2,7 +2,13 @@
 .vs/
 bin/
 obj/
+TestResults/
+native/build/
 
-# Secrets/config
-Portfolio.Web/appsettings.json
+# Local environment & secrets.
+# appsettings.json is committed as the secret-free base config (ArcGis base URL and
+# defaults) so a fresh clone runs; real secrets go in appsettings.Development.json or
+# environment variables and stay untracked.
+.env
 Portfolio.Web/appsettings.Development.json
+DataProtection-Keys/

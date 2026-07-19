@@ -5,6 +5,10 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoint for aggregated fiber operations dashboard KPIs (revenue, open orders,
+    /// active shipments, and inventory alerts) scoped to the authenticated user.
+    /// </summary>
     [Authorize(Policy = "Authenticated")]
     [ApiController]
     [ApiVersion("1.0")]

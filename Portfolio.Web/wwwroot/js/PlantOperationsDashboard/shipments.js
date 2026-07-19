@@ -1,10 +1,10 @@
-// FiberFlow Shipments JS
+// Plant Operations Dashboard - Shipments JS
 // Handles DataTable for shipments and GIS routing map
 
 let shipmentsTable;
 
 
-// Use shared toast helper (window.fiberflowToast provided by dashboard script)
+// Use shared toast helper (window.plantOpsToast provided by dashboard script)
 
 
 $(document).ready(function () {
@@ -16,7 +16,7 @@ $(document).ready(function () {
 
 function loadShipmentsTable() {
     if (typeof $.fn.DataTable !== 'function') {
-        fiberflowToast('DataTables library is not loaded. Please check your script order.', 'error');
+        plantOpsToast('DataTables library is not loaded. Please check your script order.', 'error');
         return;
     }
     window.fetchWithAuth(window.PortfolioApi.routes.fiber.shipments)
@@ -26,13 +26,13 @@ function loadShipmentsTable() {
                 shipmentsTable.clear().rows.add(data).draw();
                 return;
             }
-            shipmentsTable = $('#fiberflowShipmentsTable').DataTable({
+            shipmentsTable = $('#plantOpsShipmentsTable').DataTable({
                 data: data,
                 columns: [
-                    { title: 'Tracking #', data: 'trackingNumber' },
-                    { title: 'Carrier', data: 'carrierName' },
-                    { title: 'Status', data: 'status' },
-                    { title: 'Destination', data: null, render: d => `${d.destinationCity}, ${d.destinationState}` },
+                    { title: 'Tracking #', data: 'trackingNumber', render: $.fn.dataTable.render.text() },
+                    { title: 'Carrier', data: 'carrierName', render: $.fn.dataTable.render.text() },
+                    { title: 'Status', data: 'status', render: $.fn.dataTable.render.text() },
+                    { title: 'Destination', data: null, render: d => `${plantOpsEscape(d.destinationCity)}, ${plantOpsEscape(d.destinationState)}` },
                     { title: 'ETA', data: 'estimatedArrival', render: d => d ? new Date(d).toLocaleString() : '', className: 'text-nowrap' },
                     {
                         title: '',
@@ -58,8 +58,8 @@ function loadShipmentsTable() {
 
 // Show modal for updating shipment status
 window.showShipmentStatusModal = function (shipmentId, currentStatus) {
-    let modalId = 'fiberflowShipmentStatusModal';
-    let $modals = $('#fiberflowModals');
+    let modalId = 'plantOpsShipmentStatusModal';
+    let $modals = $('#plantOpsModals');
     $modals.empty();
     let modalHtml = `
 <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-modal="true" role="dialog">
@@ -73,7 +73,7 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
       <div class="modal-body">
         <label class="form-label">Status</label>
         <select class="form-select" name="status" required>
-          ${['Draft','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${currentStatus === s ? ' selected' : ''}>${s}</option>`).join('')}
+          ${['Pending','In Transit','Delivered','Exception'].map(s => `<option value="${s}"${currentStatus === s ? ' selected' : ''}>${s}</option>`).join('')}
         </select>
       </div>
       <div class="modal-footer">
@@ -102,19 +102,19 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
         })
         .then(() => {
             modal.hide();
-            fiberflowToast('Shipment status updated', 'success');
+            plantOpsToast('Shipment status updated', 'success');
             loadShipmentsTable();
         })
         .catch(() => {
-            fiberflowToast('Failed to update shipment status', 'error');
+            plantOpsToast('Failed to update shipment status', 'error');
         });
     });
 };
 
 function showShipmentModal(shipmentId) {
     let isEdit = !!shipmentId;
-    let modalId = 'fiberflowShipmentModal';
-    let $modals = $('#fiberflowModals');
+    let modalId = 'plantOpsShipmentModal';
+    let $modals = $('#plantOpsModals');
     $modals.empty();
     let shipment = null;
     if (isEdit) {
@@ -143,25 +143,25 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Tracking Number</label>
-            <input type="text" class="form-control" name="trackingNumber" value="${shipment.trackingNumber || ''}" required />
+            <input type="text" class="form-control" name="trackingNumber" value="${plantOpsEscape(shipment.trackingNumber)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Carrier Name</label>
-            <input type="text" class="form-control" name="carrierName" value="${shipment.carrierName || ''}" required />
+            <input type="text" class="form-control" name="carrierName" value="${plantOpsEscape(shipment.carrierName)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Status</label>
             <select class="form-select" name="status" required>
-              ${['Draft','Confirmed','In Production','Shipped','Delivered'].map(s => `<option value="${s}"${shipment.status === s ? ' selected' : ''}>${s}</option>`).join('')}
+              ${['Pending','In Transit','Delivered','Exception'].map(s => `<option value="${s}"${shipment.status === s ? ' selected' : ''}>${s}</option>`).join('')}
             </select>
           </div>
           <div class="col-md-6">
             <label class="form-label">Destination City</label>
-            <input type="text" class="form-control" name="destinationCity" value="${shipment.destinationCity || ''}" required />
+            <input type="text" class="form-control" name="destinationCity" value="${plantOpsEscape(shipment.destinationCity)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Destination State</label>
-            <input type="text" class="form-control" name="destinationState" value="${shipment.destinationState || ''}" required />
+            <input type="text" class="form-control" name="destinationState" value="${plantOpsEscape(shipment.destinationState)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Estimated Arrival</label>
@@ -218,10 +218,10 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            fiberflowToast(`Shipment ${isEdit ? 'updated' : 'created'}`, 'success');
+            plantOpsToast(`Shipment ${isEdit ? 'updated' : 'created'}`, 'success');
             loadShipmentsTable();
         })
-        .catch(() => fiberflowToast('Failed to save shipment', 'error'));
+        .catch(() => plantOpsToast('Failed to save shipment', 'error'));
     });
 }
 window.renderShipmentModal = renderShipmentModal;
@@ -239,11 +239,11 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Name</label>
-          <input type="text" class="form-control" name="name" value="${material.name || ''}" required />
+          <input type="text" class="form-control" name="name" value="${plantOpsEscape(material.name)}" required />
         </div>
         <div class="mb-3">
           <label class="form-label">SKU</label>
-          <input type="text" class="form-control" name="sku" value="${material.sku || ''}" required />
+          <input type="text" class="form-control" name="sku" value="${plantOpsEscape(material.sku)}" required />
         </div>
         <div class="mb-3">
           <label class="form-label">Qty On Hand</label>
@@ -289,25 +289,25 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            fiberflowToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
+            plantOpsToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
             loadInventoryTable();
         })
-        .catch(() => fiberflowToast('Failed to save material', 'error'));
+        .catch(() => plantOpsToast('Failed to save material', 'error'));
     });
 }
 window.renderMaterialModal = renderMaterialModal;
 
 // Delete shipment by ID
-function deleteShipment(shipmentId) {
-    if (!confirm('Are you sure you want to delete this shipment?')) return;
+async function deleteShipment(shipmentId) {
+    if (!await confirmDialog('Are you sure you want to delete this shipment?')) return;
     window.apiFetch(`${window.PortfolioApi.routes.fiber.shipments}/${shipmentId}`, {
         method: 'DELETE'
     })
     .then(r => {
         if (!r.ok) throw new Error('Failed to delete shipment');
-        fiberflowToast('Shipment deleted', 'success');
+        plantOpsToast('Shipment deleted', 'success');
         loadShipmentsTable();
     })
-    .catch(() => fiberflowToast('Failed to delete shipment', 'error'));
+    .catch(() => plantOpsToast('Failed to delete shipment', 'error'));
 }
 window.deleteShipment = deleteShipment;

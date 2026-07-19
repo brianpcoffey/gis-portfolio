@@ -76,31 +76,57 @@ namespace Portfolio.Tests.Services
         }
 
         [Fact]
-        public async Task SpatialGeometryClip_ValidBoundingBox_ReturnsClampedVertices()
+        public async Task SpatialGeometryClip_PolygonStraddlingCorner_EmitsBoxCorner()
         {
-            // Arrange
+            // A triangle whose right-angle overhangs the box's top-right corner. Correct
+            // Sutherland–Hodgman clipping against [0,1]x[0,1] yields the quadrilateral
+            // (0.5,0.5),(1,0.5),(1,1),(0.5,1) — crucially INCLUDING the (1,1) box corner
+            // that naive per-vertex clamping drops.
             var service = new SpatialGeometryService(NullLogger<SpatialGeometryService>.Instance);
             var request = new PolygonClipRequestDto
             {
-                MinX = 0,
-                MinY = 0,
-                MaxX = 1,
-                MaxY = 1,
+                MinX = 0, MinY = 0, MaxX = 1, MaxY = 1,
                 Subject =
                 [
-                    new CoordinateDto { X = -1, Y = 0.5 },
-                    new CoordinateDto { X = 0.5, Y = 2 }
+                    new CoordinateDto { X = 0.5, Y = 0.5 },
+                    new CoordinateDto { X = 2.0, Y = 0.5 },
+                    new CoordinateDto { X = 0.5, Y = 2.0 }
                 ]
             };
 
-            // Act
             var result = await service.ClipToBoundingBoxAsync(request);
 
-            // Assert
             Assert.False(result.NativeAccelerated);
-            Assert.Equal(2, result.Vertices.Count);
-            Assert.Equal(0, result.Vertices[0].X);
-            Assert.Equal(1, result.Vertices[1].Y);
+            Assert.Equal(4, result.Vertices.Count);
+            Assert.Contains(result.Vertices, v => Math.Abs(v.X - 1.0) < 1e-9 && Math.Abs(v.Y - 1.0) < 1e-9);
+            Assert.All(result.Vertices, v =>
+            {
+                Assert.InRange(v.X, 0.0, 1.0);
+                Assert.InRange(v.Y, 0.0, 1.0);
+            });
+        }
+
+        [Fact]
+        public async Task SpatialGeometryClip_PolygonFullyOutsideBox_ReturnsEmpty()
+        {
+            // A polygon with no overlap with the box must clip to nothing — not collapse
+            // to duplicate corner points (the old clamp bug that falsely reported a shape).
+            var service = new SpatialGeometryService(NullLogger<SpatialGeometryService>.Instance);
+            var request = new PolygonClipRequestDto
+            {
+                MinX = 0, MinY = 0, MaxX = 1, MaxY = 1,
+                Subject =
+                [
+                    new CoordinateDto { X = 5, Y = 5 },
+                    new CoordinateDto { X = 6, Y = 5 },
+                    new CoordinateDto { X = 5.5, Y = 6 }
+                ]
+            };
+
+            var result = await service.ClipToBoundingBoxAsync(request);
+
+            Assert.False(result.NativeAccelerated);
+            Assert.Empty(result.Vertices);
         }
 
         [Fact]
@@ -616,7 +642,7 @@ namespace Portfolio.Tests.Services
         // ── Redlands graph end-to-end pipeline ──────────────────────────────────
 
         [Fact]
-        public async Task SpatialGraphService_GetRedlandsGraph_Returns109Nodes()
+        public async Task SpatialGraphService_GetRedlandsGraph_ReturnsDenseNetworkWithEsriHqDestination()
         {
             // Arrange
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
@@ -624,10 +650,12 @@ namespace Portfolio.Tests.Services
             // Act
             var graph = await service.GetRedlandsGraphAsync();
 
-            // Assert
-            Assert.Equal(109, graph.Nodes.Count);
-            Assert.True(graph.Edges.Count >= 235);
-            Assert.Equal(105, graph.DestinationNodeId);
+            // Assert — data-agnostic (the network is generated from OpenStreetMap, so exact
+            // counts change on regeneration): a non-trivial network whose destination is Esri HQ.
+            Assert.True(graph.Nodes.Count >= 100, $"Expected a dense network but got {graph.Nodes.Count} nodes.");
+            Assert.True(graph.Edges.Count >= 150, $"Expected >=150 edges but got {graph.Edges.Count}.");
+            var hq = Assert.Single(graph.Nodes, n => n.Id == graph.DestinationNodeId);
+            Assert.Contains("Esri HQ", hq.Label, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -934,7 +962,8 @@ namespace Portfolio.Tests.Services
             // Assert
             var ok = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(result.Result);
             var graph = Assert.IsType<RoadGraphDto>(ok.Value);
-            Assert.Equal(109, graph.Nodes.Count);
+            Assert.True(graph.Nodes.Count >= 100, $"Expected a dense network but got {graph.Nodes.Count} nodes.");
+            Assert.Contains(graph.Nodes, n => n.Id == graph.DestinationNodeId);
         }
     }
 }

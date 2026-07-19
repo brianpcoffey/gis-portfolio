@@ -19,6 +19,27 @@ namespace Portfolio.Repositories.Repositories
             _logger = logger;
         }
 
+        // Runs the given work inside a single transaction (commit on success, rollback on throw).
+        // Uses the provider's execution strategy so it is safe under connection-resiliency config.
+        public async Task RunInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
+        {
+            var strategy = _db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    await action(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+        }
+
         // Retrieves the user profile for the given userId.
         // Returns null if no matching profile exists.
         public async Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default)

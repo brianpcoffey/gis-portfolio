@@ -77,7 +77,7 @@ In the Render dashboard, go to **Environment** and add these variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Already set by Dockerfile |
-| `ASPNETCORE_URLS` | `http://+:10000` | Already set by Dockerfile (Render uses `PORT=10000`) |
+| `ASPNETCORE_HTTP_PORTS` | `10000` | Set by the Dockerfile (`${PORT:-10000}`, resolved at build time); Render routes to this port |
 | `BatchGeocoding__MaxConcurrency` | `4` | Max parallel geocoding requests |
 | `BatchGeocoding__MinMatchScore` | `80` | Minimum score for geocode matches |
 

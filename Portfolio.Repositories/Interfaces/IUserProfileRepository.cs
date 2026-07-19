@@ -12,5 +12,11 @@ namespace Portfolio.Repositories.Interfaces
         Task<UserClaim?> GetClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default);
         Task SetClaimAsync(Guid userId, string type, string value, CancellationToken cancellationToken = default);
         Task<bool> RemoveClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Runs <paramref name="action"/> inside a single database transaction, committing on
+        /// success and rolling back if it throws — so multi-write sequences apply atomically.
+        /// </summary>
+        Task RunInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default);
     }
 }

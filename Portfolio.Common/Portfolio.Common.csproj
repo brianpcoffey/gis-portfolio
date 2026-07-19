@@ -4,6 +4,10 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- Emit XML docs so DTO summaries flow into the OpenAPI/Scalar schema. 1591 is
+		     suppressed (matching Portfolio.Web) so undocumented members aren't build errors. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
 	</PropertyGroup>
 
 </Project>

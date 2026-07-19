@@ -1,4 +1,4 @@
-// FiberFlow Dashboard JS
+// Plant Operations Dashboard - Dashboard JS
 // Handles dashboard stats, D3 charts, and ArcGIS map
 
 
@@ -49,29 +49,45 @@ function createToastContainer() {
     return c;
 }
 
-// Provide legacy alias used by existing FiberFlow scripts
-function fiberflowToast(message, type) {
+// Provide legacy alias used by existing Plant Ops scripts
+function plantOpsToast(message, type) {
     const mapped = type === 'error' ? 'danger' : type;
     showToast(message, mapped);
 }
-window.fiberflowToast = fiberflowToast;
+window.plantOpsToast = plantOpsToast;
+
+// Escapes a value for safe interpolation into HTML markup strings — covers both
+// element text and double/single-quoted attribute contexts (DataTables cells
+// rendered via innerHTML, and modal `value="..."` inputs). Prevents stored XSS
+// from API/user-entered fields. Returns '' for null/undefined. Loaded before
+// orders.js/inventory.js/shipments.js, so it is available to all of them.
+function plantOpsEscape(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+window.plantOpsEscape = plantOpsEscape;
 
 
 
-// Ensure loadFiberflowMap is always defined to avoid ReferenceError
+// Ensure loadPlantOpsMap is always defined to avoid ReferenceError
 // Implement map loader: initializes ArcGIS map and plots shipments
-if (typeof loadFiberflowMap !== 'function') {
-    let fiberflowMapView = null;
-    let fiberflowMapInstance = null;
-    let fiberflowGraphicsLayer = null;
+if (typeof loadPlantOpsMap !== 'function') {
+    let plantOpsMapView = null;
+    let plantOpsMapInstance = null;
+    let plantOpsGraphicsLayer = null;
 
-    async function initFiberflowMap() {
-        const mapContainer = document.getElementById('fiberflowMap');
+    async function initPlantOpsMap() {
+        const mapContainer = document.getElementById('plantOpsMap');
         if (!mapContainer || typeof require !== 'function') {
-            fiberflowToast('Map container or ArcGIS library not loaded. Please check your network and script includes.', 'danger');
+            plantOpsToast('Map container or ArcGIS library not loaded. Please check your network and script includes.', 'danger');
             return;
         }
-        const spinner = mapContainer.querySelector('.fiberflow-spinner');
+        const spinner = mapContainer.querySelector('.plant-ops-spinner');
         if (spinner) spinner.remove();
 
         return new Promise((resolve, reject) => {
@@ -81,16 +97,16 @@ if (typeof loadFiberflowMap !== 'function') {
                 'esri/layers/GraphicsLayer'
             ], (Map, MapView, GraphicsLayer) => {
                 // Use the same basemap options as HomeFinder
-                const basemapSelect = document.getElementById('fiberflowBasemapSelect');
+                const basemapSelect = document.getElementById('plantOpsBasemapSelect');
                 const initialBasemap = basemapSelect ? basemapSelect.value : 'dark-gray-vector';
-                fiberflowMapInstance = new Map({ basemap: initialBasemap });
-                fiberflowGraphicsLayer = new GraphicsLayer();
-                fiberflowMapInstance.add(fiberflowGraphicsLayer);
+                plantOpsMapInstance = new Map({ basemap: initialBasemap });
+                plantOpsGraphicsLayer = new GraphicsLayer();
+                plantOpsMapInstance.add(plantOpsGraphicsLayer);
 
                 // Center for North America (approximate)
-                fiberflowMapView = new MapView({
-                    container: 'fiberflowMap',
-                    map: fiberflowMapInstance,
+                plantOpsMapView = new MapView({
+                    container: 'plantOpsMap',
+                    map: plantOpsMapInstance,
                     center: [-98.5795, 39.8283], // Center of North America (USA)
                     zoom: 4
                 });
@@ -98,12 +114,12 @@ if (typeof loadFiberflowMap !== 'function') {
                 // Wire up basemap switcher (same as HomeFinder)
                 if (basemapSelect) {
                     basemapSelect.addEventListener('change', () => {
-                        fiberflowMapInstance.basemap = basemapSelect.value;
+                        plantOpsMapInstance.basemap = basemapSelect.value;
                     });
                 }
 
                 const timeout = setTimeout(() => reject(new Error('Map timed out')), 15000);
-                fiberflowMapView.when(() => {
+                plantOpsMapView.when(() => {
                     clearTimeout(timeout);
                     resolve();
                 }, err => {
@@ -114,14 +130,14 @@ if (typeof loadFiberflowMap !== 'function') {
         });
     }
 
-    function plotFiberflowShipments(shipments) {
+    function plotPlantOpsShipments(shipments) {
         require([
             'esri/Graphic',
             'esri/geometry/Point',
             'esri/symbols/SimpleMarkerSymbol',
             'esri/PopupTemplate'
         ], (Graphic, Point, SimpleMarkerSymbol, PopupTemplate) => {
-            fiberflowGraphicsLayer.removeAll();
+            plantOpsGraphicsLayer.removeAll();
             shipments.forEach(s => {
                 const lon = Number(s.destinationLng);
                 const lat = Number(s.destinationLat);
@@ -133,7 +149,7 @@ if (typeof loadFiberflowMap !== 'function') {
                         ? [33, 150, 243, 0.9]
                         : [255, 193, 7, 0.9];
 
-                fiberflowGraphicsLayer.add(new Graphic({
+                plantOpsGraphicsLayer.add(new Graphic({
                     geometry: new Point({ longitude: lon, latitude: lat }),
                     symbol: new SimpleMarkerSymbol({
                         color, size: 12,
@@ -146,23 +162,23 @@ if (typeof loadFiberflowMap !== 'function') {
                     })
                 }));
             });
-            const points = fiberflowGraphicsLayer.graphics.toArray();
+            const points = plantOpsGraphicsLayer.graphics.toArray();
             if (points.length) {
-                fiberflowMapView.goTo(points, { padding: 50 });
+                plantOpsMapView.goTo(points, { padding: 50 });
             } else {
-                fiberflowToast('No shipments with coordinates found.', 'warning');
+                plantOpsToast('No shipments with coordinates found.', 'warning');
             }
         });
     }
 
-    window.loadFiberflowMap = function () {
-        initFiberflowMap()
+    window.loadPlantOpsMap = function () {
+        initPlantOpsMap()
             .then(() => window.apiFetch(window.PortfolioApi.routes.fiber.shipments))
             .then(res => res.ok ? res.json() : Promise.reject('Failed to load shipments'))
-            .then(shipments => plotFiberflowShipments(shipments))
+            .then(shipments => plotPlantOpsShipments(shipments))
             .catch(err => {
                 console.error(err);
-                fiberflowToast('Map failed to load', 'danger');
+                plantOpsToast('Map failed to load', 'danger');
             });
     };
 }
@@ -170,15 +186,15 @@ if (typeof loadFiberflowMap !== 'function') {
 
 $(document).ready(function () {
     loadDashboardStats();
-    loadFiberflowMap();
+    loadPlantOpsMap();
     // DataTable length menu styling fix
     $('link[href$="dataTables.bootstrap5.min.css"]').after('<link rel="stylesheet" href="/css/plantoperationsdashboard.css">');
 });
 
 function loadDashboardStats() {
-    $('#fiberflowRevenueChart .fiberflow-spinner').removeClass('d-none');
-    $('#fiberflowOrdersChart .fiberflow-spinner').removeClass('d-none');
-    $('#fiberflowInventoryChart .fiberflow-spinner').removeClass('d-none');
+    $('#plantOpsRevenueChart .plant-ops-spinner').removeClass('d-none');
+    $('#plantOpsOrdersChart .plant-ops-spinner').removeClass('d-none');
+    $('#plantOpsInventoryChart .plant-ops-spinner').removeClass('d-none');
     window.fetchWithAuth(window.PortfolioApi.routes.fiber.dashboard)
         .then(r => r.json())
         .then(data => {
@@ -186,18 +202,18 @@ function loadDashboardStats() {
             renderRevenueChart(data.revenueByMonth || []);
             renderOrdersChart(data.ordersByStatus || []);
             renderInventoryChart(data.inventoryByCategory || []);
-            fiberflowToast('Dashboard loaded', 'success');
+            plantOpsToast('Dashboard loaded', 'success');
         })
         .catch(() => {
-            $('#fiberflowRevenueChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
-            $('#fiberflowOrdersChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
-            $('#fiberflowInventoryChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
-            fiberflowToast('Failed to load dashboard', 'error');
+            $('#plantOpsRevenueChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
+            $('#plantOpsOrdersChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
+            $('#plantOpsInventoryChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
+            plantOpsToast('Failed to load dashboard', 'error');
         })
         .finally(() => {
-            $('#fiberflowRevenueChart .fiberflow-spinner').addClass('d-none');
-            $('#fiberflowOrdersChart .fiberflow-spinner').addClass('d-none');
-            $('#fiberflowInventoryChart .fiberflow-spinner').addClass('d-none');
+            $('#plantOpsRevenueChart .plant-ops-spinner').addClass('d-none');
+            $('#plantOpsOrdersChart .plant-ops-spinner').addClass('d-none');
+            $('#plantOpsInventoryChart .plant-ops-spinner').addClass('d-none');
         });
 }
 
@@ -208,8 +224,8 @@ function updateDashboardBadges(data) {
 }
 
 function renderRevenueChart(revenueByMonth) {
-    const container = d3.select('#fiberflowRevenueChart');
-    container.selectAll('*:not(.fiberflow-spinner)').remove();
+    const container = d3.select('#plantOpsRevenueChart');
+    container.selectAll('*:not(.plant-ops-spinner)').remove();
     if (!revenueByMonth.length) {
         container.append('div').attr('class', 'text-muted small').text('No revenue data.');
         return;
@@ -271,8 +287,8 @@ function renderRevenueChart(revenueByMonth) {
 }
 
 function renderOrdersChart(ordersByStatus) {
-    const container = d3.select('#fiberflowOrdersChart');
-    container.selectAll('*:not(.fiberflow-spinner)').remove();
+    const container = d3.select('#plantOpsOrdersChart');
+    container.selectAll('*:not(.plant-ops-spinner)').remove();
     if (!ordersByStatus.length) {
         container.append('div').attr('class', 'text-muted small').text('No order status data.');
         return;
@@ -333,8 +349,8 @@ function renderOrdersChart(ordersByStatus) {
 }
 
 function renderInventoryChart(inventoryByCategory) {
-    const container = d3.select('#fiberflowInventoryChart');
-    container.selectAll('*:not(.fiberflow-spinner)').remove();
+    const container = d3.select('#plantOpsInventoryChart');
+    container.selectAll('*:not(.plant-ops-spinner)').remove();
     if (!inventoryByCategory.length) {
         container.append('div').attr('class', 'text-muted small').text('No inventory data.');
         return;

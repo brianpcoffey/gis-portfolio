@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Portfolio.Common.Configuration;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Services;
 using System.Net;
@@ -21,18 +22,16 @@ namespace Portfolio.Tests.Services
 
         private BatchGeocodingService CreateService(string responseJson, double minScore = 80.0, int maxConcurrency = 5)
         {
-            var inMemoryConfig = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["BatchGeocoding:MaxConcurrency"] = maxConcurrency.ToString(),
-                    ["BatchGeocoding:MinMatchScore"] = minScore.ToString()
-                })
-                .Build();
+            var options = Options.Create(new BatchGeocodingOptions
+            {
+                MaxConcurrency = maxConcurrency,
+                MinMatchScore = minScore
+            });
 
             var handler = new FakeHttpMessageHandler(responseJson);
             var httpClient = new HttpClient(handler);
 
-            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, inMemoryConfig);
+            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, options);
         }
 
         private static IFormFile BuildCsvFile(string csvContent)
@@ -159,15 +158,9 @@ namespace Portfolio.Tests.Services
             var blockingHandler = new BlockingHttpMessageHandler();
             var httpClient = new HttpClient(blockingHandler);
 
-            var inMemoryConfig = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["BatchGeocoding:MaxConcurrency"] = "1",
-                    ["BatchGeocoding:MinMatchScore"] = "80"
-                })
-                .Build();
+            var options = Options.Create(new BatchGeocodingOptions { MaxConcurrency = 1, MinMatchScore = 80 });
 
-            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, inMemoryConfig);
+            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, options);
 
             cts.CancelAfter(50);
 

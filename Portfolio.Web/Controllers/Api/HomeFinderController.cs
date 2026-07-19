@@ -1,15 +1,22 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoints for Redlands property scoring/search and user-scoped saved searches.
+    /// </summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/homefinder")]
-    [Authorize(Policy = "Authenticated")]
+    // Property scoring/search is a public demo (no user data). Only the saved-search
+    // endpoints below require authentication (each also carries [Authorize]).
+    [AllowAnonymous]
+    [EnableRateLimiting("expensive")] // scoring re-runs a DB query + native compute per call
     public class HomeFinderController : ControllerBase
     {
     private readonly IHomeScoringService _scoring;
@@ -72,6 +79,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Save a new search to the user's profile.</summary>
     [HttpPost("searches")]
+    [Authorize(Policy = "Authenticated")]
     [ProducesResponseType(typeof(SavedSearchDto), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
@@ -92,6 +100,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>List all saved searches for the current user.</summary>
     [HttpGet("searches")]
+    [Authorize(Policy = "Authenticated")]
     [ProducesResponseType(typeof(List<SavedSearchDto>), 200)]
     [ProducesResponseType(401)]
     [ProducesResponseType(500)]
@@ -105,6 +114,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Get a single saved search by ID.</summary>
     [HttpGet("searches/{id:int}")]
+    [Authorize(Policy = "Authenticated")]
     [ProducesResponseType(typeof(SavedSearchDto), 200)]
     [ProducesResponseType(401)]
     [ProducesResponseType(404)]
@@ -120,6 +130,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Delete a saved search.</summary>
     [HttpDelete("searches/{id:int}")]
+    [Authorize(Policy = "Authenticated")]
     [ProducesResponseType(204)]
     [ProducesResponseType(401)]
     [ProducesResponseType(404)]
@@ -130,7 +141,7 @@ namespace Portfolio.Web.Controllers.Api
         if (userId is null) return Unauthorized();
         try
         {
-            await _savedSearchService.DeleteSavedSearchAsync(id, cancellationToken);
+            await _savedSearchService.DeleteSavedSearchAsync(id, userId.Value, cancellationToken);
             return NoContent();
         }
         catch (KeyNotFoundException) { return NotFound(); }

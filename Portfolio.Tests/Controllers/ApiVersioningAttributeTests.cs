@@ -79,6 +79,9 @@ namespace Portfolio.Tests.Controllers
         [InlineData(typeof(AddressStandardizationController))]
         [InlineData(typeof(FeaturesController))]
         [InlineData(typeof(SavedFeaturesController))]
+        // HomeFinder scoring/search is a public demo; only its saved-search endpoints
+        // carry method-level [Authorize].
+        [InlineData(typeof(HomeFinderController))]
         public void Controller_StillHasAllowAnonymousAttribute(Type controllerType)
         {
             // Act
@@ -94,7 +97,6 @@ namespace Portfolio.Tests.Controllers
 
         [Theory]
         [InlineData(typeof(CollectionsController))]
-        [InlineData(typeof(HomeFinderController))]
         [InlineData(typeof(FiberOrdersController))]
         [InlineData(typeof(FiberMaterialsController))]
         [InlineData(typeof(FiberShipmentsController))]

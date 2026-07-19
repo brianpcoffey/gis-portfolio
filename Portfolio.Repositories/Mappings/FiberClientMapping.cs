@@ -12,6 +12,7 @@ public class FiberClientMapping : IEntityTypeConfiguration<FiberClient>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.UserId).HasColumnName("user_id");
+        builder.HasIndex(x => x.UserId); // every client query filters by user
         builder.Property(x => x.Name).HasColumnName("name");
         builder.Property(x => x.ContactName).HasColumnName("contact_name");
         builder.Property(x => x.Email).HasColumnName("email");

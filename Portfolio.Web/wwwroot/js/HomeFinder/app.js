@@ -584,7 +584,7 @@ async function loadSavedSearches() {
         body.querySelectorAll(".btn-delete-search").forEach(btn => {
             btn.addEventListener("click", async () => {
                 const id = btn.dataset.searchId;
-                if (!confirm("Delete this saved search?")) return;
+                if (!await confirmDialog("Delete this saved search?")) return;
                 try {
                     const res = await apiFetch(`${HOME_FINDER_ROUTES.searches}/${id}`, { method: "DELETE" });
                     if (res.ok) {

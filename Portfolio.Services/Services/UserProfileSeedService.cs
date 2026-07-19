@@ -18,7 +18,7 @@ public class UserProfileSeedService
         _logger = logger;
     }
 
-    public async Task SeedForUserAsync(Guid userId)
+    public async Task SeedForUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var providerName = _db.Database.ProviderName;
         IDbContextTransaction? tx = null;
@@ -34,7 +34,7 @@ public class UserProfileSeedService
             // FIBER CLIENTS
             // ===================================================
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Gulf Coast Chemical"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Gulf Coast Chemical", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -51,7 +51,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Lone Star Refining"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Lone Star Refining", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -68,7 +68,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Bayou Industrial Group"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Bayou Industrial Group", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -85,7 +85,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Permian Basin Composites"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Permian Basin Composites", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -102,7 +102,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Delta Tank & Vessel"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Delta Tank & Vessel", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -119,7 +119,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Coastal Pipe & Fittings"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Coastal Pipe & Fittings", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -136,7 +136,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Sunbelt Process Equipment"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Sunbelt Process Equipment", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -153,7 +153,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Tri-State Corrosion Solutions"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Tri-State Corrosion Solutions", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -170,7 +170,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Saguaro Structural Composites"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Saguaro Structural Composites", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -187,7 +187,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Appalachian Containment Systems"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Appalachian Containment Systems", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -204,7 +204,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Great Lakes Fiberglass Works"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Great Lakes Fiberglass Works", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -221,7 +221,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Pacific Rim Tank Systems"))
+            if (!await _db.FiberClients.AnyAsync(c => c.UserId == userId && c.Name == "Pacific Rim Tank Systems", cancellationToken))
             {
                 _db.FiberClients.Add(new FiberClient
                 {
@@ -238,13 +238,13 @@ public class UserProfileSeedService
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             // ===================================================
             // FIBER MATERIALS
             // ===================================================
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-FGW"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-FGW", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -263,7 +263,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-CSM"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-CSM", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -282,7 +282,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-VE"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-VE", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -301,7 +301,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-OR"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-OR", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -320,7 +320,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-CR"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-CR", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -339,7 +339,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-GV"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-GV", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -358,7 +358,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-MK"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-MK", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -377,7 +377,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-CF"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-CF", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -396,7 +396,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-FC"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-FC", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -415,7 +415,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-GC"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-GC", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -434,7 +434,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-AJ"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-AJ", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -453,7 +453,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-SF"))
+            if (!await _db.FiberMaterials.AnyAsync(m => m.UserId == userId && m.Sku == "RM-SF", cancellationToken))
             {
                 _db.FiberMaterials.Add(new FiberMaterial
                 {
@@ -471,7 +471,7 @@ public class UserProfileSeedService
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             // ===================================================
             // FIBER ORDERS
@@ -502,7 +502,7 @@ public class UserProfileSeedService
             var pacificRimClient = await _db.FiberClients
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.Name == "Pacific Rim Tank Systems");
 
-            if (gulfClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == gulfClient.Name && o.ProductName == "4\" Round Fiberglass Duct"))
+            if (gulfClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == gulfClient.Name && o.ProductName == "4\" Round Fiberglass Duct", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -517,7 +517,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (gulfClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == gulfClient.Name && o.ProductName == "3000-Gallon FRP Storage Tank"))
+            if (gulfClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == gulfClient.Name && o.ProductName == "3000-Gallon FRP Storage Tank", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -532,7 +532,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (gulfClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == gulfClient.Name && o.ProductName == "6\" Vinyl Ester Elbow 90°"))
+            if (gulfClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == gulfClient.Name && o.ProductName == "6\" Vinyl Ester Elbow 90°", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -547,7 +547,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (loneStarClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == loneStarClient.Name && o.ProductName == "8\" FRP Straight Pipe (20 ft)"))
+            if (loneStarClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == loneStarClient.Name && o.ProductName == "8\" FRP Straight Pipe (20 ft)", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -562,7 +562,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (loneStarClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == loneStarClient.Name && o.ProductName == "6\" Round Fiberglass Duct"))
+            if (loneStarClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == loneStarClient.Name && o.ProductName == "6\" Round Fiberglass Duct", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -577,7 +577,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (bayouClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == bayouClient.Name && o.ProductName == "500-Gallon FRP Containment Basin"))
+            if (bayouClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == bayouClient.Name && o.ProductName == "500-Gallon FRP Containment Basin", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -592,7 +592,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (bayouClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == bayouClient.Name && o.ProductName == "FRP Grating — Clear Span 1\" x 4\""))
+            if (bayouClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == bayouClient.Name && o.ProductName == "FRP Grating — Clear Span 1\" x 4\"", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -607,7 +607,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (permianClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == permianClient.Name && o.ProductName == "4\" FRP Straight Pipe (20 ft)"))
+            if (permianClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == permianClient.Name && o.ProductName == "4\" FRP Straight Pipe (20 ft)", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -622,7 +622,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (permianClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == permianClient.Name && o.ProductName == "4\" FRP Flange Set (Pair)"))
+            if (permianClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == permianClient.Name && o.ProductName == "4\" FRP Flange Set (Pair)", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -637,7 +637,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (deltaClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == deltaClient.Name && o.ProductName == "1000-Gallon Vinyl Ester Tank"))
+            if (deltaClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == deltaClient.Name && o.ProductName == "1000-Gallon Vinyl Ester Tank", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -652,7 +652,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (coastalClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == coastalClient.Name && o.ProductName == "12\" FRP Straight Pipe (20 ft)"))
+            if (coastalClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == coastalClient.Name && o.ProductName == "12\" FRP Straight Pipe (20 ft)", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -667,7 +667,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (sunbeltClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == sunbeltClient.Name && o.ProductName == "FRP Scrubber Tower 24\" Dia"))
+            if (sunbeltClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == sunbeltClient.Name && o.ProductName == "FRP Scrubber Tower 24\" Dia", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -682,7 +682,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (triStateClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == triStateClient.Name && o.ProductName == "FRP Structural I-Beam 4\"") )
+            if (triStateClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == triStateClient.Name && o.ProductName == "FRP Structural I-Beam 4\"", cancellationToken) )
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -697,7 +697,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (saguaroClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == saguaroClient.Name && o.ProductName == "FRP Composite Panel 4' x 8' x 1/4\""))
+            if (saguaroClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == saguaroClient.Name && o.ProductName == "FRP Composite Panel 4' x 8' x 1/4\"", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -712,7 +712,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (appalachianClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == appalachianClient.Name && o.ProductName == "2500-Gallon FRP Double-Wall Tank"))
+            if (appalachianClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == appalachianClient.Name && o.ProductName == "2500-Gallon FRP Double-Wall Tank", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -727,7 +727,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (greatLakesClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == greatLakesClient.Name && o.ProductName == "10\" Round Fiberglass Duct"))
+            if (greatLakesClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == greatLakesClient.Name && o.ProductName == "10\" Round Fiberglass Duct", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -742,7 +742,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (pacificRimClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == pacificRimClient.Name && o.ProductName == "5000-Gallon FRP Chemical Storage Tank"))
+            if (pacificRimClient != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == pacificRimClient.Name && o.ProductName == "5000-Gallon FRP Chemical Storage Tank", cancellationToken))
             {
                 _db.FiberOrders.Add(new FiberOrder
                 {
@@ -757,14 +757,14 @@ public class UserProfileSeedService
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             // ===================================================
             // FIBER SHIPMENTS
             // ===================================================
 
             // Example shipment seeds (add more as needed)
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2024-10041"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2024-10041", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -781,7 +781,7 @@ public class UserProfileSeedService
                     DestinationState = "TX"
                 });
             }
-            if (loneStarClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2024-10558"))
+            if (loneStarClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2024-10558", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -798,7 +798,7 @@ public class UserProfileSeedService
                     DestinationState = "TX"
                 });
             }
-            if (bayouClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "RL-2024-44102"))
+            if (bayouClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "RL-2024-44102", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -815,7 +815,7 @@ public class UserProfileSeedService
                     DestinationState = "LA"
                 });
             }
-            if (bayouClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "RL-2024-55988"))
+            if (bayouClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "RL-2024-55988", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -832,7 +832,7 @@ public class UserProfileSeedService
                     DestinationState = "LA"
                 });
             }
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "XPO-2024-33471"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "XPO-2024-33471", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -849,7 +849,7 @@ public class UserProfileSeedService
                     DestinationState = "TX"
                 });
             }
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2024-19984"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2024-19984", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -866,7 +866,7 @@ public class UserProfileSeedService
                     DestinationState = "MS"
                 });
             }
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "UPF-2025-00342"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "UPF-2025-00342", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -883,7 +883,7 @@ public class UserProfileSeedService
                     DestinationState = "AL"
                 });
             }
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "RL-2024-63310"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "RL-2024-63310", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -900,7 +900,7 @@ public class UserProfileSeedService
                     DestinationState = "OK"
                 });
             }
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "XPO-2024-44892"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "XPO-2024-44892", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -917,7 +917,7 @@ public class UserProfileSeedService
                     DestinationState = "AZ"
                 });
             }
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "UPF-2024-77541"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "UPF-2024-77541", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -934,7 +934,7 @@ public class UserProfileSeedService
                     DestinationState = "MI"
                 });
             }
-            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2025-20815"))
+            if (gulfClient != null && !await _db.FiberShipments.AnyAsync(s => s.UserId == userId && s.TrackingNumber == "FX-2025-20815", cancellationToken))
             {
                 _db.FiberShipments.Add(new FiberShipment
                 {
@@ -952,7 +952,7 @@ public class UserProfileSeedService
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             // ===================================================
             // FIBER INVENTORY TRANSACTIONS
@@ -969,7 +969,7 @@ public class UserProfileSeedService
             var matFC = await _db.FiberMaterials.FirstOrDefaultAsync(m => m.UserId == userId && m.Sku == "RM-FC");
             var matGC = await _db.FiberMaterials.FirstOrDefaultAsync(m => m.UserId == userId && m.Sku == "RM-GC");
 
-            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Initial stock receipt — TexMat Q3 order"))
+            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Initial stock receipt — TexMat Q3 order", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -984,7 +984,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed for Gulf Coast FD-4R production run"))
+            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed for Gulf Coast FD-4R production run", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -999,7 +999,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "TexMat Q4 restock received — Warehouse A1"))
+            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "TexMat Q4 restock received — Warehouse A1", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1014,7 +1014,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed for Lone Star FP-8S production run"))
+            if (matFGW != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed for Lone Star FP-8S production run", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1029,7 +1029,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matCSM != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Initial CSM stock — TexMat Q3 shipment"))
+            if (matCSM != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Initial CSM stock — TexMat Q3 shipment", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1044,7 +1044,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matCSM != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Bayou FT-500 containment basin build"))
+            if (matCSM != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Bayou FT-500 containment basin build", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1059,7 +1059,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matVE != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "ChemSource initial vinyl ester delivery"))
+            if (matVE != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "ChemSource initial vinyl ester delivery", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1074,7 +1074,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matVE != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Delta Tank FT-1000VE production"))
+            if (matVE != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Delta Tank FT-1000VE production", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1089,7 +1089,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matVE != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Qty adjustment after Q4 physical inventory count"))
+            if (matVE != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Qty adjustment after Q4 physical inventory count", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1104,7 +1104,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matOR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "ChemSource initial ortho resin delivery"))
+            if (matOR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "ChemSource initial ortho resin delivery", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1119,7 +1119,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matOR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Saguaro composite panel production batch"))
+            if (matOR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Saguaro composite panel production batch", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1134,7 +1134,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matCR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Initial corrosion liner resin — ChemSource"))
+            if (matCR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Initial corrosion liner resin — ChemSource", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1149,7 +1149,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matCR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Gulf Coast FT-3000 tank liner coats"))
+            if (matCR != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Gulf Coast FT-3000 tank liner coats", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1164,7 +1164,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matGV != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Gulf Fiber Supply initial veil delivery"))
+            if (matGV != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Gulf Fiber Supply initial veil delivery", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1179,7 +1179,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matGV != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Permian Basin FP-4S inner liner lamination"))
+            if (matGV != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Permian Basin FP-4S inner liner lamination", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1194,7 +1194,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matMK != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "MEKP catalyst — initial ChemSource order"))
+            if (matMK != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "MEKP catalyst — initial ChemSource order", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1209,7 +1209,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matMK != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — routine production Q4 cure cycles"))
+            if (matMK != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — routine production Q4 cure cycles", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1224,7 +1224,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matCF != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Carbon fiber tow — Apex Composites pilot order"))
+            if (matCF != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Carbon fiber tow — Apex Composites pilot order", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1239,7 +1239,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matCF != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Tri-State structural beam prototype layup"))
+            if (matCF != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Tri-State structural beam prototype layup", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1254,7 +1254,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matFC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Foam core initial stock — Gulf Fiber Supply"))
+            if (matFC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Foam core initial stock — Gulf Fiber Supply", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1269,7 +1269,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matFC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Saguaro sandwich panel core material"))
+            if (matFC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Saguaro sandwich panel core material", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1284,7 +1284,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matGC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "White ISO gel coat — TexMat first shipment"))
+            if (matGC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "White ISO gel coat — TexMat first shipment", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1299,7 +1299,7 @@ public class UserProfileSeedService
                 });
             }
 
-            if (matGC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Gulf Coast tank exterior finish coats"))
+            if (matGC != null && !await _db.FiberInventoryTransactions.AnyAsync(t => t.UserId == userId && t.Notes == "Consumed — Gulf Coast tank exterior finish coats", cancellationToken))
             {
                 _db.FiberInventoryTransactions.Add(new FiberInventoryTransaction
                 {
@@ -1314,7 +1314,7 @@ public class UserProfileSeedService
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
 
             // ===================================================
@@ -1323,7 +1323,7 @@ public class UserProfileSeedService
 
             if (!await _db.Properties.AnyAsync(p =>
                 p.Street == "120 Franklin Ave" &&
-                p.City == "Redlands"))
+                p.City == "Redlands", cancellationToken))
             {
                 _db.Properties.Add(new Property
                 {
@@ -1431,13 +1431,13 @@ public class UserProfileSeedService
 
             foreach (var prop in propertySeeds)
             {
-                if (!await _db.Properties.AnyAsync(p => p.Street == prop.Street && p.City == prop.City))
+                if (!await _db.Properties.AnyAsync(p => p.Street == prop.Street && p.City == prop.City, cancellationToken))
                 {
                     _db.Properties.Add(prop);
                 }
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             if (tx != null)
             {

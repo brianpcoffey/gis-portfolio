@@ -107,24 +107,24 @@ namespace Portfolio.Tests.Controllers
         public async Task Create_WithValidDto_ReturnsOkWithCreated()
         {
             // Arrange
-            var dto     = new FiberMaterialDto { Name = "Ribbon Cable", Sku = "RC001", Category = "Cable" };
+            var dto     = new CreateFiberMaterialDto { Name = "Ribbon Cable", Sku = "RC001", Category = "Cable" };
             var created = new FiberMaterialDto { Id = 5, Name = "Ribbon Cable" };
-            _serviceMock.Setup(s => s.CreateAsync(dto, It.IsAny<CancellationToken>())).ReturnsAsync(created);
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(created);
 
             // Act
             var result = await _controller.Create(dto, CancellationToken.None);
 
-            // Assert
-            var ok = Assert.IsType<OkObjectResult>(result);
-            Assert.Equal(created, ok.Value);
+            // Assert — 201 Created pointing at the Get action.
+            var createdResult = Assert.IsType<CreatedAtActionResult>(result);
+            Assert.Equal(created, createdResult.Value);
         }
 
         [Fact]
         public async Task Create_WhenServiceThrows_Returns500ProblemDetails()
         {
             // Arrange
-            var dto = new FiberMaterialDto { Name = "X" };
-            _serviceMock.Setup(s => s.CreateAsync(dto, It.IsAny<CancellationToken>()))
+            var dto = new CreateFiberMaterialDto { Name = "X" };
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("db error"));
 
             // Act
@@ -141,9 +141,9 @@ namespace Portfolio.Tests.Controllers
         public async Task Update_WhenSuccessful_ReturnsOkWithUpdated()
         {
             // Arrange
-            var dto     = new FiberMaterialDto { Name = "Updated Fiber" };
+            var dto     = new UpdateFiberMaterialDto { Name = "Updated Fiber" };
             var updated = new FiberMaterialDto { Id = 3, Name = "Updated Fiber" };
-            _serviceMock.Setup(s => s.UpdateAsync(3, dto, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
+            _serviceMock.Setup(s => s.UpdateAsync(3, It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(updated);
 
             // Act
             var result = await _controller.Update(3, dto, CancellationToken.None);
@@ -157,8 +157,8 @@ namespace Portfolio.Tests.Controllers
         public async Task Update_WhenServiceThrows_Returns500ProblemDetails()
         {
             // Arrange
-            var dto = new FiberMaterialDto { Name = "X" };
-            _serviceMock.Setup(s => s.UpdateAsync(1, dto, It.IsAny<CancellationToken>()))
+            var dto = new UpdateFiberMaterialDto { Name = "X" };
+            _serviceMock.Setup(s => s.UpdateAsync(1, It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("unexpected"));
 
             // Act

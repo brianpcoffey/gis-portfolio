@@ -6,6 +6,9 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoints for managing fiber orders (CRUD) scoped to the authenticated user.
+    /// </summary>
     [Authorize(Policy = "Authenticated")]
     [ApiController]
     [ApiVersion("1.0")]
@@ -84,7 +87,7 @@ namespace Portfolio.Web.Controllers.Api
         try
         {
             var result = await _orderService.CreateAsync(dto, cancellationToken);
-            return Ok(result);
+            return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
         }
         catch (Exception ex)
         {

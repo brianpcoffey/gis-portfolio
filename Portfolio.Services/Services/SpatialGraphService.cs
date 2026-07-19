@@ -108,6 +108,7 @@ namespace Portfolio.Services.Services
 
             var previous = new Dictionary<int, int>(request.Nodes.Count);
             var settled = new HashSet<int>(request.Nodes.Count);
+            var exploredOrder = new List<int>();
             var queue = new PriorityQueue<int, double>(request.Nodes.Count);
             int explored = 0;
 
@@ -122,6 +123,7 @@ namespace Portfolio.Services.Services
                 if (!settled.Add(current))
                     continue;
                 explored++;
+                exploredOrder.Add(current);
                 if (current == request.EndNodeId)
                     break;
                 if (!adjacency.TryGetValue(current, out var edges))
@@ -150,7 +152,8 @@ namespace Portfolio.Services.Services
                     Found = false,
                     TotalCost = 0,
                     AlgorithmUsed = "dijkstra",
-                    ExploredNodes = explored
+                    ExploredNodes = explored,
+                    ExploredNodeIds = exploredOrder
                 };
             }
 
@@ -163,7 +166,8 @@ namespace Portfolio.Services.Services
                 NodeIds = path,
                 Path = MapPath(path, nodeLookup),
                 AlgorithmUsed = "dijkstra",
-                ExploredNodes = explored
+                ExploredNodes = explored,
+                ExploredNodeIds = exploredOrder
             };
             EnrichMetrics(dto, request.Nodes);
             return dto;
@@ -180,6 +184,7 @@ namespace Portfolio.Services.Services
 
             var previous = new Dictionary<int, int>(request.Nodes.Count);
             var closed = new HashSet<int>(request.Nodes.Count);
+            var exploredOrder = new List<int>();
             var open = new PriorityQueue<int, double>(request.Nodes.Count);
             int explored = 0;
 
@@ -196,6 +201,7 @@ namespace Portfolio.Services.Services
                 if (!closed.Add(current))
                     continue;
                 explored++;
+                exploredOrder.Add(current);
                 if (current == request.EndNodeId)
                     break;
                 if (!adjacency.TryGetValue(current, out var edges))
@@ -227,7 +233,8 @@ namespace Portfolio.Services.Services
                     Found = false,
                     TotalCost = 0,
                     AlgorithmUsed = "astar",
-                    ExploredNodes = explored
+                    ExploredNodes = explored,
+                    ExploredNodeIds = exploredOrder
                 };
             }
 
@@ -240,7 +247,8 @@ namespace Portfolio.Services.Services
                 NodeIds = path,
                 Path = MapPath(path, nodeLookup),
                 AlgorithmUsed = "astar",
-                ExploredNodes = explored
+                ExploredNodes = explored,
+                ExploredNodeIds = exploredOrder
             };
             EnrichMetrics(dto, request.Nodes);
             return dto;

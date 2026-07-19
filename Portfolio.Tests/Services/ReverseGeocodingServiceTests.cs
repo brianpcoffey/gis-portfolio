@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Portfolio.Common.Configuration;
 using Portfolio.Services.Services;
 using System.Net;
 using System.Text;
@@ -17,20 +18,18 @@ namespace Portfolio.Tests.Services
 
         private ReverseGeocodingService CreateService(string responseJson, double gridResolution = 0.001, int slidingMinutes = 10)
         {
-            var config = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ReverseGeocoding:GridResolutionDegrees"] = gridResolution.ToString(),
-                    ["ReverseGeocoding:CacheSlidingExpirationMinutes"] = slidingMinutes.ToString()
-                })
-                .Build();
+            var options = Options.Create(new ReverseGeocodingOptions
+            {
+                GridResolutionDegrees = gridResolution,
+                CacheSlidingExpirationMinutes = slidingMinutes
+            });
 
             // Use a fresh cache per test to avoid inter-test cache pollution.
             var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
             var handler = new FakeHttpMessageHandler(responseJson);
             var httpClient = new HttpClient(handler);
 
-            return new ReverseGeocodingService(httpClient, cache, _loggerMock.Object, config);
+            return new ReverseGeocodingService(httpClient, cache, _loggerMock.Object, options);
         }
 
         private static string BuildArcGisResponse(
@@ -89,18 +88,16 @@ namespace Portfolio.Tests.Services
             // Arrange — two coordinates that snap to the same 0.001-degree grid cell
             var callCount = 0;
             var json = BuildArcGisResponse();
-            var config = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ReverseGeocoding:GridResolutionDegrees"] = "0.001",
-                    ["ReverseGeocoding:CacheSlidingExpirationMinutes"] = "10"
-                })
-                .Build();
+            var options = Options.Create(new ReverseGeocodingOptions
+            {
+                GridResolutionDegrees = 0.001,
+                CacheSlidingExpirationMinutes = 10
+            });
 
             var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
             var handler = new CountingFakeHandler(json, () => callCount++);
             var httpClient = new HttpClient(handler);
-            var service = new ReverseGeocodingService(httpClient, cache, _loggerMock.Object, config);
+            var service = new ReverseGeocodingService(httpClient, cache, _loggerMock.Object, options);
             await service.ReverseGeocodeAsync(38.8977, -77.0366);
             await service.ReverseGeocodeAsync(38.8975, -77.0366);
 

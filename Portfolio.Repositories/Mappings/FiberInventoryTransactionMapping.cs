@@ -12,6 +12,7 @@ public class FiberInventoryTransactionMapping : IEntityTypeConfiguration<FiberIn
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.UserId).HasColumnName("user_id");
+        builder.HasIndex(x => x.UserId); // transactions are queried per user
         builder.Property(x => x.MaterialId).HasColumnName("material_id");
         builder.Property(x => x.TransactionType).HasColumnName("transaction_type");
         builder.Property(x => x.Quantity).HasColumnName("quantity");

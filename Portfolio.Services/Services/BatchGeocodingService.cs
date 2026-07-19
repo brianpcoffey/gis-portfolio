@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Portfolio.Common.ArcGis;
+using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Common.Serialization;
@@ -32,33 +33,39 @@ namespace Portfolio.Services.Services
             IDistributedCache cache,
             ILogger<BatchGeocodingService> logger,
             IBatchJobStore jobStore,
-            IConfiguration configuration)
+            IOptions<BatchGeocodingOptions> options)
         {
             _httpClient = httpClient;
             _cache = cache;
             _logger = logger;
             _jobStore = jobStore;
-            _maxConcurrency = configuration.GetValue<int>("BatchGeocoding:MaxConcurrency", 4);
-            _minMatchScore = configuration.GetValue<double>("BatchGeocoding:MinMatchScore", 80.0);
-            _cacheTtlMinutes = configuration.GetValue<int>("BatchGeocoding:CacheTtlMinutes", 60);
+            var opts = options.Value;
+            _maxConcurrency = opts.MaxConcurrency;
+            _minMatchScore = opts.MinMatchScore;
+            _cacheTtlMinutes = opts.CacheTtlMinutes;
         }
 
-        // Public overload: delegates to the byte[] overload after reading the stream on the request thread.
+        // Public overload: delegates to the core after reading the stream on the request thread.
         // Kept for the legacy [Obsolete] sync endpoint and existing tests.
-        public Task<List<BatchGeocodingResultDto>> GeocodeAsync(IFormFile file, CancellationToken cancellationToken = default)
+        public async Task<List<BatchGeocodingResultDto>> GeocodeAsync(IFormFile file, CancellationToken cancellationToken = default)
         {
             if (file is null || file.Length == 0)
                 throw new ArgumentException("A non-empty CSV file is required.", nameof(file));
 
             using var ms = new MemoryStream();
             file.OpenReadStream().CopyTo(ms);
-            return GeocodeAsync(ms.ToArray(), file.FileName, cancellationToken);
+            var run = await RunGeocodeAsync(ms.ToArray(), file.FileName, onTotal: null, onProgress: null, cancellationToken);
+            return run.Results;
         }
 
         // Core geocoding implementation over raw CSV bytes. All internal callers use this overload
-        // so the IFormFile stream is never captured across an async boundary.
-        private async Task<List<BatchGeocodingResultDto>> GeocodeAsync(
-            byte[] csvBytes, string fileName, CancellationToken cancellationToken = default)
+        // so the IFormFile stream is never captured across an async boundary. Optional callbacks
+        // report the total row count (once the CSV is parsed) and per-row completion progress, so
+        // the async job can surface live polling status. Returns the results plus the cache-hit tally.
+        private async Task<(List<BatchGeocodingResultDto> Results, int CacheHits)> RunGeocodeAsync(
+            byte[] csvBytes, string fileName,
+            Func<int, Task>? onTotal, Func<int, Task>? onProgress,
+            CancellationToken cancellationToken = default)
         {
             var rows = ParseCsv(csvBytes);
 
@@ -66,6 +73,9 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("The CSV file contains no data rows.", fileName);
 
             _logger.LogInformation("Batch geocoding job started. Record count: {Count}", rows.Count);
+
+            if (onTotal is not null)
+                await onTotal(rows.Count);
 
             var channel = Channel.CreateBounded<CsvRow>(new BoundedChannelOptions(500)
             {
@@ -90,20 +100,28 @@ namespace Portfolio.Services.Services
 
             // Consumer: spin up MaxConcurrency workers.
             var results = new System.Collections.Concurrent.ConcurrentBag<(string Id, BatchGeocodingResultDto Dto)>();
+            var processed = 0;
+            var cacheHits = 0;
 
             var workers = Enumerable.Range(0, _maxConcurrency).Select(_ => Task.Run(async () =>
             {
                 await foreach (var row in channel.Reader.ReadAllAsync(cancellationToken))
                 {
-                    var result = await GeocodeRowAsync(row, cancellationToken);
-                    results.Add((row.Id, result));
+                    var (dto, cacheHit) = await GeocodeRowAsync(row, cancellationToken);
+                    results.Add((row.Id, dto));
+                    if (cacheHit)
+                        Interlocked.Increment(ref cacheHits);
+                    var done = Interlocked.Increment(ref processed);
+                    if (onProgress is not null)
+                        await onProgress(done);
                 }
             }, cancellationToken)).ToArray();
 
             await producer;
             await Task.WhenAll(workers);
 
-            return [.. results.OrderBy(r => r.Id).Select(r => r.Dto)];
+            var ordered = results.OrderBy(r => r.Id).Select(r => r.Dto).ToList();
+            return (ordered, cacheHits);
         }
 
         // Enqueues a CSV file for background processing and returns a job ID immediately.
@@ -140,15 +158,34 @@ namespace Portfolio.Services.Services
                 try
                 {
                     var started = DateTimeOffset.UtcNow;
-                    var results = await GeocodeAsync(fileBytes, originalFileName, CancellationToken.None);
 
-                    job.TotalRows           = results.Count;
-                    await _jobStore.UpdateAsync(job);
+                    var (results, cacheHits) = await RunGeocodeAsync(
+                        fileBytes, originalFileName,
+                        // TotalRows known once the CSV is parsed, before any geocoding.
+                        onTotal: async total =>
+                        {
+                            job.TotalRows = total;
+                            await _jobStore.UpdateAsync(job);
+                        },
+                        // Report incremental progress so pollers see ProcessedRows climb.
+                        // Persist on every row for small demo batches; throttle for larger ones.
+                        onProgress: async done =>
+                        {
+                            job.ProcessedRows = done;
+                            if (job.TotalRows <= 50 || done % 5 == 0 || done == job.TotalRows)
+                                await _jobStore.UpdateAsync(job);
+                        },
+                        CancellationToken.None);
+
+                    var matchedScores = results.Where(r => r.Matched).Select(r => r.Score).ToList();
 
                     job.Results             = results;
                     job.ProcessedRows       = results.Count;
-                    job.AverageScore        = results.Count > 0
-                        ? results.Average(r => r.Score) : 0;
+                    job.FailedRows          = results.Count(r => !r.Matched);
+                    job.CacheHits           = cacheHits;
+                    // Mean match score across matched results only — unmatched rows (score 0)
+                    // must not dilute the reported quality.
+                    job.AverageScore        = matchedScores.Count > 0 ? matchedScores.Average() : 0;
                     job.CompletedAt         = DateTimeOffset.UtcNow;
                     job.ThroughputPerSecond = results.Count /
                         Math.Max((job.CompletedAt.Value - started).TotalSeconds, 0.001);
@@ -168,7 +205,8 @@ namespace Portfolio.Services.Services
         }
 
         // Geocodes a single CSV row, using IDistributedCache to avoid duplicate HTTP calls across replicas.
-        private async Task<BatchGeocodingResultDto> GeocodeRowAsync(CsvRow row, CancellationToken cancellationToken)
+        // Returns the result plus whether it was served from cache (for the job's CacheHits tally).
+        private async Task<(BatchGeocodingResultDto Dto, bool CacheHit)> GeocodeRowAsync(CsvRow row, CancellationToken cancellationToken)
         {
             var normalizedKey = $"{row.Address}|{row.City}|{row.State}|{row.Zip}".Trim().ToLowerInvariant();
             var cacheKey = $"geocode:{normalizedKey}";
@@ -179,6 +217,8 @@ namespace Portfolio.Services.Services
             {
                 cached = JsonSerializer.Deserialize<GeocodeCacheEntry>(cachedBytes, PortfolioJsonOptions.Default);
             }
+
+            var cacheHit = cached is not null;
 
             if (cached is null)
             {
@@ -194,9 +234,9 @@ namespace Portfolio.Services.Services
             var matched = cached.Score >= _minMatchScore;
 
             if (!matched)
-                _logger.LogWarning("Unmatched address for Id {Id}: {Address}", row.Id, row.Address);
+                _logger.LogWarning("Unmatched address for row Id {Id} (score {Score}).", row.Id, cached.Score);
 
-            return new BatchGeocodingResultDto
+            var dto = new BatchGeocodingResultDto
             {
                 OriginalAddress = $"{row.Address}, {row.City}, {row.State} {row.Zip}".Trim(),
                 Matched = matched,
@@ -205,6 +245,8 @@ namespace Portfolio.Services.Services
                 Latitude = matched ? cached.Latitude : null,
                 Longitude = matched ? cached.Longitude : null
             };
+
+            return (dto, cacheHit);
         }
 
         // Makes the HTTP call to the ArcGIS World Geocoding REST API.
@@ -247,6 +289,9 @@ namespace Portfolio.Services.Services
             }
         }
 
+        // Hard cap on data rows per upload — bounds memory and outbound geocoding volume.
+        private const int MaxRows = 10_000;
+
         // Parses the CSV bytes into typed rows. Expects header: Id,Address,City,State,Zip
         private static List<CsvRow> ParseCsv(byte[] csvBytes)
         {
@@ -264,6 +309,10 @@ namespace Portfolio.Services.Services
             {
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
+
+                if (rows.Count >= MaxRows)
+                    throw new ArgumentException(
+                        $"CSV exceeds the maximum of {MaxRows} data rows.", nameof(csvBytes));
 
                 var parts = line.Split(',', 5);
                 if (parts.Length < 5)

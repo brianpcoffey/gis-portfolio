@@ -17,7 +17,7 @@ namespace Portfolio.Repositories.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -114,6 +114,8 @@ namespace Portfolio.Repositories.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("FiberClients", (string)null);
                 });
 
@@ -162,6 +164,8 @@ namespace Portfolio.Repositories.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MaterialId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("FiberInventoryTransactions", (string)null);
                 });
@@ -231,6 +235,8 @@ namespace Portfolio.Repositories.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("FiberMaterials", (string)null);
                 });
 
@@ -255,9 +261,6 @@ namespace Portfolio.Repositories.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("client_name");
-
-                    b.Property<int?>("FiberClientId")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("timestamp with time zone")
@@ -296,7 +299,7 @@ namespace Portfolio.Repositories.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FiberClientId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("FiberOrders", (string)null);
                 });
@@ -337,9 +340,6 @@ namespace Portfolio.Repositories.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("estimated_arrival");
 
-                    b.Property<int?>("FiberOrderId")
-                        .HasColumnType("integer");
-
                     b.Property<double>("OriginLat")
                         .HasColumnType("double precision")
                         .HasColumnName("origin_lat");
@@ -368,7 +368,7 @@ namespace Portfolio.Repositories.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FiberOrderId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("FiberShipments", (string)null);
                 });
@@ -649,20 +649,6 @@ namespace Portfolio.Repositories.Migrations
                     b.Navigation("Material");
                 });
 
-            modelBuilder.Entity("Portfolio.Common.Models.FiberOrder", b =>
-                {
-                    b.HasOne("Portfolio.Common.Models.FiberClient", null)
-                        .WithMany("Orders")
-                        .HasForeignKey("FiberClientId");
-                });
-
-            modelBuilder.Entity("Portfolio.Common.Models.FiberShipment", b =>
-                {
-                    b.HasOne("Portfolio.Common.Models.FiberOrder", null)
-                        .WithMany("Shipments")
-                        .HasForeignKey("FiberOrderId");
-                });
-
             modelBuilder.Entity("Portfolio.Common.Models.SavedFeature", b =>
                 {
                     b.HasOne("Portfolio.Common.Models.Collection", "Collection")
@@ -689,19 +675,9 @@ namespace Portfolio.Repositories.Migrations
                     b.Navigation("SavedFeatures");
                 });
 
-            modelBuilder.Entity("Portfolio.Common.Models.FiberClient", b =>
-                {
-                    b.Navigation("Orders");
-                });
-
             modelBuilder.Entity("Portfolio.Common.Models.FiberMaterial", b =>
                 {
                     b.Navigation("InventoryTransactions");
-                });
-
-            modelBuilder.Entity("Portfolio.Common.Models.FiberOrder", b =>
-                {
-                    b.Navigation("Shipments");
                 });
 
             modelBuilder.Entity("Portfolio.Common.Models.UserProfile", b =>

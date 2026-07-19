@@ -428,6 +428,9 @@ namespace Portfolio.Tests.Services
                 .ReturnsAsync(profile);
             _repoMock.Setup(r => r.SetClaimAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
+            // The service now wraps its writes in a transaction; make the mock run the callback.
+            _repoMock.Setup(r => r.RunInTransactionAsync(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()))
+                .Returns((Func<CancellationToken, Task> action, CancellationToken ct) => action(ct));
 
             // Act
             var userId = await _service.CreateOrUpdateFromGoogleAsync(google);

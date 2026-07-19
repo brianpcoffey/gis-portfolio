@@ -11,17 +11,20 @@ namespace Portfolio.Services.Services
     public class SavedFeatureService : ISavedFeatureService
     {
         private readonly ISavedFeatureRepository _repo;
+        private readonly ICollectionRepository _collectionRepo;
         private readonly IUserProfileService _userProfileService;
         private readonly TimeProvider _timeProvider;
         private readonly ILogger<SavedFeatureService> _logger;
 
         public SavedFeatureService(
             ISavedFeatureRepository repo,
+            ICollectionRepository collectionRepo,
             IUserProfileService userProfileService,
             TimeProvider timeProvider,
             ILogger<SavedFeatureService> logger)
         {
             _repo = repo;
+            _collectionRepo = collectionRepo;
             _userProfileService = userProfileService;
             _timeProvider = timeProvider;
             _logger = logger;
@@ -55,6 +58,17 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("GeometryJson is required", nameof(dto));
 
             var userId = CurrentUserId;
+
+            // Validate the target collection (if any) exists and belongs to this user,
+            // so a stale/foreign CollectionId returns a clean 400 rather than a DB
+            // foreign-key violation surfacing as a 500.
+            if (dto.CollectionId.HasValue)
+            {
+                var collection = await _collectionRepo.GetByIdAsync(dto.CollectionId.Value, userId, cancellationToken);
+                if (collection is null)
+                    throw new ArgumentException(
+                        "The specified collection does not exist or is not owned by the current user.", nameof(dto));
+            }
 
             var existing = await _repo.GetByLayerAndFeatureIdAsync(dto.LayerId, dto.FeatureId, userId, cancellationToken);
             if (existing != null)

@@ -88,8 +88,13 @@ namespace Portfolio.Web.Middleware
                 }
                 else
                 {
-                    profile.LastActiveDate = now;
-                    await db.SaveChangesAsync();
+                    // Throttle the write: only refresh LastActiveDate when it is already stale,
+                    // so an active session does not trigger a DB write on every single request.
+                    if (now - profile.LastActiveDate >= TimeSpan.FromMinutes(5))
+                    {
+                        profile.LastActiveDate = now;
+                        await db.SaveChangesAsync();
+                    }
                 }
             }
             else
@@ -112,7 +117,7 @@ namespace Portfolio.Web.Middleware
                 };
                 db.UserProfiles.Add(profile);
                 await db.SaveChangesAsync();
-                await seedService.SeedForUserAsync(userId);
+                await seedService.SeedForUserAsync(userId, context.RequestAborted);
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,

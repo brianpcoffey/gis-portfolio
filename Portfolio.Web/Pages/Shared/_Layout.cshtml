@@ -3,9 +3,46 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Apply saved display/accessibility preferences before first paint (prevents theme flash) -->
+    <script>
+        (function () {
+            try {
+                var D = { theme: 'auto', contrast: 'normal', motion: 'auto', underline: 'off', readable: 'off', fontScale: 1 };
+                var s = {};
+                try { s = JSON.parse(localStorage.getItem('sitePrefs')) || {}; } catch (e) { }
+                if (s.theme === undefined) { var l = localStorage.getItem('theme'); if (l === 'dark' || l === 'light') s.theme = l; }
+                var p = Object.assign({}, D, s);
+                var r = document.documentElement;
+                var dark = p.theme === 'dark' || (p.theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+                r.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+                r.setAttribute('data-theme', p.theme);
+                r.setAttribute('data-contrast', p.contrast);
+                var reduce = p.motion === 'reduce' || (p.motion === 'auto' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+                r.setAttribute('data-motion', reduce ? 'reduce' : 'no-pref');
+                r.setAttribute('data-underline', p.underline);
+                r.setAttribute('data-readable', p.readable);
+                var fs = parseFloat(p.fontScale); if (isNaN(fs)) fs = 1; fs = Math.min(1.5, Math.max(0.85, fs));
+                r.style.setProperty('--user-font-scale', fs);
+            } catch (e) { }
+        })();
+    </script>
+
     <title>@ViewData["Title"] – Brian Coffey</title>
     <meta name="description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
     <meta name="keywords" content="GIS, Software Engineer, ArcGIS, Spatial Analysis, ASP.NET Core, Entity Framework, Web GIS" />
+
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
+
+    <!-- Open Graph / Twitter social preview -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Brian Coffey — GIS Software Engineer" />
+    <meta property="og:title" content="@ViewData["Title"] – Brian Coffey" />
+    <meta property="og:description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="@ViewData["Title"] – Brian Coffey" />
+    <meta name="twitter:description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
 
     <!-- Bootstrap 5 (local) -->
     <link href="~/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
@@ -18,11 +55,15 @@
     <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css" />
 
     <!-- Custom CSS (single entry point — imports all partials) -->
-    <link rel="stylesheet" href="~/css/site.css" />
-    <link rel="stylesheet" href="~/css/layout.css" />
-    <link rel="stylesheet" href="~/css/components.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/preferences.css" asp-append-version="true" />
 </head>
 <body>
+    <script>document.body.classList.toggle('dark-mode', document.documentElement.getAttribute('data-bs-theme') === 'dark');</script>
+    <a class="skip-link" href="#mainContent">Skip to main content</a>
+    <div id="a11yAnnounce" class="visually-hidden" role="status" aria-live="polite"></div>
     <header>
         <nav class="navbar navbar-expand-lg" aria-label="Main navigation" id="mainNav">
             <div class="container">
@@ -51,8 +92,15 @@
                             <a class="nav-link" href="/#contact">Contact</a>
                         </li>
                         <li class="nav-item">
-                            <button id="themeToggle" class="theme-toggle-btn btn" type="button" aria-label="Toggle dark/light mode">
-                                <i id="themeIcon" class="fa-solid fa-moon"></i>
+                            <button id="themeToggle" class="theme-toggle-btn btn" type="button" aria-label="Theme: change light, dark, or system">
+                                <i id="themeIcon" class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button id="prefsToggle" class="prefs-toggle-btn btn" type="button"
+                                    data-bs-toggle="offcanvas" data-bs-target="#prefsPanel"
+                                    aria-controls="prefsPanel" aria-label="Display and accessibility settings">
+                                <i class="fa-solid fa-universal-access" aria-hidden="true"></i>
                             </button>
                         </li>
                         @await Html.PartialAsync("_LoginPartial")
@@ -62,14 +110,14 @@
         </nav>
     </header>
 
-    <main>
+    <main id="mainContent" tabindex="-1">
         @RenderBody()
     </main>
 
     <footer class="site-footer">
         <div class="container text-center py-4">
             <div class="footer-links mb-3">
-                <a href="https://mail.google.com/mail/?view=cm&fs=1&to= brianpcoffey99@gmail.com" target="_blank" rel="noopener" aria-label="Email via Gmail">
+                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=brianpcoffey99@gmail.com" target="_blank" rel="noopener" aria-label="Email via Gmail">
                     <i class="fa-solid fa-envelope"></i>
                 </a>
                 <a href="https://linkedin.com/in/brianpatrickcoffey" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
@@ -78,6 +126,19 @@
             <p class="mb-0 small">&copy; @DateTime.Now.Year Brian Coffey. All rights reserved.</p>
         </div>
     </footer>
+
+    <!-- Display & accessibility preferences panel -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="prefsPanel" aria-labelledby="prefsPanelLabel">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title h5 mb-0" id="prefsPanelLabel">
+                <i class="fa-solid fa-universal-access me-2" aria-hidden="true"></i>Display &amp; Accessibility
+            </h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close settings"></button>
+        </div>
+        <div class="offcanvas-body">
+            @await Html.PartialAsync("_PreferencesControls", "nav")
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="~/lib/jquery/jquery-3.7.1.min.js"></script>
@@ -88,6 +149,7 @@
     <script src="~/js/api-fetch.js" asp-append-version="true"></script>
     <script src="~/js/toasts.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/preferences.js" asp-append-version="true"></script>
     <script src="~/js/navigation.js" asp-append-version="true"></script>
     <script src="~/js/animations.js" asp-append-version="true"></script>
 

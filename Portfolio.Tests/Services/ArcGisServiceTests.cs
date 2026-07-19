@@ -112,17 +112,9 @@ private readonly Mock<ILogger<ArcGisService>> _loggerMock = new();
         [Fact]
         public async Task GetFeatureAsync_WhenFeatureNotFound_ReturnsNull()
         {
-            var payload = new
-            {
-                features = new[]
-                {
-                    new
-                    {
-                        attributes = new Dictionary<string, object?> { ["OBJECTID"] = 1, ["STATE_NAME"] = "Maine" },
-                        geometry = new { x = -69.4, y = 45.2 }
-                    }
-                }
-            };
+            // GetFeatureAsync now filters server-side (where=OBJECTID=<id>), so a non-existent
+            // id makes ArcGIS return no candidates — the service then yields null.
+            var payload = new { features = Array.Empty<object>() };
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json")
@@ -130,6 +122,18 @@ private readonly Mock<ILogger<ArcGisService>> _loggerMock = new();
 
             var service = CreateService(response);
             var result = await service.GetFeatureAsync("3", "999");
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetFeatureAsync_WithNonNumericId_ReturnsNullWithoutCallingServer()
+        {
+            // featureId must be an integer OBJECTID; a non-numeric id is rejected before any HTTP call.
+            var response = new HttpResponseMessage(HttpStatusCode.InternalServerError);
+            var service = CreateService(response);
+
+            var result = await service.GetFeatureAsync("3", "not-a-number");
 
             Assert.Null(result);
         }

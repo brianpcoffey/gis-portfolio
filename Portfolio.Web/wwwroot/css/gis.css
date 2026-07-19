@@ -256,8 +256,8 @@ body.dark-mode .theme-card-header {
     color: var(--text);
 }
 
-a:focus, button:focus, input:focus {
-    outline: 3px solid rgba(56,161,105,0.12);
+a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--accent);
     outline-offset: 2px;
 }
 

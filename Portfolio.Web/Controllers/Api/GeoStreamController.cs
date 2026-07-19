@@ -6,6 +6,10 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoint for batch GPS telemetry processing — spatial grid aggregation,
+    /// speed metrics, and high-speed anomaly detection.
+    /// </summary>
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]

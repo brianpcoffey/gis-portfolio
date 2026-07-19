@@ -1,5 +1,5 @@
 /* ======================================
-   Home Finder — Dark Mode Contrast Fixes
+   Home Finder â€” Dark Mode Contrast Fixes
    ====================================== */
 
 /* Weight status alert in dark mode */
@@ -23,7 +23,7 @@ body.dark-mode #resultsPanel p.text-muted {
     color: #e2e8f0 !important;
 }
 
-/* Slider labels in dark mode — high contrast */
+/* Slider labels in dark mode â€” high contrast */
 body.dark-mode .form-label.small,
 body.dark-mode .form-label {
     color: #e2e8f0 !important;
@@ -196,7 +196,7 @@ body.dark-mode .weight-bar-container {
 
 .weight-bar-fill {
     height: 100%;
-    background: var(--bs-accent, #0d6efd);
+    background: var(--accent);
     border-radius: 3px;
     transition: width 0.3s ease, background-color 0.3s ease;
 }
@@ -209,7 +209,7 @@ body.dark-mode .weight-bar-container {
     background: var(--bs-danger, #dc3545);
 }
 
-/* Slider max-clamped visual hint — dims the slider when at 0 max */
+/* Slider max-clamped visual hint â€” dims the slider when at 0 max */
 input.weight-slider[max="0"] {
     opacity: 0.35;
     pointer-events: none;
@@ -267,7 +267,7 @@ input.weight-slider[max="0"] {
 
 
 /* ============================================================
-   Responsive — Collapse weights section on small screens
+   Responsive â€” Collapse weights section on small screens
    ============================================================ */
 
 @media (max-width: 767.98px) {

@@ -6,6 +6,10 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
+    /// <summary>
+    /// API endpoints for spatial graph routing — road graph retrieval, shortest-path
+    /// routing (Dijkstra/A*), and service-area computation.
+    /// </summary>
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]

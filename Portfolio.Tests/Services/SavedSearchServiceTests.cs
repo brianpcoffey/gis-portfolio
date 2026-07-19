@@ -15,7 +15,7 @@ namespace Portfolio.Tests.Services
         public SavedSearchServiceTests()
         {
             _repoMock = new Mock<ISavedSearchRepository>();
-            _service = new SavedSearchService(_repoMock.Object);
+            _service = new SavedSearchService(_repoMock.Object, TimeProvider.System);
         }
 
         // ── CreateSavedSearchAsync ──────────────────────────────────────
@@ -209,44 +209,31 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task DeleteSavedSearchAsync_WhenExists_DeletesSuccessfully()
         {
-            // Arrange
-            var existing = new SavedSearch
-            {
-                Id = 1,
-                UserId = _testUserId,
-                Name = "To Delete",
-                PreferencesJson = "{}",
-                CreatedAt = DateTime.UtcNow
-            };
-
+            // Arrange — the owner-scoped repo overload reports a successful delete.
             _repoMock
-                .Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(existing);
-            _repoMock
-                .Setup(r => r.DeleteAsync(1, It.IsAny<CancellationToken>()))
+                .Setup(r => r.DeleteAsync(1, _testUserId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
             // Act
-            await _service.DeleteSavedSearchAsync(1);
+            await _service.DeleteSavedSearchAsync(1, _testUserId);
 
-            // Assert
-            _repoMock.Verify(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()), Times.Once);
-            _repoMock.Verify(r => r.DeleteAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+            // Assert — delete is scoped to the current user's id.
+            _repoMock.Verify(r => r.DeleteAsync(1, _testUserId, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
-        public async Task DeleteSavedSearchAsync_WhenNotFound_ThrowsKeyNotFoundException()
+        public async Task DeleteSavedSearchAsync_WhenNotOwnedOrMissing_ThrowsKeyNotFoundException()
         {
-            // Arrange
+            // Arrange — scoped delete returns false when the search does not exist OR
+            // belongs to another user (IDOR guard: the two are indistinguishable).
             _repoMock
-                .Setup(r => r.GetByIdAsync(999, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((SavedSearch?)null);
+                .Setup(r => r.DeleteAsync(999, _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
 
             // Act & Assert
             var ex = await Assert.ThrowsAsync<KeyNotFoundException>(
-                () => _service.DeleteSavedSearchAsync(999));
+                () => _service.DeleteSavedSearchAsync(999, _testUserId));
             Assert.Contains("999", ex.Message);
-            _repoMock.Verify(r => r.DeleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         }
     }
 }
