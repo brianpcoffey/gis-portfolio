@@ -34,6 +34,13 @@ struct GraphPathResultNative
 
 extern "C"
 {
+	// Shortest path from startNodeId to endNodeId.
+	//
+	// `outExploredNodeIds` / `outExploredCount` report every node the search SETTLED, in
+	// settle order — the search space, which the Route Planner paints to contrast A*'s beam
+	// against Dijkstra's flood. Both may be NULL to skip the diagnostic; when non-NULL and
+	// the capacity is too small the search still succeeds and outExploredCount is set to the
+	// number that fitted, because a truncated diagnostic must not fail a valid route.
 	GRAPH_API int Graph_FindShortestPath(
 		const GraphNodeNative* nodes,
 		int nodeCount,
@@ -43,7 +50,10 @@ extern "C"
 		int endNodeId,
 		int* outputNodeIds,
 		int outputCapacity,
-		GraphPathResultNative* result);
+		GraphPathResultNative* result,
+		int* outExploredNodeIds,
+		int exploredCapacity,
+		int* outExploredCount);
 
 	GRAPH_API int Graph_ComputeServiceArea(
 		const GraphNodeNative* nodes,

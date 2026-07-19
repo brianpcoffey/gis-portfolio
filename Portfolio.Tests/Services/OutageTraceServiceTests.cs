@@ -7,8 +7,9 @@ namespace Portfolio.Tests.Services
     // Outage management over an electric distribution circuit: fault tracing, isolation
     // device selection, and tie-switch restoration planning.
     //
-    // The suite runs with no native shared library present, so every test exercises the
-    // managed fallback and asserts NativeAccelerated == false. The managed path mirrors
+    // These tests assert computation, not which path produced it: they pass whether or
+    // not the native shared libraries have been built. Native/managed equivalence is
+    // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
     // native/network_trace_kernel/src/network_trace_kernel.cpp, so these also pin the
     // traversal semantics the native kernel must reproduce.
     public class OutageTraceServiceTests
@@ -89,7 +90,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.TraceAsync(TraceOf(RadialFeeder(), faultElementId: 7));
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(new[] { 7, 8 }, result.DownstreamElementIds.Order().ToArray());
             Assert.Equal(10, result.CustomersAffected);
             Assert.Equal(30, result.CustomersTotal);
@@ -260,7 +260,6 @@ namespace Portfolio.Tests.Services
                 IsolationDeviceIds = trace.IsolationDeviceIds
             });
 
-            Assert.False(result.NativeAccelerated);
             Assert.True(result.RestorationFound);
             Assert.Equal(10, result.TieElementId);
             Assert.Equal(40, result.CustomersRestored);
@@ -468,7 +467,6 @@ namespace Portfolio.Tests.Services
                 FaultElementId = trunkFault.Id
             });
 
-            Assert.False(trace.NativeAccelerated);
             Assert.True(trace.CustomersAffected > 0);
             Assert.True(trace.CustomersAffected < network.TotalCustomers);
             Assert.NotEmpty(trace.IsolationDeviceIds);

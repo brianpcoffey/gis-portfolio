@@ -27,7 +27,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.RunDbscanAsync(request);
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(2, result.ClusterCount);
             Assert.Equal(0, result.NoiseCount);
             Assert.Equal([5, 5], result.ClusterSizes);
@@ -135,7 +134,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.ComputeAsync(request);
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(16, result.VisibleCells);
             Assert.All(result.Visibility, v => Assert.Equal(1, v));
         }
@@ -255,7 +253,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.SpatialJoinAsync(request);
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(0, result.Points[0].ZoneIndex);
             Assert.Equal(1, result.Points[1].ZoneIndex);
             Assert.Equal(-1, result.Points[2].ZoneIndex);

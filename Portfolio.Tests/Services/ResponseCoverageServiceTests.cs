@@ -13,8 +13,9 @@ namespace Portfolio.Tests.Services
     // one kilometre of graph cost is exactly one minute of travel time and the hand-built
     // numbers read directly.
     //
-    // The suite runs with no native shared library present, so every test exercises the
-    // managed fallback and asserts NativeAccelerated == false. That managed path mirrors
+    // These tests assert computation, not which path produced it: they pass whether or
+    // not the native shared libraries have been built. Native/managed equivalence is
+    // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
     // native/facility_location_kernel/src/facility_location_kernel.cpp line for line, so
     // these also pin the arithmetic the native kernel must reproduce.
     public class ResponseCoverageServiceTests
@@ -30,7 +31,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.OptimizeAsync(Request(1, 3, stationCount: 1));
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal([1], result.ChosenCandidateIds);
             Assert.Equal(2.0, result.Optimized.MeanMinutes, 6);
         }
@@ -247,7 +247,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.ComputeIsochroneAsync(IsochroneRequest([4, 8, 12]));
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(6, result.ReachableNodes);
             Assert.Equal(6, result.Nodes.Count);
             Assert.Equal(result.Nodes.Count, result.Nodes.Select(n => n.NodeId).Distinct().Count());

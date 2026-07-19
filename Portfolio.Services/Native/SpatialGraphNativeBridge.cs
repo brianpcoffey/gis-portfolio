@@ -162,7 +162,17 @@ namespace Portfolio.Services.Native
             var nodes = request.Nodes.Select(MapNode).ToArray();
             var edges = request.Edges.Select(MapEdge).ToArray();
             var output = new int[Math.Max(1, nodes.Length)];
-            var status = SpatialGraphNativeInterop.FindShortestPath(nodes, nodes.Length, edges, edges.Length, request.StartNodeId, request.EndNodeId, output, output.Length, out var result);
+            // The search settles at most every node once, so the node count is an exact
+            // upper bound on the explored set — it can never be truncated.
+            var explored = new int[Math.Max(1, nodes.Length)];
+            var status = SpatialGraphNativeInterop.FindShortestPath(
+                nodes, nodes.Length,
+                edges, edges.Length,
+                request.StartNodeId, request.EndNodeId,
+                output, output.Length,
+                out var result,
+                explored, explored.Length,
+                out var exploredCount);
             ThrowIfFailed(status);
 
             return new RouteResultDto
@@ -170,7 +180,9 @@ namespace Portfolio.Services.Native
                 NativeAccelerated = true,
                 Found = result.Found == 1,
                 TotalCost = result.TotalCost,
-                NodeIds = output.Take(result.PathCount).ToList()
+                NodeIds = output.Take(result.PathCount).ToList(),
+                ExploredNodes = exploredCount,
+                ExploredNodeIds = explored.Take(exploredCount).ToList()
             };
         }
 

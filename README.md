@@ -14,7 +14,7 @@
 ![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
 ![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
-![xUnit](https://img.shields.io/badge/xUnit-675_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-680_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -67,29 +67,28 @@ this file has been discarded rather than merged — see "How these were measured
 
 The honest range is **0.34× to 2.27×**. Native loses outright on six of twenty-one workloads.
 
-| Kernel | Workload | Native | Managed | Speedup | Native min–max | Managed min–max | Parity |
-|---|---|---:|---:|---:|---:|---:|---|
-| `vrp_solver_kernel` | CVRPTW solve, 120 stops, 8 solves | 24.3 ms | 55.2 ms | **2.27×** | 24.2–25.3 | 53.2–64.0 | exact |
-| `vrp_solver_kernel` | CVRPTW solve, shipped "fullday" preset, 40 stops, 30 solves | 10.3 ms | 21.3 ms | **2.06×** | 10.3–10.7 | 20.9–21.8 | exact |
-| `spatial_overlay_kernel` | point-in-polygon join, 30 × 10,000 points × 48 zones | 156 ms | 302 ms | **1.94×** | 154–167 | 302–304 | exact |
-| `facility_location_kernel` | shipped scenario 450×24, p=4, p90, 4 solves | 21.8 ms | 41.9 ms | **1.92×** | 21.7–22.6 | 41.7–42.6 | exact |
-| `facility_location_kernel` | p-median 1,400×64, p=8, weighted p90 | 136 ms | 244 ms | **1.80×** | 135–136 | 243–245 | exact |
-| `facility_location_kernel` | p-median 1,400×64, p=8, weighted mean, 10 solves | 22.5 ms | 37.1 ms | **1.65×** | 20.9–44.2 | 34.8–39.9 | exact |
-| `spatial_graph_engine` | 40×40 cost matrix, 10 builds | 61.1 ms | 89.3 ms | **1.46×** | 58.9–69.0 | 88.6–96.4 | exact |
-| `raster_terrain_kernel` | Gaussian heatmap, 500² over 200 points | 214 ms | 276 ms | **1.29×** | 213–215 | 274–277 | exact |
-| `spatial_graph_engine` | one-to-all Dijkstra, 40 × (2,530 nodes / 3,187 edges) | 35.0 ms | 44.2 ms | 1.26× | 26.7–46.7 | 13.0–67.7 | exact |
-| `network_trace_kernel` | downstream trace sweep, 267 elements × 266 faults | 16.6 ms | 20.5 ms | **1.24×** | 16.4–16.8 | 20.0–39.3 | exact |
-| `network_trace_kernel` | trace + restoration plan, 266 faults | 30.5 ms | 36.1 ms | 1.18× | 30.4–43.3 | 18.2–45.3 | exact |
-| `cat_risk_kernel` | Monte Carlo loss simulation, 900 × 5,000 events | 48.4 ms | 52.6 ms | **1.09×** | 46.3–53.1 | 50.6–57.6 | exact |
-| `change_detection_kernel` | CVA + Otsu + open + components, 512²×4 | 10.4 ms | 11.1 ms | 1.06× | 9.35–21.2 | 10.3–22.0 | exact |
-| `spatial_cluster_kernel` | DBSCAN, 8 × 5,000 points, eps 0.16 / minPts 6 | 183 ms | 188 ms | 1.03× | 178–187 | 177–202 | exact |
-| `cat_risk_kernel` | ring accumulation, 20 × 900 locations, 3 km | 102 ms | 100 ms | 0.98× | 101–107 | 98.9–106 | exact |
-| `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 98.8 ms | 95.6 ms | 0.97× | 92.1–104 | 76.2–113 | exact |
-| `raster_terrain_kernel` | hillshade, 20 × 500² elevation grid | 190 ms | 156 ms | **0.82×** | 180–196 | 155–170 | exact |
-| `spatial_geometry_kernel` | bounding-box clip, 400 × 5,000-vertex polygon | 67.3 ms | 53.6 ms | **0.80×** | 64.7–84.1 | 52.9–55.0 | **MISMATCH** |
-| `viewshed_kernel` | line-of-sight viewshed, 3 × 500² grid | 296 ms | 226 ms | **0.76×** | 295–308 | 224–228 | **MISMATCH** |
-| `geostream_processor` | parse + filter + grid aggregate, 40 × 10,000 events | 88.6 ms | 53.9 ms | **0.61×** | 72.0–131 | 30.4–111 | exact |
-| `spatial_geometry_kernel` | fan triangulation, 400 × 5,000 vertices | 169 ms | 57.9 ms | **0.34×** | 158–174 | 57.4–74.1 | exact |
+| Kernel | Workload | Native median | Managed median | Speedup | Native min–max | Managed min–max | Parity |
+| `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 108 ms | 107 ms | 0.99x | 98.4 ms–112 ms | 79.3 ms–117 ms | exact |
+| `geostream_processor` | parse + filter + grid aggregate, 40 x 10,000 events | 92.4 ms | 54.9 ms | 0.59x | 73.1 ms–153 ms | 32.0 ms–114 ms | exact |
+| `spatial_geometry_kernel` | fan triangulation, 400 x 5,000 vertices | 188 ms | 70.2 ms | 0.37x | 170 ms–192 ms | 66.0 ms–86.4 ms | exact |
+| `spatial_geometry_kernel` | bounding-box clip, 400 x 5,000-vertex polygon | 81.5 ms | 62.5 ms | 0.77x | 75.4 ms–93.3 ms | 61.1 ms–63.1 ms | exact |
+| `raster_terrain_kernel` | hillshade, 20 x 500x500 elevation grid | 196 ms | 164 ms | 0.83x | 183 ms–202 ms | 156 ms–185 ms | exact |
+| `raster_terrain_kernel` | Gaussian heatmap, 500x500 over 200 points | 215 ms | 263 ms | **1.22x** | 215 ms–217 ms | 263 ms–278 ms | exact |
+| `spatial_graph_engine` | one-to-all Dijkstra, 40 x (2,530 nodes / 3,187 edges) | 33.2 ms | 15.0 ms | 0.45x | 27.1 ms–48.2 ms | 12.2 ms–46.3 ms | exact |
+| `spatial_graph_engine` | 40x40 cost matrix over the same network, 10 builds | 63.1 ms | 82.9 ms | **1.31x** | 62.2 ms–71.7 ms | 82.4 ms–89.7 ms | exact |
+| `spatial_cluster_kernel` | DBSCAN, 8 x 5,000 points, eps 0.16 / minPts 6 | 186 ms | 175 ms | 0.94x | 183 ms–191 ms | 165 ms–182 ms | exact |
+| `viewshed_kernel` | line-of-sight viewshed, 3 x 500x500 grid | 232 ms | 227 ms | 0.98x | 223 ms–243 ms | 226 ms–229 ms | exact |
+| `spatial_overlay_kernel` | point-in-polygon join, 30 x 10,000 points x 48 zones | 156 ms | 297 ms | **1.90x** | 155 ms–169 ms | 295 ms–308 ms | exact |
+| `cat_risk_kernel` | ring accumulation, 20 x 900 locations, 3 km | 106 ms | 97.3 ms | 0.92x | 103 ms–110 ms | 96.9 ms–102 ms | exact |
+| `cat_risk_kernel` | Monte Carlo loss simulation, 900 x 5,000 events | 49.3 ms | 50.3 ms | **1.02x** | 47.1 ms–55.1 ms | 49.0 ms–54.7 ms | exact |
+| `change_detection_kernel` | CVA + Otsu + open + components, 512x512x4 | 15.0 ms | 14.8 ms | 0.99x | 10.2 ms–22.9 ms | 10.3 ms–20.4 ms | exact |
+| `network_trace_kernel` | downstream trace sweep, 267 elements x 266 faults | 16.8 ms | 17.0 ms | **1.01x** | 10.6 ms–23.9 ms | 16.5 ms–25.1 ms | exact |
+| `network_trace_kernel` | trace + restoration plan, 266 faults | 20.2 ms | 29.8 ms | **1.48x** | 20.0 ms–42.8 ms | 12.1 ms–48.0 ms | exact |
+| `facility_location_kernel` | p-median 1,400x64, p=8, weighted mean, 10 solves | 22.7 ms | 34.8 ms | **1.53x** | 21.1 ms–24.8 ms | 34.3 ms–43.4 ms | exact |
+| `facility_location_kernel` | p-median 1,400x64, p=8, weighted p90 | 138 ms | 228 ms | **1.66x** | 137 ms–144 ms | 228 ms–229 ms | exact |
+| `facility_location_kernel` | shipped scenario 450x24, p=4, p90, 4 solves | 22.4 ms | 38.8 ms | **1.73x** | 22.2 ms–22.8 ms | 38.7 ms–39.4 ms | exact |
+| `vrp_solver_kernel` | CVRPTW solve, 120 stops, 10 vehicles, 8 solves | 24.7 ms | 55.9 ms | **2.26x** | 24.1 ms–27.5 ms | 54.1 ms–62.5 ms | exact |
+| `vrp_solver_kernel` | CVRPTW solve, shipped "fullday" preset, 40 stops, 30 solves | 10.9 ms | 20.9 ms | **1.92x** | 10.6 ms–11.4 ms | 20.5 ms–23.4 ms | exact |
 
 20 logical cores, .NET 10.0.9, Windows 11. `p-median` and `CVRPTW` rows time the solver stage
 only (the service's own `SolveMs`), because the shared road-network distance-matrix build in
@@ -97,27 +96,45 @@ front of them belongs to `spatial_graph_engine`. `portfolio_scoring` is the one 
 public entry point reads from a repository, so the harness feeds it a fixed-seed in-memory one;
 every other kernel runs on an in-repo deterministic dataset reached through its public API.
 
-Where the two spreads overlap — the Dijkstra row most obviously, managed ranging 13–68 ms —
-read the result as "no measurable difference", not as the ratio of the medians.
+Where the two spreads overlap, read the row as "no measurable difference" rather than as the
+ratio of the medians. The one-to-all Dijkstra row is the clearest case: native spans
+27.1–48.2 ms and managed 12.2–46.3 ms, and across runs its managed median has landed anywhere
+between 15 ms and 44 ms. That row is dominated by allocation and scheduling noise, not by the
+choice of implementation, and no honest speedup can be read off it. It is left in the table
+rather than dropped, because a benchmark that only reports the rows that resolve cleanly is
+not a benchmark.
 
-#### Two kernels do not produce the same answer on both paths
+#### The parity check found two real bugs — both now fixed
 
-The harness checksums every result and compares the two paths. Nineteen of twenty-one agree
-exactly. Two do not, and these are correctness defects rather than performance findings:
+The harness checksums every result and compares the two paths, and on its first run two
+workloads disagreed. Neither was a rounding artefact; both were genuine defects in the native
+kernels that every previous ad-hoc benchmark had missed, because nothing had ever compared the
+two implementations.
 
 - **`spatial_geometry_kernel`, bounding-box clip.** The managed fallback implements
-  Sutherland–Hodgman clipping; `Geometry_ClipToBoundingBox` in C++ calls `std::clamp` on each
-  vertex independently. For a 5,000-vertex star clipped to a box the managed path returns a
-  2,549-vertex polygon and the native path returns 5,000 vertices squashed onto the box edges.
-  These are different shapes, not different roundings. The two agree only when every vertex is
-  already inside the box.
-- **`viewshed_kernel`, line-of-sight.** The ray walk rounds sample coordinates with
-  `Math.Round` in C# (banker's rounding, half-to-even) and `std::lround` in C++ (half away from
-  zero). Every ray whose sample lands exactly on `.5` walks a different cell. On a 500×500 grid
-  that is 43 cells out of 250,000 — small, systematic, and real.
+  Sutherland–Hodgman clipping; `Geometry_ClipToBoundingBox` in C++ called `std::clamp` on each
+  vertex independently — which is not polygon clipping at all. For a 5,000-vertex star clipped
+  to a box, managed returned a 2,549-vertex polygon and native returned 5,000 vertices squashed
+  onto the box edges. It never emitted a true edge/box intersection point, never emitted a box
+  corner, and returned a degenerate full-size polygon for a subject lying entirely outside the
+  box instead of an empty one. The kernel now runs the same Sutherland–Hodgman passes as the
+  managed path, in the same order, with the same intersection formulas.
+- **`viewshed_kernel`, line-of-sight.** The ray walk rounded sample coordinates with
+  `Math.Round` in C# (banker's, half-to-even) and `std::lround` in C++ (half away from zero),
+  so any ray whose sample landed exactly on `.5` walked a different cell — 43 cells out of
+  250,000 on a 500×500 grid. Both sides now use an explicit half-up rule rather than relying on
+  either language's default.
 
-Neither is fixed here: this change publishes measurements, and a kernel rewrite is its own
-change with its own tests. Both are exactly what the parity check exists to catch.
+All twenty-one workloads now agree exactly. `Portfolio.Tests/Services/NativeParityTests.cs`
+locks both contracts: those tests drive the native kernels directly, no-op when the shared
+libraries are absent, and were confirmed to fail against the pre-fix kernel rather than passing
+vacuously.
+
+The wider lesson is about test design, not C++. The managed contract was thoroughly tested —
+including a test asserting that clipping emits the box corner that naive clamping drops — and
+the native kernel violated it for as long as it existed, because every test drove the service,
+and the service prefers native only when a shared library is present, which in CI it never is.
+
 
 #### What the shape of the data says
 
@@ -612,7 +629,7 @@ The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Program.cs` via 
 dotnet test
 ```
 
-675 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
+680 tests, all passing (xUnit + Moq; no integration/DB tests). The suite is **path-agnostic**: it passes whether or not the native shared libraries have been built, and with `PORTFOLIO_DISABLE_NATIVE=1` set. Tests assert the computed result rather than which implementation produced it — an earlier convention of asserting `NativeAccelerated == false` meant that building the kernels locally broke 10 tests. Native/managed equivalence is covered separately by `Portfolio.Tests/Services/NativeParityTests.cs` and by the benchmark harness, which checksums both paths for every workload.
 
 ---
 

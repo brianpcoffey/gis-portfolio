@@ -8,8 +8,9 @@ namespace Portfolio.Tests.Services
     // Catastrophe risk analytics: ring accumulation (exposure concentration) and Monte
     // Carlo event-loss simulation producing AAL, PML, and the OEP curve.
     //
-    // The suite runs with no native shared library present, so every test exercises the
-    // managed fallback and asserts NativeAccelerated == false. The managed path mirrors
+    // These tests assert computation, not which path produced it: they pass whether or
+    // not the native shared libraries have been built. Native/managed equivalence is
+    // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
     // native/cat_risk_kernel/src/cat_risk_kernel.cpp line for line, so these also pin the
     // arithmetic the native kernel must reproduce.
     public class CatRiskServiceTests
@@ -37,7 +38,6 @@ namespace Portfolio.Tests.Services
                 ConcentrationLimit = 50_000_000
             });
 
-            Assert.False(result.NativeAccelerated);
             var ring = Assert.Single(result.Rings);
             Assert.Equal(500_000, ring.RingTiv);
             Assert.Equal(1, ring.NeighborCount);
@@ -220,7 +220,6 @@ namespace Portfolio.Tests.Services
                 VulnerabilityAlpha = 3.0
             });
 
-            Assert.False(result.NativeAccelerated);
             var expectedLoss = (1.0 - Math.Exp(-3.0)) * 1_000_000;
 
             Assert.NotNull(result.WorstEvent);

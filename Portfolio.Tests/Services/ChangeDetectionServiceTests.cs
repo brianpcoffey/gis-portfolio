@@ -7,8 +7,9 @@ namespace Portfolio.Tests.Services
     // Multitemporal raster change detection: CVA magnitude, Otsu thresholding,
     // morphological open, and connected-component detection extraction.
     //
-    // The suite runs with no native shared library present, so every test exercises the
-    // managed fallback and asserts NativeAccelerated == false. The managed path mirrors
+    // These tests assert computation, not which path produced it: they pass whether or
+    // not the native shared libraries have been built. Native/managed equivalence is
+    // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
     // native/change_detection_kernel/src/change_detection_kernel.cpp line for line, so
     // these also pin the arithmetic the native kernel must reproduce.
     public class ChangeDetectionServiceTests
@@ -59,7 +60,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.DetectAsync(SingleBand(8, 8, _ => { }));
 
-            Assert.False(result.NativeAccelerated);
             Assert.Empty(result.Blobs);
             Assert.Equal(0, result.ChangedPixels);
             Assert.Equal(0, result.BlobsBeforeFiltering);
@@ -73,7 +73,6 @@ namespace Portfolio.Tests.Services
             var result = await service.DetectAsync(
                 SingleBand(8, 8, b => FillSquare(b, 8, 2, 2, 2, 1.0)));
 
-            Assert.False(result.NativeAccelerated);
             var blob = Assert.Single(result.Blobs);
             Assert.Equal(4, blob.Area);
             Assert.Equal(2.5, blob.CentroidX, 6);
@@ -238,7 +237,6 @@ namespace Portfolio.Tests.Services
                 MinBlobArea = 0
             });
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal("otsu", result.ThresholdMode);
             Assert.True(result.Threshold > 0.05, $"Threshold {result.Threshold} did not clear the low mode.");
             Assert.True(result.Threshold < 1.0, $"Threshold {result.Threshold} did not fall below the high mode.");
@@ -490,7 +488,6 @@ namespace Portfolio.Tests.Services
                 MinBlobArea = 12
             });
 
-            Assert.False(result.NativeAccelerated);
             Assert.Equal(4, scene.GroundTruth.Count);
 
             foreach (var box in scene.GroundTruth)

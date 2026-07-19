@@ -17,7 +17,10 @@ namespace Portfolio.Services.Native
             int endNodeId,
             [Out] int[] outputNodeIds,
             int outputCapacity,
-            out GraphPathResultNative result);
+            out GraphPathResultNative result,
+            [Out] int[] outExploredNodeIds,
+            int exploredCapacity,
+            out int outExploredCount);
 
         [DllImport(LibName, EntryPoint = "Graph_ComputeServiceArea", CallingConvention = CallingConvention.Cdecl)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory)]

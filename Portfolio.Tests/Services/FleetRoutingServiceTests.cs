@@ -8,7 +8,7 @@ namespace Portfolio.Tests.Services
     // Redlands road network.
     //
     // The suite runs with no native shared library present, so every test exercises the
-    // managed solver and asserts NativeAccelerated == false. The managed path mirrors
+    // managed solver and asserts the computed result. The managed path mirrors
     // native/vrp_solver_kernel/src/vrp_solver_kernel.cpp move for move, so these also pin
     // the behaviour the native kernel must reproduce.
     //
@@ -85,7 +85,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.OptimizeAsync(Request(Stop(1, 0)));
 
-            Assert.False(result.NativeAccelerated);
             Assert.True(result.Feasible);
             Assert.Equal(1, result.VehiclesUsed);
             var route = Assert.Single(result.Routes);
@@ -101,7 +100,6 @@ namespace Portfolio.Tests.Services
 
             var result = await service.OptimizeAsync(request);
 
-            Assert.False(result.NativeAccelerated);
             Assert.Empty(result.UnservedStopIds);
             Assert.True(result.Feasible);
             Assert.Equal(5, result.Routes.Sum(r => r.StopIds.Count));
@@ -423,7 +421,6 @@ namespace Portfolio.Tests.Services
                 MaxIterations = 1_000
             });
 
-            Assert.False(result.NativeAccelerated);
             Assert.True(result.Feasible);
             Assert.Empty(result.UnservedStopIds);
             Assert.True(result.VehiclesUsed <= scenario.VehicleCount);

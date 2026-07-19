@@ -106,10 +106,22 @@ namespace
 	// Lazy-deletion Dijkstra over CSR. `distances` is indexed by dense node index and must
 	// be sized to csr.size(). `previous`, when non-null, records the predecessor tree in
 	// dense indices. `endIndex`, when >= 0, stops the search once that node is settled.
-	void dijkstra(const Csr& csr, std::vector<double>& distances, int originIndex, std::vector<int>* previous, int endIndex)
+	// `explored`, when non-null, receives every settled node in settle order.
+	//
+	// Nodes are settled exactly once, matching SpatialGraphService's managed Dijkstra
+	// (which guards with `if (!settled.Add(current)) continue;`) so the explored counts the
+	// two paths report are directly comparable.
+	void dijkstra(
+		const Csr& csr,
+		std::vector<double>& distances,
+		int originIndex,
+		std::vector<int>* previous,
+		int endIndex,
+		std::vector<int>* explored = nullptr)
 	{
 		using QueueItem = std::pair<double, int>;
 		std::priority_queue<QueueItem, std::vector<QueueItem>, std::greater<QueueItem>> queue;
+		std::vector<char> settled(csr.size(), 0);
 
 		distances[originIndex] = 0.0;
 		queue.push({ 0.0, originIndex });
@@ -119,8 +131,12 @@ namespace
 			const auto [distance, current] = queue.top();
 			queue.pop();
 
-			if (distance > distances[current])
+			if (settled[current])
 				continue;
+			settled[current] = 1;
+			if (explored)
+				explored->push_back(current);
+
 			if (endIndex >= 0 && current == endIndex)
 				break;
 
@@ -129,7 +145,10 @@ namespace
 			for (int k = begin; k < end; ++k)
 			{
 				const int target = csr.colIndices[k];
-				const double candidate = distance + csr.weights[k];
+				if (settled[target])
+					continue;
+
+				const double candidate = distances[current] + csr.weights[k];
 				if (candidate < distances[target])
 				{
 					distances[target] = candidate;
@@ -151,7 +170,10 @@ extern "C" GRAPH_API int Graph_FindShortestPath(
 	int endNodeId,
 	int* outputNodeIds,
 	int outputCapacity,
-	GraphPathResultNative* result)
+	GraphPathResultNative* result,
+	int* outExploredNodeIds,
+	int exploredCapacity,
+	int* outExploredCount)
 {
 	try
 	{
@@ -166,7 +188,32 @@ extern "C" GRAPH_API int Graph_FindShortestPath(
 
 		std::vector<double> distances(csr.size(), kInfinity);
 		std::vector<int> previous(csr.size(), -1);
-		dijkstra(csr, distances, start, &previous, end);
+		std::vector<int> explored;
+		const bool wantExplored = outExploredCount != nullptr;
+		if (wantExplored)
+			explored.reserve(static_cast<std::size_t>(csr.size()));
+		dijkstra(csr, distances, start, &previous, end, wantExplored ? &explored : nullptr);
+
+		// Emitted before the reachability check so the search space is reported even when
+		// no path exists — that is exactly when a caller wants to see how far it looked.
+		if (wantExplored)
+		{
+			int written = 0;
+			if (outExploredNodeIds)
+			{
+				const int limit = exploredCapacity < static_cast<int>(explored.size())
+					? exploredCapacity
+					: static_cast<int>(explored.size());
+				for (int i = 0; i < limit; ++i)
+					outExploredNodeIds[i] = csr.ids[explored[i]];
+				written = limit;
+			}
+			else
+			{
+				written = static_cast<int>(explored.size());
+			}
+			*outExploredCount = written;
+		}
 
 		*result = {};
 		if (!std::isfinite(distances[end]))
