@@ -75,6 +75,82 @@ namespace Portfolio.Services.Native
             }
         }
 
+        internal static bool TryComputeDistances(
+            IReadOnlyList<GraphNodeDto> nodes,
+            IReadOnlyList<GraphEdgeDto> edges,
+            int originNodeId,
+            ILogger logger,
+            out double[]? distances)
+        {
+            distances = null;
+            if (!_available)
+                return false;
+
+            try
+            {
+                var nativeNodes = nodes.Select(MapNode).ToArray();
+                var nativeEdges = edges.Select(MapEdge).ToArray();
+                var output = new double[Math.Max(1, nativeNodes.Length)];
+
+                var status = SpatialGraphNativeInterop.ComputeDistances(
+                    nativeNodes, nativeNodes.Length,
+                    nativeEdges, nativeEdges.Length,
+                    originNodeId,
+                    output, output.Length);
+
+                // A non-negative status is the reachable-node count, not a failure.
+                if (status < 0)
+                    throw new InvalidOperationException($"Native spatial graph engine failed with status {status}.");
+
+                distances = output;
+                return true;
+            }
+            catch (Exception ex) when (IsNativeInvocationException(ex))
+            {
+                logger.LogWarning(ex, "Native one-to-all distance computation failed; falling back to managed graph implementation.");
+                return false;
+            }
+        }
+
+        internal static bool TryComputeDistanceMatrix(
+            IReadOnlyList<GraphNodeDto> nodes,
+            IReadOnlyList<GraphEdgeDto> edges,
+            IReadOnlyList<int> sourceIds,
+            IReadOnlyList<int> targetIds,
+            ILogger logger,
+            out double[]? matrix)
+        {
+            matrix = null;
+            if (!_available)
+                return false;
+
+            try
+            {
+                var nativeNodes = nodes.Select(MapNode).ToArray();
+                var nativeEdges = edges.Select(MapEdge).ToArray();
+                var sources = sourceIds.ToArray();
+                var targets = targetIds.ToArray();
+                var output = new double[Math.Max(1, sources.Length * targets.Length)];
+
+                var status = SpatialGraphNativeInterop.ComputeDistanceMatrix(
+                    nativeNodes, nativeNodes.Length,
+                    nativeEdges, nativeEdges.Length,
+                    sources, sources.Length,
+                    targets, targets.Length,
+                    output, output.Length);
+
+                ThrowIfFailed(status);
+
+                matrix = output;
+                return true;
+            }
+            catch (Exception ex) when (IsNativeInvocationException(ex))
+            {
+                logger.LogWarning(ex, "Native distance-matrix computation failed; falling back to managed graph implementation.");
+                return false;
+            }
+        }
+
         internal static RouteResultDto FindShortestPath(RouteRequestDto request)
         {
             var nodes = request.Nodes.Select(MapNode).ToArray();
