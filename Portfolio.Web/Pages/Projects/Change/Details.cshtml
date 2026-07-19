@@ -1,0 +1,117 @@
+@page
+@model Portfolio.Web.Pages.Projects.Change.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Raster Change Detection – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-satellite me-2"></i>Raster Change Detection – Technical Details</h1>
+		<a href="/Projects/Change" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Raster Change Detection demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Two satellite passes over the same ground, weeks apart — what changed? That question drives new-construction monitoring, deforestation tracking, flood-extent mapping, post-disaster damage assessment, and every tip-and-cue workflow in commercial GEOINT.</li>
+			<li><strong>Domain:</strong> Multitemporal change detection over co-registered imagery. The chain is the classic remote-sensing one: <code>CVA</code> (Change Vector Analysis) magnitude, Otsu automatic thresholding, morphological open, connected-component labelling, ranked detections.</li>
+			<li><strong>Dataset:</strong> A deterministic synthetic four-band, two-epoch stack — Red, Green, NIR, SWIR — over a foothill AOI with a sinuous drainage, a road grid, vegetated blocks and bare ground. Four changes are planted in epoch B: a new subdivision, a burn scar, a reservoir drawdown, and a new solar array.</li>
+			<li><strong>Ground truth:</strong> Because the changes are planted, their bounding boxes are known. The page scores detections against them and reports "<em>n</em> of 4 recovered", which turns the demo into an evaluation rather than a picture.</li>
+			<li><strong>Statelessness:</strong> No database and no persistence. The scene is generated from a fixed-seed Park-Miller LCG, so the same size and noise level always produce a byte-identical stack.</li>
+			<li><strong>Scale:</strong> A 512×512 four-band stack is 2,097,152 doubles per epoch. The default 256×256 run is 65,536 pixels through four dense passes.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>Change Vector Analysis:</strong> <code>magnitude[i] = sqrt( Σ<sub>b</sub> (epochB[b][i] − epochA[b][i])² )</code> — the Euclidean length of the per-pixel spectral difference vector. CVA beats differencing a single band because it does not need to know which band carries the change, and because a uniform illumination offset moves every band together rather than saturating one. Epoch B in the demo carries exactly such an offset, deliberately.</li>
+			<li><strong>Otsu's method:</strong> Build a 128-bin histogram of the magnitude raster, then walk it once accumulating cumulative weight and cumulative weighted mean. Between-class variance for a split after bin <em>b</em> is <code>w₀·w₁·(μ₀ − μ₁)²</code>; the winning bin's upper edge is the threshold. No magic number, and the threshold visibly moves as sensor noise rises.</li>
+			<li><strong>Degenerate histogram:</strong> When every magnitude is identical the threshold is set to that value, which classifies <em>nothing</em> as changed. Returning the minimum instead would classify everything as changed — the opposite failure, and much worse.</li>
+			<li><strong>Morphological open:</strong> Erode then dilate with a 3×3 (8-connected) structuring element, which removes isolated speckle while preserving anything wider than the element. With <code>iterations &gt; 1</code> this is erode×n <em>then</em> dilate×n — one open with an n-scaled element — not n consecutive opens, which would remove far less.</li>
+			<li><strong>Border convention:</strong> Pixels outside the raster read as background, so erosion eats inward from the edge and a blob touching the border loses its border row. That is the conservative choice: an edge-clipped detection is a partial detection, not a fabricated one.</li>
+			<li><strong>Connected components:</strong> Two-pass union-find with path compression over a flat parent array, 8-connectivity. Pass one assigns provisional labels and unions the four already-visited neighbours (NW, N, NE, W); pass two resolves roots, compacts ids in first-appearance order, and accumulates area, centroid, mean magnitude and bounding box in the same sweep.</li>
+			<li><strong>Ranking:</strong> Blobs under the minimum-area threshold are dropped (the pre-filter count is reported so the filtering is visible), the survivors are sorted by area descending with mean magnitude as the tie-break, and ids are renumbered from 1.</li>
+			<li><strong>Confidence:</strong> Mean magnitude over the scene's maximum magnitude, clamped to 0–1. It is a relative ranking heuristic, not a calibrated probability, and it is labelled as such in the DTO, the API, and the UI.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Endpoints:</strong> <code>GET /api/v1/change/scene?width=256&amp;height=256&amp;noise=0.025</code> and <code>POST /api/v1/change/detect</code>.</li>
+			<li><strong>Versioning:</strong> <code>Asp.Versioning</code> with the version in the route template, matching every other API in the portfolio.</li>
+			<li><strong>Payload guards:</strong> <code>[RequestSizeLimit(16_000_000)]</code> on the POST — two four-band 512×512 <code>double</code> epochs is a genuinely large body — plus <code>[EnableRateLimiting("expensive")]</code> on the controller. Dimensions are capped at 512 and total pixels at 262,144.</li>
+			<li><strong>Response size:</strong> The result carries the full magnitude raster and the full mask. At 256×256 that is 65,536 elements each; the client needs both to render the mask overlay and to let the user re-inspect without a round trip.</li>
+			<li><strong>Error contract:</strong> Only <code>ArgumentException</code> is caught, returning <code>400</code> with <code>{ "error": "..." }</code>. The service's validation messages are therefore the public API contract and are written as user-facing text.</li>
+			<li><strong>Loud failure over silent truncation:</strong> A mask with more than 5,000 connected components is rejected with a message telling the caller to raise the threshold, and the native kernel returns status <code>-6</code> for the same condition. A change detector that quietly drops detections is worse than one that fails.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Kernel:</strong> <code>change_detection_kernel</code>, a C++20 shared library exposing <code>Change_ComputeCvaMagnitude</code>, <code>Change_OtsuThreshold</code>, <code>Change_MorphologicalOpen</code> and <code>Change_LabelComponents</code> through a stable C ABI with status-code returns.</li>
+			<li><strong>No structs at the boundary:</strong> Unlike every other kernel in the portfolio, this one marshals nothing but flat contiguous primitive buffers — <code>double[]</code>, <code>byte[]</code>, <code>int[]</code>. Raster work is the one place where the P/Invoke boundary is genuinely free of shape.</li>
+			<li><strong>Where the boundary sits:</strong> The kernel returns raw arrays. Blob filtering, ranking, confidence, and DTO assembly are C#. Dense array arithmetic goes native; result shaping stays managed where it is readable and unit-testable.</li>
+			<li><strong>Per-stage fallback:</strong> Each of the four stages falls back independently, and <code>NativeAccelerated</code> is only reported true when every stage took the native path. A partial native run is honestly reported as not accelerated.</li>
+			<li><strong>Managed fallback:</strong> The C# implementation mirrors the kernel line for line — same histogram binning, same bin-centre means, same union-by-smaller-root, same border convention — so results are identical either way. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries, so what runs in production today is the managed path.</li>
+			<li>
+				<strong>Measured speedup:</strong> Benchmarked on a 512×512 four-band stack, warm, best-of-50 per stage, with the shared library present versus moved out of the probe path. Checksums over the magnitude raster, the mask, the threshold, and every blob statistic are <strong>bit-identical</strong> between the two paths.
+				<div class="table-responsive mt-2 mb-2">
+					<table class="table table-sm w-auto mb-0">
+						<thead>
+							<tr><th>Stage</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+						</thead>
+						<tbody>
+							<tr><td>CVA magnitude, 512×512×4</td><td class="text-end">1.18 ms</td><td class="text-end">1.72 ms</td><td class="text-end">1.46×</td></tr>
+							<tr><td>Otsu threshold + histogram</td><td class="text-end">0.24 ms</td><td class="text-end">0.50 ms</td><td class="text-end">2.11×</td></tr>
+							<tr><td>Morphological open, 2 iterations</td><td class="text-end">2.90 ms</td><td class="text-end">3.16 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><td>Connected components</td><td class="text-end">0.62 ms</td><td class="text-end">0.75 ms</td><td class="text-end">1.20×</td></tr>
+							<tr><td><strong>Compute total</strong></td><td class="text-end"><strong>4.93 ms</strong></td><td class="text-end"><strong>6.13 ms</strong></td><td class="text-end"><strong>1.24×</strong></td></tr>
+							<tr><td>End-to-end <code>DetectAsync</code>, 512×512×4</td><td class="text-end">7.74 ms</td><td class="text-end">8.45 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><td>End-to-end <code>DetectAsync</code>, 256×256×4</td><td class="text-end">1.51 ms</td><td class="text-end">1.76 ms</td><td class="text-end">1.17×</td></tr>
+						</tbody>
+					</table>
+				</div>
+				For comparison, <code>cat_risk_kernel</code> measures ~1.1×. The dense, branch-free stages do measurably better — Otsu's single histogram pass is the biggest win at 2.1× — and the branch-heavy morphological open, which short-circuits on almost every pixel, does barely better than the JIT. That gradient is the actual finding: <em>the flatter and more predictable the inner loop, the more native buys.</em>
+			</li>
+			<li><strong>Why end-to-end is lower than compute:</strong> Roughly a third of <code>DetectAsync</code> is <code>List&lt;double&gt;</code> ⇄ <code>double[]</code> conversion at the DTO edge, which is identical on both paths and dilutes the ratio. Nothing in this kernel uses SIMD intrinsics or threading; the gains above are plain scalar C++ against RyuJIT.</li>
+			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error — including the <code>-6</code> too-many-components status — therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across all the kernels and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Canvas, not 65,536 divs:</strong> The Terrain Analyzer renders its raster with <code>.raster-grid</code> / <code>.raster-cell</code> DOM nodes, which is fine at its size. At 256×256 that is 65,536 elements and at 512×512 it is 262,144 — a layout and memory cost no browser absorbs gracefully. Every raster here is written as <code>ImageData</code> to a <code>&lt;canvas&gt;</code> instead, and only the 128-bin histogram stays SVG. That is the single most consequential frontend decision on the page.</li>
+			<li><strong>Swipe over slider:</strong> Before/after comparison is a pointer-drag over two stacked canvases clipped with <code>clip-path: inset(...)</code>, not a range input. The interaction is the explanation — dragging across a burn scar communicates more than any legend.</li>
+			<li><strong>False-colour composite:</strong> Bands are rendered NIR/Red/Green, the standard vegetation-forward composite, in which healthy vegetation reads red and burned or cleared ground reads dark. Naming the composite correctly matters more than the pixels do.</li>
+			<li><strong>Log-scaled histogram:</strong> The unchanged population outnumbers the changed one by two orders of magnitude. A linear count axis flattens the second mode to invisibility, which would hide the exact thing Otsu is reasoning about.</li>
+			<li><strong>Defaults calibrated from the data, not from round numbers:</strong> σ = 0.025, one open iteration, minimum blob area 12. At those settings all four planted changes are recovered with zero false positives. At σ = 0.05 with the open disabled the mask yields 308 components, of which 304 are speckle — which is precisely the demonstration the open iteration control exists for.</li>
+			<li><strong>Where the demo honestly fails:</strong> Two open iterations erase the reservoir drawdown. The drawdown is a five-pixel-wide crescent, and erode×2 is wider than that. The tool reports 3 of 4 recovered and does not pretend otherwise — morphological open trades small real changes for speckle suppression, and this is what that trade looks like.</li>
+			<li><strong>Co-registration is assumed:</strong> The pipeline takes pixel-to-pixel alignment as given, which real imagery does not. A one-pixel misregistration lights up every high-contrast edge in the scene, and on this AOI that means the road grid and the river banks — a change mask that traces linear features is the signature of a registration problem, not of change.</li>
+			<li><strong>Stateless synthetic scene:</strong> Real imagery would mean tiles, licensing, and a storage story. A deterministic generator gives reproducible ground truth instead, which is what makes the recovery KPI meaningful.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>Why Change Vector Analysis instead of simply differencing one band? What does CVA give you when the two acquisitions have different illumination?</li>
+			<li>Otsu picks a threshold by maximizing between-class variance. What assumption does that make about the histogram, and what happens when only 0.5% of the scene actually changed?</li>
+			<li>The pipeline assumes the epochs are co-registered. What does a one-pixel misregistration do to the change mask, and how would you detect that it happened?</li>
+			<li>Connected-component labelling here is two-pass union-find. What is the alternative, and why is union-find the right call for a raster?</li>
+			<li>Morphological open removes speckle but also erodes real small changes. How do you choose the structuring element size, and what do you lose?</li>
+			<li><code>Confidence</code> is mean magnitude over max magnitude. Why is that not a probability, and what would you need to produce a calibrated one?</li>
+			<li>At 512×512×4 bands this is 4 MB of doubles crossing the P/Invoke boundary per call. Where does that stop scaling, and what would you change — tiling, floats instead of doubles, memory-mapped rasters, or moving the compute to the client?</li>
+			<li>The dense CVA pass measures 1.46× native over managed while the branch-heavy morphological open measures 1.09×. What does that gradient tell you about when to reach for native code at all?</li>
+			<li>How would this change if you had 12 epochs instead of 2?</li>
+		</ul>
+	</section>
+</div>

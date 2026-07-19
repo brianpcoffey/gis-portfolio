@@ -71,6 +71,7 @@ Nine native integrations are implemented today — the Home Finder scoring kerne
 | Viewshed Analyzer | `viewshed_kernel` | Implemented | line-of-sight ray casting over dense elevation grids with observer-height modeling |
 | Spatial Overlay / Zone Tagger | `spatial_overlay_kernel` | Implemented | point-in-polygon spatial join (even-odd ray casting) over a flat zone-vertex buffer |
 | Catastrophe Risk Analyzer | `cat_risk_kernel` | Implemented | O(n²) ring accumulation and Monte Carlo event-loss simulation over contiguous exposure/event buffers |
+| Raster Change Detection | `change_detection_kernel` | Implemented | CVA magnitude, Otsu thresholding, morphological open, and two-pass union-find connected components over flat raster buffers |
 
 The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, clustering, visibility, spatial overlay, and scoring. The managed fallback is production behavior, not only a test convenience.
 
@@ -305,6 +306,23 @@ Property-insurance catastrophe model for wildfire exposure. Answers the three qu
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
 
 **API:** `GET /api/v1/catrisk/book`, `POST /api/v1/catrisk/accumulation`, `POST /api/v1/catrisk/simulate`
+
+---
+
+### 🛰️ Raster Change Detection
+Two satellite passes over the same ground, weeks apart — what changed? The classic multitemporal remote-sensing chain, end to end, framed civil-forward: new construction, burn scars, reservoir drawdown, flood extent.
+
+- **Change Vector Analysis** — per-pixel Euclidean magnitude of the spectral difference vector across all bands. Robust to which band carries the change, and to the uniform illumination offset epoch B deliberately carries
+- **Otsu automatic threshold** — a 128-bin histogram walked once, maximizing between-class variance `w₀·w₁·(μ₀ − μ₁)²`. No magic number; the threshold visibly moves as sensor noise rises
+- **Morphological open** — erode then dilate with a 3×3 structuring element to kill speckle. With `n > 1` iterations that is erode×n *then* dilate×n, one open with an n-scaled element
+- **Connected components** — two-pass union-find with path compression over a flat parent array, 8-connectivity, accumulating area, centroid, mean magnitude and bounding box in the second sweep
+- **Scored against ground truth** — four changes are planted in the synthetic epoch B (a subdivision, a burn scar, a reservoir drawdown, a solar array), so the page reports "4 of 4 recovered" rather than just drawing a picture
+- **Benchmarked against its own managed fallback: 1.24× across the compute stages, bit-identical results** — 2.11× on the branch-free Otsu pass, 1.09× on the branch-heavy morphological open. The Details page carries the table and what the gradient means
+- Every raster is drawn to a `<canvas>` via `ImageData`, not to 65,536 DOM nodes; a pointer-drag before/after swipe over a false-colour NIR/Red/Green composite, and an SVG histogram with the threshold marked
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Canvas, SVG
+
+**API:** `GET /api/v1/change/scene`, `POST /api/v1/change/detect`
 
 ---
 
