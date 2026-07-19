@@ -96,6 +96,11 @@
                 change: {
                     scene : BASE + "/change/scene",
                     detect: BASE + "/change/detect"
+                },
+                outage: {
+                    network: BASE + "/outage/network",
+                    trace  : BASE + "/outage/trace",
+                    restore: BASE + "/outage/restore"
                 }
             }
         }

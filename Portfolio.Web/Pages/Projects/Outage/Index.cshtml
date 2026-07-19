@@ -1,0 +1,93 @@
+@page
+@model Portfolio.Web.Pages.Projects.Outage.IndexModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Outage Manager & Network Trace";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+<link rel="stylesheet" href="~/css/spatialcompute.css" />
+
+<div class="spatial-compute-page theme-root">
+	<div class="project-hero py-4 mb-4">
+		<div class="container">
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+				<div>
+					<h1 class="mb-1"><i class="fa-solid fa-bolt me-2"></i>Outage Manager &amp; Network Trace</h1>
+					<p class="text-muted theme-text-muted mb-0">Distribution outage management over a two-feeder circuit &mdash; click a conductor to fault it, trace who is de-energized, find the devices that isolate it, and let the restoration search pick the tie switch that backfeeds the healthy sections.</p>
+				</div>
+				<div class="d-flex align-items-center gap-2">
+					<span class="badge badge-gis fs-6"><i class="fa-solid fa-diagram-project me-1"></i>C++ Trace Kernel</span>
+					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Outage/Details" aria-label="View technical details for Outage Manager" title="Technical Details">
+						<i class="fa-solid fa-circle-info"></i>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="container pb-5">
+		<div id="outageAlert" class="alert alert-danger d-none" role="alert"></div>
+		<div class="row g-4">
+			<div class="col-lg-4">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Outage Controls</strong></div>
+					<div class="card-body d-flex flex-column gap-3">
+						<div>
+							<label for="outageFeeder" class="form-label small">Feeder filter</label>
+							<select id="outageFeeder" class="form-select">
+								<option value="" selected>All feeders</option>
+								<option value="Feeder A">Feeder A</option>
+								<option value="Feeder B">Feeder B</option>
+							</select>
+						</div>
+						<div>
+							<label for="outageRepair" class="form-label small">Assumed repair time (minutes)</label>
+							<input id="outageRepair" class="form-control" type="number" min="0" max="1440" step="15" value="180" />
+							<div class="form-text">Used only for the SAIDI estimate &mdash; it is an assumption, not a measurement.</div>
+						</div>
+						<button id="outageRestoreBtn" class="btn btn-accent" disabled><i class="fa-solid fa-plug-circle-bolt me-1"></i>Propose Restoration</button>
+						<button id="outageClearBtn" class="btn btn-outline-accent"><i class="fa-solid fa-rotate-left me-1"></i>Clear Fault</button>
+
+						<div>
+							<div class="small text-muted theme-text-muted mb-2">Device legend</div>
+							<div id="outageLegend" class="d-flex flex-wrap gap-2"></div>
+						</div>
+
+						<div>
+							<div class="small text-muted theme-text-muted mb-2">Switching plan</div>
+							<ol id="outagePlan" class="result-list ps-3 mb-0"></ol>
+						</div>
+
+						<pre id="outageSummary" class="sample-json mt-auto mb-0"></pre>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-8">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-bolt-lightning text-accent"></i><strong>Single-Line Diagram</strong></div>
+					<div class="card-body">
+						<div class="row g-3 mb-3">
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="outageKpiAffected" class="kpi-value">&ndash;</div><div class="kpi-label">Customers Affected</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="outageKpiPercent" class="kpi-value">&ndash;</div><div class="kpi-label">% of System</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="outageKpiIsolation" class="kpi-value">&ndash;</div><div class="kpi-label">Isolation Devices</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="outageKpiRestored" class="kpi-value">&ndash;</div><div class="kpi-label">Customers Restored</div></div></div>
+						</div>
+
+						<div class="mb-2 small text-muted theme-text-muted">
+							<i class="fa-solid fa-hand-pointer me-1"></i>Click any conductor to place a fault. De-energized sections turn red, the upstream path to the substation turns blue, isolation devices get an amber halo, and restored sections turn green.
+						</div>
+						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3" style="position: relative;">
+							<svg id="outageSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px; aspect-ratio: 1;" aria-label="Single-line diagram of the Redlands distribution network"></svg>
+							<div id="outageTooltip" class="d-none theme-surface small shadow-sm rounded px-2 py-1" style="position: absolute; pointer-events: none; z-index: 5; max-width: 15rem;"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script src="~/js/Outage/app.js" asp-append-version="true"></script>
+}

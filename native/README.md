@@ -17,6 +17,7 @@ application runs correctly when the native library is absent.
 | `spatial_overlay_kernel` | `native/spatial_overlay_kernel/` | `SpatialOverlayNativeBridge` | `SpatialOverlayService` |
 | `cat_risk_kernel` | `native/cat_risk_kernel/` | `CatRiskNativeBridge` | `CatRiskService` |
 | `change_detection_kernel` | `native/change_detection_kernel/` | `ChangeDetectionNativeBridge` | `ChangeDetectionService` |
+| `network_trace_kernel` | `native/network_trace_kernel/` | `NetworkTraceNativeBridge` | `OutageTraceService` |
 
 Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`),
 so it is configured and built from its own directory.
@@ -205,6 +206,7 @@ native/
 ├── spatial_overlay_kernel/    ← point-in-polygon spatial join
 ├── cat_risk_kernel/           ← ring accumulation and Monte Carlo catastrophe loss simulation
 └── change_detection_kernel/   ← CVA magnitude, Otsu threshold, morphological open, connected components
+└── network_trace_kernel/      ← distribution fault tracing, isolation search, and energization sweeps
 ```
 
 Each kernel directory contains:
