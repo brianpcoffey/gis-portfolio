@@ -37,9 +37,22 @@ if(NOT DEFINED DOTNET_OUTPUT_DIR)
         CACHE PATH "Directory into which the built shared library is copied")
 endif()
 
+# The ASP.NET host loads native libraries from its own output directory, not from
+# Portfolio.Services'. Without this second copy the kernels build successfully and the web
+# app still reports "Native: No", which is a confusing way to spend an afternoon.
+if(NOT DEFINED WEB_OUTPUT_DIR)
+    set(WEB_OUTPUT_DIR
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../Portfolio.Web/bin/Debug/net10.0"
+        CACHE PATH "Additional directory into which the built shared library is copied")
+endif()
+
 add_custom_command(TARGET vrp_solver_kernel POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${DOTNET_OUTPUT_DIR}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:vrp_solver_kernel>
         "${DOTNET_OUTPUT_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${WEB_OUTPUT_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:vrp_solver_kernel>
+        "${WEB_OUTPUT_DIR}"
     COMMENT "Copying vrp_solver_kernel shared library to ${DOTNET_OUTPUT_DIR}")

@@ -53,13 +53,81 @@ open, which short-circuits on nearly every pixel, barely beats the JIT. End-to-e
 than compute because roughly a third of `DetectAsync` is `List<double>` ⇄ `double[]`
 conversion at the DTO edge, which is identical on both paths.
 
-RyuJIT generates good scalar code for tight `double` loops, the branch-heavy inner loops
-defeat auto-vectorisation on both sides, and P/Invoke array pinning costs part of the rest.
-**Do not assume the other eight kernels are faster than their fallbacks until they are
-measured.** The value demonstrated here is the ABI boundary and the verified-identical
-fallback, not throughput. Making native genuinely win on these workloads needs explicit
-SIMD intrinsics, thread-level parallelism, or a memory layout the managed side cannot
-express — none of which any kernel does today.
+`spatial_graph_engine`, over the real 2,530-node / 3,187-edge Redlands network:
+
+| Workload | Native | Managed | Speedup |
+|---|---:|---:|---:|
+| One-to-all Dijkstra from Esri HQ | 6.2 ms | 10.3 ms | 1.66× |
+| 40×40 cost matrix | 32.6 ms | 38.8 ms | 1.19× |
+
+`network_trace_kernel`, integer graph traversal with no floating point, so checksums are
+exactly equal rather than merely close:
+
+| Workload | Native | Managed | Speedup |
+|---|---:|---:|---:|
+| Trace + restore, 267-element circuit, 1,290 faults | 149 ms | 192 ms | 1.29× |
+| Energization sweeps only, 4,603 elements, 720 sweeps | 413 ms | 423 ms | 1.02× |
+| Trace + restore, 4,603-element circuit, 600 faults | 882 ms | 768 ms | **0.87×** |
+
+That last row is native **losing**. A trace is three P/Invoke calls, each re-marshalling the
+whole element array; at 267 elements that is noise and the CSR traversal wins, at 4,603 it
+dominates. Worth keeping in the table rather than quietly dropping.
+
+`facility_location_kernel`:
+
+| Workload | Native | Managed | Speedup |
+|---|---:|---:|---:|
+| Shipped scenario 450×24, p=4, p90 | 8.5 ms | 10.6 ms | 1.25× |
+| Synthetic 1,600×120, p=10, p90 | 1,164 ms | 1,685 ms | 1.45× |
+| Synthetic 1,600×120, p=10, weighted mean | 12.0 ms | 26.8 ms | 2.23× |
+
+The mean objective shows the bigger gap because it is a flat arithmetic loop; the p90
+objective spends most of its time sorting, and `Array.Sort` through a comparer delegate
+versus an inlined `std::sort` compresses the ratio.
+
+`vrp_solver_kernel`, solve time only (matrix build and polyline expansion excluded):
+
+| Workload | Native | Managed | Speedup |
+|---|---:|---:|---:|
+| 60 stops, 5 improvement passes | 0.64 ms | 1.66 ms | 2.59× |
+| 90 stops, 31 passes | 4.89 ms | 11.41 ms | 2.33× |
+| 120 stops, 26 passes | 7.33 ms | 16.78 ms | 2.29× |
+
+### The lesson: it is not about the language
+
+**Two kernels were slower than the C# they were written to replace on first implementation**,
+and both for the same reason — allocation and hashing inside the hot loop:
+
+- `network_trace_kernel` used `std::unordered_map<int, std::vector<int>>` for adjacency and
+  measured **2.5× slower** than managed: a heap allocation per node plus a hash lookup per
+  edge visit. Densified node ids, a CSR incidence array and cached per-element endpoint
+  indices — no hashing in the inner loop — turned it into a 1.29× win.
+- `vrp_solver_kernel` allocated a fresh `std::vector` per candidate move and measured
+  **1.7× slower** (27 ms vs 16 ms at n=120). Hoisting three scratch buffers and reusing
+  capacity via `assign` produced the 2.29× win.
+
+The .NET nursery allocator beats naive `malloc`/`new` in a tight loop. If a kernel here is
+losing to its fallback, look for allocation or hashing in the inner loop before blaming the
+runtime. **`spatial_graph_engine` still uses `std::map<int, std::vector<Edge>>`** — the same
+losing shape — and is a prime candidate for a CSR rewrite.
+
+RyuJIT generates good scalar code for tight `double` loops, branch-heavy inner loops defeat
+auto-vectorisation on both sides, and P/Invoke array pinning costs part of the rest. **Seven
+kernels remain unmeasured and should be assumed to sit in the 1–2× range until they are.**
+The value demonstrated is the ABI boundary and the verified-identical fallback, not
+throughput. Making native genuinely win needs explicit SIMD intrinsics, thread-level
+parallelism, or batching to amortise the crossing — none of which any kernel does today.
+
+### Two compilers' worth of flags
+
+Most kernels build with `/fp:fast` (`-ffast-math`). Two deliberately do not, and the reasons
+are worth knowing before you "fix" them:
+
+- `facility_location_kernel` — unreachable demand carries `+∞` through the search, and fast
+  math permits assuming infinities do not occur.
+- `vrp_solver_kernel` — the local-search accept/reject test is an epsilon comparison, and
+  reassociation would let the native and managed paths diverge into different branches,
+  breaking the parity guarantee.
 
 ---
 
@@ -76,7 +144,7 @@ express — none of which any kernel does today.
 ## Building on Windows (Visual Studio)
 
 Build a single kernel by pointing `-S` at its directory (repeat per kernel, or script
-a loop over the nine directories):
+a loop over the thirteen directories):
 
 ```powershell
 # From the repo root — example: the scoring kernel
@@ -84,9 +152,22 @@ cmake -B build/native/portfolio_scoring -S native/portfolio_scoring -G "Visual S
 cmake --build build/native/portfolio_scoring --config Release
 ```
 
-The post-build step automatically copies the built library (e.g. `portfolio_scoring.dll`)
-to `Portfolio.Services/bin/Debug/net10.0/`. To target a different output directory
-(e.g. a publish folder):
+The post-build step copies the built library (e.g. `portfolio_scoring.dll`) into **two**
+directories:
+
+| Variable | Default | Why |
+|---|---|---|
+| `DOTNET_OUTPUT_DIR` | `Portfolio.Services/bin/Debug/net10.0/` | where `Portfolio.Services` itself resolves the library |
+| `WEB_OUTPUT_DIR` | `Portfolio.Web/bin/Debug/net10.0/` | where the ASP.NET host actually loads from at runtime |
+
+Both are needed. The bridges probe `DllImportSearchPath.AssemblyDirectory`, which at runtime
+is the *web host's* output directory — so copying only to `Portfolio.Services/bin` builds
+cleanly and still leaves every page reporting "Native: No".
+
+`Portfolio.Tests` is deliberately **not** a copy target: the suite asserts
+`NativeAccelerated == false` and must exercise the managed fallback.
+
+To target a different output directory (e.g. a publish folder):
 
 ```powershell
 cmake -B build/native/portfolio_scoring -S native/portfolio_scoring `
@@ -95,10 +176,11 @@ cmake -B build/native/portfolio_scoring -S native/portfolio_scoring `
 cmake --build build/native/portfolio_scoring --config Release
 ```
 
-Swap `portfolio_scoring` for `geostream_processor`, `spatial_geometry_kernel`,
-`raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`,
-`viewshed_kernel`, `spatial_overlay_kernel`, or `cat_risk_kernel` to build the
-other kernels.
+Swap `portfolio_scoring` for any other directory name under `native/` to build the rest:
+`geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`,
+`spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`,
+`spatial_overlay_kernel`, `cat_risk_kernel`, `change_detection_kernel`,
+`network_trace_kernel`, `facility_location_kernel`, `vrp_solver_kernel`.
 
 ---
 
@@ -154,6 +236,10 @@ COPY --from=build /src/build/native/spatial_cluster_kernel/spatial_cluster_kerne
 COPY --from=build /src/build/native/viewshed_kernel/viewshed_kernel.so /app/publish/
 COPY --from=build /src/build/native/spatial_overlay_kernel/spatial_overlay_kernel.so /app/publish/
 COPY --from=build /src/build/native/cat_risk_kernel/cat_risk_kernel.so /app/publish/
+COPY --from=build /src/build/native/change_detection_kernel/change_detection_kernel.so /app/publish/
+COPY --from=build /src/build/native/network_trace_kernel/network_trace_kernel.so /app/publish/
+COPY --from=build /src/build/native/facility_location_kernel/facility_location_kernel.so /app/publish/
+COPY --from=build /src/build/native/vrp_solver_kernel/vrp_solver_kernel.so /app/publish/
 ```
 
 > **The repository `Dockerfile` does not do this today** — it contains no CMake stage and

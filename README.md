@@ -14,7 +14,7 @@
 ![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
 ![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
-![xUnit](https://img.shields.io/badge/xUnit-534_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-675_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -56,9 +56,61 @@ Razor Page / API Controller  (Portfolio.Web)
 
 This portfolio uses a native-kernel pattern for compute-heavy spatial workflows where lower-level control is technically justified. ASP.NET Core owns the product/API layer, C# services validate inputs and map DTOs, and native C++20 libraries expose stable C ABIs consumed through P/Invoke. Each native-backed workflow must remain portable: `IsAvailable` gates the native path and a managed C# fallback preserves functionality when the shared library is absent.
 
-Nine native integrations are implemented today — the Home Finder scoring kernel plus the geostream, geometry, raster-terrain, routing, clustering, viewshed, overlay, and catastrophe-risk kernels listed in the table below, each with C++ source, a P/Invoke bridge, and a managed C# fallback.
+Thirteen native integrations are implemented today, each with C++ source, a P/Invoke bridge, and a managed C# fallback — see the table below.
 
-**On the actual speedup:** the catastrophe-risk kernel is the first one benchmarked against its managed fallback, and the honest result is **~1.1×** — 568 ms vs 645 ms on a 5,000-location × 12,000-event simulation, with bit-identical ring checksums. RyuJIT generates good scalar code for tight `double` loops, the branch-heavy inner loop defeats auto-vectorisation on both sides, and P/Invoke array pinning eats part of what is left. Native code wins on this shape of workload only when it does something the JIT will not — explicit SIMD intrinsics, thread-level parallelism, or a memory layout the managed representation cannot express — and this kernel does none of those yet. The remaining eight kernels are not yet benchmarked and should be assumed to be in the same range until they are. The architectural value here is the *boundary* — a stable C ABI with a verified-identical managed fallback — not a performance claim.
+### What the benchmarks actually say
+
+Six kernels have now been measured against their own managed fallbacks, always with
+**bit-identical outputs** (checksums match; where floating point is involved the only
+divergence is a final-ULP difference from summation order). The honest range is **0.87× to
+2.6×** — not the order of magnitude the phrase "native kernel" usually implies.
+
+| Kernel | Workload | Native | Managed | Speedup |
+|---|---|---:|---:|---:|
+| `vrp_solver_kernel` | CVRPTW solve, 120 stops | 7.33 ms | 16.78 ms | **2.29×** |
+| `facility_location_kernel` | p-median 1,600×120, weighted mean | 12.0 ms | 26.8 ms | **2.23×** |
+| `change_detection_kernel` | Otsu threshold, 512² | 0.24 ms | 0.50 ms | **2.11×** |
+| `spatial_graph_engine` | one-to-all Dijkstra, 2,530 nodes | 6.2 ms | 10.3 ms | 1.66× |
+| `change_detection_kernel` | CVA magnitude, 512²×4 bands | 1.18 ms | 1.72 ms | 1.46× |
+| `facility_location_kernel` | p-median 1,600×120, weighted p90 | 1,164 ms | 1,685 ms | 1.45× |
+| `network_trace_kernel` | trace + restore, 267 elements | 149 ms | 192 ms | 1.29× |
+| `change_detection_kernel` | full detection pipeline, 512² | 4.93 ms | 6.13 ms | 1.24× |
+| `spatial_graph_engine` | 40×40 cost matrix | 32.6 ms | 38.8 ms | 1.19× |
+| `cat_risk_kernel` | Monte Carlo, 5,000 × 12,000 events | 568 ms | 645 ms | 1.13× |
+| `network_trace_kernel` | trace + restore, 4,603 elements | 882 ms | 768 ms | **0.87×** |
+
+**The pattern is consistent and it is not about the language.** Native wins where the inner
+loop is flat, branch-free and allocation-free — Otsu's single histogram pass, the VRP move
+evaluator over hoisted scratch buffers, the p-median arithmetic loop. It wins little or
+nothing where the loop short-circuits on most iterations (morphological open, the
+bounding-box reject in catastrophe accumulation), because the branch defeats
+auto-vectorisation on both sides and RyuJIT already emits good scalar code. And it *loses*
+outright when P/Invoke marshalling dominates: the 4,603-element trace is three calls each
+re-marshalling the whole element array, which costs more than the traversal saves.
+
+Two kernels were **slower than the C# they were written to replace** on first implementation,
+and both for the same reason — allocation and hashing inside the hot loop:
+
+- `network_trace_kernel` used `std::unordered_map<int, std::vector<int>>` for adjacency and
+  measured **2.5× slower** than managed. Densified node ids plus a CSR incidence array with
+  cached endpoint indices turned it into a 1.29× win.
+- `vrp_solver_kernel` allocated a fresh `std::vector` per candidate move and measured
+  **1.7× slower**. Hoisting three scratch buffers and reusing capacity produced the 2.29× win.
+
+The .NET nursery allocator beats naive `malloc`/`new` in a tight loop. Writing C++ is not a
+performance strategy; controlling memory layout and allocation is, and that is available in
+both languages.
+
+So the defensible claim here is the **boundary**, not the throughput: a stable C ABI, a
+verified-identical managed fallback gated by `IsAvailable`, and measurements published
+including the case where native lost. Making these genuinely fast would need explicit SIMD
+intrinsics, thread-level parallelism, or batching to amortise the P/Invoke crossing — none of
+which any kernel does today. Seven kernels remain unmeasured and should be assumed to sit in
+the same range until they are.
+
+> **In production these numbers do not apply.** The container build does not compile any
+> native library, so Render runs the managed fallback for all thirteen and the UI correctly
+> reports "Native: No". See `native/README.md`.
 
 | Project | Native Library | Status | Native Role |
 |---|---|---|---|
@@ -384,7 +436,7 @@ Last-mile dispatch planning as an actual optimization problem rather than a shor
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
-| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across nine kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`, `spatial_overlay_kernel`, `cat_risk_kernel`) |
+| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across thirteen kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`, `spatial_overlay_kernel`, `cat_risk_kernel`, `change_detection_kernel`, `network_trace_kernel`, `facility_location_kernel`, `vrp_solver_kernel`) |
 | API Docs | Scalar / OpenAPI (all environments), XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
@@ -472,7 +524,7 @@ The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Program.cs` via 
 dotnet test
 ```
 
-534 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
+675 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
 
 ---
 
