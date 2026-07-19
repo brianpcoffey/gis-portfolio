@@ -4,15 +4,20 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY *.sln Directory.Packages.props ./
+COPY Directory.Packages.props ./
 
+# Only the projects Portfolio.Web actually publishes: Web -> Services -> Repositories
+# -> Common. Restore is scoped to Portfolio.Web.csproj rather than the solution, so
+# adding a project to Portfolio.sln can no longer break the image build — which is
+# exactly what happened when Portfolio.Benchmarks was added without a matching COPY
+# line here. Portfolio.Tests and Portfolio.Benchmarks are never published, so neither
+# their sources nor their package graphs belong in this image.
 COPY Portfolio.Common/Portfolio.Common.csproj Portfolio.Common/
 COPY Portfolio.Repositories/Portfolio.Repositories.csproj Portfolio.Repositories/
 COPY Portfolio.Services/Portfolio.Services.csproj Portfolio.Services/
 COPY Portfolio.Web/Portfolio.Web.csproj Portfolio.Web/
-COPY Portfolio.Tests/Portfolio.Tests.csproj Portfolio.Tests/
 
-RUN dotnet restore
+RUN dotnet restore Portfolio.Web/Portfolio.Web.csproj
 
 COPY . .
 WORKDIR /src/Portfolio.Web

@@ -1,0 +1,34 @@
+# Build output. Copying Windows-built bin/obj into a Linux image is ~250 MB of dead
+# weight, and a stale obj/project.assets.json carrying Windows absolute paths is a
+# genuinely confusing way to break a container build.
+**/bin/
+**/obj/
+build/
+TestResults/
+
+# IDE and tooling state
+.vs/
+.vscode/
+.idea/
+.claude/
+*.user
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Secrets and local environment — these must never reach an image layer.
+.env
+**/appsettings.Development.json
+DataProtection-Keys/
+
+# Not needed to build or run the published app
+docs/
+k8s/
+docker/
+Dockerfile
+.dockerignore
+README.md
+LICENSE
