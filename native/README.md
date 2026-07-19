@@ -16,14 +16,14 @@ application runs correctly when the native library is absent.
 | `viewshed_kernel` | `native/viewshed_kernel/` | `ViewshedNativeBridge` | `ViewshedService` |
 | `spatial_overlay_kernel` | `native/spatial_overlay_kernel/` | `SpatialOverlayNativeBridge` | `SpatialOverlayService` |
 | `cat_risk_kernel` | `native/cat_risk_kernel/` | `CatRiskNativeBridge` | `CatRiskService` |
+| `change_detection_kernel` | `native/change_detection_kernel/` | `ChangeDetectionNativeBridge` | `ChangeDetectionService` |
 
 Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`),
 so it is configured and built from its own directory.
 
 ### Measured speedup
 
-Only `cat_risk_kernel` has been benchmarked against its managed fallback so far. The result
-is **~1.1×**, with bit-identical outputs:
+`cat_risk_kernel` measures **~1.1×** against its managed fallback, with bit-identical outputs:
 
 | Workload | Native | Managed | Speedup |
 |---|---:|---:|---:|
@@ -31,6 +31,24 @@ is **~1.1×**, with bit-identical outputs:
 | Ring accumulation, 5,000 locations | 166 ms | 186 ms | 1.12× |
 | Simulation, 900 × 5,000 events | 51.6 ms | 56.3 ms | 1.09× |
 | Simulation, 5,000 × 12,000 events | 568 ms | 645 ms | 1.13× |
+
+`change_detection_kernel` measures **1.24×** over its four compute stages, also with
+bit-identical outputs (512×512×4 stack, warm, best of 50 per stage):
+
+| Stage | Native | Managed | Speedup |
+|---|---:|---:|---:|
+| CVA magnitude | 1.18 ms | 1.72 ms | 1.46× |
+| Otsu threshold + histogram | 0.24 ms | 0.50 ms | 2.11× |
+| Morphological open, 2 iterations | 2.90 ms | 3.16 ms | 1.09× |
+| Connected components | 0.62 ms | 0.75 ms | 1.20× |
+| Compute total | 4.93 ms | 6.13 ms | 1.24× |
+| End-to-end `DetectAsync` | 7.74 ms | 8.45 ms | 1.09× |
+
+The gradient inside that table is the useful result: the flatter and more branch-free the
+inner loop, the more native buys. Otsu's single histogram pass wins most; morphological
+open, which short-circuits on nearly every pixel, barely beats the JIT. End-to-end is lower
+than compute because roughly a third of `DetectAsync` is `List<double>` ⇄ `double[]`
+conversion at the DTO edge, which is identical on both paths.
 
 RyuJIT generates good scalar code for tight `double` loops, the branch-heavy inner loops
 defeat auto-vectorisation on both sides, and P/Invoke array pinning costs part of the rest.
@@ -185,7 +203,8 @@ native/
 ├── spatial_cluster_kernel/    ← DBSCAN density-based clustering
 ├── viewshed_kernel/           ← line-of-sight ray casting over elevation grids
 ├── spatial_overlay_kernel/    ← point-in-polygon spatial join
-└── cat_risk_kernel/           ← ring accumulation and Monte Carlo catastrophe loss simulation
+├── cat_risk_kernel/           ← ring accumulation and Monte Carlo catastrophe loss simulation
+└── change_detection_kernel/   ← CVA magnitude, Otsu threshold, morphological open, connected components
 ```
 
 Each kernel directory contains:

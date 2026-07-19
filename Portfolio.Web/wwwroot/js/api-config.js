@@ -92,6 +92,10 @@
                     book        : BASE + "/catrisk/book",
                     accumulation: BASE + "/catrisk/accumulation",
                     simulate    : BASE + "/catrisk/simulate"
+                },
+                change: {
+                    scene : BASE + "/change/scene",
+                    detect: BASE + "/change/detect"
                 }
             }
         }
