@@ -306,10 +306,20 @@ COPY --from=build /src/build/native/facility_location_kernel/facility_location_k
 COPY --from=build /src/build/native/vrp_solver_kernel/vrp_solver_kernel.so /app/publish/
 ```
 
-> **The repository `Dockerfile` does not do this today** — it contains no CMake stage and
-> copies no native libraries. Every kernel therefore runs its managed fallback in the
-> deployed container, and the UI correctly reports "Native: No". The block above is what
-> would need to be added, together with a build stage that configures and builds each kernel.
+> **The repository `Dockerfile` deliberately does not do this.** It contains no CMake stage and
+> copies no native libraries, so every kernel runs its managed fallback in the deployed
+> container and the UI correctly reports "Native: No".
+>
+> That is a decision taken on the measurements above, not an omission. Native wins 8 of the 21
+> workloads, loses 8, and is indistinguishable on 5. Shipping it would mean compiling thirteen
+> CMake projects on every deploy, carrying a C++ toolchain in the build image, and maintaining a
+> second binary per kernel that can silently diverge from the managed one — which two of them
+> did, until the parity check caught it. That is a real cost for a coin-flip speedup.
+>
+> The block above is what to add if a workload ever justifies it. The candidates would be the
+> kernels that actually win: `vrp_solver_kernel` (2.26×), `spatial_overlay_kernel` (1.90×) and
+> `facility_location_kernel` (1.73×) — and even then only if the request volume made the
+> difference matter.
 
 ---
 

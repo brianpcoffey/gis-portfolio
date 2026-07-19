@@ -213,13 +213,23 @@ Seven kernels were previously described as unmeasured. All seven are measured ab
 contain both the largest win in the table (`spatial_overlay_kernel`, 1.94×) and the largest
 loss (`spatial_geometry_kernel`, 0.34×).
 
-> **In production these numbers do not apply.** The container build does not compile any
-> native library, so Render runs the managed fallback for all thirteen and the UI correctly
-> reports "Native: No". See `native/README.md`.
+> **Production deliberately runs the managed fallback for all thirteen kernels.** The container
+> build compiles no native code, so Render serves the C# path and the UI correctly reports
+> "Native: No".
+>
+> This is a decision, not an oversight. Native wins on 8 of 21 measured workloads, loses on 8,
+> and is indistinguishable on 5 — a median somewhere around parity. Against that, compiling
+> thirteen CMake projects into the image costs build time on every deploy, adds a toolchain to
+> maintain, and introduces a second binary per kernel that can drift from the managed path (as
+> two of them silently had, until the parity check caught it). Paying that for a coin-flip
+> speedup is a bad trade. The kernels earn their place as an architecture and interop
+> demonstration with a verified-identical fallback; they do not earn a place in the deploy
+> pipeline. `native/README.md` documents exactly what shipping them would require, for the day
+> a workload makes it worthwhile.
 
 | Project | Native Library | Status | Native Role |
 |---|---|---|---|
-| Redlands Smart Home Finder | `portfolio_scoring` | Implemented | weighted property scoring with AVX2-friendly batch math |
+| Redlands Smart Home Finder | `portfolio_scoring` | Implemented | weighted property scoring over a contiguous batch; built with `/arch:AVX2`, and **measured at 0.99×** — the flag bought nothing |
 | Live Location Stream | `geostream_processor` | Implemented | telemetry parsing, filtering, grid aggregation, and anomaly detection |
 | Geometry Toolkit | `spatial_geometry_kernel` | Implemented | fan triangulation and bounding-box polygon clipping with stable C ABI |
 | Terrain Analyzer | `raster_terrain_kernel` | Implemented | hillshade, slope/aspect, and Gaussian heatmap kernel over dense numeric arrays |
@@ -287,7 +297,7 @@ Property scoring API that ranks Redlands homes using weighted preferences and st
 
 - Curated dataset of ~45 Redlands homes across five real neighborhoods (South Redlands historic, hillside/view, downtown/University, North Redlands, and East Redlands tracts), each with realistic coordinates, pricing, and Redfin/Zillow-style listing features (property type, garage, pool, stories, year built, price/sqft, HOA, days on market, school rating, and brokerage), seeded deterministically via `RedlandsPropertySeedData` and shipped through an EF Core migration
 - Preference-based scoring for property search and comparison workflows using a ten-dimension weighted model
-- Native C++ scoring kernel (`portfolio_scoring`) compiled with AVX2/`-O3 -march=haswell` for SIMD-friendly batch processing, called via P/Invoke from `NativeScoringBridge`
+- Native C++ scoring kernel (`portfolio_scoring`), called via P/Invoke from `NativeScoringBridge`. It is genuinely compiled with `/arch:AVX2` (MSVC) and `-O3 -march=haswell` (GCC/Clang) — and **benchmarks at 0.99× against the managed fallback on 200,000 properties**, so either the compiler declined to vectorise the loop or the memory traffic dominates. The flags are kept and the number published alongside them: enabling AVX2 is not the same as being vectorised
 - Transparent managed fallback: `NativeScoringBridge.IsAvailable` gates the native path; identical C# helpers execute otherwise
 - Saved-search CRUD with user-scoped persistence
 - Repository abstraction that can evolve toward spatial indexes or search services
@@ -351,7 +361,7 @@ Authenticated operations dashboard for fiber orders, materials, shipments, and K
 ---
 
 ### 📡 Live Location Stream
-GPS-style telemetry batch processing pipeline that reduces high-volume sensor or vehicle events into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard. A native C++ kernel handles the allocation-sensitive numeric loops when the shared library is present; the managed fallback activates automatically when it is not.
+GPS-style telemetry batch processing pipeline that reduces high-volume sensor or vehicle events into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard. A native C++ kernel handles the numeric loops when the shared library is present; the managed fallback activates automatically when it is not. **Measured at 0.59× — this is the worst-performing kernel of the thirteen**, because the service caps a batch at 10,000 events, so the per-call marshalling is paid far more often than the aggregation work amortises it.
 
 - Channel-oriented GPS event batching with configurable grid size and anomaly threshold
 - Native C++ telemetry kernel (`geostream_processor`) processes contiguous event arrays via a stable C ABI
@@ -379,7 +389,7 @@ Computational geometry API that transforms map-drawn coordinates into derived ge
 ---
 
 ### ⛰️ Terrain Analyzer
-Raster terrain analysis API that generates hillshade and heatmap outputs from dense numeric grid inputs and renders the results as a browser-visible raster grid. The native C++ kernel provides SIMD-friendly dense array processing when available; the managed fallback computes slope/aspect and Gaussian-style kernel weights in C#.
+Raster terrain analysis API that generates hillshade and heatmap outputs from dense numeric grid inputs and renders the results as a browser-visible raster grid. The native C++ kernel processes dense arrays when available; the managed fallback computes slope/aspect and Gaussian-style kernel weights in C#. **Measured split: the Gaussian heatmap runs 1.22× faster natively, hillshade 0.83× — slower.** Same kernel, same grid size; the heatmap loop is flat arithmetic over every cell while hillshade pays a 250,000-element `ToArray()` before touching a pixel.
 
 - Hillshade computation from configurable sun azimuth/altitude and per-cell slope/aspect approximation
 - Gaussian-style heatmap kernel from weighted point samples over a target raster extent
@@ -412,7 +422,7 @@ Spatial graph routing API that computes shortest paths and service areas over a 
 ---
 
 ### 🔥 Hotspot Clusterer
-Density-based clustering API that groups spatial points into hotspots with DBSCAN and separates genuine clusters from scattered noise. Unlike k-means, DBSCAN discovers the number of clusters from the data and handles arbitrary cluster shapes, making it a natural fit for incident, complaint, and sensor-anomaly hotspot analysis. A native C++ kernel runs the allocation-sensitive neighbor-query distance loop when the shared library is present; the managed C# fallback reproduces the identical algorithm otherwise.
+Density-based clustering API that groups spatial points into hotspots with DBSCAN and separates genuine clusters from scattered noise. Unlike k-means, DBSCAN discovers the number of clusters from the data and handles arbitrary cluster shapes, making it a natural fit for incident, complaint, and sensor-anomaly hotspot analysis. A native C++ kernel runs the neighbor-query distance loop when the shared library is present; the managed C# fallback reproduces the identical algorithm otherwise. **Measured at 0.94× — native is marginally slower**, and the two spreads overlap, so the honest reading is that there is no difference to find here.
 
 - DBSCAN with configurable `epsilon` (neighborhood radius) and `minPoints` (density threshold), returning per-point cluster labels (-1 = noise), cluster sizes, and a noise tally
 - Border-point reclamation preserved identically across the native and managed paths for numeric parity
