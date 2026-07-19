@@ -11,6 +11,12 @@ namespace Portfolio.Services.Native
         {
             try
             {
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "facility_location_kernel",
                     typeof(FacilityLocationNativeBridge).Assembly,

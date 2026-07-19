@@ -12,6 +12,12 @@ namespace Portfolio.Services.Native
         {
             try
             {
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "raster_terrain_kernel",
                     typeof(RasterTerrainNativeBridge).Assembly,

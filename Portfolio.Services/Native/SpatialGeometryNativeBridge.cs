@@ -12,6 +12,12 @@ namespace Portfolio.Services.Native
         {
             try
             {
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "spatial_geometry_kernel",
                     typeof(SpatialGeometryNativeBridge).Assembly,

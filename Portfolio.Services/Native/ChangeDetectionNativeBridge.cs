@@ -27,6 +27,12 @@ namespace Portfolio.Services.Native
         {
             try
             {
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "change_detection_kernel",
                     typeof(ChangeDetectionNativeBridge).Assembly,

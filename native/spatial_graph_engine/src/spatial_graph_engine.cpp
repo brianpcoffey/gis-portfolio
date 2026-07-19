@@ -3,107 +3,139 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <map>
 #include <queue>
 #include <utility>
 #include <vector>
 
 namespace
 {
-	struct Edge
-	{
-		int to;
-		double cost;
-	};
-
-	using Adjacency = std::map<int, std::vector<Edge>>;
-	using Distances = std::map<int, double>;
-
 	constexpr double kInfinity = std::numeric_limits<double>::infinity();
 
-	Adjacency build_adjacency(const GraphEdgeNative* edges, int edgeCount)
+	// Compressed-sparse-row adjacency.
+	//
+	// The first version of this kernel used std::map<int, std::vector<Edge>> and
+	// std::map<int, double> for distances, which meant an O(log N) tree descent for every
+	// edge relaxation plus a heap allocation per node's edge vector. Two sibling kernels in
+	// this repo measured *slower than their managed C# fallbacks* with that exact shape
+	// before being rewritten this way — the .NET nursery allocator beats naive per-node
+	// allocation, and RyuJIT beats a red-black tree walk.
+	//
+	// Here node ids are densified once into 0..N-1, edges are packed into three flat
+	// arrays, and the relaxation loop touches nothing but contiguous memory: colIndices
+	// already holds dense indices, so there is no lookup of any kind in the hot path.
+	struct Csr
 	{
-		Adjacency adjacency;
-		for (int i = 0; i < edgeCount; ++i)
+		std::vector<int> ids;          // dense index -> original node id, ascending
+		std::vector<int> rowOffsets;   // size N + 1
+		std::vector<int> colIndices;   // dense target index per directed edge
+		std::vector<double> weights;   // cost per directed edge
+
+		int size() const { return static_cast<int>(ids.size()); }
+
+		// Binary search over the ascending id array. Used only at setup and when mapping
+		// results back out — never inside the search loop.
+		int indexOf(int id) const
 		{
-			adjacency[edges[i].fromNodeId].push_back({ edges[i].toNodeId, edges[i].cost });
-			if (edges[i].bidirectional != 0)
-				adjacency[edges[i].toNodeId].push_back({ edges[i].fromNodeId, edges[i].cost });
+			const auto it = std::lower_bound(ids.begin(), ids.end(), id);
+			if (it == ids.end() || *it != id)
+				return -1;
+			return static_cast<int>(it - ids.begin());
+		}
+	};
+
+	Csr build_csr(const GraphNodeNative* nodes, int nodeCount, const GraphEdgeNative* edges, int edgeCount)
+	{
+		Csr csr;
+		csr.ids.reserve(nodeCount);
+		for (int i = 0; i < nodeCount; ++i)
+			csr.ids.push_back(nodes[i].id);
+
+		std::sort(csr.ids.begin(), csr.ids.end());
+		csr.ids.erase(std::unique(csr.ids.begin(), csr.ids.end()), csr.ids.end());
+
+		const int n = csr.size();
+		csr.rowOffsets.assign(n + 1, 0);
+
+		// Pass 1: out-degree per dense index. Edges referencing a node that was never
+		// declared are dropped here rather than relaxed later — relaxing them is what let
+		// the old std::map version insert a phantom zero-cost entry.
+		for (int e = 0; e < edgeCount; ++e)
+		{
+			const int from = csr.indexOf(edges[e].fromNodeId);
+			const int to = csr.indexOf(edges[e].toNodeId);
+			if (from < 0 || to < 0)
+				continue;
+
+			++csr.rowOffsets[from + 1];
+			if (edges[e].bidirectional != 0)
+				++csr.rowOffsets[to + 1];
 		}
 
-		return adjacency;
+		for (int i = 0; i < n; ++i)
+			csr.rowOffsets[i + 1] += csr.rowOffsets[i];
+
+		const int directed = csr.rowOffsets[n];
+		csr.colIndices.assign(directed, 0);
+		csr.weights.assign(directed, 0.0);
+
+		// Pass 2: fill, using a moving cursor per row.
+		std::vector<int> cursor(csr.rowOffsets.begin(), csr.rowOffsets.end() - 1);
+		for (int e = 0; e < edgeCount; ++e)
+		{
+			const int from = csr.indexOf(edges[e].fromNodeId);
+			const int to = csr.indexOf(edges[e].toNodeId);
+			if (from < 0 || to < 0)
+				continue;
+
+			const double cost = edges[e].cost;
+			csr.colIndices[cursor[from]] = to;
+			csr.weights[cursor[from]] = cost;
+			++cursor[from];
+
+			if (edges[e].bidirectional != 0)
+			{
+				csr.colIndices[cursor[to]] = from;
+				csr.weights[cursor[to]] = cost;
+				++cursor[to];
+			}
+		}
+
+		return csr;
 	}
 
-	Distances initialize_distances(const GraphNodeNative* nodes, int nodeCount)
-	{
-		Distances distances;
-		for (int i = 0; i < nodeCount; ++i)
-			distances[nodes[i].id] = kInfinity;
-		return distances;
-	}
-
-	double distance_of(const Distances& distances, int nodeId)
-	{
-		const auto it = distances.find(nodeId);
-		return it == distances.end() ? kInfinity : it->second;
-	}
-
-	// Lazy-deletion Dijkstra over a prebuilt adjacency structure.
-	//
-	// `distances` must already hold an entry (infinity) for every declared node. Every
-	// lookup goes through find() rather than operator[], because operator[] on a missing
-	// key default-constructs to 0.0 — which in a shortest-path context reads as "reachable
-	// at zero cost". Edges pointing at nodes absent from the node array are skipped for
-	// the same reason: relaxing them would insert phantom entries that later surface as
-	// bogus reachable nodes.
-	//
-	// `previous`, when non-null, records the predecessor tree.
-	// `endNodeId`, when non-null, stops the search as soon as that node is settled.
-	void dijkstra(
-		const Adjacency& adjacency,
-		Distances& distances,
-		int originId,
-		std::map<int, int>* previous,
-		const int* endNodeId)
+	// Lazy-deletion Dijkstra over CSR. `distances` is indexed by dense node index and must
+	// be sized to csr.size(). `previous`, when non-null, records the predecessor tree in
+	// dense indices. `endIndex`, when >= 0, stops the search once that node is settled.
+	void dijkstra(const Csr& csr, std::vector<double>& distances, int originIndex, std::vector<int>* previous, int endIndex)
 	{
 		using QueueItem = std::pair<double, int>;
 		std::priority_queue<QueueItem, std::vector<QueueItem>, std::greater<QueueItem>> queue;
 
-		const auto originIt = distances.find(originId);
-		if (originIt == distances.end())
-			return;
-
-		originIt->second = 0.0;
-		queue.push({ 0.0, originId });
+		distances[originIndex] = 0.0;
+		queue.push({ 0.0, originIndex });
 
 		while (!queue.empty())
 		{
 			const auto [distance, current] = queue.top();
 			queue.pop();
 
-			const auto currentIt = distances.find(current);
-			if (currentIt == distances.end() || distance > currentIt->second)
+			if (distance > distances[current])
 				continue;
-			if (endNodeId && current == *endNodeId)
+			if (endIndex >= 0 && current == endIndex)
 				break;
 
-			const auto adjacencyIt = adjacency.find(current);
-			if (adjacencyIt == adjacency.end())
-				continue;
-
-			for (const auto& edge : adjacencyIt->second)
+			const int begin = csr.rowOffsets[current];
+			const int end = csr.rowOffsets[current + 1];
+			for (int k = begin; k < end; ++k)
 			{
-				const auto targetIt = distances.find(edge.to);
-				if (targetIt == distances.end())
-					continue; // edge references a node that was never declared
-
-				const double candidate = currentIt->second + edge.cost;
-				if (candidate < targetIt->second)
+				const int target = csr.colIndices[k];
+				const double candidate = distance + csr.weights[k];
+				if (candidate < distances[target])
 				{
-					targetIt->second = candidate;
+					distances[target] = candidate;
 					if (previous)
-						(*previous)[edge.to] = current;
-					queue.push({ candidate, edge.to });
+						(*previous)[target] = current;
+					queue.push({ candidate, target });
 				}
 			}
 		}
@@ -126,35 +158,31 @@ extern "C" GRAPH_API int Graph_FindShortestPath(
 		if (!nodes || !edges || !outputNodeIds || !result || nodeCount <= 0 || edgeCount <= 0 || outputCapacity <= 0)
 			return -1;
 
-		auto adjacency = build_adjacency(edges, edgeCount);
-		auto distances = initialize_distances(nodes, nodeCount);
-
-		if (!distances.contains(startNodeId) || !distances.contains(endNodeId))
+		const Csr csr = build_csr(nodes, nodeCount, edges, edgeCount);
+		const int start = csr.indexOf(startNodeId);
+		const int end = csr.indexOf(endNodeId);
+		if (start < 0 || end < 0)
 			return -2;
 
-		std::map<int, int> previous;
-		dijkstra(adjacency, distances, startNodeId, &previous, &endNodeId);
+		std::vector<double> distances(csr.size(), kInfinity);
+		std::vector<int> previous(csr.size(), -1);
+		dijkstra(csr, distances, start, &previous, end);
 
 		*result = {};
-		const double total = distance_of(distances, endNodeId);
-		if (!std::isfinite(total))
+		if (!std::isfinite(distances[end]))
 			return 0;
 
-		// Walk the predecessor tree back to the origin. The step count is bounded by the
-		// node count: a malformed tree would otherwise loop forever.
+		// Walk the predecessor tree back to the origin. A -1 predecessor means the tree is
+		// malformed; the step count is bounded by the node count so this cannot spin.
 		std::vector<int> path;
-		int current = endNodeId;
+		int current = end;
 		int guard = 0;
-		while (current != startNodeId)
+		while (current != start)
 		{
-			if (++guard > nodeCount)
+			if (++guard > csr.size() || current < 0)
 				return -99;
-
-			path.push_back(current);
-			const auto it = previous.find(current);
-			if (it == previous.end())
-				return -99;
-			current = it->second;
+			path.push_back(csr.ids[current]);
+			current = previous[current];
 		}
 		path.push_back(startNodeId);
 		std::reverse(path.begin(), path.end());
@@ -166,7 +194,7 @@ extern "C" GRAPH_API int Graph_FindShortestPath(
 			outputNodeIds[i] = path[i];
 
 		result->found = 1;
-		result->totalCost = total;
+		result->totalCost = distances[end];
 		result->pathCount = static_cast<int>(path.size());
 		return 0;
 	}
@@ -192,25 +220,24 @@ extern "C" GRAPH_API int Graph_ComputeServiceArea(
 		if (!nodes || !edges || !reachableNodeIds || !reachableCount || nodeCount <= 0 || edgeCount <= 0 || outputCapacity <= 0 || maxCost < 0)
 			return -1;
 
-		auto adjacency = build_adjacency(edges, edgeCount);
-		auto distances = initialize_distances(nodes, nodeCount);
-
-		if (!distances.contains(originNodeId))
+		const Csr csr = build_csr(nodes, nodeCount, edges, edgeCount);
+		const int origin = csr.indexOf(originNodeId);
+		if (origin < 0)
 			return -2;
 
-		dijkstra(adjacency, distances, originNodeId, nullptr, nullptr);
+		std::vector<double> distances(csr.size(), kInfinity);
+		dijkstra(csr, distances, origin, nullptr, -1);
 
-		// Iterate the declared node array rather than the distance map, so only real
-		// nodes can ever be reported. Output stays ordered by node id to match the
-		// previous behaviour, which callers rely on.
+		// Dense indices ascend with node id, so walking them yields ids in ascending order,
+		// matching the ordering callers relied on from the previous std::map implementation.
 		int count = 0;
-		for (const auto& [nodeId, distance] : distances)
+		for (int i = 0; i < csr.size(); ++i)
 		{
-			if (distance <= maxCost)
+			if (distances[i] <= maxCost)
 			{
 				if (count >= outputCapacity)
 					return -3;
-				reachableNodeIds[count++] = nodeId;
+				reachableNodeIds[count++] = csr.ids[i];
 			}
 		}
 
@@ -239,18 +266,19 @@ extern "C" GRAPH_API int Graph_ComputeDistances(
 		if (outputLength < nodeCount)
 			return -3;
 
-		auto adjacency = build_adjacency(edges, edgeCount);
-		auto distances = initialize_distances(nodes, nodeCount);
-
-		if (!distances.contains(originNodeId))
+		const Csr csr = build_csr(nodes, nodeCount, edges, edgeCount);
+		const int origin = csr.indexOf(originNodeId);
+		if (origin < 0)
 			return -2;
 
-		dijkstra(adjacency, distances, originNodeId, nullptr, nullptr);
+		std::vector<double> distances(csr.size(), kInfinity);
+		dijkstra(csr, distances, origin, nullptr, -1);
 
 		int reachable = 0;
 		for (int i = 0; i < nodeCount; ++i)
 		{
-			const double d = distance_of(distances, nodes[i].id);
+			const int index = csr.indexOf(nodes[i].id);
+			const double d = index < 0 ? kInfinity : distances[index];
 			outDistances[i] = d;
 			if (std::isfinite(d))
 				++reachable;
@@ -287,25 +315,33 @@ extern "C" GRAPH_API int Graph_ComputeDistanceMatrix(
 		if (required > static_cast<long long>(outputLength))
 			return -3;
 
-		auto adjacency = build_adjacency(edges, edgeCount);
-		const auto pristine = initialize_distances(nodes, nodeCount);
+		// Built once for the whole matrix — the entire reason this entry point exists
+		// rather than looping Graph_FindShortestPath.
+		const Csr csr = build_csr(nodes, nodeCount, edges, edgeCount);
 
-		for (int s = 0; s < sourceCount; ++s)
-			if (!pristine.contains(sourceIds[s]))
-				return -2;
-		for (int t = 0; t < targetCount; ++t)
-			if (!pristine.contains(targetIds[t]))
-				return -2;
-
+		std::vector<int> sources(sourceCount), targets(targetCount);
 		for (int s = 0; s < sourceCount; ++s)
 		{
-			// Copying the initialized map is cheaper than rebuilding it, and the
-			// adjacency structure above is built once for the whole matrix.
-			Distances distances = pristine;
-			dijkstra(adjacency, distances, sourceIds[s], nullptr, nullptr);
+			sources[s] = csr.indexOf(sourceIds[s]);
+			if (sources[s] < 0)
+				return -2;
+		}
+		for (int t = 0; t < targetCount; ++t)
+		{
+			targets[t] = csr.indexOf(targetIds[t]);
+			if (targets[t] < 0)
+				return -2;
+		}
 
+		std::vector<double> distances(csr.size());
+		for (int s = 0; s < sourceCount; ++s)
+		{
+			std::fill(distances.begin(), distances.end(), kInfinity);
+			dijkstra(csr, distances, sources[s], nullptr, -1);
+
+			double* row = outMatrix + static_cast<long long>(s) * targetCount;
 			for (int t = 0; t < targetCount; ++t)
-				outMatrix[static_cast<long long>(s) * targetCount + t] = distance_of(distances, targetIds[t]);
+				row[t] = distances[targets[t]];
 		}
 
 		return 0;

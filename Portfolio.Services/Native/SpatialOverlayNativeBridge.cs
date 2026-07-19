@@ -12,6 +12,12 @@ namespace Portfolio.Services.Native
         {
             try
             {
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "spatial_overlay_kernel",
                     typeof(SpatialOverlayNativeBridge).Assembly,

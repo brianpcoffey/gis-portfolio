@@ -27,6 +27,12 @@ namespace Portfolio.Services.Native
                 // Attempt to load the library.  NativeLibrary.TryLoad looks in the
                 // AssemblyDirectory first (matching the DllImport search path) so the
                 // same resolution order applies whether we call it here or at P/Invoke time.
+                if (NativeToggle.Disabled)
+                {
+                    _available = false;
+                    return;
+                }
+
                 _available = NativeLibrary.TryLoad(
                     "portfolio_scoring",
                     typeof(NativeScoringBridge).Assembly,
