@@ -92,6 +92,11 @@
                     book        : BASE + "/catrisk/book",
                     accumulation: BASE + "/catrisk/accumulation",
                     simulate    : BASE + "/catrisk/simulate"
+                },
+                outage: {
+                    network: BASE + "/outage/network",
+                    trace  : BASE + "/outage/trace",
+                    restore: BASE + "/outage/restore"
                 }
             }
         }

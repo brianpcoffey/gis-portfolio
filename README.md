@@ -71,6 +71,7 @@ Nine native integrations are implemented today — the Home Finder scoring kerne
 | Viewshed Analyzer | `viewshed_kernel` | Implemented | line-of-sight ray casting over dense elevation grids with observer-height modeling |
 | Spatial Overlay / Zone Tagger | `spatial_overlay_kernel` | Implemented | point-in-polygon spatial join (even-odd ray casting) over a flat zone-vertex buffer |
 | Catastrophe Risk Analyzer | `cat_risk_kernel` | Implemented | O(n²) ring accumulation and Monte Carlo event-loss simulation over contiguous exposure/event buffers |
+| Outage Manager & Network Trace | `network_trace_kernel` | Implemented | downstream/upstream fault tracing, isolation-device search, and connectivity sweeps over a CSR incidence layout |
 
 The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, clustering, visibility, spatial overlay, and scoring. The managed fallback is production behavior, not only a test convenience.
 
@@ -305,6 +306,23 @@ Property-insurance catastrophe model for wildfire exposure. Answers the three qu
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
 
 **API:** `GET /api/v1/catrisk/book`, `POST /api/v1/catrisk/accumulation`, `POST /api/v1/catrisk/simulate`
+
+---
+
+### ⚡ Outage Manager & Network Trace
+Electric distribution outage management — the flagship GIS application in utilities. Answers the three questions a control room needs within a minute of a recloser locking out: who is out, what isolates the fault, and who can be restored by backfeeding from an adjacent feeder.
+
+- **Downstream fault trace** — breadth-first sweep from the faulted element's downstream node, stopping at open devices, yielding the de-energized section and the customers affected
+- **Upstream trace and isolation** — one sweep from the substation tags every node with the element that energizes it, so the path back to the breaker falls out in a single pass. Isolation returns the nearest upstream protective device (fuse before recloser before breaker) plus the *frontier* of closed downstream switches — not every switch, which would fragment the feeder and leave nothing for a tie to reach
+- **Tie-switch restoration** — a managed search over every normally-open tie, each candidate evaluated by a native connectivity sweep, rejecting any plan that would backfeed into the fault. Emits an ordered switching plan and an estimated SAIDI-minutes-avoided figure
+- **Directed storage, undirected energization** — `from`/`to` record nominal radial flow so upstream and downstream have meaning, but a closed tie backfeeds against that direction, so energization is pure connectivity. Tracing it directionally would report a successful backfeed as reaching nobody
+- Deterministic synthetic circuit over Redlands: one substation, two radial feeders (267 elements, 2,495 customers), 22 fused laterals, three reclosers, seven sectionalizing switches, one normally-open tie — no database, no persistence
+- **Benchmarked against its own managed fallback: 1.29× on the shipped circuit, 0.87× at 4,603 elements, byte-identical results.** Three P/Invoke calls per trace each re-marshal the element array, so the overhead crosses over the gain as the circuit grows. The Details page carries the table and the explanation
+- Self-contained SVG single-line diagram — click a conductor to fault it, hover any element for its label, device type, state and customer count
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
+
+**API:** `GET /api/v1/outage/network`, `POST /api/v1/outage/trace`, `POST /api/v1/outage/restore`
 
 ---
 

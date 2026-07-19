@@ -1,0 +1,112 @@
+@page
+@model Portfolio.Web.Pages.Projects.Outage.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Outage Manager & Network Trace – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-bolt me-2"></i>Outage Manager &amp; Network Trace – Technical Details</h1>
+		<a href="/Projects/Outage" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Outage Manager demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Answer the three questions a distribution control room needs within a minute of a recloser locking out — who is out, what isolates the fault, and who can be restored by backfeeding from an adjacent feeder.</li>
+			<li><strong>Domain:</strong> This is the core of an <code>OMS</code> (outage management system), the flagship GIS application in electric utilities. The vocabulary is the real vocabulary: feeder, lateral, recloser, sectionalizer, tie switch, normally-open point, backfeed, SAIDI.</li>
+			<li><strong>Dataset:</strong> A deterministic synthetic circuit over Redlands — one substation, two radial feeders (267 elements, 2,495 customers), 22 fused laterals, three reclosers, seven sectionalizing switches, and one normally-open tie between the feeder tails.</li>
+			<li><strong>Why not the road network:</strong> A distribution feeder is <em>directed</em> (power flows radially outward from the substation), its edges carry <em>device state</em> (open/closed), and it needs <em>per-element identity</em> to attribute customers and devices. The Redlands road graph has none of those — every edge there is bidirectional, anonymous, and attribute-free — so this gets its own dataset and its own kernel.</li>
+			<li><strong>Statelessness:</strong> No database and no persistence. The circuit is generated once from a fixed-seed LCG, exactly like the OpenStreetMap road network powering the Route Planner, so every run is identical.</li>
+			<li><strong>The tie is the point:</strong> Without a normally-open point between the two feeders there is nothing to restore from and the restoration search would have no candidate to evaluate. It is what makes the network a mesh on paper and a tree in operation.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>Downstream trace:</strong> A breadth-first sweep from the faulted element's downstream node, forbidden from crossing back through the fault itself and never traversing an open device. On a radial circuit that is exactly the de-energized subtree. The faulted element is included; customers affected is the summed customer count over the set.</li>
+			<li><strong>Upstream trace:</strong> Rather than searching from the fault, the kernel sweeps outward <em>from the source</em> and tags every reached node with the element that energizes it. Walking those tags back from the fault yields the ordered path to the substation breaker in one pass.</li>
+			<li><strong>Isolation:</strong> Two halves. Upstream, the first protective device (fuse, then recloser, then breaker) encountered walking toward the source — that is the device that actually clears the fault. Downstream, the <em>frontier</em> of closed switches: traversal stops at each one, so only switches that genuinely bound the de-energized section are returned. Returning every downstream switch would fragment the feeder and leave nothing for a tie to pick up.</li>
+			<li><strong>Energization sweep:</strong> A connectivity sweep from the source with a set of device-state overrides applied. An element is energized when either endpoint is reachable through closed devices, which correctly counts a closed tie sitting between two live sections.</li>
+			<li><strong>Directed storage, undirected energization:</strong> The single most important modelling idea here. <code>fromNodeId</code>/<code>toNodeId</code> record the <em>nominal</em> flow direction so upstream and downstream have meaning, but energization is pure connectivity — a closed tie backfeeds against the nominal direction. Tracing connectivity directionally would silently report a successful backfeed as reaching nobody.</li>
+			<li><strong>Restoration search:</strong> Open the isolation devices, measure the post-isolation baseline, then evaluate every normally-open tie one at a time and keep the one that serves the most customers. A candidate is rejected outright if it re-energizes the faulted element — restoring customers by backfeeding into a fault is the one outcome worse than leaving them out.</li>
+			<li><strong>SAIDI estimate:</strong> SAIDI is customer-minutes lost divided by total customers, so minutes avoided is <code>customersRestored × assumedRepairMinutes / totalCustomers</code>. The repair duration is an operator assumption, labelled as such in the UI, not a measurement.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Endpoints:</strong> <code>GET /api/v1/outage/network</code>, <code>POST /api/v1/outage/trace</code>, <code>POST /api/v1/outage/restore</code>.</li>
+			<li><strong>Versioning:</strong> <code>Asp.Versioning</code> with the version in the route template, matching every other API in the portfolio.</li>
+			<li><strong>Payload guards:</strong> <code>[RequestSizeLimit(4_000_000)]</code> on both POSTs and <code>[EnableRateLimiting("expensive")]</code> on the controller, since the restoration search runs one full connectivity sweep per candidate tie.</li>
+			<li><strong>Caching:</strong> The circuit is a compile-time constant, so <code>GET /network</code> carries <code>[ResponseCache(Duration = 3600)]</code>.</li>
+			<li><strong>Error contract:</strong> Only <code>ArgumentException</code> is caught, returning <code>400</code> with <code>{ "error": "..." }</code>. The service's validation messages are therefore the public API contract and are written as user-facing text — "The faulted element was not found in the network.", "Device type must be between 0 and 6."</li>
+			<li><strong>Device types cross the wire as integers</strong> to match the native struct exactly, with a <code>DeviceTypes</code> constant class in <code>Portfolio.Common</code> and a mirrored table in the frontend legend, so the magic numbers live in exactly two named places.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Kernel:</strong> <code>network_trace_kernel</code>, a C++20 shared library exposing <code>Trace_Downstream</code>, <code>Trace_Upstream</code>, <code>Trace_FindIsolationDevices</code>, and <code>Trace_ComputeEnergizedSet</code> through a stable C ABI with <code>#pragma pack(push, 8)</code> structs and status-code returns (plus <code>-5</code> for "faulted element not found").</li>
+			<li><strong>Where the boundary sits:</strong> The restoration <em>search</em> loop is managed and readable; each <em>evaluation</em> is a native connectivity sweep. That is the right split — the search is a handful of candidates, the sweep is the hot inner work.</li>
+			<li><strong>Graph layout:</strong> The kernel densifies arbitrary node ids into <code>0..n-1</code> once and stores incidence as CSR (offsets plus a flat element-index array), caching both endpoint indices per element so the traversals run on integer array indexing with no hashing in the inner loop. Node ids are looked up with <code>.find()</code>, never <code>operator[]</code> — a default-constructed entry would be a phantom node in the traversal.</li>
+			<li><strong>Marshalling:</strong> Blittable <code>[StructLayout(Sequential, Pack = 8)]</code> structs with preallocated managed output arrays and explicit <code>[In]</code>/<code>[Out]</code> direction attributes. Native code never allocates across the boundary.</li>
+			<li><strong>Managed fallback:</strong> <code>NetworkTraceNativeBridge.IsAvailable</code> gates the native path, and the managed implementation mirrors the kernel's traversal order element for element, so the two produce byte-identical id lists. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries, so what runs in production today is the managed path.</li>
+			<li>
+				<strong>Measured speedup — and the honest answer:</strong> Native is faster on the shipped circuit and <em>slower</em> on a large one. Same machine, warm, medians of three runs, with byte-identical result checksums on every run:
+				<div class="table-responsive mt-2 mb-2">
+					<table class="table table-sm w-auto mb-0">
+						<thead>
+							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+						</thead>
+						<tbody>
+							<tr><td>Trace + restore, 267-element circuit, 1,290 faults</td><td class="text-end">149 ms</td><td class="text-end">192 ms</td><td class="text-end">1.29×</td></tr>
+							<tr><td>Trace + restore, 4,603-element circuit, 600 faults</td><td class="text-end">882 ms</td><td class="text-end">768 ms</td><td class="text-end">0.87×</td></tr>
+							<tr><td>Energization sweeps only, 4,603 elements, 720 sweeps</td><td class="text-end">413 ms</td><td class="text-end">423 ms</td><td class="text-end">1.02×</td></tr>
+						</tbody>
+					</table>
+				</div>
+				Every downstream, upstream, isolation and energized id list matches the managed path exactly — the checksums are equal, not merely close, because this is integer graph traversal with no floating-point arithmetic anywhere.
+			</li>
+			<li><strong>Why the crossover happens:</strong> A trace is three separate P/Invoke calls, and each one re-marshals the whole element array and rebuilds the graph. At 267 elements that overhead is negligible and the kernel's cache-friendly CSR traversal wins by ~1.3×. At 4,603 elements the marshalling and rebuild dominate and the native path loses. The single-call sweep, which pays that cost once, is a wash. The fix is an ABI change — one entry point that returns all three traces from a single marshalled array, or a caller-owned opaque graph handle built once and reused — not a faster inner loop.</li>
+			<li><strong>What this says about native code generally:</strong> The first version of this kernel used <code>std::unordered_map&lt;int, std::vector&lt;int&gt;&gt;</code> for adjacency and measured <em>2.5× slower</em> than the C# it was meant to accelerate, because it heap-allocated once per node and hashed on every edge visit. .NET's allocator and <code>Dictionary</code> are genuinely fast. Writing C++ buys nothing on its own; it buys the ability to control layout, and only if you actually do.</li>
+			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across all kernels and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>A separate dataset, not a reuse of the road graph:</strong> Bending the OSM road network into a feeder would have been faster and wrong. Radial topology, device state, and per-element customer attribution are the entire problem; a graph without them cannot express it.</li>
+			<li><strong>All three traces come from one engine:</strong> The service requires the downstream, upstream and isolation calls to all succeed natively before reporting <code>NativeAccelerated</code>. Mixing a native downstream set with a managed isolation frontier would make the flag a half-truth.</li>
+			<li><strong>The isolation frontier stops at the first switch:</strong> Returning every switch downstream of the fault would technically isolate it and would also chop the feeder into pieces no tie can reach. Stopping at the frontier is what a real switching order does.</li>
+			<li><strong>Restoration rejects any plan that re-energizes the fault:</strong> The search maximises customers served, and without that guard the optimum on a fault near the tie is to backfeed straight into the fault. The constraint is cheap to state and non-negotiable in the domain.</li>
+			<li><strong>Conservation is defined against the post-isolation state:</strong> <code>CustomersRestored + CustomersStillOut</code> equals the customers out <em>after</em> isolation, not the customers the fault trace reported. Opening an upstream recloser de-energizes a superset of the faulted section, and the switching plan has to be measured against the state it actually starts from.</li>
+			<li><strong>SAIDI is labelled an estimate:</strong> The repair duration is an operator assumption. Presenting an assumption-driven number as a regulated metric would be the wrong signal to anyone who reports SAIDI for a living.</li>
+			<li><strong>Self-contained SVG:</strong> The single-line diagram is hand-built SVG with CSS custom properties for colour, so it follows the light/dark theme and the page carries no map-tile dependency. Hovering an element shows its label, device type, state and customer count — utility software lives on that interaction.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>The network is stored with directed <code>from</code>/<code>to</code> but energization is computed undirected. Why, and what would break if you traced connectivity directionally?</li>
+			<li>A distribution feeder is radial in operation but meshed on paper. How does that change the data model versus a road network?</li>
+			<li>What is the difference between isolating a fault and restoring customers, and why do they need separate algorithms?</li>
+			<li>Closing a tie switch backfeeds from an adjacent feeder. What real-world constraints would stop you — conductor ampacity, voltage drop, protection coordination — and how would you model them?</li>
+			<li>SAIDI is customer-minutes ÷ total customers. Why do utilities optimize for it, and what behavior does that incentivize that might not serve customers well?</li>
+			<li>The restoration search evaluates every tie one at a time. When does that stop working, and what would you do for a network with 200 ties?</li>
+			<li>How would you extend this to handle a partial trace when the SCADA state of a device is unknown?</li>
+			<li>This kernel is 1.3× faster than managed C# at 267 elements and 0.87× at 4,603. What does that tell you about where the cost actually is, and what would you change first?</li>
+			<li>The first version of the kernel was 2.5× <em>slower</em> than the C# it replaced. How would you have caught that before shipping it?</li>
+		</ul>
+	</section>
+</div>
