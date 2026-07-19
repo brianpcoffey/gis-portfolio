@@ -101,6 +101,11 @@
                     network: BASE + "/outage/network",
                     trace  : BASE + "/outage/trace",
                     restore: BASE + "/outage/restore"
+                },
+                response: {
+                    scenario : BASE + "/response/scenario",
+                    isochrone: BASE + "/response/isochrone",
+                    optimize : BASE + "/response/optimize"
                 }
             }
         }

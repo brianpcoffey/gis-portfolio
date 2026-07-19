@@ -18,6 +18,7 @@ application runs correctly when the native library is absent.
 | `cat_risk_kernel` | `native/cat_risk_kernel/` | `CatRiskNativeBridge` | `CatRiskService` |
 | `change_detection_kernel` | `native/change_detection_kernel/` | `ChangeDetectionNativeBridge` | `ChangeDetectionService` |
 | `network_trace_kernel` | `native/network_trace_kernel/` | `NetworkTraceNativeBridge` | `OutageTraceService` |
+| `facility_location_kernel` | `native/facility_location_kernel/` | `FacilityLocationNativeBridge` | `ResponseCoverageService` |
 
 Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`),
 so it is configured and built from its own directory.
@@ -207,6 +208,7 @@ native/
 ├── cat_risk_kernel/           ← ring accumulation and Monte Carlo catastrophe loss simulation
 └── change_detection_kernel/   ← CVA magnitude, Otsu threshold, morphological open, connected components
 └── network_trace_kernel/      ← distribution fault tracing, isolation search, and energization sweeps
+└── facility_location_kernel/  ← p-median station siting, Teitz-Bart substitution, weighted coverage stats
 ```
 
 Each kernel directory contains:

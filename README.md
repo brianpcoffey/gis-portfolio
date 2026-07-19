@@ -73,6 +73,7 @@ Nine native integrations are implemented today — the Home Finder scoring kerne
 | Catastrophe Risk Analyzer | `cat_risk_kernel` | Implemented | O(n²) ring accumulation and Monte Carlo event-loss simulation over contiguous exposure/event buffers |
 | Raster Change Detection | `change_detection_kernel` | Implemented | CVA magnitude, Otsu thresholding, morphological open, and two-pass union-find connected components over flat raster buffers |
 | Outage Manager & Network Trace | `network_trace_kernel` | Implemented | downstream/upstream fault tracing, isolation-device search, and connectivity sweeps over a CSR incidence layout |
+| Emergency Response Coverage Optimizer | `facility_location_kernel` | Implemented | p-median greedy seeding and Teitz-Bart vertex substitution with cached nearest/second-nearest distances, plus demand-weighted coverage statistics |
 
 The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, clustering, visibility, spatial overlay, and scoring. The managed fallback is production behavior, not only a test convenience.
 
@@ -338,6 +339,21 @@ Electric distribution outage management — the flagship GIS application in util
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
 
 **API:** `GET /api/v1/outage/network`, `POST /api/v1/outage/trace`, `POST /api/v1/outage/restore`
+### 🚑 Emergency Response Coverage Optimizer
+Public-safety deployment analysis over the real Redlands street network. Answers the question a fire chief has to defend in front of a city council — where the stations go — and scores the answer against **NFPA 1710**, the career-department standard of a first-due engine on scene within four minutes of travel time for 90% of incidents.
+
+- **Drive-time isochrones** — not a circle on a map, but graded travel-time bands over the actual road graph. The graph engine's one-to-all pass keeps the per-node cost, which is what banding needs; every reachable node lands in exactly one band and unreachable nodes are counted, not dropped
+- **p-median station siting** — greedy seeding followed by Teitz-Bart vertex substitution over a candidate-to-demand travel-time matrix. The substitution loop caches the *nearest* and *second-nearest* open facility per demand point, which turns each of the thousands of swap trials per pass from `O(demand × p)` into `O(demand)`
+- **Three objectives that actually diverge** — weighted mean, weighted 90th percentile, and maximum coverage. Switching between them moves the chosen stations, which is the demo: on the shipped scenario at four stations the mean objective picks a different site set than the p90 objective
+- **Weighted p90, done correctly** — demand points are ordered by response time and call volume is accumulated until it crosses 90% of the total. It is *not* the p90 of the unweighted list; a single heavy neighbourhood can set it alone, which is exactly what the standard is written to capture
+- **Baseline versus optimized, side by side** — today's two stations reach 76.4% of call volume within four minutes and fail NFPA 1710 at a p90 of 4.68 minutes; four optimized stations reach 94.1% at a p90 of 2.42 minutes and pass. That comparison is the whole point of the page
+- 450 clustered demand points and 24 candidate sites, all snapped to real network nodes so the matrix has no unreachable pairs; generated from a fixed-seed LCG with no database
+- **Benchmarked against its own managed fallback: 1.2×–2.2× depending on the objective, with identical chosen stations, assignments, and statistics.** The Details page carries the measurement table and explains why the spread exists
+- Leaflet map with call-volume-scaled demand circles, an assignment starburst that makes the districting legible, clickable isochrone painting, and a theme-aware SVG response-time histogram overlaying today's distribution against the optimized one
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Leaflet, SVG
+
+**API:** `GET /api/v1/response/scenario`, `POST /api/v1/response/isochrone`, `POST /api/v1/response/optimize`
 
 ---
 

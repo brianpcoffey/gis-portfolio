@@ -80,6 +80,7 @@ builder.Services.AddScoped<ISpatialOverlayService, SpatialOverlayService>();
 builder.Services.AddScoped<ICatRiskService, CatRiskService>();
 builder.Services.AddScoped<IChangeDetectionService, ChangeDetectionService>();
 builder.Services.AddScoped<IOutageTraceService, OutageTraceService>();
+builder.Services.AddScoped<IResponseCoverageService, ResponseCoverageService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
