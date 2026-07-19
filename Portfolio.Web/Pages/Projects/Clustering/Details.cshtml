@@ -1,0 +1,79 @@
+@page
+@model Portfolio.Web.Pages.Projects.Clustering.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Hotspot Clusterer – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-fire me-2"></i>Hotspot Clusterer – Technical Details</h1>
+		<a href="/Projects/Clustering" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Hotspot Clusterer demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Group spatial points into density-based clusters (hotspots) and separate genuine clusters from scattered noise using DBSCAN.</li>
+			<li><strong>Business problem:</strong> Hotspot detection is a core GIS analytic — incident clustering, crime/complaint hotspots, retail catchment cores, and sensor-anomaly grouping all reduce to "which points form dense neighborhoods."</li>
+			<li><strong>Architecture:</strong> Razor Page controls → <code>/api/v1/clustering</code> endpoint → <code>ISpatialClusterService</code> → optional <code>spatial_cluster_kernel</code> native library → managed fallback.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, vanilla JavaScript, inline SVG, C++20/CMake, P/Invoke.</li>
+			<li><strong>Scope:</strong> Euclidean DBSCAN over 2-D coordinates. Great-circle (haversine) distance and spatial indexing are natural next steps for real geographic datasets.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>DBSCAN:</strong> Two parameters — <code>epsilon</code> (neighborhood radius) and <code>minPoints</code> (density threshold). Core points have at least <code>minPoints</code> neighbors within <code>epsilon</code>; density-reachable points join the same cluster; everything else is noise.</li>
+			<li><strong>No pre-set cluster count:</strong> Unlike k-means, DBSCAN discovers the number of clusters from the data and is robust to arbitrary cluster shapes.</li>
+			<li><strong>Border reclamation:</strong> Points first labelled as noise are reclaimed as border points when they fall inside a later cluster's neighborhood — a subtle correctness detail preserved identically in both the native and managed paths.</li>
+			<li><strong>Complexity:</strong> The MVP uses a brute-force O(n²) region query, which is honest and simple; a grid or k-d tree index would bring it toward O(n log n) for large inputs.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>SpatialClusterController</code> is versioned at <code>/api/v1/clustering</code> and allows anonymous demo access.</li>
+			<li><strong>Endpoint:</strong> <code>POST /api/v1/clustering/dbscan</code> accepts <code>DbscanRequestDto</code> (points, epsilon, minPoints).</li>
+			<li><strong>Response:</strong> <code>DbscanResultDto</code> returns per-point cluster labels (-1 = noise), a cluster count, per-cluster sizes, and a noise tally.</li>
+			<li><strong>Validation:</strong> The service enforces a point cap, a finite positive epsilon, a minimum-points floor, and finite coordinates.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Service:</strong> <code>SpatialClusterService</code> validates input, dispatches to <code>SpatialClusterNativeBridge</code>, and assembles the labelled result shared by both paths.</li>
+			<li><strong>Native bridge:</strong> <code>SpatialClusterNativeBridge</code> marshals a contiguous point array and a preallocated label buffer into C++ and reads the returned cluster count.</li>
+			<li><strong>C++ library:</strong> <code>native/spatial_cluster_kernel</code> exposes <code>Cluster_RunDbscan</code>, returning the cluster count and writing one label per point.</li>
+			<li><strong>Why C++ here:</strong> DBSCAN's inner region-query loop is a tight numeric distance kernel over contiguous memory — a strong SIMD/cache-locality candidate as point counts grow.</li>
+			<li><strong>Managed fallback:</strong> <code>SpatialClusterService</code> reproduces the identical algorithm in C#, so the workflow is correct with no native library present.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>DBSCAN over k-means:</strong> Chosen because hotspot analysis needs shape-agnostic clusters and an explicit noise class, which k-means cannot express.</li>
+			<li><strong>Brute-force neighbors:</strong> Keeps the kernel transparent for a portfolio demo; the interface is stable enough to swap in a spatial index without changing the API.</li>
+			<li><strong>Parity by construction:</strong> Native and managed code share the same label conventions and border-reclamation rule, making numeric-parity testing straightforward.</li>
+			<li><strong>Future improvements:</strong> Haversine distance, k-d tree/grid acceleration, HDBSCAN, and Leaflet/ArcGIS overlays for real geographic incident data.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How do epsilon and minPoints trade off cluster granularity against noise sensitivity?</li>
+			<li>Why is DBSCAN a better fit than k-means for hotspot detection?</li>
+			<li>Where would a spatial index change the asymptotic complexity, and what does it cost to build?</li>
+			<li>How would you validate native/managed parity when floating-point order can differ?</li>
+		</ul>
+	</section>
+</div>

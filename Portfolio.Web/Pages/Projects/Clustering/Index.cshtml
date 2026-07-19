@@ -1,0 +1,83 @@
+@page
+@model Portfolio.Web.Pages.Projects.Clustering.IndexModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Hotspot Clusterer";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+<link rel="stylesheet" href="~/css/spatialcompute.css" />
+
+<div class="spatial-compute-page theme-root">
+	<div class="project-hero py-4 mb-4">
+		<div class="container">
+			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+				<div>
+					<h1 class="mb-1"><i class="fa-solid fa-fire me-2"></i>Hotspot Clusterer</h1>
+					<p class="text-muted theme-text-muted mb-0">Density-based clustering (DBSCAN) that groups incident points into hotspots and flags outliers as noise, backed by a native C++ kernel.</p>
+				</div>
+				<div class="d-flex align-items-center gap-2">
+					<span class="badge badge-gis fs-6"><i class="fa-solid fa-diagram-project me-1"></i>C++ DBSCAN Kernel</span>
+					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Clustering/Details" aria-label="View technical details for Hotspot Clusterer" title="Technical Details">
+						<i class="fa-solid fa-circle-info"></i>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="container pb-5">
+		<div id="clusterAlert" class="alert alert-danger d-none" role="alert"></div>
+		<div class="row g-4">
+			<div class="col-lg-4">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Clustering Controls</strong></div>
+					<div class="card-body d-flex flex-column gap-3">
+						<div>
+							<label for="clusterEpsilon" class="form-label small d-flex justify-content-between">
+								<span>Epsilon (neighborhood radius)</span><span id="clusterEpsilonValue" class="text-accent">0.08</span>
+							</label>
+							<input id="clusterEpsilon" class="form-range" type="range" min="0.02" max="0.25" step="0.01" value="0.08" />
+						</div>
+						<div>
+							<label for="clusterMinPoints" class="form-label small">Minimum points (core density)</label>
+							<input id="clusterMinPoints" class="form-control" type="number" min="2" max="20" value="4" />
+						</div>
+						<div>
+							<label for="clusterDataset" class="form-label small">Sample dataset</label>
+							<select id="clusterDataset" class="form-select">
+								<option value="blobs" selected>Three incident hotspots + scatter</option>
+								<option value="ring">Ring of activity + core</option>
+								<option value="uniform">Uniform random (few clusters)</option>
+							</select>
+						</div>
+						<button id="clusterRunBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Run DBSCAN</button>
+						<button id="clusterRegenBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Regenerate Points</button>
+						<pre id="clusterSummary" class="sample-json mt-auto mb-0"></pre>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-8">
+				<div class="card spatial-card shadow-sm h-100">
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-braille text-accent"></i><strong>Cluster Map</strong></div>
+					<div class="card-body">
+						<div class="row g-3 mb-3">
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="clusterKpiPoints" class="kpi-value">0</div><div class="kpi-label">Points</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="clusterKpiClusters" class="kpi-value">0</div><div class="kpi-label">Clusters</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="clusterKpiNoise" class="kpi-value">0</div><div class="kpi-label">Noise</div></div></div>
+							<div class="col-md-3"><div class="kpi-card text-center"><div id="clusterKpiNative" class="kpi-value">No</div><div class="kpi-label">Native</div></div></div>
+						</div>
+						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
+							<svg id="clusterSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 480px; aspect-ratio: 1;" aria-label="Cluster scatter plot"></svg>
+						</div>
+						<div id="clusterLegend" class="d-flex flex-wrap gap-2 mt-3"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script src="~/js/Clustering/app.js" asp-append-version="true"></script>
+}

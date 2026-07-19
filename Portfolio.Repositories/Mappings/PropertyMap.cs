@@ -18,6 +18,13 @@ namespace Portfolio.Repositories.Mappings
             builder.Property(p => p.Price).IsRequired().HasColumnType("numeric(12,2)");
             builder.Property(p => p.AcreLot).HasColumnType("numeric(8,2)");
 
+            // Listing features (Redfin/Zillow-style)
+            builder.Property(p => p.PropertyType).IsRequired().HasMaxLength(50).HasDefaultValue("Single Family");
+            builder.Property(p => p.GarageSpaces).HasDefaultValue(0);
+            builder.Property(p => p.HasPool).HasDefaultValue(false);
+            builder.Property(p => p.Stories).HasDefaultValue(1);
+            builder.Property(p => p.DaysOnMarket).HasDefaultValue(0);
+
             // Address
             builder.Property(p => p.Street).IsRequired().HasMaxLength(300);
             builder.Property(p => p.City).IsRequired().HasMaxLength(100).HasDefaultValue("Redlands");

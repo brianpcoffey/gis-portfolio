@@ -16,6 +16,13 @@ public class Property
     public decimal AcreLot { get; set; }
     public int LotSqft { get; set; }
 
+    // Listing features (Redfin/Zillow-style)
+    public string PropertyType { get; set; } = "Single Family";
+    public int GarageSpaces { get; set; }
+    public bool HasPool { get; set; }
+    public int Stories { get; set; } = 1;
+    public int DaysOnMarket { get; set; }
+
     // Address
     public string Street { get; set; } = string.Empty;
     public string City { get; set; } = "Redlands";
@@ -31,7 +38,7 @@ public class Property
     public decimal PropertyTax { get; set; }
     public decimal Utilities { get; set; }
 
-    // Neighborhood scores (0–100)
+    // Neighborhood scores (0ï¿½100)
     public int SchoolRating { get; set; }
     public int CrimeScore { get; set; }
     public int Walkability { get; set; }

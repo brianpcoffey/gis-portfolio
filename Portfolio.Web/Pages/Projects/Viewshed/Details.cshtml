@@ -1,0 +1,79 @@
+@page
+@model Portfolio.Web.Pages.Projects.Viewshed.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Viewshed Analyzer – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-eye me-2"></i>Viewshed Analyzer – Technical Details</h1>
+		<a href="/Projects/Viewshed" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Viewshed Analyzer demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Compute the viewshed — the set of terrain cells visible from an observer — over a dense elevation grid, and render it as a visibility map.</li>
+			<li><strong>Business problem:</strong> Line-of-sight analysis drives real decisions: cell-tower and radar placement, wildfire lookout siting, scenic-view real-estate valuation, and defilade planning.</li>
+			<li><strong>Architecture:</strong> Razor Page controls → <code>/api/v1/viewshed</code> endpoint → <code>IViewshedService</code> → optional <code>viewshed_kernel</code> native library → managed fallback.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, vanilla JavaScript, C++20/CMake, P/Invoke, dense numeric arrays.</li>
+			<li><strong>Scope:</strong> Ray-based viewshed over generated DEMs. Earth-curvature and atmospheric-refraction corrections and GeoTIFF/COG ingestion are future work.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>Ray-casting viewshed:</strong> For every target cell a ray is walked from the observer; the maximum vertical angle to intervening terrain is tracked, and the target is visible only if its own angle clears that running maximum.</li>
+			<li><strong>Observer height:</strong> The eye sits at the observer cell's elevation plus a configurable height, which materially changes coverage — a key thing to demonstrate interactively.</li>
+			<li><strong>Deterministic sampling:</strong> Each ray takes <code>max(|dx|, |dy|)</code> steps and samples the nearest cell, keeping the native and managed passes numerically aligned.</li>
+			<li><strong>Complexity:</strong> O(n · √n) for an n-cell grid — cheap enough for interactive grids, and an obvious SIMD/tiling candidate for large DEMs.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>ViewshedController</code> is versioned at <code>/api/v1/viewshed</code> and allows anonymous demo access.</li>
+			<li><strong>Endpoint:</strong> <code>POST /api/v1/viewshed/compute</code> accepts <code>ViewshedRequestDto</code> (elevation grid, observer position, observer height).</li>
+			<li><strong>Response:</strong> <code>ViewshedResultDto</code> returns a row-major visibility grid (1 = visible, 0 = hidden) plus a visible-cell count and the echoed observer position.</li>
+			<li><strong>Validation:</strong> The service enforces grid bounds, a cell cap, a positive cell size, an in-bounds observer, and a finite observer height.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Service:</strong> <code>ViewshedService</code> validates the request and dispatches to <code>ViewshedNativeBridge</code> when the kernel is present.</li>
+			<li><strong>Native bridge:</strong> <code>ViewshedNativeBridge</code> passes a dense elevation array and a preallocated visibility buffer into C++ and maps the result to the DTO.</li>
+			<li><strong>C++ library:</strong> <code>native/viewshed_kernel</code> exposes <code>Viewshed_Compute</code>, returning the visible-cell count.</li>
+			<li><strong>Why C++ here:</strong> The per-cell ray walk is dense pointer arithmetic over contiguous elevation memory — exactly the workload where cache locality and vectorization matter.</li>
+			<li><strong>Managed fallback:</strong> <code>ViewshedService</code> mirrors the ray-casting logic in C#, keeping the demo portable on Render with no native artifact.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Ray-per-cell over sweep:</strong> The R2 ray method is easy to reason about and parallelize; a sweep-line/reference-plane method would be faster but harder to demonstrate.</li>
+			<li><strong>Generated DEMs:</strong> Keeps the demo self-contained but skips georeferencing, nodata handling, and reprojection that a production pipeline needs.</li>
+			<li><strong>Nearest-cell sampling:</strong> Simple and parity-friendly; bilinear sampling along the ray would reduce aliasing at a modest cost.</li>
+			<li><strong>Future improvements:</strong> Earth-curvature correction, multi-observer cumulative viewsheds, GDAL-backed DEM ingestion, and tile/PNG output for map overlays.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How does observer height change coverage, and why is it non-linear over rough terrain?</li>
+			<li>What accuracy do you trade away with nearest-cell ray sampling versus interpolation?</li>
+			<li>How would earth curvature and refraction enter the angle computation at long range?</li>
+			<li>Where would you parallelize — per target cell, per ray, or per tile — and why?</li>
+		</ul>
+	</section>
+</div>

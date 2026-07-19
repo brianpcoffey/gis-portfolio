@@ -78,6 +78,15 @@
                     graph      : BASE + "/network/graph",
                     route      : BASE + "/network/route",
                     serviceArea: BASE + "/network/service-area"
+                },
+                clustering: {
+                    dbscan: BASE + "/clustering/dbscan"
+                },
+                viewshed: {
+                    compute: BASE + "/viewshed/compute"
+                },
+                overlay: {
+                    spatialJoin: BASE + "/overlay/spatial-join"
                 }
             }
         }

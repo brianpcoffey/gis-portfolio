@@ -19,12 +19,32 @@ public class ScoredPropertyDto
     public int Bedrooms { get; set; }
     /// <summary>Number of bathrooms.</summary>
     public int Bathrooms { get; set; }
-    /// <summary>Lot size, in square feet.</summary>
+    /// <summary>Living area, in square feet.</summary>
     public int LotSqft { get; set; }
     /// <summary>WGS84 latitude of the property.</summary>
     public double Latitude { get; set; }
     /// <summary>WGS84 longitude of the property.</summary>
     public double Longitude { get; set; }
+
+    // Listing features (Redfin/Zillow-style)
+    /// <summary>Property type (Single Family, Condo, Townhouse).</summary>
+    public string PropertyType { get; set; } = string.Empty;
+    /// <summary>Number of garage spaces.</summary>
+    public int GarageSpaces { get; set; }
+    /// <summary>Whether the property has a pool.</summary>
+    public bool HasPool { get; set; }
+    /// <summary>Number of stories.</summary>
+    public int Stories { get; set; }
+    /// <summary>Year the home was built.</summary>
+    public int YearBuilt { get; set; }
+    /// <summary>Monthly HOA fee, in USD (0 when none).</summary>
+    public decimal HoaFee { get; set; }
+    /// <summary>Great-schools-style rating of the assigned schools (0–100).</summary>
+    public int SchoolRating { get; set; }
+    /// <summary>Days the listing has been on the market.</summary>
+    public int DaysOnMarket { get; set; }
+    /// <summary>Listing brokerage.</summary>
+    public string? BrokeredBy { get; set; }
 
     // Monthly cost breakdown
     /// <summary>Estimated total monthly cost of ownership (mortgage, taxes, utilities, and similar).</summary>

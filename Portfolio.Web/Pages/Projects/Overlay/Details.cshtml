@@ -1,0 +1,79 @@
+@page
+@model Portfolio.Web.Pages.Projects.Overlay.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Spatial Overlay – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-shapes me-2"></i>Spatial Overlay / Zone Tagger – Technical Details</h1>
+		<a href="/Projects/Overlay" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Spatial Overlay demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Perform a point-in-polygon spatial join — tag each point with the zone that contains it and roll the results up into per-zone counts (a choropleth).</li>
+			<li><strong>Business problem:</strong> Spatial join is the workhorse of GIS analysis: which sales territory, census tract, flood zone, delivery region, or voting precinct does each record fall in?</li>
+			<li><strong>Architecture:</strong> Razor Page controls → <code>/api/v1/overlay</code> endpoint → <code>ISpatialOverlayService</code> → optional <code>spatial_overlay_kernel</code> native library → managed fallback.</li>
+			<li><strong>Technologies:</strong> .NET 10, Razor Pages, Bootstrap, vanilla JavaScript, inline SVG, C++20/CMake, P/Invoke.</li>
+			<li><strong>Scope:</strong> Simple (non-self-intersecting) polygon rings tested with even-odd ray casting. Holes, multi-polygons, and bounding-box pre-filtering are future work.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>Even-odd ray casting:</strong> A point is inside a ring when a ray cast from it crosses the ring's edges an odd number of times — the standard crossing-number test.</li>
+			<li><strong>First-match assignment:</strong> Zones are tested in order and the first containing zone wins, giving deterministic behavior when zones overlap.</li>
+			<li><strong>Flat ring layout:</strong> Across the ABI, all zone vertices are packed into one contiguous buffer with a per-zone ring-size array, avoiding per-polygon marshalling overhead.</li>
+			<li><strong>Complexity:</strong> O(points × zone-vertices) in the brute-force MVP; a bounding-box or grid pre-filter would skip most edge tests for large layers.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Controller:</strong> <code>SpatialOverlayController</code> is versioned at <code>/api/v1/overlay</code> and allows anonymous demo access.</li>
+			<li><strong>Endpoint:</strong> <code>POST /api/v1/overlay/spatial-join</code> accepts <code>SpatialJoinRequestDto</code> (points and zone rings).</li>
+			<li><strong>Response:</strong> <code>SpatialJoinResultDto</code> returns each point's zone index (-1 = outside all zones), per-zone summaries, and assigned/unassigned tallies.</li>
+			<li><strong>Validation:</strong> The service enforces point and zone caps, a total-vertex cap, at least three vertices per ring, and finite coordinates.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Service:</strong> <code>SpatialOverlayService</code> validates input, dispatches to <code>SpatialOverlayNativeBridge</code>, and assembles per-zone rollups shared by both paths.</li>
+			<li><strong>Native bridge:</strong> <code>SpatialOverlayNativeBridge</code> flattens zone rings into a single vertex buffer plus a ring-size array and reads back one zone index per point.</li>
+			<li><strong>C++ library:</strong> <code>native/spatial_overlay_kernel</code> exposes <code>Overlay_AssignPointsToZones</code>, returning the number of assigned points.</li>
+			<li><strong>Why C++ here:</strong> The crossing-number test is a branch-light arithmetic loop over contiguous vertex memory — a natural vectorization and cache-locality target at layer scale.</li>
+			<li><strong>Managed fallback:</strong> <code>SpatialOverlayService</code> reproduces the identical even-odd test in C#, so the join is correct with no native library present.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Even-odd over winding number:</strong> The crossing-number rule is simpler and sufficient for simple rings; winding-number handles self-intersections a demo layer will not contain.</li>
+			<li><strong>First-match semantics:</strong> Deterministic and easy to explain; a production join might instead assign to all matching zones or the smallest-area zone.</li>
+			<li><strong>Flat vertex ABI:</strong> One buffer + ring-size array keeps P/Invoke marshalling cheap and predictable versus arrays of jagged arrays.</li>
+			<li><strong>Future improvements:</strong> Polygon holes and multi-polygons, R-tree/bounding-box pre-filtering, GeoJSON ingestion, and ArcGIS/Leaflet choropleth rendering over real administrative boundaries.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>How does even-odd differ from the winding-number rule, and when does the difference matter?</li>
+			<li>What indexing structure would you add first to scale to millions of points?</li>
+			<li>How should the join behave when zones overlap or a point sits exactly on an edge?</li>
+			<li>Why is a flat vertex buffer a better ABI than passing jagged polygon arrays across P/Invoke?</li>
+		</ul>
+	</section>
+</div>

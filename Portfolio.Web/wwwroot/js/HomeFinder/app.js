@@ -341,11 +341,17 @@ function plotResults(results) {
                     title: `#${p.rank} \u2014 ${p.street}`,
                     content: `
                         <b>Score:</b> ${p.compositeScore}/100<br>
-                        <b>Price:</b> $${p.price.toLocaleString()}<br>
+                        <b>Price:</b> $${p.price.toLocaleString()} (${pricePerSqft(p)}/sqft)<br>
                         <b>Monthly:</b> $${p.estimatedMonthlyCost.toLocaleString()}<br>
+                        <b>Type:</b> ${escapeHtml(p.propertyType)} \u2014 ${p.stories}-story<br>
                         <b>Bed/Bath:</b> ${p.bedrooms}/${p.bathrooms}<br>
                         <b>Sq Ft:</b> ${p.lotSqft.toLocaleString()}<br>
-                        <b>Zip:</b> ${p.zipCode}
+                        <b>Built:</b> ${p.yearBuilt}<br>
+                        <b>Garage:</b> ${p.garageSpaces} car${p.garageSpaces === 1 ? "" : "s"}${p.hasPool ? " \u2014 Pool" : ""}<br>
+                        <b>School rating:</b> ${p.schoolRating}/100<br>
+                        <b>HOA:</b> ${p.hoaFee > 0 ? "$" + p.hoaFee.toLocaleString() + "/mo" : "None"}<br>
+                        <b>Zip:</b> ${p.zipCode} \u2014 ${p.daysOnMarket} days on market<br>
+                        <span style="color:#888;">Listed by ${escapeHtml(p.brokeredBy || "")}</span>
                     `
                 })
             });
@@ -367,6 +373,12 @@ function getScoreBarClass(score) {
     if (score >= 70) return "score-excellent";
     if (score >= 40) return "score-good";
     return "score-fair";
+}
+
+/** Formats price-per-square-foot as a compact dollar string. */
+function pricePerSqft(p) {
+    if (!p.lotSqft) return "$—";
+    return "$" + Math.round(p.price / p.lotSqft).toLocaleString();
 }
 
 function renderResults(results) {
@@ -392,7 +404,10 @@ function renderResults(results) {
                         <strong class="small">#${p.rank}</strong>
                         <span class="small ms-1">${escapeHtml(p.street)}</span>
                         <div class="theme-text-muted" style="font-size:.75rem;">
-                            $${p.price.toLocaleString()} \u2014 ${p.bedrooms}bd/${p.bathrooms}ba \u2014 ${p.lotSqft.toLocaleString()} sqft
+                            $${p.price.toLocaleString()} \u2014 ${p.bedrooms}bd/${p.bathrooms}ba \u2014 ${p.lotSqft.toLocaleString()} sqft \u2014 ${pricePerSqft(p)}/sqft
+                        </div>
+                        <div class="theme-text-muted" style="font-size:.7rem;">
+                            ${escapeHtml(p.propertyType)} \u00b7 Built ${p.yearBuilt} \u00b7 ${p.garageSpaces}-car garage${p.hasPool ? " \u00b7 Pool" : ""} \u00b7 School ${p.schoolRating}
                         </div>
                         <div class="score-bar-container" aria-label="Composite score: ${scorePct}%">
                             <div class="score-bar-fill ${barClass}" style="width: 0%;" data-target-width="${scorePct}"></div>

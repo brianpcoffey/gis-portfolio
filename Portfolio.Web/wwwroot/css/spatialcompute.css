@@ -94,6 +94,32 @@
     min-height: 0;
 }
 
+.spatial-compute-page .viewshed-cell {
+    cursor: pointer;
+}
+
+.spatial-compute-page .viewshed-swatch {
+    display: inline-block;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 0.15rem;
+    border: 1px solid var(--border);
+}
+
+.spatial-compute-page .viewshed-swatch-visible {
+    background: rgba(56, 161, 105, 0.8);
+}
+
+.spatial-compute-page .viewshed-swatch-hidden {
+    background: #3a3a45;
+}
+
+.spatial-compute-page .viewshed-swatch-observer {
+    background: #0d6efd;
+}
+
 .spatial-compute-page .kpi-card {
     border: 1px solid var(--border);
     border-radius: 0.75rem;

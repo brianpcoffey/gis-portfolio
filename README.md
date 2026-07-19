@@ -14,7 +14,7 @@
 ![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
 ![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
-![xUnit](https://img.shields.io/badge/xUnit-464_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-494_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -56,7 +56,7 @@ Razor Page / API Controller  (Portfolio.Web)
 
 This portfolio uses a native-kernel pattern for compute-heavy spatial workflows where lower-level control is technically justified. ASP.NET Core owns the product/API layer, C# services validate inputs and map DTOs, and native C++20 libraries expose stable C ABIs consumed through P/Invoke. Each native-backed workflow must remain portable: `IsAvailable` gates the native path and a managed C# fallback preserves functionality when the shared library is absent.
 
-Five native integrations are implemented today — the Home Finder scoring kernel plus the geostream, geometry, raster-terrain, and routing kernels listed in the table below, each with C++ source, a P/Invoke bridge, and a managed C# fallback. The same pattern is intended for future spatial compute projects where benchmarks can demonstrate a real need for native code rather than treating C++ as a decorative dependency.
+Eight native integrations are implemented today — the Home Finder scoring kernel plus the geostream, geometry, raster-terrain, routing, clustering, viewshed, and overlay kernels listed in the table below, each with C++ source, a P/Invoke bridge, and a managed C# fallback. The same pattern is intended for future spatial compute projects where benchmarks can demonstrate a real need for native code rather than treating C++ as a decorative dependency.
 
 | Project | Native Library | Status | Native Role |
 |---|---|---|---|
@@ -65,8 +65,11 @@ Five native integrations are implemented today — the Home Finder scoring kerne
 | Geometry Toolkit | `spatial_geometry_kernel` | Implemented | fan triangulation and bounding-box polygon clipping with stable C ABI |
 | Terrain Analyzer | `raster_terrain_kernel` | Implemented | hillshade, slope/aspect, and Gaussian heatmap kernel over dense numeric arrays |
 | Route Planner | `spatial_graph_engine` | Implemented | Dijkstra and A* shortest path, service-area computation, and route metric enrichment over a real OpenStreetMap Redlands road graph |
+| Hotspot Clusterer | `spatial_cluster_kernel` | Implemented | density-based (DBSCAN) clustering with a tight neighbor-query distance loop over contiguous points |
+| Viewshed Analyzer | `viewshed_kernel` | Implemented | line-of-sight ray casting over dense elevation grids with observer-height modeling |
+| Spatial Overlay / Zone Tagger | `spatial_overlay_kernel` | Implemented | point-in-polygon spatial join (even-odd ray casting) over a flat zone-vertex buffer |
 
-The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, and scoring. The managed fallback is production behavior, not only a test convenience.
+The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, clustering, visibility, spatial overlay, and scoring. The managed fallback is production behavior, not only a test convenience.
 
 ---
 
@@ -118,6 +121,7 @@ Interactive ArcGIS feature exploration with anonymous saved-feature persistence 
 ### 🏠 Redlands Smart Home Finder
 Property scoring API that ranks Redlands homes using weighted preferences and stores named searches per user. The scoring service is isolated from controller and repository concerns so the ranking algorithm can evolve without changing the API surface. A native C++ kernel accelerates the compute-intensive ranking math when the shared library is present; the managed C# fallback activates automatically when it is not.
 
+- Curated dataset of ~45 Redlands homes across five real neighborhoods (South Redlands historic, hillside/view, downtown/University, North Redlands, and East Redlands tracts), each with realistic coordinates, pricing, and Redfin/Zillow-style listing features (property type, garage, pool, stories, year built, price/sqft, HOA, days on market, school rating, and brokerage), seeded deterministically via `RedlandsPropertySeedData` and shipped through an EF Core migration
 - Preference-based scoring for property search and comparison workflows using a ten-dimension weighted model
 - Native C++ scoring kernel (`portfolio_scoring`) compiled with AVX2/`-O3 -march=haswell` for SIMD-friendly batch processing, called via P/Invoke from `NativeScoringBridge`
 - Transparent managed fallback: `NativeScoringBridge.IsAvailable` gates the native path; identical C# helpers execute otherwise
@@ -243,6 +247,48 @@ Spatial graph routing API that computes shortest paths and service areas over a 
 
 ---
 
+### 🔥 Hotspot Clusterer
+Density-based clustering API that groups spatial points into hotspots with DBSCAN and separates genuine clusters from scattered noise. Unlike k-means, DBSCAN discovers the number of clusters from the data and handles arbitrary cluster shapes, making it a natural fit for incident, complaint, and sensor-anomaly hotspot analysis. A native C++ kernel runs the allocation-sensitive neighbor-query distance loop when the shared library is present; the managed C# fallback reproduces the identical algorithm otherwise.
+
+- DBSCAN with configurable `epsilon` (neighborhood radius) and `minPoints` (density threshold), returning per-point cluster labels (-1 = noise), cluster sizes, and a noise tally
+- Border-point reclamation preserved identically across the native and managed paths for numeric parity
+- Native C++ clustering kernel (`spatial_cluster_kernel`) exposing `Cluster_RunDbscan` over a contiguous point buffer and a preallocated label buffer
+- Self-contained SVG cluster map with a per-cluster legend; no map-tile dependency
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
+
+**API:** `POST /api/v1/clustering/dbscan`
+
+---
+
+### 👁️ Viewshed Analyzer
+Line-of-sight analysis API that computes the viewshed — the set of terrain cells visible from an observer — over a dense elevation grid, then renders it as an interactive visibility map. Line-of-sight drives real siting decisions for cell towers, radar, wildfire lookouts, and scenic real estate. A native C++ ray-casting kernel handles the per-cell ray walk when the shared library is present; the managed fallback mirrors the same logic.
+
+- Ray-casting viewshed that tracks the maximum vertical angle to intervening terrain, with configurable observer height that materially changes coverage
+- Click-any-cell-to-place-observer interaction with an immediate re-computation and coverage KPIs
+- Native C++ viewshed kernel (`viewshed_kernel`) exposing `Viewshed_Compute`, returning the visible-cell count and a row-major visibility grid
+- Stateless per-request processing over generated DEMs; future paths include earth-curvature correction and GeoTIFF/COG ingestion
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke
+
+**API:** `POST /api/v1/viewshed/compute`
+
+---
+
+### 🧩 Spatial Overlay / Zone Tagger
+Point-in-polygon spatial join API that tags each point with the zone that contains it and rolls the results up into per-zone counts (a live choropleth). Spatial join is the workhorse of GIS analysis — which sales territory, census tract, flood zone, or precinct does each record fall in. A native C++ kernel runs the even-odd crossing-number test over a flat zone-vertex buffer when the shared library is present; the managed fallback reproduces the identical test.
+
+- Even-odd ray-casting containment with deterministic first-match assignment when zones overlap
+- Flat vertex ABI — all zone rings packed into one contiguous buffer plus a per-zone ring-size array — keeping P/Invoke marshalling cheap
+- Native C++ overlay kernel (`spatial_overlay_kernel`) exposing `Overlay_AssignPointsToZones`, returning per-point zone indices and the assigned-point count
+- Self-contained SVG choropleth shaded by point density with a per-zone count table
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
+
+**API:** `POST /api/v1/overlay/spatial-join`
+
+---
+
 ## Technology Stack
 
 | Layer | Technology |
@@ -255,7 +301,7 @@ Spatial graph routing API that computes shortest paths and service areas over a 
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
-| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across five kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`) |
+| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across eight kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`, `spatial_overlay_kernel`) |
 | API Docs | Scalar / OpenAPI (all environments), XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
@@ -343,7 +389,7 @@ The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Program.cs` via 
 dotnet test
 ```
 
-464 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
+494 tests, all passing (xUnit + Moq; no integration/DB tests). The native parity tests execute the managed C# fallback, so the full suite passes with no native shared libraries present.
 
 ---
 

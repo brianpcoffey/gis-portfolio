@@ -74,6 +74,9 @@ builder.Services.AddScoped<IGeoStreamProcessorService, GeoStreamProcessorService
 builder.Services.AddScoped<ISpatialGeometryService, SpatialGeometryService>();
 builder.Services.AddScoped<IRasterTerrainService, RasterTerrainService>();
 builder.Services.AddScoped<ISpatialGraphService, SpatialGraphService>();
+builder.Services.AddScoped<ISpatialClusterService, SpatialClusterService>();
+builder.Services.AddScoped<IViewshedService, ViewshedService>();
+builder.Services.AddScoped<ISpatialOverlayService, SpatialOverlayService>();
 builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
 builder.Services.AddScoped<UserProfileSeedService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
@@ -269,7 +272,15 @@ builder.Services.AddSession(options =>
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    // Challenge with the cookie scheme, NOT Google. An [Authorize] page or controller
+    // that denies an unauthenticated request must land on the app's own /Login page
+    // (via the cookie LoginPath / OnRedirectToLogin handler below), which then offers
+    // an explicit "Continue with Google" button. Making Google the default challenge
+    // scheme instead sends users straight to accounts.google.com — bypassing /Login and
+    // surfacing a raw Google error (e.g. redirect_uri_mismatch) — and leaves the cookie
+    // OnRedirectToLogin API-vs-page handling as dead code. Google is still invoked
+    // explicitly by the Login page handler (Challenge(props, "Google")).
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
 .AddCookie(options =>
 {

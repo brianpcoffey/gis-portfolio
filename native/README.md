@@ -12,6 +12,9 @@ application runs correctly when the native library is absent.
 | `spatial_geometry_kernel` | `native/spatial_geometry_kernel/` | `SpatialGeometryNativeBridge` | `SpatialGeometryService` |
 | `raster_terrain_kernel` | `native/raster_terrain_kernel/` | `RasterTerrainNativeBridge` | `RasterTerrainService` |
 | `spatial_graph_engine` | `native/spatial_graph_engine/` | `SpatialGraphNativeBridge` | `SpatialGraphService` |
+| `spatial_cluster_kernel` | `native/spatial_cluster_kernel/` | `SpatialClusterNativeBridge` | `SpatialClusterService` |
+| `viewshed_kernel` | `native/viewshed_kernel/` | `ViewshedNativeBridge` | `ViewshedService` |
+| `spatial_overlay_kernel` | `native/spatial_overlay_kernel/` | `SpatialOverlayNativeBridge` | `SpatialOverlayService` |
 
 Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`),
 so it is configured and built from its own directory.
@@ -31,7 +34,7 @@ so it is configured and built from its own directory.
 ## Building on Windows (Visual Studio)
 
 Build a single kernel by pointing `-S` at its directory (repeat per kernel, or script
-a loop over the five directories):
+a loop over the eight directories):
 
 ```powershell
 # From the repo root — example: the scoring kernel
@@ -51,7 +54,8 @@ cmake --build build/native/portfolio_scoring --config Release
 ```
 
 Swap `portfolio_scoring` for `geostream_processor`, `spatial_geometry_kernel`,
-`raster_terrain_kernel`, or `spatial_graph_engine` to build the other kernels.
+`raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`,
+`viewshed_kernel`, or `spatial_overlay_kernel` to build the other kernels.
 
 ---
 
