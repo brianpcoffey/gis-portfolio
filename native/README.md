@@ -19,6 +19,7 @@ application runs correctly when the native library is absent.
 | `change_detection_kernel` | `native/change_detection_kernel/` | `ChangeDetectionNativeBridge` | `ChangeDetectionService` |
 | `network_trace_kernel` | `native/network_trace_kernel/` | `NetworkTraceNativeBridge` | `OutageTraceService` |
 | `facility_location_kernel` | `native/facility_location_kernel/` | `FacilityLocationNativeBridge` | `ResponseCoverageService` |
+| `vrp_solver_kernel` | `native/vrp_solver_kernel/` | `VrpSolverNativeBridge` | `FleetRoutingService` |
 
 Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`),
 so it is configured and built from its own directory.
@@ -209,6 +210,7 @@ native/
 └── change_detection_kernel/   ← CVA magnitude, Otsu threshold, morphological open, connected components
 └── network_trace_kernel/      ← distribution fault tracing, isolation search, and energization sweeps
 └── facility_location_kernel/  ← p-median station siting, Teitz-Bart substitution, weighted coverage stats
+└── vrp_solver_kernel/         ← CVRPTW: Clarke-Wright savings plus 2-opt / Or-opt local search
 ```
 
 Each kernel directory contains:

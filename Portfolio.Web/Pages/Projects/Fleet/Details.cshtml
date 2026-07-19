@@ -1,0 +1,113 @@
+@page
+@model Portfolio.Web.Pages.Projects.Fleet.DetailsModel
+@{
+	Layout = "/Pages/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Fleet Route Optimizer – Technical Details";
+}
+
+<link rel="stylesheet" href="~/css/gis.css" />
+
+<div class="container py-5">
+	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
+		<h1 class="mb-0"><i class="fa-solid fa-truck-fast me-2"></i>Fleet Route Optimizer – Technical Details</h1>
+		<a href="/Projects/Fleet" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Fleet Route Optimizer demo">
+			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+		</a>
+	</div>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">High-Level System Overview</h2>
+		<ul>
+			<li><strong>Purpose:</strong> Answer the question a dispatcher actually has at 6am — I have 40 deliveries, five trucks, a load limit and a delivery window on every drop, and drivers who go home at 4pm. Which truck does what, in what order?</li>
+			<li><strong>Domain:</strong> Last-mile logistics and field service. The problem is the <strong>Capacitated Vehicle Routing Problem with Time Windows</strong> (CVRPTW): depot, stops with demand and a <code>[readyTime, dueTime]</code> window, per-vehicle capacity, a shift horizon, and an objective of total distance plus a fixed cost per vehicle used.</li>
+			<li><strong>Dataset:</strong> Three deterministic delivery scenarios generated from a fixed-seed LCG over the real 2,530-node Redlands OpenStreetMap road network. Stops sit on actual road-network nodes, so snapping is exact and every stop is genuinely reachable.</li>
+			<li><strong>Architecture:</strong> The client posts only the scenario — depot, stops, fleet parameters, about 2 KB. The server fetches the graph, builds the road-distance matrix, solves, and expands every solved leg back into a street-following polyline. The existing Route Planner page downloads a 425 KB graph and re-uploads it on every request; this page deliberately does not.</li>
+			<li><strong>Statelessness:</strong> No database and no persistence. Scenarios are generated in code, the graph is a compile-time constant, and the solver is a pure function of its inputs, so every run is reproducible.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Algorithm</h2>
+		<ul>
+			<li><strong>Distance matrix:</strong> The depot and every stop snap to the nearest road node, then a single <code>(n+1)²</code> road-distance matrix is built by <code>Graph_ComputeDistanceMatrix</code>, which constructs the adjacency structure once and runs <em>n+1</em> Dijkstras over it. Doing this as <em>n+1</em> separate shortest-path calls would rebuild 6,374 adjacency entries every time.</li>
+			<li><strong>Distance to time, outside the search:</strong> Travel minutes are <code>km ÷ 40 × 60</code>, computed after the graph search, never inside it. A*'s haversine heuristic is admissible <em>only</em> because edge costs are along-road kilometres; put minutes on the edges and A* silently starts returning suboptimal paths.</li>
+			<li><strong>Phase 1 — Clarke-Wright parallel savings:</strong> Start with one route per stop, score every pair by <code>s(i,j) = d(0,i) + d(0,j) − d(i,j)</code>, sort descending, and merge route ends while capacity and every window still hold. Only end-to-end joins are considered: reversing a leg is free in a symmetric distance problem but not once time windows are involved.</li>
+			<li><strong>Phase 2 — local search:</strong> <strong>2-opt</strong> within each route reverses a segment to remove a crossing. <strong>Or-opt</strong> relocates a run of one to three consecutive stops into any position of any route, including another vehicle's. Both accept a move only if it lowers the objective <em>and</em> leaves every affected route feasible.</li>
+			<li><strong>First improvement, not best improvement:</strong> The search takes the first improving move it finds rather than scanning for the best one. It converges in far fewer distance evaluations, and at 40–120 stops the solution-quality difference is small. At larger sizes, or with a stronger neighbourhood, best-improvement starts to earn its cost.</li>
+			<li><strong>Feasibility walk:</strong> <code>t += travel; t = max(t, readyTime); if (t &gt; dueTime) infeasible; t += serviceTime</code>, then check the return leg against the shift end. Early arrival <em>waits</em>; late arrival <em>fails</em>. This asymmetry is the part that is easy to get wrong.</li>
+			<li><strong>Objective:</strong> <code>Σ route distance + vehicleFixedCost × routes used</code>. Without the fixed cost the solver happily spreads work across every truck available; the fixed cost is what makes it choose four over five.</li>
+			<li><strong>Fleet truncation happens last:</strong> If construction produces more routes than there are trucks, the surplus is dropped <em>after</em> local search, not before. Or-opt consolidates routes, so truncating early strands stops the search was about to absorb — in the tight-windows preset that was the difference between two unserved stops and none.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">API Layer</h2>
+		<ul>
+			<li><strong>Endpoints:</strong> <code>GET /api/v1/fleet/scenario?preset=fullday</code> and <code>POST /api/v1/fleet/optimize</code>.</li>
+			<li><strong>Versioning:</strong> <code>Asp.Versioning</code> with the version in the route template, matching every other API in the portfolio.</li>
+			<li><strong>Payload guards:</strong> <code>[RequestSizeLimit(4_000_000)]</code> on the POST and <code>[EnableRateLimiting("expensive")]</code> on the controller — a solve is an NP-hard search plus a few dozen A* expansions.</li>
+			<li><strong>Caching:</strong> Scenarios are deterministic, so <code>GET /scenario</code> carries <code>[ResponseCache(Duration = 3600)]</code>. <code>VaryByQueryKeys</code> is deliberately absent — it throws a <code>409</code> unless the response-caching middleware is registered, which this app does not do; caches key on the full URL and the preset lives in the query string anyway.</li>
+			<li><strong>Infeasibility is an answer, not an error:</strong> A stop no vehicle can reach inside its window comes back in <code>UnservedStopIds</code> with <code>Feasible = false</code> in a normal <code>200</code>. Only malformed input — a demand above capacity, a shift that ends before it starts — is a <code>400</code>.</li>
+			<li><strong>Honest instrumentation:</strong> The response carries <code>MatrixBuildMs</code>, <code>SolveMs</code> and <code>PathExpandMs</code> separately. At demo sizes the matrix build and the polyline expansion each cost more than the solve, which is worth knowing before optimising the wrong thing.</li>
+			<li><strong>Error contract:</strong> Only <code>ArgumentException</code> is caught, returning <code>400</code> with <code>{ "error": "..." }</code>. The service's validation messages are therefore the public API contract and are written as user-facing text.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Services and Native Boundary</h2>
+		<ul>
+			<li><strong>Kernel:</strong> <code>vrp_solver_kernel</code>, a C++20 shared library exposing a single export, <code>Vrp_SolveCvrptw</code>, through a stable C ABI with <code>#pragma pack(push, 8)</code> structs and status-code returns.</li>
+			<li><strong>Where the boundary sits:</strong> The kernel receives two flat matrices and a stop array and returns route membership as zero-based stop indices in the flat-buffer idiom — one contiguous index buffer plus per-route lengths. Arrival times, per-route distances, unserved stops and the road-following geometry are all derived in C#, where they stay readable and unit-testable.</li>
+			<li><strong>Marshalling:</strong> Blittable <code>[StructLayout(Sequential, Pack = 8)]</code> structs with preallocated managed output arrays and explicit <code>[In]</code>/<code>[Out]</code> direction attributes. Native code never allocates across the boundary.</li>
+			<li><strong>Managed fallback:</strong> <code>VrpSolverNativeBridge.IsAvailable</code> gates the native path. The managed solver mirrors the kernel move for move — same savings ordering, same tiebreaks, same acceptance epsilon — so both paths return the identical solution. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries.</li>
+			<li>
+				<strong>Measured speedup:</strong> Native is about <strong>2.3×</strong> faster than the managed fallback, with bit-identical solutions. Best of five warm runs on the same machine, solve time only (matrix construction and polyline expansion excluded):
+				<div class="table-responsive mt-2 mb-2">
+					<table class="table table-sm w-auto mb-0">
+						<thead>
+							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+						</thead>
+						<tbody>
+							<tr><td>60 stops, 5 local-search passes</td><td class="text-end">0.64 ms</td><td class="text-end">1.66 ms</td><td class="text-end">2.59×</td></tr>
+							<tr><td>90 stops, 31 local-search passes</td><td class="text-end">4.89 ms</td><td class="text-end">11.41 ms</td><td class="text-end">2.33×</td></tr>
+							<tr><td>120 stops, 26 local-search passes</td><td class="text-end">7.33 ms</td><td class="text-end">16.78 ms</td><td class="text-end">2.29×</td></tr>
+						</tbody>
+					</table>
+				</div>
+				Final objective, initial objective, total distance and the ordered stop sequence all match exactly across both paths on all three shipped presets and four synthetic workloads — the two implementations make identical accept/reject decisions, not merely similar ones.
+			</li>
+			<li><strong>Where the speedup came from — and where it did not:</strong> The first working kernel was <em>1.7× slower</em> than managed C#, because the move operators allocated a fresh <code>std::vector</code> for every candidate route and the .NET nursery allocator beats <code>malloc</code> at that game. Hoisting three scratch buffers out of the hot loops and reusing their capacity via <code>assign</code> turned a 1.7× loss into a 2.3× win. There is no SIMD and no threading in this kernel; the entire gain is allocation discipline plus a tighter inner loop over raw <code>double*</code> rather than bounds-checked arrays.</li>
+			<li><strong>Compiled with <code>/fp:precise</code>, deliberately:</strong> Every other kernel in this portfolio uses <code>/fp:fast</code>. This one cannot: the solver's accept/reject test is a floating-point comparison against an epsilon, and a reassociated sum can flip a decision and send the search down a different branch. Determinism across the native and managed paths was worth more than the last few percent.</li>
+			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across every kernel here and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
+		<ul>
+			<li><strong>Scenario in, routes out:</strong> The client never sees the road graph. Sending the scenario instead of the network cut the request from roughly 425 KB to about 2 KB and moved snapping, matrix construction and leg expansion to the server where they belong. It also means the client cannot desynchronise from the network the server actually routed on.</li>
+			<li><strong>Stateless kernel, no graph handle:</strong> The kernel takes matrices, not a graph. A reusable <code>Graph_Create</code>/<code>Graph_Destroy</code> handle would let the adjacency structure survive across calls and is the single highest-leverage future change, but it breaks the stateless-kernel convention every other library here follows, so it stays a conversation rather than a commit.</li>
+			<li><strong>Presets tuned from measured behaviour, not round numbers:</strong> The three scenarios were calibrated by running them. Morning uses 2 of 3 vans and improves 1.0% — with loose windows Clarke-Wright is already close to optimal. Full day uses 4 of 5 trucks and improves 14.8%. Tight windows needs all 6 trucks for the same 40 drops and improves 14.1%. That contrast is the whole demonstration: narrow windows cost trucks, not kilometres.</li>
+			<li><strong>Local search never regresses:</strong> Every recorded objective is monotonically non-increasing by construction — a move is applied only when it strictly lowers the objective. That is a real limitation, not just a safety property: pure descent cannot escape a local optimum.</li>
+			<li><strong>Waiting is free, lateness is fatal:</strong> Arriving early parks the driver until the window opens and costs nothing in this model. That matches parcel delivery; it does not match paid driver hours, where waiting is real money and belongs in the objective.</li>
+			<li><strong>Leaflet, not hand-built SVG:</strong> The other compute demos here draw their own SVG to avoid a tile dependency. Routes that trace real streets only mean something on a real basemap, so this page takes the dependency — but the convergence chart and the schedule timeline are still hand-built SVG using CSS custom properties, so both follow the light/dark theme.</li>
+			<li><strong>The schedule is the proof:</strong> The timeline is the view a dispatcher actually reads, and it is also the artifact that proves the time windows are respected — each solid block has to land inside its pale band. <code>ArrivalMinutes</code> is emitted parallel to <code>StopIds</code> precisely so this is checkable rather than asserted.</li>
+		</ul>
+	</section>
+
+	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+		<h2 class="h4 mb-3">Interview Discussion Points</h2>
+		<ul>
+			<li>CVRPTW is NP-hard. What does that actually mean for a dispatcher who needs an answer in 30 seconds, and how do you decide when to stop searching?</li>
+			<li>Clarke-Wright is a construction heuristic and 2-opt/Or-opt is local search. Why do you need both, and what happens if you skip the construction phase?</li>
+			<li>The solver uses first-improvement rather than best-improvement. What is the tradeoff, and when would you switch?</li>
+			<li>Local search gets stuck in local optima. How would you escape — simulated annealing, tabu search, large neighbourhood search, or a genetic algorithm? What does each cost in implementation complexity?</li>
+			<li>Distance comes from the real road network, but travel time is distance ÷ 40 km/h. What breaks when you introduce time-of-day traffic, and why can't you just put minutes on the graph edges?</li>
+			<li>The distance matrix is <code>(n+1)²</code> Dijkstras. At what stop count does matrix construction dominate solve time, and what would you do about it?</li>
+			<li>The first version of this kernel was slower than the C# it replaced. How would you have caught that before shipping, and what does it say about when to reach for native code at all?</li>
+			<li>How would you handle a driver going sick at 10am with half a route completed?</li>
+			<li>What changes if stops can be served by any of three depots instead of one?</li>
+			<li>Waiting for a window to open is free in this objective. What breaks when you price driver hours, and how would you model a lunch break?</li>
+		</ul>
+	</section>
+</div>

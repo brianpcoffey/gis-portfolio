@@ -74,6 +74,7 @@ Nine native integrations are implemented today — the Home Finder scoring kerne
 | Raster Change Detection | `change_detection_kernel` | Implemented | CVA magnitude, Otsu thresholding, morphological open, and two-pass union-find connected components over flat raster buffers |
 | Outage Manager & Network Trace | `network_trace_kernel` | Implemented | downstream/upstream fault tracing, isolation-device search, and connectivity sweeps over a CSR incidence layout |
 | Emergency Response Coverage Optimizer | `facility_location_kernel` | Implemented | p-median greedy seeding and Teitz-Bart vertex substitution with cached nearest/second-nearest distances, plus demand-weighted coverage statistics |
+| Fleet Route Optimizer | `vrp_solver_kernel` | Implemented | CVRPTW metaheuristic — Clarke-Wright savings construction plus first-improvement 2-opt / Or-opt local search over flat cost and travel-time matrices |
 
 The architectural goal is not "C++ everywhere." Native code is isolated behind measured, testable kernels for dense numeric processing, computational geometry, raster analysis, streaming telemetry, graph traversal, clustering, visibility, spatial overlay, and scoring. The managed fallback is production behavior, not only a test convenience.
 
@@ -354,6 +355,20 @@ Public-safety deployment analysis over the real Redlands street network. Answers
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Leaflet, SVG
 
 **API:** `GET /api/v1/response/scenario`, `POST /api/v1/response/isochrone`, `POST /api/v1/response/optimize`
+### 🚚 Fleet Route Optimizer
+Last-mile dispatch planning as an actual optimization problem rather than a shortest-path lookup. Given a depot, 40 deliveries with load and delivery windows, and a fleet with a capacity limit and a shift end, it decides which truck serves which stops, in what order, and when each one arrives — the **Capacitated Vehicle Routing Problem with Time Windows**, solved over the real Redlands street network.
+
+- **Clarke-Wright parallel savings construction** — one route per stop, then merge route ends in descending `d(0,i) + d(0,j) − d(i,j)` order while capacity and every time window still hold
+- **2-opt and Or-opt local search** — segment reversal within a route and relocation of 1–3 consecutive stops into any position of any route, first-improvement, with the objective recorded after every pass so the convergence curve is real data rather than decoration
+- **Time windows that actually bind** — the feasibility walk waits on early arrival and fails on late arrival, and the return leg is checked against the shift end. `ArrivalMinutes` is emitted parallel to `StopIds` so the schedule timeline proves the windows are respected
+- **A fixed cost per vehicle** in the objective, which is what makes the solver choose four trucks over five. Three calibrated presets: 2 of 3 vans on loose windows, 4 of 5 trucks on a full day, all 6 trucks once the windows narrow to an hour
+- **Real road geometry** — one `(n+1)²` road-distance matrix built server-side, then every solved leg expanded back into a street-following polyline via A*. Distance becomes travel minutes *outside* the graph search, because A*'s haversine heuristic is admissible only while edge costs are kilometres
+- Client sends the scenario (~2 KB), not the graph (~425 KB) — deliberately unlike the older Route Planner page
+- **Benchmarked against its own managed fallback: ~2.3× speedup, bit-identical solutions.** The first version was 1.7× *slower*; the Details page explains what changed and why there is no SIMD in it
+
+**Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Leaflet, SVG
+
+**API:** `GET /api/v1/fleet/scenario`, `POST /api/v1/fleet/optimize`
 
 ---
 

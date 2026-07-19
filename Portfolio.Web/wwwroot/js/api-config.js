@@ -106,6 +106,10 @@
                     scenario : BASE + "/response/scenario",
                     isochrone: BASE + "/response/isochrone",
                     optimize : BASE + "/response/optimize"
+                },
+                fleet: {
+                    scenario: BASE + "/fleet/scenario",
+                    optimize: BASE + "/fleet/optimize"
                 }
             }
         }
