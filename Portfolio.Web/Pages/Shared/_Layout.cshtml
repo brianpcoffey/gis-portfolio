@@ -32,7 +32,10 @@
     <meta name="description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
     <meta name="keywords" content="GIS, Software Engineer, ArcGIS, Spatial Analysis, ASP.NET Core, Entity Framework, Web GIS" />
 
-    <link rel="icon" href="~/favicon.ico" />
+    @* SVG first for modern browsers; the .ico stays as the fallback for older ones
+       and for Windows pinned-site tiles, which never learned to read SVG. *@
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="~/favicon.ico" sizes="any" />
     <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
 
     <!-- Open Graph / Twitter social preview -->
@@ -90,6 +93,12 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/#contact">Contact</a>
+                        </li>
+                        @* One-click résumé from every page — the single most-requested
+                           artifact for a recruiter, and it should never be more than one
+                           click away regardless of where they landed. *@
+                        <li class="nav-item">
+                            <a class="nav-link" href="~/files/Brian-Coffey-Resume.pdf" download="Brian-Coffey-Resume.pdf">Résumé</a>
                         </li>
                         <li class="nav-item">
                             <button id="themeToggle" class="theme-toggle-btn btn" type="button" aria-label="Theme: change light, dark, or system">
