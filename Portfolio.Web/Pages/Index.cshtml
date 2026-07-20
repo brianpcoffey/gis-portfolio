@@ -900,48 +900,33 @@
 </section>
 
 <!-- Résumé -->
-@* Its own section rather than a pair of buttons bolted onto Contact. The
-   résumé is the single artifact a recruiter came for, so it gets a stop of
-   its own on the page and states up front what it is before asking for a
-   click — format, length, and how current it is. *@
+@* Built from the same parts as About and Skills — centered .section-title,
+   one .about-card-style surface, the site's two standard buttons. Nothing
+   invented for this section alone. *@
 <section id="resume" class="resume-section py-5" role="region" aria-labelledby="resumeHeading">
     <div class="container">
+        <h2 id="resumeHeading" class="section-title text-center mb-4">Résumé</h2>
         <div class="row justify-content-center">
-            <div class="col-lg-9">
-                <div class="resume-card">
-                    <div class="resume-card__glyph" aria-hidden="true">
-                        <i class="fa-solid fa-file-lines"></i>
-                    </div>
-
-                    <div class="resume-card__body">
-                        <h2 id="resumeHeading" class="resume-card__title">Résumé</h2>
-                        <p class="resume-card__lead">
-                            One page: ASP.NET Core and C# backend engineering, native C++ interop,
-                            geospatial analysis, and a CI/CD pipeline that tests and gates every commit.
-                        </p>
-                        <ul class="resume-card__facts">
-                            <li><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF</li>
-                            <li><i class="fa-solid fa-file-lines" aria-hidden="true"></i>1 page</li>
-                            <li><i class="fa-solid fa-hard-drive" aria-hidden="true"></i>80&nbsp;KB</li>
-                            <li><i class="fa-solid fa-calendar-check" aria-hidden="true"></i>Updated July 2026</li>
-                        </ul>
-                    </div>
-
-                    <div class="resume-card__actions">
-                        <a class="btn btn-accent resume-btn"
+            <div class="col-lg-8">
+                <div class="resume-card text-center">
+                    <p>
+                        One page: ASP.NET Core and C# backend engineering, native C++ interop,
+                        geospatial analysis, and a CI/CD pipeline that tests and gates every commit.
+                    </p>
+                    <div class="resume-actions">
+                        <a class="btn btn-accent"
                            href="~/files/Brian-Coffey-Resume.pdf"
                            download="Brian-Coffey-Resume.pdf">
-                            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                            <span>Download<span class="visually-hidden"> résumé, PDF, 80 kilobytes</span></span>
+                            <i class="fa-solid fa-download me-2" aria-hidden="true"></i>Download PDF
                         </a>
-                        <a class="btn resume-btn resume-btn--ghost"
+                        <a class="btn btn-outline-accent"
                            href="~/files/Brian-Coffey-Resume.pdf"
                            target="_blank"
                            rel="noopener">
-                            <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i>
-                            <span>View<span class="visually-hidden"> résumé in a new tab</span></span>
+                            <i class="fa-solid fa-up-right-from-square me-2" aria-hidden="true"></i>View<span class="visually-hidden"> résumé in a new tab</span>
                         </a>
                     </div>
+                    <p class="resume-meta">PDF &middot; 1 page &middot; 80&nbsp;KB &middot; updated July 2026</p>
                 </div>
             </div>
         </div>

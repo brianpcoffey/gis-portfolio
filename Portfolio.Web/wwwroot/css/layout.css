@@ -418,132 +418,49 @@ body.dark-mode .projects-index-section {
 /* ======================================
    Résumé Section
    --------------------------------------
-   A single horizontal card: glyph, description + file facts, then the two
-   actions stacked on the right. Collapses to a centered column under 768px.
+   Deliberately reuses .about-card's surface and the site's two standard
+   buttons, so the section reads as part of the page rather than a widget
+   dropped into it. Only the button row and the file-detail line are new.
    ====================================== */
 .resume-section {
     background: var(--background);
 }
 
 .resume-card {
-    display: flex;
-    align-items: center;
-    gap: 1.75rem;
-    padding: 1.75rem 2rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-left: 4px solid var(--accent);
     border-radius: 12px;
-    box-shadow: 0 4px 18px var(--shadow);
-    transition: box-shadow var(--transition), transform var(--transition);
+    padding: 2.5rem;
+    box-shadow: 0 4px 16px var(--shadow);
 }
 
-.resume-card:hover {
-    box-shadow: 0 10px 28px var(--shadow);
-    transform: translateY(-2px);
-}
-
-.resume-card__glyph {
-    flex: 0 0 auto;
-    width: 3.75rem;
-    height: 3.75rem;
-    display: grid;
-    place-items: center;
-    border-radius: 12px;
-    background: var(--accent-soft);
-    color: var(--accent-text);
-    font-size: 1.6rem;
-}
-
-.resume-card__body {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-.resume-card__title {
-    font-size: 1.5rem;
-    font-weight: 700;
+.resume-card p {
+    font-size: 1.05rem;
+    line-height: 1.8;
     color: var(--text);
-    margin: 0 0 0.35rem;
+    margin-bottom: 1.5rem;
 }
 
-.resume-card__lead {
-    color: var(--text-muted);
-    margin: 0 0 0.75rem;
-    line-height: 1.6;
-}
-
-.resume-card__facts {
+.resume-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem 0.5rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.resume-card__facts li {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.2rem 0.6rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-
-.resume-card__facts i {
-    font-size: 0.75rem;
-    color: var(--accent-text);
-}
-
-.resume-card__actions {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    min-width: 11rem;
-}
-
-.resume-btn {
-    display: inline-flex;
-    align-items: center;
     justify-content: center;
-    gap: 0.55rem;
-    padding: 0.65rem 1.25rem;
-    border-radius: 8px;
-    font-weight: 600;
-    white-space: nowrap;
+    gap: 0.75rem;
 }
 
-.resume-btn--ghost {
-    color: var(--accent-text);
-    background: transparent;
-    border: 1px solid var(--accent-text);
-    transition: background-color var(--transition), color var(--transition);
+.resume-card .resume-meta {
+    margin: 1.25rem 0 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
 }
 
-.resume-btn--ghost:hover,
-.resume-btn--ghost:focus {
-    background: var(--accent-on-fill);
-    border-color: var(--accent-on-fill);
-    color: #fff;
-}
-
-@media (max-width: 767.98px) {
+@media (max-width: 575.98px) {
     .resume-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1.25rem;
-        padding: 1.5rem;
+        padding: 1.75rem 1.25rem;
     }
 
-    .resume-card__actions {
+    .resume-actions .btn {
         width: 100%;
-        min-width: 0;
     }
 }
 
