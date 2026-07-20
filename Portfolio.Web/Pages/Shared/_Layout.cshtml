@@ -38,10 +38,13 @@
     <meta name="description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
     <meta name="keywords" content="GIS, Software Engineer, ArcGIS, Spatial Analysis, ASP.NET Core, Entity Framework, Web GIS" />
 
-    @* SVG first for modern browsers; the .ico stays as the fallback for older ones
-       and for Windows pinned-site tiles, which never learned to read SVG. *@
-    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="~/favicon.ico" sizes="any" />
+    @* The .ico is declared alone and deliberately. It carries three hand-tuned
+       entries (16/32/48) — the 16px one drops the satellite nodes and switches to
+       the lighter green, because the full mark turns to mush at tab size. Browsers
+       given an SVG favicon prefer it unconditionally and would scale the busy
+       artwork down instead, so favicon.svg stays in wwwroot as the design source
+       but is not linked. asp-append-version busts the cached scaffold icon. *@
+    <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" asp-append-version="true" />
     <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
 
     <!-- Open Graph / Twitter social preview -->
