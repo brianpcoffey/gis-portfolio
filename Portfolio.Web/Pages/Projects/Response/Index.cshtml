@@ -79,7 +79,7 @@
 						<button id="responseResetBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Reset to Existing</button>
 						<div>
 							<div class="small text-muted theme-text-muted mb-2">Chosen stations</div>
-							<div id="responseStationList" class="result-list"></div>
+							<div id="responseStationList" class="result-list" aria-live="polite"></div>
 						</div>
 						<pre id="responseSummary" class="sample-json mt-auto mb-0"></pre>
 					</div>
@@ -101,13 +101,13 @@
 						<div class="mb-2 small text-muted theme-text-muted">
 							<i class="fa-solid fa-location-dot me-1"></i>Demand and districting &mdash; circle size is call volume, colour is response time. Click any station marker to paint its drive-time bands.
 						</div>
-						<div id="responseMap" class="spatial-map-panel mb-4" style="min-height: 460px;" aria-label="Redlands response coverage map"></div>
+						<div id="responseMap" class="spatial-map-panel mb-4" style="min-height: 460px;" role="application" aria-label="Redlands response coverage map"></div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
 							<i class="fa-solid fa-chart-column me-1"></i>Response-time distribution &mdash; call volume per one-minute bin. The outline is today's stations, the bars are the optimized siting.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
-							<svg id="responseHistogramSvg" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px;" aria-label="Response-time histogram"></svg>
+							<svg id="responseHistogramSvg" role="img" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px;" aria-label="Response-time histogram"></svg>
 						</div>
 					</div>
 				</div>

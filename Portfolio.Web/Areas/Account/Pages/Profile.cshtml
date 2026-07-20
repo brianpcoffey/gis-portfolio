@@ -46,7 +46,7 @@
                     </div>
                 }
                 <div class="profile-header-info">
-                    <h4>@(Model.DisplayName ?? Model.GoogleName ?? "User")</h4>
+                    <h2 class="h4">@(Model.DisplayName ?? Model.GoogleName ?? "User")</h2>
                     <p class="profile-email">
                         @if (Model.IsGoogleLinked)
                         {
@@ -64,7 +64,7 @@
         <div class="profile-card">
             <div class="profile-card-header">
                 <i class="fa-solid fa-id-card header-icon" aria-hidden="true"></i>
-                <h5>Account Details</h5>
+                <h2 class="h5">Account Details</h2>
             </div>
             <div class="profile-card-body">
                 <div class="profile-detail-row">
@@ -90,7 +90,7 @@
         <div class="profile-card">
             <div class="profile-card-header">
                 <i class="fa-solid fa-pen header-icon" aria-hidden="true"></i>
-                <h5>Edit Profile</h5>
+                <h2 class="h5">Edit Profile</h2>
             </div>
             <div class="profile-card-body">
                 <form method="post">
@@ -115,12 +115,13 @@
         <div class="profile-card">
             <div class="profile-card-header">
                 <i class="fa-solid fa-universal-access header-icon" aria-hidden="true"></i>
-                <h5>Display &amp; Accessibility</h5>
+                <h2 class="h5">Display &amp; Accessibility</h2>
             </div>
             <div class="profile-card-body">
                 <p class="form-text" style="margin-top: 0;">
-                    Saved on this device and applied across the whole site — also available anytime from the
-                    <i class="fa-solid fa-universal-access" aria-hidden="true"></i> button in the top navigation.
+                    Saved in this browser and applied across the whole site. The same controls,
+                    plus the accessibility statement, are on the public
+                    <a href="/Accessibility">accessibility page</a>.
                 </p>
                 @await Html.PartialAsync("_PreferencesControls", "profile")
             </div>
@@ -130,7 +131,7 @@
         <div class="profile-card profile-card--danger">
             <div class="profile-card-header">
                 <i class="fa-solid fa-triangle-exclamation header-icon" aria-hidden="true"></i>
-                <h5>Danger Zone</h5>
+                <h2 class="h5">Danger Zone</h2>
             </div>
             <div class="profile-card-body">
                 <p class="form-text" style="margin-top: 0;">

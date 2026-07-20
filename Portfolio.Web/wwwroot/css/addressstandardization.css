@@ -227,16 +227,16 @@
 
 /* â”€â”€ Accent button variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .address-standardization-page .btn-accent {
-    background-color: var(--accent);
-    border-color: var(--accent);
+    background-color: var(--accent-on-fill);
+    border-color: var(--accent-on-fill);
     color: #fff;
     transition: background-color var(--transition), border-color var(--transition);
 }
 
 .address-standardization-page .btn-accent:hover,
 .address-standardization-page .btn-accent:focus {
-    background-color: var(--accent-light);
-    border-color: var(--accent-light);
+    background-color: var(--accent-on-fill-h);
+    border-color: var(--accent-on-fill-h);
     color: #fff;
 }
 
@@ -253,7 +253,7 @@
 
 .address-standardization-page .btn-outline-accent:hover,
 .address-standardization-page .btn-outline-accent:focus {
-    background-color: var(--accent);
+    background-color: var(--accent-on-fill);
     color: #fff;
 }
 

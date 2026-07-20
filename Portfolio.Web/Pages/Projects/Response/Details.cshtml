@@ -67,14 +67,15 @@
 				<strong>Measured speedup:</strong> Native runs between <strong>1.2×</strong> and <strong>2.2×</strong> the managed fallback depending on the objective, with identical results. Measured on the same machine, warm, averaged over repeated runs:
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
+						<caption class="visually-hidden">Native versus managed benchmark results for the facility location kernel, by workload.</caption>
 						<thead>
-							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><td>Shipped scenario, 450 × 24, 4 stations, p90</td><td class="text-end">8.5 ms</td><td class="text-end">10.6 ms</td><td class="text-end">1.25×</td></tr>
-							<tr><td>Synthetic 800 × 60, 8 stations, p90</td><td class="text-end">139 ms</td><td class="text-end">170 ms</td><td class="text-end">1.22×</td></tr>
-							<tr><td>Synthetic 1,600 × 120, 10 stations, p90</td><td class="text-end">1,164 ms</td><td class="text-end">1,685 ms</td><td class="text-end">1.45×</td></tr>
-							<tr><td>Synthetic 1,600 × 120, 10 stations, weighted mean</td><td class="text-end">12.0 ms</td><td class="text-end">26.8 ms</td><td class="text-end">2.23×</td></tr>
+							<tr><th scope="row" class="fw-normal">Shipped scenario, 450 × 24, 4 stations, p90</th><td class="text-end">8.5 ms</td><td class="text-end">10.6 ms</td><td class="text-end">1.25×</td></tr>
+							<tr><th scope="row" class="fw-normal">Synthetic 800 × 60, 8 stations, p90</th><td class="text-end">139 ms</td><td class="text-end">170 ms</td><td class="text-end">1.22×</td></tr>
+							<tr><th scope="row" class="fw-normal">Synthetic 1,600 × 120, 10 stations, p90</th><td class="text-end">1,164 ms</td><td class="text-end">1,685 ms</td><td class="text-end">1.45×</td></tr>
+							<tr><th scope="row" class="fw-normal">Synthetic 1,600 × 120, 10 stations, weighted mean</th><td class="text-end">12.0 ms</td><td class="text-end">26.8 ms</td><td class="text-end">2.23×</td></tr>
 						</tbody>
 					</table>
 				</div>

@@ -78,7 +78,10 @@
 							<i class="fa-solid fa-hand-pointer me-1"></i>Click any conductor to place a fault. De-energized sections turn red, the upstream path to the substation turns blue, isolation devices get an amber halo, and restored sections turn green.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3" style="position: relative;">
-							<svg id="outageSvg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px; aspect-ratio: 1;" aria-label="Single-line diagram of the Redlands distribution network"></svg>
+							@* role="group", not "img": the JS injects focusable role="button" conductors
+   into this diagram, and role="img" would prune them from the accessibility
+   tree — hiding the only controls that place a fault. *@
+							<svg id="outageSvg" role="group" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px; aspect-ratio: 1;" aria-label="Single-line diagram of the Redlands distribution network"></svg>
 							<div id="outageTooltip" class="d-none theme-surface small shadow-sm rounded px-2 py-1" style="position: absolute; pointer-events: none; z-index: 5; max-width: 15rem;"></div>
 						</div>
 					</div>

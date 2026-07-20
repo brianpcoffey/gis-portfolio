@@ -186,6 +186,12 @@
         }
 
         routeList.innerHTML = rows.join("");
+
+        var routeCount = result.routes.length;
+        announce(routeCount + (routeCount === 1 ? " route planned" : " routes planned") +
+            (result.unservedStopIds.length > 0
+                ? ", " + result.unservedStopIds.length + " stops unserved"
+                : ", all stops served"));
     }
 
     // ── Map ─────────────────────────────────────────────────────────────────
@@ -509,5 +515,14 @@
         var div = document.createElement("div");
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Sends a message to the global polite live region. Clearing first and setting on a
+    // timeout makes a repeated identical message fire again instead of being swallowed.
+    function announce(message) {
+        var live = document.getElementById("a11yAnnounce");
+        if (!live) { return; }
+        live.textContent = "";
+        window.setTimeout(function () { live.textContent = message; }, 40);
     }
 }());

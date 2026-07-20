@@ -197,16 +197,16 @@
 
 /* â”€â”€ Accent button variant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .reverse-geocoding-page .btn-accent {
-    background-color: var(--accent);
-    border-color: var(--accent);
+    background-color: var(--accent-on-fill);
+    border-color: var(--accent-on-fill);
     color: #fff;
     transition: background-color var(--transition), border-color var(--transition);
 }
 
 .reverse-geocoding-page .btn-accent:hover,
 .reverse-geocoding-page .btn-accent:focus {
-    background-color: var(--accent-light);
-    border-color: var(--accent-light);
+    background-color: var(--accent-on-fill-h);
+    border-color: var(--accent-on-fill-h);
     color: #fff;
 }
 
@@ -219,13 +219,13 @@
 
 .reverse-geocoding-page .btn-outline-accent:hover,
 .reverse-geocoding-page .btn-outline-accent:focus {
-    background-color: var(--accent);
+    background-color: var(--accent-on-fill);
     color: #fff;
 }
 
 /* â”€â”€ Badge GIS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .reverse-geocoding-page .badge-gis {
-    background-color: var(--accent);
+    background-color: var(--accent-on-fill);
     color: #fff;
     border-radius: 20px;
     padding: 0.4em 0.9em;

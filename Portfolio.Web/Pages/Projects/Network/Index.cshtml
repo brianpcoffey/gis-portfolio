@@ -38,10 +38,10 @@
 			<div class="panel-section">
 				<div class="panel-section-header">
 					<i class="fa-solid fa-location-dot text-accent me-1"></i>
-					<span class="fw-semibold small">Origin</span>
+					<span class="fw-semibold small" id="networkStartLabel">Origin</span>
 				</div>
 				<div class="panel-body">
-					<select id="networkStart" class="form-select form-select-sm">
+					<select id="networkStart" class="form-select form-select-sm" aria-labelledby="networkStartLabel">
 						<option value="">Loading graph…</option>
 					</select>
 					<p class="hint-text mt-1">Or <strong>click anywhere</strong> on the map — it snaps to the nearest intersection.</p>
@@ -79,8 +79,10 @@
 						<input class="form-check-input" type="checkbox" id="showExplored" checked />
 						<label class="form-check-label small" for="showExplored">
 							Show search space
-							<span class="explored-swatch explored-swatch-astar" title="A* explored"></span>
-							<span class="explored-swatch explored-swatch-dijkstra" title="Dijkstra explored"></span>
+							<span class="explored-swatch explored-swatch-astar" aria-hidden="true"></span>
+							<span class="visually-hidden">A* explored</span>
+							<span class="explored-swatch explored-swatch-dijkstra" aria-hidden="true"></span>
+							<span class="visually-hidden">Dijkstra explored</span>
 						</label>
 					</div>
 				</div>
@@ -154,7 +156,7 @@
 
 			<!-- Native status -->
 			<div class="panel-footer">
-				<span id="nativeStatus" class="badge bg-secondary">Native: —</span>
+				<span id="nativeStatus" class="badge bg-secondary" role="status">Native: —</span>
 				<span id="loadingSpinner" class="d-none ms-2 text-muted small">
 					<i class="fa-solid fa-spinner fa-spin me-1"></i>Computing…
 				</span>
@@ -162,12 +164,12 @@
 		</aside>
 
 		<!-- ── Map ───────────────────────────────────────────────────── -->
-		<main class="network-map-container">
-			<div id="networkMap" class="network-map"></div>
+		<div class="network-map-container">
+			<div id="networkMap" class="network-map" role="application" aria-label="Route map"></div>
 			<div id="mapOverlayHint" class="map-click-hint">
 				<i class="fa-solid fa-hand-pointer me-1"></i>Click a node to set origin
 			</div>
-		</main>
+		</div>
 	</div>
 </div>
 

@@ -8,16 +8,14 @@
 <div class="container py-5 text-center">
     <div class="card shadow-sm p-4 mx-auto logout-card">
         <div class="card-body">
-            <i class="fa-solid fa-right-from-bracket fa-3x text-primary mb-3"></i>
-            <h2 class="card-title mb-3">You have been signed out</h2>
-            <p class="text-muted mb-3">Thank you for visiting. You will be redirected to the homepage shortly.</p>
+            <i class="fa-solid fa-right-from-bracket fa-3x text-primary mb-3" aria-hidden="true"></i>
+            <h1 class="card-title h2 mb-3">You have been signed out</h1>
+            <p class="text-muted mb-3">Thank you for visiting.</p>
+            @* The 3-second auto-redirect that used to live here failed WCAG 2.2.1
+               (Timing Adjustable) — it moved the page out from under anyone still
+               reading, with no way to pause or extend it. An explicit link costs
+               one click and nothing else. *@
             <a class="btn btn-primary" href="/">Return to Home</a>
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        setTimeout(() => { window.location.href = "/"; }, 3000);
-    </script>
-}

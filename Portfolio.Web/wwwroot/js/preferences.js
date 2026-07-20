@@ -11,8 +11,9 @@
  *   • No flash    — the inline <head> script in _Layout applies the same
  *                   attributes before first paint; this file re-applies and
  *                   keeps everything in sync afterwards.
- *   • Respectful  — "auto"/"system" options track OS settings live
- *                   (prefers-color-scheme, prefers-reduced-motion).
+ *   • Respectful  — the OS settings (prefers-color-scheme, prefers-reduced-motion)
+ *                   seed the defaults; "reduce motion" left on auto keeps
+ *                   tracking the OS live.
  *
  * State is persisted as JSON under localStorage["sitePrefs"]. A legacy
  * localStorage["theme"] ("dark"/"light") value is migrated and mirrored so
@@ -31,11 +32,16 @@
      * matching control (data-pref="key") in the panel markup — nothing else.
      */
     var REGISTRY = {
+        // Two states only. A third "System" option looked tidy but behaved badly:
+        // it is invisible in the UI (the button shows a half-circle, not the theme
+        // you actually get) and it can flip the site mid-session when the OS
+        // crosses its light/dark schedule. The device preference now seeds the
+        // default on first visit and is not consulted again.
         theme: {
-            def: 'auto',
-            values: ['light', 'dark', 'auto'],
+            def: mqDark.matches ? 'dark' : 'light',
+            values: ['light', 'dark'],
             apply: function (v) {
-                var dark = effectiveDark(v);
+                var dark = v === 'dark';
                 root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
                 root.setAttribute('data-theme', v);
                 if (document.body) document.body.classList.toggle('dark-mode', dark);
@@ -114,8 +120,7 @@
     var prefs = load();
 
     function effectiveDark(themeVal) {
-        var t = themeVal || prefs.theme;
-        return t === 'dark' || (t === 'auto' && mqDark.matches);
+        return (themeVal || prefs.theme) === 'dark';
     }
 
     function save() {
@@ -152,18 +157,15 @@
         return out;
     }
 
-    /* ---- Live OS changes feed the "auto" options ---- */
+    /* ---- Live OS changes feed the remaining "auto" option (motion) ----
+       Theme deliberately does not listen: once the visitor has a stored
+       light/dark value, the OS no longer gets to change it underneath them. */
     function onSystemChange() {
-        if (prefs.theme === 'auto') REGISTRY.theme.apply(prefs.theme);
         if (prefs.motion === 'auto') REGISTRY.motion.apply(prefs.motion);
-        updateThemeToggle();
-        window.dispatchEvent(new CustomEvent('themeChanged', { detail: { dark: effectiveDark(), theme: prefs.theme } }));
     }
-    if (mqDark.addEventListener) {
-        mqDark.addEventListener('change', onSystemChange);
+    if (mqReduce.addEventListener) {
         mqReduce.addEventListener('change', onSystemChange);
-    } else if (mqDark.addListener) { // older Safari
-        mqDark.addListener(onSystemChange);
+    } else if (mqReduce.addListener) { // older Safari
         mqReduce.addListener(onSystemChange);
     }
 
@@ -178,7 +180,7 @@
     function describe(key) {
         var v = prefs[key];
         switch (key) {
-            case 'theme': return 'Theme set to ' + v;
+            case 'theme': return v === 'dark' ? 'Dark mode on' : 'Dark mode off';
             case 'contrast': return v === 'high' ? 'High contrast on' : 'High contrast off';
             case 'motion': return v === 'reduce' ? 'Reduced motion on' : 'Motion follows system';
             case 'underline': return v === 'on' ? 'Link underlines on' : 'Link underlines off';
@@ -188,23 +190,25 @@
         }
     }
 
-    /* ---- Navbar quick theme toggle (light → dark → auto) ---- */
+    /* ---- Navbar theme toggle (light ⇄ dark) ---- */
     function cycleTheme() {
-        var order = REGISTRY.theme.values; // ['light','dark','auto']
-        var i = order.indexOf(prefs.theme);
-        set('theme', order[(i + 1) % order.length]);
+        set('theme', prefs.theme === 'dark' ? 'light' : 'dark');
     }
 
     function updateThemeToggle() {
+        var dark = prefs.theme === 'dark';
         var icon = document.getElementById('themeIcon');
         var btn = document.getElementById('themeToggle');
-        if (icon) {
-            var cls = prefs.theme === 'dark' ? 'fa-moon'
-                : prefs.theme === 'light' ? 'fa-sun'
-                : 'fa-circle-half-stroke';
-            icon.className = 'fa-solid ' + cls;
+        // The icon shows the state you would switch *to*, so it reads as an
+        // action rather than a status indicator.
+        if (icon) icon.className = 'fa-solid ' + (dark ? 'fa-sun' : 'fa-moon');
+        if (btn) {
+            // A named toggle button: the name stays fixed and aria-pressed carries
+            // the state, so screen readers announce "Dark mode, toggle button,
+            // pressed" instead of a label that renames itself on every click.
+            btn.setAttribute('aria-label', 'Dark mode');
+            btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
         }
-        if (btn) btn.setAttribute('aria-label', 'Theme: ' + prefs.theme + '. Activate to change.');
     }
 
     /* ---- Bind the panel controls generically from [data-pref] ---- */

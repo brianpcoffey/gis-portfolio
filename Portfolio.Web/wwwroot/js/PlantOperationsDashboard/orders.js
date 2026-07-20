@@ -49,8 +49,11 @@ function loadOrdersTable() {
                         orderable: false,
                         className: 'text-end',
                         render: function (data, type, row) {
-                            return `<button class="btn btn-sm btn-outline-primary me-1" onclick="showOrderModal(${row.id})"><i class='fa fa-edit'></i></button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${row.id})"><i class='fa fa-trash'></i></button>`;
+                            // The icons carry no text, so each button needs a name that also
+                            // identifies its row — otherwise every row reads as the same "Edit".
+                            let rowLabel = plantOpsEscape(row.orderNumber || row.id);
+                            return `<button class="btn btn-sm btn-outline-primary me-1" onclick="showOrderModal(${row.id})" aria-label="Edit order ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${row.id})" aria-label="Delete order ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>`;
                         }
                     }
                 ],

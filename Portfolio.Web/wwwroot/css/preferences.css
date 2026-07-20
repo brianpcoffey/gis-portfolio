@@ -31,7 +31,7 @@ html {
     left: 0.75rem;
     top: -3.5rem;
     z-index: 2000;
-    background: var(--accent);
+    background: var(--accent-on-fill);
     color: #fff;
     padding: 0.55rem 1rem;
     border-radius: 0 0 8px 8px;
@@ -144,137 +144,254 @@ html[data-motion="reduce"] .fade-in {
 }
 
 /* ============================================================
-   Preferences launcher button + panel
+   Preferences controls
+   ------------------------------------------------------------
+   One shared partial, rendered on the public /Accessibility page
+   and inside the signed-in profile card. Sizing is in rem so the
+   panel scales with the very text-size setting it contains.
    ============================================================ */
-.prefs-toggle-btn {
-    background: transparent;
-    border: none;
-    color: var(--text);
-    padding: 0.5rem 0.75rem;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: color var(--transition), transform var(--transition);
-}
-
-.prefs-toggle-btn:hover,
-.prefs-toggle-btn:focus-visible {
-    color: var(--accent);
-    transform: scale(1.08);
-}
-
-/* Panel surface follows the site palette in both themes */
-#prefsPanel {
-    background-color: var(--surface);
-    color: var(--text);
-    border-left: 1px solid var(--border);
-    width: min(360px, 90vw);
-}
-
-#prefsPanel .offcanvas-header {
-    border-bottom: 1px solid var(--border);
-}
-
-#prefsPanel .offcanvas-title {
-    color: var(--text);
-    font-weight: 700;
-}
-
-.pref-group {
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.pref-group:last-of-type {
-    border-bottom: none;
-}
-
-.pref-group__label {
-    display: block;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 0.15rem;
-}
-
-.pref-group__hint {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-bottom: 0.6rem;
-}
-
-/* Segmented control (theme, and any future 2–4 value choice) */
-.pref-seg {
+.prefs-controls {
     display: flex;
-    gap: 0.35rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-.pref-seg .btn {
-    flex: 1 1 0;
-    min-width: 72px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text);
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-}
-
-.pref-seg .btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-}
-
-.pref-seg .btn:hover:not(.active) {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-/* Range control */
-.pref-range-row {
+.pref-block {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 0.75rem;
 }
 
-.pref-range-row input[type="range"] {
-    flex: 1;
-    accent-color: var(--accent);
-}
-
-.pref-range-value {
-    min-width: 3.25rem;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    color: var(--text);
-}
-
-/* Switch rows (contrast, motion, underline, readable) */
-.pref-switch {
+.pref-block__head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
 }
 
-.pref-switch .form-check-input {
-    flex-shrink: 0;
-    margin-top: 0.15rem;
+.pref-block__title {
+    display: block;
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.pref-block__hint {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.pref-block--footer {
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+/* ---- Segmented control (theme) ------------------------------------ */
+.pref-seg {
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.3rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.pref-seg__btn {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.pref-seg__btn:hover:not([aria-pressed="true"]) {
+    background: var(--accent-soft);
+    color: var(--accent-text);
+}
+
+.pref-seg__btn[aria-pressed="true"] {
+    background: var(--accent-on-fill);
+    border-color: var(--accent-on-fill);
+    color: #fff;
+    box-shadow: 0 1px 4px var(--shadow);
+}
+
+.pref-seg__btn:active {
+    transform: translateY(1px);
+}
+
+/* ---- Text size ---------------------------------------------------- */
+.pref-badge {
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.pref-range-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.pref-range-row input[type="range"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 1.75rem;
+    accent-color: var(--accent-on-fill);
     cursor: pointer;
 }
 
-.pref-switch .form-check-input:checked {
-    background-color: var(--accent);
-    border-color: var(--accent);
+.pref-range-cap {
+    flex: 0 0 auto;
+    color: var(--text-muted);
+    font-weight: 700;
+    line-height: 1;
 }
 
+.pref-range-cap--sm { font-size: 0.85rem; }
+.pref-range-cap--lg { font-size: 1.4rem; }
+
+/* ---- Switch rows -------------------------------------------------- */
+.pref-switches {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.pref-switch {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 0.9rem 1rem;
+    background: var(--surface);
+    transition: background-color var(--transition);
+}
+
+.pref-switch + .pref-switch {
+    border-top: 1px solid var(--border);
+}
+
+.pref-switch:hover,
+.pref-switch:focus-within {
+    background: var(--background);
+}
+
+.pref-switch__text {
+    min-width: 0;
+}
+
+.pref-switch__label {
+    display: block;
+    margin: 0;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.pref-switch__hint {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+/* Bootstrap's .form-switch reserves left padding for a check it no longer
+   needs here — the switch is the only thing in this column. */
+.pref-switch__control {
+    flex: 0 0 auto;
+    min-height: 0;
+    margin: 0;
+    padding-left: 0;
+}
+
+.pref-switch__control .form-check-input {
+    width: 2.6rem;
+    height: 1.45rem;
+    margin: 0.1rem 0 0;
+    background-color: var(--border);
+    border-color: var(--border);
+    cursor: pointer;
+    transition: background-color var(--transition), border-color var(--transition);
+}
+
+.pref-switch__control .form-check-input:checked {
+    background-color: var(--accent-on-fill);
+    border-color: var(--accent-on-fill);
+}
+
+/* ---- Reset -------------------------------------------------------- */
 .prefs-reset-btn {
-    width: 100%;
-    margin-top: 0.5rem;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.15rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font-weight: 600;
+    transition: border-color var(--transition), color var(--transition), background-color var(--transition);
+}
+
+.prefs-reset-btn:hover,
+.prefs-reset-btn:focus-visible {
+    border-color: var(--accent-text);
+    color: var(--accent-text);
+    background: var(--accent-soft);
+}
+
+/* ---- Standalone /Accessibility page ------------------------------- */
+.a11y-page .prefs-panel {
+    padding: 1.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 4px 18px var(--shadow);
+}
+
+.a11y-statement h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+}
+
+.a11y-statement p,
+.a11y-statement li {
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+/* High contrast needs a visible edge on the switch track, which otherwise
+   reads as a plain rectangle once the palette flattens to black/white. */
+html[data-contrast="high"] .pref-switch__control .form-check-input {
+    border-width: 2px;
+    border-color: var(--text);
 }
 
 /* ============================================================
@@ -289,16 +406,14 @@ html[data-motion="reduce"] .fade-in {
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Preference groups rise in, staggered, when the panel opens */
-#prefsPanel.show .pref-group {
+/* Preference blocks rise in, gently staggered, on the standalone page */
+.a11y-page .pref-block {
     animation: prefRise 0.35s ease both;
 }
-#prefsPanel.show .pref-group:nth-of-type(1) { animation-delay: 0.03s; }
-#prefsPanel.show .pref-group:nth-of-type(2) { animation-delay: 0.07s; }
-#prefsPanel.show .pref-group:nth-of-type(3) { animation-delay: 0.11s; }
-#prefsPanel.show .pref-group:nth-of-type(4) { animation-delay: 0.15s; }
-#prefsPanel.show .pref-group:nth-of-type(5) { animation-delay: 0.19s; }
-#prefsPanel.show .pref-group:nth-of-type(6) { animation-delay: 0.23s; }
+.a11y-page .pref-block:nth-of-type(1) { animation-delay: 0.03s; }
+.a11y-page .pref-block:nth-of-type(2) { animation-delay: 0.09s; }
+.a11y-page .pref-block:nth-of-type(3) { animation-delay: 0.15s; }
+.a11y-page .pref-block:nth-of-type(4) { animation-delay: 0.21s; }
 
 /* Profile cards rise in on load, gently staggered */
 .profile-page .profile-card {

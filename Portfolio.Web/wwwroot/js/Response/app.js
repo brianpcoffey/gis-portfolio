@@ -353,9 +353,11 @@
             }
         });
 
+        var listed = 0;
         stationList.innerHTML = result.chosenCandidateIds.map(function (id) {
             var candidate = candidateById[id];
             if (!candidate) { return ""; }
+            listed++;
             return '<div class="geo-cell-item">' +
                 '<div class="d-flex align-items-center justify-content-between">' +
                 '<span>' + escapeHtml(candidate.label) + '</span>' +
@@ -364,6 +366,8 @@
                 (candidate.isExisting ? "in service today · " : "new build · ") +
                 'worst response ' + (worstById[id] || 0).toFixed(2) + ' min</div></div>';
         }).join("");
+
+        announce(listed + (listed === 1 ? " station selected" : " stations selected"));
     }
 
     // ── Response-time histogram ─────────────────────────────────────────────
@@ -577,5 +581,14 @@
         var div = document.createElement("div");
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Sends a message to the global polite live region. Clearing first and setting on a
+    // timeout makes a repeated identical message fire again instead of being swallowed.
+    function announce(message) {
+        var live = document.getElementById("a11yAnnounce");
+        if (!live) { return; }
+        live.textContent = "";
+        window.setTimeout(function () { live.textContent = message; }, 40);
     }
 }());

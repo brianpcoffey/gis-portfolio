@@ -9,11 +9,28 @@
     --background: #f7fafc;
     --surface: #ffffff;
     --text: #1a202c;
-    --text-muted: #718096;
+    /* Was #718096 — 3.83:1 on --background, under the 4.5:1 AA floor. */
+    --text-muted: #5a6a7d;
     --border: #e2e8f0;
     --shadow: rgba(0, 0, 0, 0.08);
     --transition: 0.3s ease;
     --hero-gradient: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #38a169 100%);
+
+    /* --- Contrast-safe accent tokens (WCAG 2.1 AA, 1.4.3) --------------
+       --accent (#38a169) carries white text at only 3.24:1, and
+       --accent-light at 2.45:1 — both fail the 4.5:1 floor for normal
+       text. --accent alone stays for decorative fills, borders and focus
+       rings (1.4.11 needs only 3:1). Anything that carries *text* uses
+       one of these instead:
+         --accent-on-fill   white text on it   → 4.54:1
+         --accent-on-fill-h hover, still white → 6.64:1
+         --accent-text      accent-coloured text on the page background
+                            → 4.54:1 light, 6.4:1 dark
+         --accent-soft      tinted surface behind --accent-text          */
+    --accent-on-fill: #2c7a53;
+    --accent-on-fill-h: #215c3f;
+    --accent-text: #2c7a53;
+    --accent-soft: #e6f4ec;
 }
 
 body.dark-mode {
@@ -24,6 +41,12 @@ body.dark-mode {
     --border: #4a5568;
     --shadow: rgba(0, 0, 0, 0.25);
     --hero-gradient: linear-gradient(135deg, #0d1b2a 0%, #1b263b 50%, #2d6a4f 100%);
+
+    /* On dark surfaces the relationship inverts: a *lighter* green is what
+       reaches contrast against the background, while filled buttons keep
+       the darker green so their white label stays legible. */
+    --accent-text: #68d391;
+    --accent-soft: rgba(104, 211, 145, 0.14);
 }
 
 /* ======================================
@@ -65,12 +88,20 @@ main {
    Typography & Links
    ====================================== */
 a {
-    color: var(--accent);
+    /* --accent is 3.24:1 against the page background — fine for a border, not
+       for link text. --accent-text is the AA-safe member of the ramp and
+       already flips to the lighter green under .dark-mode. */
+    color: var(--accent-text);
     text-decoration: none;
     transition: color var(--transition);
 }
 
 a:hover {
+    color: var(--accent-on-fill-h);
+}
+
+body.dark-mode a:hover {
+    /* Going darker on a dark surface would lose contrast, so invert the move. */
     color: var(--accent-light);
 }
 

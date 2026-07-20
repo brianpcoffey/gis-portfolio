@@ -95,7 +95,7 @@
 
         <!-- CENTER - MAP -->
         <div class="col-lg-6 col-md-8">
-            <div id="mapView" class="shadow-sm rounded theme-surface" style="height:600px;"></div>
+            <div id="mapView" class="shadow-sm rounded theme-surface" role="application" aria-label="Map of U.S. states" style="height:600px;"></div>
 
             <div id="comparisonPanel" class="card mt-3 d-none theme-card">
                 <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center theme-card-header">
@@ -103,7 +103,7 @@
                     <button id="btnCloseComparison" class="btn-close" aria-label="Close comparison"></button>
                 </div>
                 <div class="card-body comparison-panel theme-panel">
-                    <div id="comparisonContent"></div>
+                    <div id="comparisonContent" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -112,7 +112,7 @@
         <div class="col-lg-3 col-md-12">
             <div class="card shadow-sm mb-3 theme-card">
                 <div class="card-header theme-card-header"><strong><i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>State Details</strong></div>
-                <div class="card-body theme-body theme-body-inverse" id="featureDetails">
+                <div class="card-body theme-body theme-body-inverse" id="featureDetails" aria-live="polite">
                     <p class="text-muted text-center small theme-text-muted">Click a state on the map to view details</p>
                 </div>
             </div>
@@ -154,25 +154,25 @@
 </div>
 
 <!-- Save Feature Modal -->
-<div class="modal fade" id="saveFeatureModal" tabindex="-1">
+<div class="modal fade" id="saveFeatureModal" tabindex="-1" aria-labelledby="saveFeatureModalTitle" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content theme-modal">
             <div class="modal-header theme-modal-header">
-                <h5 class="modal-title">Save State</h5>
+                <h2 id="saveFeatureModalTitle" class="modal-title h5">Save State</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body theme-body">
                 <input type="hidden" id="modalFeatureId" />
                 <div class="mb-3">
-                    <label class="form-label">State Name</label>
+                    <label class="form-label" for="modalFeatureName">State Name</label>
                     <input type="text" id="modalFeatureName" class="form-control" readonly />
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Description / Notes</label>
+                    <label class="form-label" for="modalDescription">Description / Notes</label>
                     <textarea id="modalDescription" class="form-control" rows="3" placeholder="Add notes about this state..."></textarea>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Add to Collection</label>
+                    <label class="form-label" for="modalCollection">Add to Collection</label>
                     <select id="modalCollection" class="form-select">
                         <option value="">-- None --</option>
                     </select>
@@ -187,11 +187,11 @@
 </div>
 
 <!-- View Saved State Modal -->
-<div class="modal fade" id="viewSavedModal" tabindex="-1">
+<div class="modal fade" id="viewSavedModal" tabindex="-1" aria-labelledby="viewSavedTitle" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 id="viewSavedTitle" class="modal-title"></h5>
+        <h2 id="viewSavedTitle" class="modal-title h5"></h2>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">

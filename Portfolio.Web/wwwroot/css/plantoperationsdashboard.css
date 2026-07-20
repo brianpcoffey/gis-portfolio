@@ -9,17 +9,17 @@ body.dark-mode .pagination .page-link {
 }
 body.dark-mode .pagination .page-link:hover,
 body.dark-mode .pagination .page-link:focus {
-  background: var(--accent) !important;
+  background: var(--accent-on-fill) !important;
   color: #fff !important;
-  border-color: var(--accent) !important;
+  border-color: var(--accent-on-fill) !important;
   outline: none;
   box-shadow: 0 0 0 2px var(--accent)33;
 }
 body.dark-mode .pagination .active .page-link,
 body.dark-mode .pagination .page-item.active .page-link {
-  background: var(--accent) !important;
+  background: var(--accent-on-fill) !important;
   color: #fff !important;
-  border-color: var(--accent) !important;
+  border-color: var(--accent-on-fill) !important;
   z-index: 2;
 }
 body.dark-mode .pagination .disabled .page-link,

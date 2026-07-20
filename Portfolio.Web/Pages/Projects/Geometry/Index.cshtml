@@ -37,13 +37,15 @@
 						<textarea id="geometryPoints" class="form-control font-monospace" rows="9"></textarea>
 						<button id="geometryTriangulateBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Triangulate</button>
 						<hr />
-						<label class="form-label small mb-0">Clip bounding box</label>
-						<div class="row g-2">
-							<div class="col-6"><input id="clipMinX" class="form-control" type="number" step="0.1" value="0.15" aria-label="Minimum X" /></div>
-							<div class="col-6"><input id="clipMinY" class="form-control" type="number" step="0.1" value="0.15" aria-label="Minimum Y" /></div>
-							<div class="col-6"><input id="clipMaxX" class="form-control" type="number" step="0.1" value="0.85" aria-label="Maximum X" /></div>
-							<div class="col-6"><input id="clipMaxY" class="form-control" type="number" step="0.1" value="0.85" aria-label="Maximum Y" /></div>
-						</div>
+						<fieldset class="border-0 p-0 m-0">
+							<legend class="form-label small mb-3 float-none w-auto">Clip bounding box</legend>
+							<div class="row g-2">
+								<div class="col-6"><input id="clipMinX" class="form-control" type="number" step="0.1" value="0.15" aria-label="Minimum X" /></div>
+								<div class="col-6"><input id="clipMinY" class="form-control" type="number" step="0.1" value="0.15" aria-label="Minimum Y" /></div>
+								<div class="col-6"><input id="clipMaxX" class="form-control" type="number" step="0.1" value="0.85" aria-label="Maximum X" /></div>
+								<div class="col-6"><input id="clipMaxY" class="form-control" type="number" step="0.1" value="0.85" aria-label="Maximum Y" /></div>
+							</div>
+						</fieldset>
 						<button id="geometryClipBtn" class="btn btn-outline-accent"><i class="fa-solid fa-crop-simple me-1"></i>Clip Vertices</button>
 					</div>
 				</div>

@@ -135,7 +135,7 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
     width: 88px;
     height: 88px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent-on-fill);
     color: #fff;
     font-size: 2.25rem;
     display: flex;
@@ -301,7 +301,7 @@ body.dark-mode .profile-alert .btn-close {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background-color: var(--accent);
+    background-color: var(--accent-on-fill);
     color: #fff;
     padding: 0.3rem 0.7rem;
     border-radius: 20px;

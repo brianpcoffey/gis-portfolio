@@ -899,27 +899,59 @@
     </div>
 </section>
 
+<!-- Résumé -->
+@* Its own section rather than a pair of buttons bolted onto Contact. The
+   résumé is the single artifact a recruiter came for, so it gets a stop of
+   its own on the page and states up front what it is before asking for a
+   click — format, length, and how current it is. *@
+<section id="resume" class="resume-section py-5" role="region" aria-labelledby="resumeHeading">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="resume-card">
+                    <div class="resume-card__glyph" aria-hidden="true">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+
+                    <div class="resume-card__body">
+                        <h2 id="resumeHeading" class="resume-card__title">Résumé</h2>
+                        <p class="resume-card__lead">
+                            One page: ASP.NET Core and C# backend engineering, native C++ interop,
+                            geospatial analysis, and a CI/CD pipeline that tests and gates every commit.
+                        </p>
+                        <ul class="resume-card__facts">
+                            <li><i class="fa-solid fa-file-pdf" aria-hidden="true"></i>PDF</li>
+                            <li><i class="fa-solid fa-file-lines" aria-hidden="true"></i>1 page</li>
+                            <li><i class="fa-solid fa-hard-drive" aria-hidden="true"></i>80&nbsp;KB</li>
+                            <li><i class="fa-solid fa-calendar-check" aria-hidden="true"></i>Updated July 2026</li>
+                        </ul>
+                    </div>
+
+                    <div class="resume-card__actions">
+                        <a class="btn btn-accent resume-btn"
+                           href="~/files/Brian-Coffey-Resume.pdf"
+                           download="Brian-Coffey-Resume.pdf">
+                            <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                            <span>Download<span class="visually-hidden"> résumé, PDF, 80 kilobytes</span></span>
+                        </a>
+                        <a class="btn resume-btn resume-btn--ghost"
+                           href="~/files/Brian-Coffey-Resume.pdf"
+                           target="_blank"
+                           rel="noopener">
+                            <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i>
+                            <span>View<span class="visually-hidden"> résumé in a new tab</span></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- Contact -->
 <section id="contact" class="contact-section py-5" role="region" aria-labelledby="contactHeading">
     <div class="container">
         <h2 id="contactHeading" class="section-title text-center mb-4">Contact</h2>
-
-        <div class="resume-cta text-center mb-4">
-            <a class="btn btn-accent btn-lg"
-               href="~/files/Brian-Coffey-Resume.pdf"
-               download="Brian-Coffey-Resume.pdf"
-               aria-label="Download Brian Coffey's résumé as a PDF">
-                <i class="fa-solid fa-file-arrow-down me-2" aria-hidden="true"></i>Download Résumé
-            </a>
-            <a class="btn btn-outline-accent btn-lg ms-2"
-               href="~/files/Brian-Coffey-Resume.pdf"
-               target="_blank"
-               rel="noopener"
-               aria-label="Open the résumé in a new tab">
-                <i class="fa-solid fa-up-right-from-square me-2" aria-hidden="true"></i>View
-            </a>
-            <div class="small text-muted theme-text-muted mt-2">PDF &middot; one page</div>
-        </div>
 
         <div class="contact-links">
             <a class="contact-link"

@@ -32,7 +32,7 @@
         <!-- Left: Preferences Panel -->
         <div class="col-lg-3 col-md-4 mb-3">
             <div class="theme-surface shadow-sm rounded p-3">
-                <h5 class="mb-3"><i class="fa-solid fa-sliders me-1"></i>Preferences</h5>
+                <h2 class="h5 mb-3"><i class="fa-solid fa-sliders me-1"></i>Preferences</h2>
 
                 <div class="mb-3">
                     <label class="form-label small" for="sliderMaxPrice"><i class="fa-solid fa-dollar-sign me-1"></i>Max Price: $<span id="lblMaxPrice">800000</span></label>
@@ -51,16 +51,16 @@
                     <input type="range" class="form-range" id="sliderMinBath" min="1" max="5" step="1" value="1" aria-label="Minimum bathrooms">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small"><i class="fa-solid fa-ruler-combined me-1"></i>Min Sq Ft: <span id="lblMinSqft">800</span></label>
+                    <label class="form-label small" for="sliderMinSqft"><i class="fa-solid fa-ruler-combined me-1"></i>Min Sq Ft: <span id="lblMinSqft">800</span></label>
                     <input type="range" class="form-range" id="sliderMinSqft" min="400" max="5000" step="100" value="800">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small"><i class="fa-solid fa-car me-1"></i>Max Commute (min): <span id="lblMaxCommute">45</span></label>
+                    <label class="form-label small" for="sliderMaxCommute"><i class="fa-solid fa-car me-1"></i>Max Commute (min): <span id="lblMaxCommute">45</span></label>
                     <input type="range" class="form-range" id="sliderMaxCommute" min="5" max="90" step="5" value="45">
                 </div>
 
                 <hr>
-                <h6 class="mb-2"><i class="fa-solid fa-weight-scale me-1"></i>Weights</h6>
+                <h3 class="h6 mb-2"><i class="fa-solid fa-weight-scale me-1"></i>Weights</h3>
 
                 <!-- Weight validation indicator -->
                 <div id="weightStatus" class="alert alert-success small py-1 px-2 mb-2" role="alert">
@@ -69,70 +69,70 @@
 
                 <!-- Each weight slider now has a visual bar beneath it -->
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-piggy-bank me-1"></i>Affordability: <span id="lblWAfford">20</span>%</label>
+                    <label class="form-label small" for="sliderWAfford"><i class="fa-solid fa-piggy-bank me-1"></i>Affordability: <span id="lblWAfford">20</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWAfford" min="0" max="100" step="5" value="20">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWAfford" style="width: 20%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-people-roof me-1"></i>Neighborhood: <span id="lblWNeighbor">15</span>%</label>
+                    <label class="form-label small" for="sliderWNeighbor"><i class="fa-solid fa-people-roof me-1"></i>Neighborhood: <span id="lblWNeighbor">15</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWNeighbor" min="0" max="100" step="5" value="15">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWNeighbor" style="width: 15%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-expand me-1"></i>Size: <span id="lblWSize">10</span>%</label>
+                    <label class="form-label small" for="sliderWSize"><i class="fa-solid fa-expand me-1"></i>Size: <span id="lblWSize">10</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWSize" min="0" max="100" step="5" value="10">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWSize" style="width: 10%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-chart-line me-1"></i>Appreciation: <span id="lblWAppreciation">10</span>%</label>
+                    <label class="form-label small" for="sliderWAppreciation"><i class="fa-solid fa-chart-line me-1"></i>Appreciation: <span id="lblWAppreciation">10</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWAppreciation" min="0" max="100" step="5" value="10">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWAppreciation" style="width: 10%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-wrench me-1"></i>Condition: <span id="lblWCondition">10</span>%</label>
+                    <label class="form-label small" for="sliderWCondition"><i class="fa-solid fa-wrench me-1"></i>Condition: <span id="lblWCondition">10</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWCondition" min="0" max="100" step="5" value="10">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWCondition" style="width: 10%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-road me-1"></i>Commute: <span id="lblWCommute">10</span>%</label>
+                    <label class="form-label small" for="sliderWCommute"><i class="fa-solid fa-road me-1"></i>Commute: <span id="lblWCommute">10</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWCommute" min="0" max="100" step="5" value="10">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWCommute" style="width: 10%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-store me-1"></i>Amenities: <span id="lblWAmenities">10</span>%</label>
+                    <label class="form-label small" for="sliderWAmenities"><i class="fa-solid fa-store me-1"></i>Amenities: <span id="lblWAmenities">10</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWAmenities" min="0" max="100" step="5" value="10">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWAmenities" style="width: 10%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Low Tax/Util: <span id="lblWTax">5</span>%</label>
+                    <label class="form-label small" for="sliderWTax"><i class="fa-solid fa-file-invoice-dollar me-1"></i>Low Tax/Util: <span id="lblWTax">5</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWTax" min="0" max="100" step="5" value="5">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWTax" style="width: 5%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-tags me-1"></i>Resale: <span id="lblWResale">5</span>%</label>
+                    <label class="form-label small" for="sliderWResale"><i class="fa-solid fa-tags me-1"></i>Resale: <span id="lblWResale">5</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWResale" min="0" max="100" step="5" value="5">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWResale" style="width: 5%;"></div>
                     </div>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label small"><i class="fa-solid fa-leaf me-1"></i>Environment: <span id="lblWEnv">5</span>%</label>
+                    <label class="form-label small" for="sliderWEnv"><i class="fa-solid fa-leaf me-1"></i>Environment: <span id="lblWEnv">5</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWEnv" min="0" max="100" step="5" value="5">
                     <div class="weight-bar-container" aria-hidden="true">
                         <div class="weight-bar-fill" id="barWEnv" style="width: 5%;"></div>
@@ -165,15 +165,15 @@
                         <option value="osm">OpenStreetMap</option>
                     </select>
                 </div>
-                <div id="homeFinderMap" style="width: 100%; height: 100%;"></div>
+                <div id="homeFinderMap" role="application" aria-label="Map of matching properties" style="width: 100%; height: 100%;"></div>
             </div>
         </div>
 
         <!-- Right: Results Panel -->
         <div class="col-lg-3 col-md-12">
             <div class="theme-surface shadow-sm rounded p-3">
-                <h5 class="mb-3"><i class="fa-solid fa-trophy me-1"></i>Top 10 Results</h5>
-                <div id="resultsPanel">
+                <h2 class="h5 mb-3"><i class="fa-solid fa-trophy me-1"></i>Top 10 Results</h2>
+                <div id="resultsPanel" aria-live="polite">
                     <p class="text-muted text-center small">Adjust preferences and click "Find Homes"</p>
                 </div>
             </div>
@@ -186,7 +186,7 @@
     <div class="modal-dialog">
         <div class="modal-content theme-modal">
             <div class="modal-header theme-modal-header">
-                <h5 class="modal-title" id="savedSearchesModalLabel"><i class="fa-solid fa-bookmark me-1"></i>Saved Searches</h5>
+                <h2 class="modal-title h5" id="savedSearchesModalLabel"><i class="fa-solid fa-bookmark me-1"></i>Saved Searches</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="savedSearchesBody">

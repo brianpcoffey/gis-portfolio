@@ -44,10 +44,14 @@ function loadInventoryTable() {
                         orderable: false,
                         className: 'text-end',
                         render: function (data, type, row) {
+                            // title= alone gave every row the same accessible name ("Edit"),
+                            // so the row identity is carried by aria-label; title stays purely
+                            // as the mouse tooltip.
+                            let rowLabel = plantOpsEscape(row.name || row.sku || row.id);
                             return `
-                                <button class="btn btn-sm btn-outline-primary me-1" onclick="showMaterialModal(${row.id})" title="Edit"><i class='fa fa-edit'></i></button>
-                                <button class="btn btn-sm btn-outline-success me-1" onclick="showReceiveStockModal(${row.id})" title="Receive Stock"><i class='fa fa-arrow-down'></i></button>
-                                <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteMaterial(${row.id})" title="Delete"><i class='fa fa-trash'></i></button>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="showMaterialModal(${row.id})" title="Edit" aria-label="Edit material ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-success me-1" onclick="showReceiveStockModal(${row.id})" title="Receive Stock" aria-label="Receive stock for material ${rowLabel}"><i class='fa fa-arrow-down' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteMaterial(${row.id})" title="Delete" aria-label="Delete material ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>
                                 ${row.isLowStock ? '<span class="badge bg-danger plant-ops-low-stock">Low</span>' : ''}
                             `;
                         }

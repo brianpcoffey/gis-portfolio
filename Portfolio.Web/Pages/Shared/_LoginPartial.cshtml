@@ -21,30 +21,37 @@
 @if (isAuthenticated)
 {
     <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 user-dropdown-toggle"
-           href="#" role="button" data-bs-toggle="dropdown" data-bs-auto-close="true"
-           aria-expanded="false" id="userDropdown">
+        @* A real <button> rather than <a href="#" role="button">: the fragment
+           navigation was bogus, and the native element brings Space/Enter
+           activation for free. The name comes from the visible text on wide
+           screens, so it needs an explicit label for the icon-only mobile
+           layout where .d-none hides it. *@
+        <button class="nav-link dropdown-toggle d-flex align-items-center gap-2 user-dropdown-toggle btn"
+                type="button" data-bs-toggle="dropdown" data-bs-auto-close="true"
+                aria-expanded="false" id="userDropdown"
+                aria-label="Account menu for @displayName">
             @if (!string.IsNullOrEmpty(picture))
             {
-                <img src="@picture" alt="Profile" class="profile-img" referrerpolicy="no-referrer" />
+                @* Decorative — the name is rendered next to it. *@
+                <img src="@picture" alt="" class="profile-img" referrerpolicy="no-referrer" />
             }
             else
             {
-                <i class="fa-solid fa-user-circle fa-lg"></i>
+                <i class="fa-solid fa-user-circle fa-lg" aria-hidden="true"></i>
             }
             <span class="d-none d-lg-inline">@displayName</span>
-        </a>
+        </button>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
             <li>
                 <a class="dropdown-item" href="/Account/Profile">
-                    <i class="fa-solid fa-user me-2"></i>My Profile
+                    <i class="fa-solid fa-user me-2" aria-hidden="true"></i>My Profile
                 </a>
             </li>
             <li><hr class="dropdown-divider" /></li>
             <li>
                 <form method="post" asp-page="/Logout">
                     <button type="submit" class="dropdown-item">
-                        <i class="fa-solid fa-right-from-bracket me-2"></i>Sign Out
+                        <i class="fa-solid fa-right-from-bracket me-2" aria-hidden="true"></i>Sign Out
                     </button>
                 </form>
             </li>
@@ -55,7 +62,7 @@ else
 {
     <li class="nav-item">
         <a class="nav-link d-flex align-items-center gap-1" href="/Login?ReturnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)">
-            <i class="fa-solid fa-right-to-bracket"></i>
+            <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
             <span>Sign In</span>
         </a>
     </li>

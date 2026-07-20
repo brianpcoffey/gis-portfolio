@@ -65,17 +65,18 @@
 				<strong>Measured speedup:</strong> Benchmarked on a 512×512 four-band stack, warm, best-of-50 per stage, with the shared library present versus moved out of the probe path. Checksums over the magnitude raster, the mask, the threshold, and every blob statistic are <strong>bit-identical</strong> between the two paths.
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
+						<caption class="visually-hidden">Native versus managed benchmark results for the change detection kernel, by pipeline stage.</caption>
 						<thead>
-							<tr><th>Stage</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+							<tr><th scope="col">Stage</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><td>CVA magnitude, 512×512×4</td><td class="text-end">1.18 ms</td><td class="text-end">1.72 ms</td><td class="text-end">1.46×</td></tr>
-							<tr><td>Otsu threshold + histogram</td><td class="text-end">0.24 ms</td><td class="text-end">0.50 ms</td><td class="text-end">2.11×</td></tr>
-							<tr><td>Morphological open, 2 iterations</td><td class="text-end">2.90 ms</td><td class="text-end">3.16 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><td>Connected components</td><td class="text-end">0.62 ms</td><td class="text-end">0.75 ms</td><td class="text-end">1.20×</td></tr>
-							<tr><td><strong>Compute total</strong></td><td class="text-end"><strong>4.93 ms</strong></td><td class="text-end"><strong>6.13 ms</strong></td><td class="text-end"><strong>1.24×</strong></td></tr>
-							<tr><td>End-to-end <code>DetectAsync</code>, 512×512×4</td><td class="text-end">7.74 ms</td><td class="text-end">8.45 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><td>End-to-end <code>DetectAsync</code>, 256×256×4</td><td class="text-end">1.51 ms</td><td class="text-end">1.76 ms</td><td class="text-end">1.17×</td></tr>
+							<tr><th scope="row" class="fw-normal">CVA magnitude, 512×512×4</th><td class="text-end">1.18 ms</td><td class="text-end">1.72 ms</td><td class="text-end">1.46×</td></tr>
+							<tr><th scope="row" class="fw-normal">Otsu threshold + histogram</th><td class="text-end">0.24 ms</td><td class="text-end">0.50 ms</td><td class="text-end">2.11×</td></tr>
+							<tr><th scope="row" class="fw-normal">Morphological open, 2 iterations</th><td class="text-end">2.90 ms</td><td class="text-end">3.16 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><th scope="row" class="fw-normal">Connected components</th><td class="text-end">0.62 ms</td><td class="text-end">0.75 ms</td><td class="text-end">1.20×</td></tr>
+							<tr><th scope="row" class="fw-normal"><strong>Compute total</strong></th><td class="text-end"><strong>4.93 ms</strong></td><td class="text-end"><strong>6.13 ms</strong></td><td class="text-end"><strong>1.24×</strong></td></tr>
+							<tr><th scope="row" class="fw-normal">End-to-end <code>DetectAsync</code>, 512×512×4</th><td class="text-end">7.74 ms</td><td class="text-end">8.45 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><th scope="row" class="fw-normal">End-to-end <code>DetectAsync</code>, 256×256×4</th><td class="text-end">1.51 ms</td><td class="text-end">1.76 ms</td><td class="text-end">1.17×</td></tr>
 						</tbody>
 					</table>
 				</div>

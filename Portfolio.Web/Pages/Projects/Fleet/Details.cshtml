@@ -64,13 +64,14 @@
 				<strong>Measured speedup:</strong> Native is about <strong>2.3×</strong> faster than the managed fallback, with bit-identical solutions. Best of five warm runs on the same machine, solve time only (matrix construction and polyline expansion excluded):
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
+						<caption class="visually-hidden">Native versus managed benchmark results for the vehicle routing solver kernel, by workload.</caption>
 						<thead>
-							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><td>60 stops, 5 local-search passes</td><td class="text-end">0.64 ms</td><td class="text-end">1.66 ms</td><td class="text-end">2.59×</td></tr>
-							<tr><td>90 stops, 31 local-search passes</td><td class="text-end">4.89 ms</td><td class="text-end">11.41 ms</td><td class="text-end">2.33×</td></tr>
-							<tr><td>120 stops, 26 local-search passes</td><td class="text-end">7.33 ms</td><td class="text-end">16.78 ms</td><td class="text-end">2.29×</td></tr>
+							<tr><th scope="row" class="fw-normal">60 stops, 5 local-search passes</th><td class="text-end">0.64 ms</td><td class="text-end">1.66 ms</td><td class="text-end">2.59×</td></tr>
+							<tr><th scope="row" class="fw-normal">90 stops, 31 local-search passes</th><td class="text-end">4.89 ms</td><td class="text-end">11.41 ms</td><td class="text-end">2.33×</td></tr>
+							<tr><th scope="row" class="fw-normal">120 stops, 26 local-search passes</th><td class="text-end">7.33 ms</td><td class="text-end">16.78 ms</td><td class="text-end">2.29×</td></tr>
 						</tbody>
 					</table>
 				</div>

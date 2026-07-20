@@ -199,17 +199,17 @@ body.dark-mode .batch-geocoding-page .pagination .page-link {
 
 body.dark-mode .batch-geocoding-page .pagination .page-link:hover,
 body.dark-mode .batch-geocoding-page .pagination .page-link:focus {
-    background: var(--accent) !important;
+    background: var(--accent-on-fill) !important;
     color: #fff !important;
-    border-color: var(--accent) !important;
+    border-color: var(--accent-on-fill) !important;
     outline: none;
 }
 
 body.dark-mode .batch-geocoding-page .pagination .active .page-link,
 body.dark-mode .batch-geocoding-page .pagination .page-item.active .page-link {
-    background: var(--accent) !important;
+    background: var(--accent-on-fill) !important;
     color: #fff !important;
-    border-color: var(--accent) !important;
+    border-color: var(--accent-on-fill) !important;
     z-index: 2;
 }
 
@@ -280,16 +280,16 @@ body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .p
 }
 
 body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-    background: var(--accent) !important;
+    background: var(--accent-on-fill) !important;
     color: #fff !important;
-    border-color: var(--accent) !important;
+    border-color: var(--accent-on-fill) !important;
 }
 
 body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button.current,
 body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-    background: var(--accent) !important;
+    background: var(--accent-on-fill) !important;
     color: #fff !important;
-    border-color: var(--accent) !important;
+    border-color: var(--accent-on-fill) !important;
 }
 
 body.dark-mode .batch-geocoding-page .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,

@@ -68,7 +68,7 @@
 						<button id="fleetResetBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Reset Scenario</button>
 						<div>
 							<div class="small text-muted theme-text-muted mb-2">Routes</div>
-							<div id="fleetRouteList" class="result-list"></div>
+							<div id="fleetRouteList" class="result-list" aria-live="polite"></div>
 						</div>
 						<pre id="fleetSummary" class="sample-json mt-auto mb-0"></pre>
 					</div>
@@ -88,20 +88,20 @@
 						<div class="mb-2 small text-muted theme-text-muted">
 							<i class="fa-solid fa-location-dot me-1"></i>Routes follow real streets. The depot is the square marker; stops are numbered in visit order and coloured by vehicle. Unserved stops are grey.
 						</div>
-						<div id="fleetMap" class="spatial-map-panel mb-4" style="min-height: 460px;"></div>
+						<div id="fleetMap" class="spatial-map-panel mb-4" style="min-height: 460px;" role="application" aria-label="Fleet route map"></div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
 							<i class="fa-solid fa-chart-line me-1"></i>Convergence &mdash; objective (distance plus a fixed cost per vehicle) after construction and after each local-search pass.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3 mb-4">
-							<svg id="fleetConvergenceSvg" viewBox="0 0 100 46" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 620px;" aria-label="Objective convergence chart"></svg>
+							<svg id="fleetConvergenceSvg" role="img" viewBox="0 0 100 46" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 620px;" aria-label="Objective convergence chart"></svg>
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
 							<i class="fa-solid fa-bars-staggered me-1"></i>Schedule &mdash; one bar per vehicle across the shift. The light band behind each block is the customer's time window; the block is the actual arrival and service.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
-							<svg id="fleetScheduleSvg" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 660px;" aria-label="Vehicle schedule timeline"></svg>
+							<svg id="fleetScheduleSvg" role="img" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 660px;" aria-label="Vehicle schedule timeline"></svg>
 						</div>
 					</div>
 				</div>

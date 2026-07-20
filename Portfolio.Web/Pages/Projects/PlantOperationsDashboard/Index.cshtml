@@ -73,9 +73,12 @@
                     <strong>Revenue Analytics</strong>
                 </div>
                 <div class="card-body theme-body">
-                    <div id="plantOpsRevenueChart" class="plant-ops-chart">
+                    <div id="plantOpsRevenueChart" class="plant-ops-chart" role="img" aria-label="Revenue by month chart">
                         <div class="plant-ops-spinner spinner-border text-accent" role="status" aria-label="Loading chart..."></div>
                     </div>
+                    @* Accessible text equivalent for the revenue chart. Populated by
+                       wwwroot/js/PlantOperationsDashboard/dashboard.js once the chart renders. *@
+                    <div id="plantOpsRevenueChartSummary" class="visually-hidden" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -86,9 +89,12 @@
                     <strong>Orders Analytics</strong>
                 </div>
                 <div class="card-body theme-body">
-                    <div id="plantOpsOrdersChart" class="plant-ops-chart">
+                    <div id="plantOpsOrdersChart" class="plant-ops-chart" role="img" aria-label="Orders by status chart">
                         <div class="plant-ops-spinner spinner-border text-accent" role="status" aria-label="Loading chart..."></div>
                     </div>
+                    @* Accessible text equivalent for the orders chart. Populated by
+                       wwwroot/js/PlantOperationsDashboard/dashboard.js once the chart renders. *@
+                    <div id="plantOpsOrdersChartSummary" class="visually-hidden" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -99,9 +105,12 @@
                     <strong>Inventory Analytics</strong>
                 </div>
                 <div class="card-body theme-body">
-                    <div id="plantOpsInventoryChart" class="plant-ops-chart">
+                    <div id="plantOpsInventoryChart" class="plant-ops-chart" role="img" aria-label="Inventory stock levels by material chart">
                         <div class="plant-ops-spinner spinner-border text-accent" role="status" aria-label="Loading chart..."></div>
                     </div>
+                    @* Accessible text equivalent for the inventory chart. Populated by
+                       wwwroot/js/PlantOperationsDashboard/dashboard.js once the chart renders. *@
+                    <div id="plantOpsInventoryChartSummary" class="visually-hidden" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -127,7 +136,7 @@
                             </select>
                         </div>
                         <div style="width: 100%; min-height: 400px; position: relative;">
-                            <div id="plantOpsMap" class="plant-ops-map">
+                            <div id="plantOpsMap" class="plant-ops-map" role="application" aria-label="Shipment route map">
                                 <div class="plant-ops-spinner spinner-border text-accent" role="status" aria-label="Loading map..."></div>
                             </div>
                         </div>

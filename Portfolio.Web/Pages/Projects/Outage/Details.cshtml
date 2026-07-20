@@ -64,13 +64,14 @@
 				<strong>Measured speedup — and the honest answer:</strong> Native is faster on the shipped circuit and <em>slower</em> on a large one. Same machine, warm, medians of three runs, with byte-identical result checksums on every run:
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
+						<caption class="visually-hidden">Native versus managed benchmark results for the network trace kernel, by workload.</caption>
 						<thead>
-							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><td>Trace + restore, 267-element circuit, 1,290 faults</td><td class="text-end">149 ms</td><td class="text-end">192 ms</td><td class="text-end">1.29×</td></tr>
-							<tr><td>Trace + restore, 4,603-element circuit, 600 faults</td><td class="text-end">882 ms</td><td class="text-end">768 ms</td><td class="text-end">0.87×</td></tr>
-							<tr><td>Energization sweeps only, 4,603 elements, 720 sweeps</td><td class="text-end">413 ms</td><td class="text-end">423 ms</td><td class="text-end">1.02×</td></tr>
+							<tr><th scope="row" class="fw-normal">Trace + restore, 267-element circuit, 1,290 faults</th><td class="text-end">149 ms</td><td class="text-end">192 ms</td><td class="text-end">1.29×</td></tr>
+							<tr><th scope="row" class="fw-normal">Trace + restore, 4,603-element circuit, 600 faults</th><td class="text-end">882 ms</td><td class="text-end">768 ms</td><td class="text-end">0.87×</td></tr>
+							<tr><th scope="row" class="fw-normal">Energization sweeps only, 4,603 elements, 720 sweeps</th><td class="text-end">413 ms</td><td class="text-end">423 ms</td><td class="text-end">1.02×</td></tr>
 						</tbody>
 					</table>
 				</div>

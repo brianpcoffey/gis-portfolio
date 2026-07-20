@@ -246,7 +246,7 @@ body.dark-mode .theme-card-header {
 }
 
 .theme-badge {
-    background-color: var(--accent);
+    background-color: var(--accent-on-fill);
     color: #fff;
 }
 

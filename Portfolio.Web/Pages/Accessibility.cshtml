@@ -1,0 +1,62 @@
+@page
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Accessibility";
+}
+
+@* Public counterpart to the profile page's settings card: the same partial,
+   reachable without signing in, alongside the conformance statement that a
+   508 claim is expected to come with. *@
+<div class="container py-5 a11y-page">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <h1 class="mb-2">Accessibility</h1>
+            <p class="lead">
+                This site targets <strong>WCAG&nbsp;2.1 Level&nbsp;AA</strong>, the standard
+                referenced by Section&nbsp;508 of the Rehabilitation Act. The controls below
+                let you adjust it further.
+            </p>
+
+            <div class="prefs-panel my-4">
+                <h2 class="visually-hidden">Display and accessibility settings</h2>
+                @await Html.PartialAsync("_PreferencesControls", "a11y")
+            </div>
+
+            <div class="a11y-statement">
+                <h2>What is in place</h2>
+                <ul>
+                    <li>A skip link to the main content as the first item in the tab order.</li>
+                    <li>Every interactive control reachable and operable by keyboard, with a visible focus ring.</li>
+                    <li>Text and interface colours meeting the 4.5:1 (text) and 3:1 (controls) contrast ratios.</li>
+                    <li>Landmarks, headings, labels, and table headers marked up so assistive technology can navigate structurally.</li>
+                    <li>Results and status changes announced through a polite live region.</li>
+                    <li>Animation honours your operating system's reduced-motion setting, and can be switched off here.</li>
+                    <li>Layout reflows to 320&nbsp;px and supports 200% zoom without loss of content.</li>
+                </ul>
+
+                <h2>Known limitations</h2>
+                <ul>
+                    <li>
+                        The interactive maps are visual by nature. Every map on the site is paired
+                        with a text panel &mdash; route steps, result lists, or a results table &mdash;
+                        carrying the same information.
+                    </li>
+                    <li>
+                        The résumé is distributed as a tagged PDF. If you need it in another format,
+                        ask and it will be sent.
+                    </li>
+                </ul>
+
+                <h2>Found a barrier?</h2>
+                <p>
+                    Email
+                    <a href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=brianpcoffey99@gmail.com"
+                       target="_blank" rel="noopener">brianpcoffey99@gmail.com</a>
+                    with the page and what went wrong. Accessibility defects are treated as
+                    ordinary bugs and fixed in the same queue.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

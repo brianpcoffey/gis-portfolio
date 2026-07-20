@@ -94,28 +94,35 @@
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-left-right me-1"></i>Before / after swipe &mdash; drag the divider. False-colour composite (NIR, Red, Green): healthy vegetation reads red.
+							<i class="fa-solid fa-left-right me-1"></i>Before / after swipe &mdash; drag the divider or use the slider below. False-colour composite (NIR, Red, Green): healthy vegetation reads red.
 						</div>
-						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3 mb-4">
+						<div class="spatial-map-panel d-flex flex-column align-items-center justify-content-center p-3 mb-4">
 							<div id="changeSwipeStage" style="position: relative; width: 100%; max-width: 480px; aspect-ratio: 1; cursor: ew-resize; touch-action: none;">
-								<canvas id="changeCanvasA" style="position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated;" aria-label="Epoch A false-colour composite"></canvas>
-								<canvas id="changeCanvasB" style="position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated;" aria-label="Epoch B false-colour composite"></canvas>
+								<canvas id="changeCanvasA" role="img" style="position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated;" aria-label="Epoch A false-colour composite"></canvas>
+								<canvas id="changeCanvasB" role="img" style="position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated;" aria-label="Epoch B false-colour composite"></canvas>
 								<div id="changeSwipeHandle" style="position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: var(--accent); pointer-events: none;"></div>
 							</div>
+							@* Dragging the divider is a pointer-only gesture, so the same
+							   position is exposed as a native range input — the keyboard and
+							   assistive-tech path to a control that otherwise had none. *@
+							<label class="form-label small mt-3 mb-1" for="changeSwipeRange">Divider position</label>
+							<input type="range" class="form-range" id="changeSwipeRange"
+								   min="0" max="100" step="1" value="50"
+								   style="max-width: 480px;" />
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
 							<i class="fa-solid fa-object-group me-1"></i>Change mask over epoch B &mdash; solid boxes are detections, dashed boxes are planted ground truth.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3 mb-4">
-							<canvas id="changeMaskCanvas" style="width: 100%; max-width: 480px; aspect-ratio: 1; image-rendering: pixelated;" aria-label="Detected change mask with detection and ground-truth bounding boxes"></canvas>
+							<canvas id="changeMaskCanvas" role="img" style="width: 100%; max-width: 480px; aspect-ratio: 1; image-rendering: pixelated;" aria-label="Detected change mask with detection and ground-truth bounding boxes"></canvas>
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
 							<i class="fa-solid fa-chart-simple me-1"></i>CVA magnitude histogram &mdash; the vertical line is the chosen threshold. Raise the noise and watch it move.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
-							<svg id="changeHistogramSvg" viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 620px;" aria-label="Change vector analysis magnitude histogram with the Otsu threshold marked"></svg>
+							<svg id="changeHistogramSvg" role="img" viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 620px;" aria-label="Change vector analysis magnitude histogram with the Otsu threshold marked"></svg>
 						</div>
 					</div>
 				</div>

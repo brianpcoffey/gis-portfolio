@@ -40,10 +40,13 @@ function loadShipmentsTable() {
                         orderable: false,
                         className: 'text-end',
                         render: function (data, type, row) {
+                            // The icons carry no text, so each button needs a name that also
+                            // identifies its row — otherwise every row reads as the same "Edit".
+                            let rowLabel = plantOpsEscape(row.trackingNumber || row.id);
                             return `
-                                <button class="btn btn-sm btn-outline-primary me-1" onclick="showShipmentModal(${row.id})"><i class='fa fa-edit'></i></button>
-                                <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteShipment(${row.id})"><i class='fa fa-trash'></i></button>
-                                <button class="btn btn-sm btn-outline-secondary" onclick="showShipmentStatusModal(${row.id}, '${row.status}')"><i class='fa fa-truck'></i></button>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="showShipmentModal(${row.id})" aria-label="Edit shipment ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteShipment(${row.id})" aria-label="Delete shipment ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="showShipmentStatusModal(${row.id}, '${row.status}')" aria-label="Update status of shipment ${rowLabel}"><i class='fa fa-truck' aria-hidden="true"></i></button>
                             `;
                         }
                     }

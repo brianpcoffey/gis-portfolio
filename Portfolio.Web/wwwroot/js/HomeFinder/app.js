@@ -388,6 +388,7 @@ function renderResults(results) {
     if (!results.length) {
         panel.innerHTML =
             '<p class="text-muted text-center small">No matching properties found. Try adjusting your filters.</p>';
+        announce("No matching properties found. Try adjusting your filters.");
         return;
     }
 
@@ -419,6 +420,7 @@ function renderResults(results) {
     }).join("");
 
     panel.innerHTML = html;
+    announce(`${results.length} ${results.length === 1 ? "property" : "properties"} found`);
 
     requestAnimationFrame(() => {
         panel.querySelectorAll(".score-bar-fill[data-target-width]").forEach(bar => {
@@ -451,6 +453,17 @@ function renderResults(results) {
 
 function escapeHtml(s) {
     return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Sends a message to the global polite live region. Clearing first and setting on a
+ * timeout makes a repeated identical message fire again instead of being swallowed.
+ */
+function announce(msg) {
+    const live = document.getElementById("a11yAnnounce");
+    if (!live) return;
+    live.textContent = "";
+    setTimeout(() => { live.textContent = msg; }, 40);
 }
 
 // ============================================================
@@ -513,6 +526,7 @@ async function performSearch() {
         document.getElementById("resultsPanel").innerHTML =
             '<p class="text-danger text-center small">Search failed. Please try again.</p>';
         showToast("Search failed. Please try again.", "danger");
+        announce("Search failed. Please try again.");
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-magnifying-glass me-1"></i>Find Homes';

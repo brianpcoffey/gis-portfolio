@@ -36,6 +36,7 @@
     var blobList = document.getElementById("changeBlobList");
     var summary = document.getElementById("changeSummary");
     var swipeStage = document.getElementById("changeSwipeStage");
+    var swipeRange = document.getElementById("changeSwipeRange");
     var canvasA = document.getElementById("changeCanvasA");
     var canvasB = document.getElementById("changeCanvasB");
     var swipeHandle = document.getElementById("changeSwipeHandle");
@@ -80,14 +81,38 @@
     });
     swipeStage.addEventListener("pointercancel", function () { dragging = false; });
 
+    // Keyboard/AT path to the divider. The range is the accessible mirror of the
+    // drag gesture; applySwipeFraction pushes the other direction so the two stay
+    // in step whichever one the visitor used.
+    swipeRange.addEventListener("input", function () {
+        applySwipeFraction(parseFloat(swipeRange.value) / 100);
+    });
+
     blobList.addEventListener("click", function (event) {
+        toggleBlobRow(event.target.closest ? event.target.closest("[data-blob-id]") : null);
+    });
+
+    // The rows are role="button", so they have to answer to Enter and Space the way a
+    // real button does. Space is prevented so activating a row does not scroll the page.
+    blobList.addEventListener("keydown", function (event) {
+        if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") { return; }
         var row = event.target.closest ? event.target.closest("[data-blob-id]") : null;
+        if (!row) { return; }
+        event.preventDefault();
+        toggleBlobRow(row);
+    });
+
+    // Re-rendering the list replaces the row that was activated, so focus is moved back
+    // onto its replacement — otherwise keyboard focus falls to the top of the document.
+    function toggleBlobRow(row) {
         if (!row) { return; }
         var id = parseInt(row.getAttribute("data-blob-id"), 10);
         selectedBlobId = selectedBlobId === id ? 0 : id;
         renderBlobList();
         drawMask();
-    });
+        var refocus = blobList.querySelector('[data-blob-id="' + id + '"]');
+        if (refocus) { refocus.focus(); }
+    }
 
     syncThresholdMode();
     loadScene();
@@ -252,6 +277,7 @@
         // Epoch B is revealed to the left of the divider, epoch A stays visible right of it.
         canvasB.style.clipPath = "inset(0 " + (100 - percent).toFixed(2) + "% 0 0)";
         swipeHandle.style.left = percent.toFixed(2) + "%";
+        if (swipeRange) { swipeRange.value = Math.round(percent); }
     }
 
     // ── Change mask overlay ─────────────────────────────────────────────────
@@ -435,7 +461,8 @@
             var percent = Math.round(blob.confidence * 100);
             var selected = blob.id === selectedBlobId;
             return '<div class="geo-cell-item' + (selected ? " geo-cell-anomaly" : "") +
-                '" data-blob-id="' + blob.id + '" style="cursor:pointer;">' +
+                '" data-blob-id="' + blob.id + '" style="cursor:pointer;"' +
+                ' role="button" tabindex="0" aria-pressed="' + (selected ? "true" : "false") + '">' +
                 '<div class="d-flex align-items-center justify-content-between">' +
                 '<strong>#' + blob.id + " " + escapeHtml(label) + "</strong>" +
                 "<span>" + blob.area + " px</span></div>" +

@@ -62,14 +62,15 @@
 				<strong>Measured speedup — and the honest answer:</strong> Native is only about <strong>1.1×</strong> faster than the managed fallback, with numerically identical results. Measured on the same machine, warm, over the shipped book:
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
+						<caption class="visually-hidden">Native versus managed benchmark results for the catastrophe risk kernel, by workload.</caption>
 						<thead>
-							<tr><th>Workload</th><th class="text-end">Native</th><th class="text-end">Managed</th><th class="text-end">Speedup</th></tr>
+							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><td>Ring accumulation, 900 locations</td><td class="text-end">5.4 ms</td><td class="text-end">5.9 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><td>Ring accumulation, 5,000 locations</td><td class="text-end">166 ms</td><td class="text-end">186 ms</td><td class="text-end">1.12×</td></tr>
-							<tr><td>Simulation, 900 × 5,000 events</td><td class="text-end">51.6 ms</td><td class="text-end">56.3 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><td>Simulation, 5,000 × 12,000 events</td><td class="text-end">568 ms</td><td class="text-end">645 ms</td><td class="text-end">1.13×</td></tr>
+							<tr><th scope="row" class="fw-normal">Ring accumulation, 900 locations</th><td class="text-end">5.4 ms</td><td class="text-end">5.9 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><th scope="row" class="fw-normal">Ring accumulation, 5,000 locations</th><td class="text-end">166 ms</td><td class="text-end">186 ms</td><td class="text-end">1.12×</td></tr>
+							<tr><th scope="row" class="fw-normal">Simulation, 900 × 5,000 events</th><td class="text-end">51.6 ms</td><td class="text-end">56.3 ms</td><td class="text-end">1.09×</td></tr>
+							<tr><th scope="row" class="fw-normal">Simulation, 5,000 × 12,000 events</th><td class="text-end">568 ms</td><td class="text-end">645 ms</td><td class="text-end">1.13×</td></tr>
 						</tbody>
 					</table>
 				</div>

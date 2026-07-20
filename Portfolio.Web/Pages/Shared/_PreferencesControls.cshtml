@@ -1,73 +1,85 @@
 @model string
 @{
     // Reusable set of display/accessibility controls. The model is an id prefix so the
-    // same controls can appear in more than one place on a page (e.g. the nav offcanvas
-    // and the profile page) without colliding ids. preferences.js binds every control by
-    // its [data-pref] attribute and keeps all instances in sync.
+    // same controls can appear on more than one page (the public /Accessibility page and
+    // the signed-in profile page) without colliding ids. preferences.js binds every
+    // control by its [data-pref] attribute and keeps all instances in sync.
     var p = string.IsNullOrEmpty(Model) ? "pref" : Model;
+
+    // key, label, hint — the switch rows are uniform, so they're generated rather
+    // than copy-pasted five times with only the noun changing.
+    var switches = new[]
+    {
+        ("Contrast", "contrast", "High contrast", "Darkens text and strengthens borders against the background."),
+        ("Motion", "motion", "Reduce motion", "Removes entrance animations, hover lifts, and smooth scrolling."),
+        ("Underline", "underline", "Underline links", "Always underline links inside body content, not just on hover."),
+        ("Readable", "readable", "Readable font", "Switches to a hyperlegible typeface with looser letter and line spacing.")
+    };
 }
 <div class="prefs-controls">
 
-    <div class="pref-group">
-        <span class="pref-group__label" id="@(p)ThemeLabel">Theme</span>
-        <span class="pref-group__hint">“System” follows your device setting.</span>
+    <div class="pref-block">
+        <div class="pref-block__head">
+            <span class="pref-block__title" id="@(p)ThemeLabel">Theme</span>
+        </div>
         <div class="pref-seg" role="group" aria-labelledby="@(p)ThemeLabel">
-            <button type="button" class="btn" data-pref="theme" data-value="light" aria-pressed="false"><i class="fa-solid fa-sun" aria-hidden="true"></i> Light</button>
-            <button type="button" class="btn" data-pref="theme" data-value="dark" aria-pressed="false"><i class="fa-solid fa-moon" aria-hidden="true"></i> Dark</button>
-            <button type="button" class="btn" data-pref="theme" data-value="auto" aria-pressed="false"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> System</button>
+            <button type="button" class="pref-seg__btn" data-pref="theme" data-value="light" aria-pressed="false">
+                <i class="fa-solid fa-sun" aria-hidden="true"></i>
+                <span>Light</span>
+            </button>
+            <button type="button" class="pref-seg__btn" data-pref="theme" data-value="dark" aria-pressed="false">
+                <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                <span>Dark</span>
+            </button>
         </div>
     </div>
 
-    <div class="pref-group">
-        <label class="pref-group__label" for="@(p)FontScale">Text size</label>
-        <span class="pref-group__hint">Scales all text and spacing (85%–150%).</span>
+    <div class="pref-block">
+        <div class="pref-block__head">
+            <label class="pref-block__title" for="@(p)FontScale">Text size</label>
+            <output class="pref-badge js-pref-fontscale-value" id="@(p)FontScaleValue" for="@(p)FontScale">100%</output>
+        </div>
         <div class="pref-range-row">
-            <input type="range" id="@(p)FontScale" data-pref="fontScale" min="0.85" max="1.5" step="0.05" aria-describedby="@(p)FontScaleValue" />
-            <output class="pref-range-value js-pref-fontscale-value" id="@(p)FontScaleValue" for="@(p)FontScale">100%</output>
+            <span class="pref-range-cap pref-range-cap--sm" aria-hidden="true">A</span>
+            <input type="range" id="@(p)FontScale" data-pref="fontScale"
+                   min="0.85" max="1.5" step="0.05"
+                   aria-describedby="@(p)FontScaleHint" />
+            <span class="pref-range-cap pref-range-cap--lg" aria-hidden="true">A</span>
         </div>
+        <p class="pref-block__hint" id="@(p)FontScaleHint">
+            Scales every piece of text and spacing on the site, from 85% up to 150%.
+        </p>
     </div>
 
-    <div class="pref-group">
-        <div class="pref-switch">
-            <label class="pref-group__label mb-0" for="@(p)Contrast">High contrast</label>
-            <div class="form-check form-switch m-0 ps-0">
-                <input class="form-check-input ms-0" type="checkbox" role="switch" id="@(p)Contrast" data-pref="contrast" />
-            </div>
+    <div class="pref-block">
+        <div class="pref-block__head">
+            <span class="pref-block__title" id="@(p)A11yLabel">Accessibility</span>
         </div>
-        <span class="pref-group__hint">Stronger text/background contrast and borders.</span>
+        <ul class="pref-switches" aria-labelledby="@(p)A11yLabel">
+            @foreach (var (suffix, key, label, hint) in switches)
+            {
+                <li class="pref-switch">
+                    <div class="pref-switch__text">
+                        <label class="pref-switch__label" for="@(p)@(suffix)">@label</label>
+                        <span class="pref-switch__hint" id="@(p)@(suffix)Hint">@hint</span>
+                    </div>
+                    <div class="form-check form-switch pref-switch__control">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="@(p)@(suffix)" data-pref="@key"
+                               aria-describedby="@(p)@(suffix)Hint" />
+                    </div>
+                </li>
+            }
+        </ul>
     </div>
 
-    <div class="pref-group">
-        <div class="pref-switch">
-            <label class="pref-group__label mb-0" for="@(p)Motion">Reduce motion</label>
-            <div class="form-check form-switch m-0 ps-0">
-                <input class="form-check-input ms-0" type="checkbox" role="switch" id="@(p)Motion" data-pref="motion" />
-            </div>
-        </div>
-        <span class="pref-group__hint">Minimizes animations and transitions.</span>
+    <div class="pref-block pref-block--footer">
+        <button type="button" class="btn prefs-reset-btn js-prefs-reset">
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+            <span>Reset to defaults</span>
+        </button>
+        <p class="pref-block__hint mb-0">
+            Settings are saved in this browser only &mdash; no account required, and nothing leaves your device.
+        </p>
     </div>
-
-    <div class="pref-group">
-        <div class="pref-switch">
-            <label class="pref-group__label mb-0" for="@(p)Underline">Underline links</label>
-            <div class="form-check form-switch m-0 ps-0">
-                <input class="form-check-input ms-0" type="checkbox" role="switch" id="@(p)Underline" data-pref="underline" />
-            </div>
-        </div>
-        <span class="pref-group__hint">Always underline in-content links.</span>
-    </div>
-
-    <div class="pref-group">
-        <div class="pref-switch">
-            <label class="pref-group__label mb-0" for="@(p)Readable">Readable font &amp; spacing</label>
-            <div class="form-check form-switch m-0 ps-0">
-                <input class="form-check-input ms-0" type="checkbox" role="switch" id="@(p)Readable" data-pref="readable" />
-            </div>
-        </div>
-        <span class="pref-group__hint">Hyperlegible font with looser spacing.</span>
-    </div>
-
-    <button type="button" class="btn btn-outline-accent prefs-reset-btn js-prefs-reset">
-        <i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i> Reset to defaults
-    </button>
 </div>

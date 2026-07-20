@@ -340,7 +340,19 @@
         hit.style.cursor = dimmed ? "default" : "pointer";
         hit.addEventListener("mousemove", function (evt) { showTooltip(evt, element); });
         if (!dimmed) {
+            // The hit target is the only way to place a fault, so it has to be a real
+            // control: named, focusable, and answering to Enter and Space. Space is
+            // prevented so activating a segment does not scroll the page.
+            hit.setAttribute("role", "button");
+            hit.setAttribute("tabindex", "0");
+            hit.setAttribute("aria-label", "Place fault on " +
+                DEVICE_NAMES[element.deviceType] + " " + element.label);
             hit.addEventListener("click", function () { placeFault(element.id); });
+            hit.addEventListener("keydown", function (evt) {
+                if (evt.key !== "Enter" && evt.key !== " " && evt.key !== "Spacebar") { return; }
+                evt.preventDefault();
+                placeFault(element.id);
+            });
         }
         svg.appendChild(hit);
     }

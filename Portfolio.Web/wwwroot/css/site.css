@@ -6,15 +6,20 @@
    holds shared component styles only. layout.css and components.css are
    linked directly in _Layout.cshtml; base + utilities are pulled in below.
    ====================================== */
-@import url('base.css');
-@import url('utilities.css');
+/* base.css and utilities.css used to be @imported here. They are now linked
+   directly from _Layout so asp-append-version can cache-bust them — an
+   @import carries no version hash of its own, so a palette change in
+   base.css never reached a returning visitor. */
 
 /* ======================================
    Buttons
    ====================================== */
+/* White label on --accent is 3.24:1 and on --accent-light 2.45:1; both are
+   under AA. The filled tokens carry the label instead, and hover goes
+   *darker* rather than lighter so the contrast improves on interaction. */
 .btn-accent {
-    background-color: var(--accent);
-    border-color: var(--accent);
+    background-color: var(--accent-on-fill);
+    border-color: var(--accent-on-fill);
     color: #fff;
     font-weight: 600;
     transition: all var(--transition);
@@ -22,23 +27,23 @@
 
 .btn-accent:hover,
 .btn-accent:focus {
-    background-color: var(--accent-light);
-    border-color: var(--accent-light);
+    background-color: var(--accent-on-fill-h);
+    border-color: var(--accent-on-fill-h);
     color: #fff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
+    box-shadow: 0 4px 12px rgba(47, 133, 90, 0.35);
 }
 
 .btn-outline-accent {
-    color: var(--accent);
-    border-color: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent-text);
     background: transparent;
     font-weight: 600;
 }
 
 .btn-outline-accent:hover {
-    background-color: var(--accent);
-    border-color: var(--accent);
+    background-color: var(--accent-on-fill);
+    border-color: var(--accent-on-fill);
     color: #fff;
 }
 
@@ -50,7 +55,7 @@
 
 .hero-section .btn-outline-accent:hover {
     background-color: #fff;
-    color: var(--accent);
+    color: var(--accent-text);
 }
 
 /* ======================================
@@ -211,7 +216,7 @@ body.dark-mode .btn-google {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent-on-fill) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
