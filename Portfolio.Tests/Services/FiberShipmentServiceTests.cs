@@ -69,7 +69,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task GetByIdAsync_ReturnsNull_WhenNotFound()
         {
-            _shipmentRepoMock.Setup(r => r.GetByIdAsync(1, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync((FiberShipment)null);
+            _shipmentRepoMock.Setup(r => r.GetByIdAsync(1, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync((FiberShipment?)null);
             var result = await _service.GetByIdAsync(1);
             Assert.Null(result);
         }

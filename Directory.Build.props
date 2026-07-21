@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Applies to every project in the repo. Kept deliberately small: only settings
+    that should be impossible to forget on a new project belong here.
+  -->
+  <PropertyGroup>
+    <!--
+      Warnings become errors in CI only. Locally a warning stays a warning so a
+      half-finished edit does not block the inner loop; CI is where the line is
+      held. ContinuousIntegrationBuild also makes the build deterministic
+      (embedded paths are normalized), which is what makes output comparable
+      between a developer machine and the runner.
+    -->
+    <TreatWarningsAsErrors Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</TreatWarningsAsErrors>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!--
+      NU1902/NU1903/NU1904 are "package has a known vulnerability" advisories.
+      They are errors rather than warnings because a vulnerable transitive
+      dependency should stop a release, not scroll past in a log.
+    -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1902;NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

@@ -900,35 +900,25 @@
 </section>
 
 <!-- Résumé -->
-@* Built from the same parts as About and Skills — centered .section-title,
-   one .about-card-style surface, the site's two standard buttons. Nothing
-   invented for this section alone. *@
+@* No prose. The heading and the two buttons say everything the section needs
+   to; a paragraph describing a résumé is words in front of the thing itself.
+   The band sits on --surface so it separates from the --background sections
+   above and below rather than blending into them. *@
 <section id="resume" class="resume-section py-5" role="region" aria-labelledby="resumeHeading">
-    <div class="container">
-        <h2 id="resumeHeading" class="section-title text-center mb-4">Résumé</h2>
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="resume-card text-center">
-                    <p>
-                        One page: ASP.NET Core and C# backend engineering, native C++ interop,
-                        geospatial analysis, and a CI/CD pipeline that tests and gates every commit.
-                    </p>
-                    <div class="resume-actions">
-                        <a class="btn btn-accent"
-                           href="~/files/Brian-Coffey-Resume.pdf"
-                           download="Brian-Coffey-Resume.pdf">
-                            <i class="fa-solid fa-download me-2" aria-hidden="true"></i>Download PDF
-                        </a>
-                        <a class="btn btn-outline-accent"
-                           href="~/files/Brian-Coffey-Resume.pdf"
-                           target="_blank"
-                           rel="noopener">
-                            <i class="fa-solid fa-up-right-from-square me-2" aria-hidden="true"></i>View<span class="visually-hidden"> résumé in a new tab</span>
-                        </a>
-                    </div>
-                    <p class="resume-meta">PDF &middot; 1 page &middot; 80&nbsp;KB &middot; updated July 2026</p>
-                </div>
-            </div>
+    <div class="container text-center">
+        <h2 id="resumeHeading" class="section-title mb-4">Résumé</h2>
+        <div class="resume-actions">
+            <a class="btn btn-accent"
+               href="~/files/Brian-Coffey-Resume.pdf"
+               download="Brian-Coffey-Resume.pdf">
+                <i class="fa-solid fa-download me-2" aria-hidden="true"></i>Download PDF
+            </a>
+            <a class="btn btn-outline-accent"
+               href="~/files/Brian-Coffey-Resume.pdf"
+               target="_blank"
+               rel="noopener">
+                <i class="fa-solid fa-up-right-from-square me-2" aria-hidden="true"></i>View<span class="visually-hidden"> résumé in a new tab</span>
+            </a>
         </div>
     </div>
 </section>

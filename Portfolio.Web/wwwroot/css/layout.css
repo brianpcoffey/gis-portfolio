@@ -418,27 +418,14 @@ body.dark-mode .projects-index-section {
 /* ======================================
    Résumé Section
    --------------------------------------
-   Deliberately reuses .about-card's surface and the site's two standard
-   buttons, so the section reads as part of the page rather than a widget
-   dropped into it. Only the button row and the file-detail line are new.
+   Sits on --surface rather than --background so it reads as its own band
+   between two --background sections instead of merging with them. No card:
+   the section IS the surface, so nesting another one just adds an edge.
    ====================================== */
 .resume-section {
-    background: var(--background);
-}
-
-.resume-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2.5rem;
-    box-shadow: 0 4px 16px var(--shadow);
-}
-
-.resume-card p {
-    font-size: 1.05rem;
-    line-height: 1.8;
-    color: var(--text);
-    margin-bottom: 1.5rem;
+    background-color: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
 }
 
 .resume-actions {
@@ -448,17 +435,7 @@ body.dark-mode .projects-index-section {
     gap: 0.75rem;
 }
 
-.resume-card .resume-meta {
-    margin: 1.25rem 0 0;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-}
-
 @media (max-width: 575.98px) {
-    .resume-card {
-        padding: 1.75rem 1.25rem;
-    }
-
     .resume-actions .btn {
         width: 100%;
     }

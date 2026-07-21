@@ -6,6 +6,20 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <!--
+      xUnit1051 asks every call that accepts a CancellationToken to pass
+      TestContext.Current.CancellationToken. It fires 862 times here. The rule is
+      about responsiveness — it lets the runner abort a hung test sooner — not
+      about correctness, and none of these tests block on I/O or run long enough
+      for it to matter. Rewriting 862 call sites to satisfy an ergonomics
+      advisory would be a large, risky diff for no behavioural gain.
+
+      This is the ONLY suppression. Everything else — including nullability and
+      obsolete-API use — is an error in CI. Worth revisiting if the suite ever
+      grows tests that genuinely can hang.
+    -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

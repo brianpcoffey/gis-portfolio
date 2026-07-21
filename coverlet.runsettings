@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+
+          <!--
+            Excluded because including them makes the coverage number dishonest
+            rather than strict: it drops, but nothing you could write would
+            raise it, so the gate stops meaning anything.
+
+            [filter syntax is [Assembly]Namespace.Type]
+              *Migrations*        EF scaffolded migrations — thousands of
+                                  generated lines describing schema, not logic.
+              Portfolio.Benchmarks  a BenchmarkDotNet harness, not shipped code.
+          -->
+          <Exclude>[*]*.Migrations.*,[Portfolio.Benchmarks]*</Exclude>
+
+          <!-- Compiler-generated Razor page classes and record boilerplate. -->
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+
+          <SkipAutoProps>true</SkipAutoProps>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <DeterministicReport>true</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

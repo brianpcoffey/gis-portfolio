@@ -8,6 +8,12 @@ using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
 
+// GeocodeAddresses is [Obsolete] in favour of the async job endpoint, but it is still
+// routed and still serving callers, so it still needs coverage — deprecating an endpoint
+// is not the same as deleting it. Suppressed here rather than at each of the five call
+// sites; the day the endpoint is removed, this pragma and the tests go together.
+#pragma warning disable CS0618 // Type or member is obsolete
+
 namespace Portfolio.Tests.Controllers
 {
     public class BatchGeocodingControllerTests
@@ -270,3 +276,5 @@ namespace Portfolio.Tests.Controllers
         }
     }
 }
+
+#pragma warning restore CS0618

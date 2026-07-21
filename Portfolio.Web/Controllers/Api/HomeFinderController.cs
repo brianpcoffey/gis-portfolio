@@ -13,9 +13,10 @@ namespace Portfolio.Web.Controllers.Api
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/homefinder")]
-    // Property scoring/search is a public demo (no user data). Only the saved-search
-    // endpoints below require authentication (each also carries [Authorize]).
-    [AllowAnonymous]
+    // No class-level [AllowAnonymous]: ASP.NET Core short-circuits authorization when
+    // IAllowAnonymous appears anywhere in an endpoint's metadata, so a controller-level
+    // one silently neutered the [Authorize] on every saved-search action below (ASP0026).
+    // The four genuinely public actions opt out individually instead.
     [EnableRateLimiting("expensive")] // scoring re-runs a DB query + native compute per call
     public class HomeFinderController : ControllerBase
     {
@@ -31,6 +32,7 @@ namespace Portfolio.Web.Controllers.Api
     }
 
     /// <summary>Compute and return top 10 properties matching user preferences.</summary>
+    [AllowAnonymous]
     [HttpPost("search")]
     [ProducesResponseType(typeof(List<ScoredPropertyDto>), 200)]
     [ProducesResponseType(400)]
@@ -43,6 +45,7 @@ namespace Portfolio.Web.Controllers.Api
     }
 
     /// <summary>Backward-compatible alias for computing matching properties.</summary>
+    [AllowAnonymous]
     [HttpPost("score")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [Obsolete("Use POST /api/v1/homefinder/search.")]
@@ -55,6 +58,7 @@ namespace Portfolio.Web.Controllers.Api
     }
 
     /// <summary>Get a single property by ID.</summary>
+    [AllowAnonymous]
     [HttpGet("property/{id:int}")]
     [ProducesResponseType(typeof(ScoredPropertyDto), 200)]
     [ProducesResponseType(404)]
@@ -66,6 +70,7 @@ namespace Portfolio.Web.Controllers.Api
     }
 
     /// <summary>Backward-compatible alias for getting a single property by ID.</summary>
+    [AllowAnonymous]
     [HttpGet("properties/{id:int}")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [Obsolete("Use GET /api/v1/homefinder/property/{id}.")]

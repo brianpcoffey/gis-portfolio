@@ -47,6 +47,21 @@ html {
     outline-offset: 2px;
 }
 
+/* ---- Theme-switch transition suppression --------------------------
+   A theme switch changes custom properties, not declarations. Chrome does
+   not restart a running transition when only the var() behind a property
+   changes, so anything transitioning color/background keeps the OLD palette
+   until the next full render — body text and .btn-outline-accent both stuck
+   at the light-mode green after switching to dark, dropping that button from
+   6.46:1 to 2.29:1. Transitions are suppressed for the one frame the switch
+   takes, which forces every consumer to resolve against the new values. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+    transition: none !important;
+}
+
 /* ---- Keyboard focus visibility -----------------------------------
    Only for keyboard users (:focus-visible), so mouse clicks stay clean. */
 :focus-visible {

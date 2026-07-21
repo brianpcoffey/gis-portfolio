@@ -136,18 +136,63 @@
         window.dispatchEvent(new CustomEvent('preferencesChanged', { detail: getAll() }));
     }
 
+    /**
+     * Applies a palette change with transitions suppressed for one frame.
+     *
+     * A theme switch only changes custom properties. Chrome will not restart a
+     * running transition when the var() behind a property changes but the
+     * declaration text does not, so transitioning elements keep the previous
+     * palette until something forces a full re-render. That left body text and
+     * every .btn-outline-accent on the light-mode green after switching to dark
+     * — a 2.29:1 contrast ratio on a control that reads 6.46:1 on a fresh load.
+     *
+     * Killing transitions across the switch makes every consumer resolve
+     * against the new values immediately. Two rAFs: the first lets the new
+     * styles apply, the second restores transitions after they have painted.
+     */
+    function withoutTransitions(fn) {
+        var r = document.documentElement;
+        r.classList.add('theme-switching');
+        fn();
+        // Reading offsetHeight forces the suppressed styles to flush before the
+        // class comes back off; without it the removal can coalesce into the
+        // same frame and the suppression never takes effect.
+        void r.offsetHeight;
+
+        var restored = false;
+        var restore = function () {
+            if (restored) return;
+            restored = true;
+            r.classList.remove('theme-switching');
+        };
+
+        // rAF is the clean path — it restores transitions the moment the new
+        // palette has painted. But rAF does not fire in a background tab, and
+        // leaving transitions off forever is a worse bug than the one this
+        // works around, so a timer guarantees the class always comes back.
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(restore);
+            });
+        }
+        window.setTimeout(restore, 120);
+    }
+
     function set(key, value) {
         if (!REGISTRY[key]) return;
         prefs[key] = normalize(key, value);
         save();
-        applyAll();
+        // Only the palette keys repaint the whole page; a range drag should not
+        // thrash the class on every input event.
+        if (key === 'theme' || key === 'contrast') withoutTransitions(applyAll);
+        else applyAll();
         announce(describe(key));
     }
 
     function reset() {
         prefs = defaults();
         save();
-        applyAll();
+        withoutTransitions(applyAll);
         announce('Display settings reset to defaults');
     }
 

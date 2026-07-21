@@ -12,10 +12,24 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege. Nothing here writes to the repo; the deploy job only makes an
+# outbound HTTPS call. Declared explicitly so a future action cannot inherit a
+# broader default token.
+permissions:
+  contents: read
+
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # Directory.Build.props turns warnings into errors when this is set, and makes
+  # the build deterministic so output is comparable across machines.
+  ContinuousIntegrationBuild: true
+  # Ratchets. Set just under the measured values so an honest refactor does not
+  # trip them, but a real regression does. Raise them when coverage rises —
+  # never lower them to make a build green.
+  MIN_LINE_COVERAGE: '80'
+  MIN_BRANCH_COVERAGE: '60'
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -23,8 +37,9 @@ jobs:
   # present, every kernel on its managed fallback.
   # ---------------------------------------------------------------------------
   test:
-    name: Build & test
+    name: Build, test & coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -41,25 +56,75 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      # Fails the build on a known-vulnerable package (NU1902/3/4 are promoted to
+      # errors in Directory.Build.props).
       - name: Restore
         run: dotnet restore
 
-      - name: Build
+      # Warnings are errors here. Locally they stay warnings so a half-finished
+      # edit does not block the inner loop.
+      - name: Build (warnings are errors)
         run: dotnet build --no-restore -c Release
 
-      - name: Test
+      - name: Test with coverage
         run: >
           dotnet test Portfolio.Tests --no-build -c Release
+          --collect:"XPlat Code Coverage"
+          --settings coverlet.runsettings
           --logger "trx;LogFileName=test-results.trx"
           --logger "console;verbosity=normal"
           --results-directory TestResults
 
-      - name: Upload test results
+      # Parsed from the cobertura report with the standard library rather than a
+      # marketplace action, so the gate has no supply chain of its own.
+      - name: Enforce coverage thresholds
+        run: |
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+
+          reports = glob.glob('TestResults/**/coverage.cobertura.xml', recursive=True)
+          if not reports:
+              sys.exit('::error::No coverage report was produced.')
+
+          root = ET.parse(reports[0]).getroot()
+          lc, lv = int(root.get('lines-covered')), int(root.get('lines-valid'))
+          bc, bv = int(root.get('branches-covered')), int(root.get('branches-valid'))
+          line   = lc / lv * 100 if lv else 0.0
+          branch = bc / bv * 100 if bv else 0.0
+
+          min_line   = float('${{ env.MIN_LINE_COVERAGE }}')
+          min_branch = float('${{ env.MIN_BRANCH_COVERAGE }}')
+
+          print(f'Line coverage   {line:6.2f}%  (min {min_line}%)  {lc}/{lv}')
+          print(f'Branch coverage {branch:6.2f}%  (min {min_branch}%)  {bc}/{bv}')
+
+          with open('coverage-summary.md', 'w') as fh:
+              fh.write('| Metric | Covered | Total | Rate | Min |\n|---|---|---|---|---|\n')
+              fh.write(f'| Line | {lc} | {lv} | {line:.2f}% | {min_line}% |\n')
+              fh.write(f'| Branch | {bc} | {bv} | {branch:.2f}% | {min_branch}% |\n')
+
+          failed = False
+          if line < min_line:
+              print(f'::error::Line coverage {line:.2f}% is below the {min_line}% minimum.')
+              failed = True
+          if branch < min_branch:
+              print(f'::error::Branch coverage {branch:.2f}% is below the {min_branch}% minimum.')
+              failed = True
+          sys.exit(1 if failed else 0)
+          PY
+
+      - name: Publish coverage to the job summary
+        if: always()
+        run: cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload test results & coverage
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: TestResults/*.trx
+          path: |
+            TestResults/**/*.trx
+            TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
 
   # ---------------------------------------------------------------------------
@@ -75,6 +140,7 @@ jobs:
   native-parity:
     name: Native kernels & parity
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -112,7 +178,15 @@ jobs:
           out=Portfolio.Tests/bin/Debug/net10.0
           mkdir -p "$out"
           find build/native -name '*.so' -exec cp -v {} "$out/" \;
-          echo "Kernels staged: $(find "$out" -name '*.so' | wc -l)"
+          staged=$(find "$out" -name '*.so' | wc -l)
+          echo "Kernels staged: $staged"
+          # Every kernel with a CMakeLists must produce a library. A silent drop
+          # to zero would make the parity run below pass without testing anything.
+          expected=$(find native -mindepth 2 -maxdepth 2 -name CMakeLists.txt | wc -l)
+          if [ "$staged" -ne "$expected" ]; then
+            echo "::error::Expected $expected kernels, staged $staged."
+            exit 1
+          fi
 
       - name: Test with native kernels present
         run: dotnet test Portfolio.Tests --no-build -c Debug --logger "console;verbosity=normal"
@@ -131,6 +205,7 @@ jobs:
   docker:
     name: Docker image builds
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -159,6 +234,7 @@ jobs:
     needs: [test, native-parity, docker]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Trigger Render deploy
         env:

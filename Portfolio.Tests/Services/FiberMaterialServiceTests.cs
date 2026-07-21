@@ -65,7 +65,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task GetByIdAsync_ReturnsNull_WhenNotFound()
         {
-            _materialRepoMock.Setup(r => r.GetByIdAsync(1, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync((FiberMaterial)null);
+            _materialRepoMock.Setup(r => r.GetByIdAsync(1, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync((FiberMaterial?)null);
             var result = await _service.GetByIdAsync(1);
             Assert.Null(result);
         }
