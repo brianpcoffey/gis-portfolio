@@ -34,9 +34,13 @@
         })();
     </script>
 
+    @* Copy leads with the .NET stack, not GIS. The spatial work is the strongest
+       evidence of initiative here, but it is evidence — the role being applied for
+       is backend/full-stack .NET, and every one of these strings is what a
+       recruiter's first impression is built from. *@
     <title>@ViewData["Title"] – Brian Coffey</title>
-    <meta name="description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
-    <meta name="keywords" content="GIS, Software Engineer, ArcGIS, Spatial Analysis, ASP.NET Core, Entity Framework, Web GIS" />
+    <meta name="description" content="Full-stack software engineer building secure C# and ASP.NET Core services — REST APIs, Entity Framework Core, PostgreSQL, Docker, and native C++ interop." />
+    <meta name="keywords" content="Software Engineer, C#, .NET, ASP.NET Core, Entity Framework Core, PostgreSQL, REST APIs, Docker, Full-Stack, Backend, GIS, ArcGIS" />
 
     @* The .ico is declared alone and deliberately. It carries three hand-tuned
        entries (16/32/48) — the 16px one drops the satellite nodes and switches to
@@ -47,14 +51,29 @@
     <link rel="icon" href="~/favicon.ico" sizes="16x16 32x32 48x48" asp-append-version="true" />
     <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}")" />
 
-    <!-- Open Graph / Twitter social preview -->
+    @* Social preview. og:image was missing entirely, which is why every share of
+       this site — LinkedIn cards included — fell back to a blank placeholder.
+       The image is a real render from the route planner: the A* path across
+       Redlands to Esri HQ over the OSM basemap. Absolute URL because crawlers do
+       not resolve relative og:image paths. summary_large_image upgrades the card
+       from a thumbnail strip to the full-width preview. *@
+    @{
+        var siteOrigin = $"{Context.Request.Scheme}://{Context.Request.Host}";
+        const string SocialBlurb = "Full-stack software engineer building secure C# and ASP.NET Core services — REST APIs, Entity Framework Core, PostgreSQL, Docker, and native C++ interop.";
+    }
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Brian Coffey — GIS Software Engineer" />
+    <meta property="og:site_name" content="Brian Coffey — Full-Stack .NET Engineer" />
     <meta property="og:title" content="@ViewData["Title"] – Brian Coffey" />
-    <meta property="og:description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:description" content="@SocialBlurb" />
+    <meta property="og:url" content="@($"{siteOrigin}{Context.Request.Path}")" />
+    <meta property="og:image" content="@($"{siteOrigin}/img/og-preview.jpg")" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="628" />
+    <meta property="og:image:alt" content="Route Planner: an A* shortest path traced across the Redlands street network to Esri HQ." />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@ViewData["Title"] – Brian Coffey" />
-    <meta name="twitter:description" content="GIS Software Engineer portfolio showcasing geospatial development, spatial analysis, and web GIS projects." />
+    <meta name="twitter:description" content="@SocialBlurb" />
+    <meta name="twitter:image" content="@($"{siteOrigin}/img/og-preview.jpg")" />
 
     <!-- Bootstrap 5 (local) -->
     <link href="~/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
