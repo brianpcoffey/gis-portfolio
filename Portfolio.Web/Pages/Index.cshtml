@@ -900,25 +900,32 @@
 </section>
 
 <!-- Résumé -->
-@* No prose. The heading and the two buttons say everything the section needs
-   to; a paragraph describing a résumé is words in front of the thing itself.
-   The band sits on --surface so it separates from the --background sections
-   above and below rather than blending into them. *@
+@* Same skeleton as About: left-aligned .section-title, then one centered
+   .col-lg-8 card. No text-center on the container — .section-title is
+   display:inline-block, so a centered container is what pushed this heading
+   to the middle while every other section's sat left. Still no prose; the
+   card exists to give the two buttons a surface to sit on. *@
 <section id="resume" class="resume-section py-5" role="region" aria-labelledby="resumeHeading">
-    <div class="container text-center">
+    <div class="container">
         <h2 id="resumeHeading" class="section-title mb-4">Résumé</h2>
-        <div class="resume-actions">
-            <a class="btn btn-accent"
-               href="~/files/Brian-Coffey-Resume.pdf"
-               download="Brian-Coffey-Resume.pdf">
-                <i class="fa-solid fa-download me-2" aria-hidden="true"></i>Download PDF
-            </a>
-            <a class="btn btn-outline-accent"
-               href="~/files/Brian-Coffey-Resume.pdf"
-               target="_blank"
-               rel="noopener">
-                <i class="fa-solid fa-up-right-from-square me-2" aria-hidden="true"></i>View<span class="visually-hidden"> résumé in a new tab</span>
-            </a>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="resume-card">
+                    <div class="resume-actions">
+                        <a class="btn btn-accent"
+                           href="~/files/Brian-Coffey-Resume.pdf"
+                           download="Brian-Coffey-Resume.pdf">
+                            <i class="fa-solid fa-download me-2" aria-hidden="true"></i>Download PDF
+                        </a>
+                        <a class="btn btn-outline-accent"
+                           href="~/files/Brian-Coffey-Resume.pdf"
+                           target="_blank"
+                           rel="noopener">
+                            <i class="fa-solid fa-up-right-from-square me-2" aria-hidden="true"></i>View<span class="visually-hidden"> résumé in a new tab</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>

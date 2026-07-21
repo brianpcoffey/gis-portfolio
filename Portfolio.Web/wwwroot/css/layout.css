@@ -418,14 +418,21 @@ body.dark-mode .projects-index-section {
 /* ======================================
    Résumé Section
    --------------------------------------
-   Sits on --surface rather than --background so it reads as its own band
-   between two --background sections instead of merging with them. No card:
-   the section IS the surface, so nesting another one just adds an edge.
+   Deliberately identical to the About section: --background behind, one
+   --surface card on top. That is what "like every other section" means here
+   — Skills, Projects and About all stack on --background and rely on their
+   heading plus card for separation, so this one does too.
    ====================================== */
 .resume-section {
-    background-color: var(--surface);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
+    background-color: var(--background);
+}
+
+.resume-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    box-shadow: 0 4px 16px var(--shadow);
 }
 
 .resume-actions {
@@ -436,6 +443,10 @@ body.dark-mode .projects-index-section {
 }
 
 @media (max-width: 575.98px) {
+    .resume-card {
+        padding: 1.5rem 1.25rem;
+    }
+
     .resume-actions .btn {
         width: 100%;
     }
