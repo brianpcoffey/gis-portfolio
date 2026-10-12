@@ -76,7 +76,7 @@
 				</div>
 				Native and managed are indistinguishable on this pipeline: their timing ranges (10.2–22.9 ms and 10.3–20.4 ms) overlap. Earlier per-stage timings used a different method and are withdrawn.
 			</li>
-			<li><strong>Why there is no gain:</strong> <code>DetectAsync</code> converts <code>List&lt;double&gt;</code> ⇄ <code>double[]</code> at the DTO edge, identically on both paths. Nothing in this kernel uses SIMD intrinsics or threading; it is plain scalar C++ against RyuJIT.</li>
+			<li><strong>No SIMD, no threading:</strong> <code>DetectAsync</code> converts <code>List&lt;double&gt;</code> ⇄ <code>double[]</code> at the DTO edge, identically on both paths, so the benchmark includes that shared cost. Nothing in this kernel uses SIMD intrinsics or threading; it is plain scalar C++ against RyuJIT.</li>
 			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error — including the <code>-6</code> too-many-components status — therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across all the kernels and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
 		</ul>
 	</section>
