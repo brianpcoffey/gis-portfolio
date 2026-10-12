@@ -21,6 +21,44 @@ public class FiberShipmentService : IFiberShipmentService
         _timeProvider = timeProvider;
     }
 
+    // Write-side limits.
+    private static readonly string[] AllowedStatuses = ["Pending", "In Transit", "Delivered", "Exception"];
+    private const int MaxTextLength = 100;
+    private const int MaxStateLength = 50;
+    private const int MaxRoutePoints = 1000;
+
+    private static void ValidateStatus(string? status, string paramName)
+    {
+        if (status is null || Array.IndexOf(AllowedStatuses, status) < 0)
+            throw new ArgumentException(
+                $"Status must be one of: {string.Join(", ", AllowedStatuses)}.", paramName);
+    }
+
+    private static void ValidateShipment(FiberShipmentDto dto)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+
+        if (dto.TrackingNumber?.Length > MaxTextLength)
+            throw new ArgumentException($"TrackingNumber must be {MaxTextLength} characters or fewer.", nameof(dto));
+        if (dto.CarrierName?.Length > MaxTextLength)
+            throw new ArgumentException($"CarrierName must be {MaxTextLength} characters or fewer.", nameof(dto));
+        if (dto.DestinationCity?.Length > MaxTextLength)
+            throw new ArgumentException($"DestinationCity must be {MaxTextLength} characters or fewer.", nameof(dto));
+        if (dto.DestinationState?.Length > MaxStateLength)
+            throw new ArgumentException($"DestinationState must be {MaxStateLength} characters or fewer.", nameof(dto));
+
+        ValidateStatus(dto.Status, nameof(dto));
+
+        if (!double.IsFinite(dto.OriginLat) || !double.IsFinite(dto.OriginLng)
+            || !double.IsFinite(dto.DestinationLat) || !double.IsFinite(dto.DestinationLng))
+            throw new ArgumentException("Coordinates must be finite numbers.", nameof(dto));
+
+        if (dto.Route is { Count: > MaxRoutePoints })
+            throw new ArgumentException($"Route can have at most {MaxRoutePoints} points.", nameof(dto));
+        if (dto.Route is not null && dto.Route.Any(p => p is null || !double.IsFinite(p.Lat) || !double.IsFinite(p.Lng)))
+            throw new ArgumentException("Route points must have finite coordinates.", nameof(dto));
+    }
+
     private Guid currentUserId =>
         _userProfileService.GetCurrentUserId() ?? throw new InvalidOperationException("User not identified");
 
@@ -38,6 +76,7 @@ public class FiberShipmentService : IFiberShipmentService
 
     public async Task<FiberShipmentDto> CreateAsync(FiberShipmentDto dto, CancellationToken cancellationToken = default)
     {
+        ValidateShipment(dto);
         var shipment = new FiberShipment
         {
             UserId = currentUserId,
@@ -59,6 +98,7 @@ public class FiberShipmentService : IFiberShipmentService
 
     public async Task<FiberShipmentDto> UpdateAsync(int id, FiberShipmentDto dto, CancellationToken cancellationToken = default)
     {
+        ValidateShipment(dto);
         var updated = await _shipmentRepo.UpdateAsync(id, dto, currentUserId, cancellationToken);
         return MapToDto(updated);
     }
@@ -70,6 +110,8 @@ public class FiberShipmentService : IFiberShipmentService
 
     public async Task<FiberShipmentDto> UpdateStatusAsync(int id, UpdateShipmentStatusDto dto, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(dto);
+        ValidateStatus(dto.Status, nameof(dto));
         var updated = await _shipmentRepo.UpdateStatusAsync(id, dto.Status, currentUserId, cancellationToken);
         return MapToDto(updated);
     }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
 
@@ -30,6 +31,14 @@ namespace Portfolio.Services.Services
             _logger = logger;
         }
 
+        // Write-side limits. Only Name mirrors its column (200); the LayerId/FeatureId columns are unbounded,
+        // so those caps exist only here. GeometryJson is 2x the largest
+        // Census state polygon measured from the State Explorer feature read (85,516), floored at 1 MB.
+        private const int MaxIdLength = 64;
+        private const int MaxNameLength = 200;
+        private const int MaxDescriptionLength = 2000;
+        private const int MaxGeometryJsonLength = 1_000_000;
+
         private Guid CurrentUserId =>
             _userProfileService.GetCurrentUserId()
                 ?? throw new InvalidOperationException("User not identified");
@@ -56,6 +65,17 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("Name is required", nameof(dto));
             if (string.IsNullOrWhiteSpace(dto.GeometryJson))
                 throw new ArgumentException("GeometryJson is required", nameof(dto));
+
+            if (dto.LayerId.Length > MaxIdLength)
+                throw new ArgumentException($"LayerId must be {MaxIdLength} characters or fewer.", nameof(dto));
+            if (dto.FeatureId.Length > MaxIdLength)
+                throw new ArgumentException($"FeatureId must be {MaxIdLength} characters or fewer.", nameof(dto));
+            if (dto.Name.Length > MaxNameLength)
+                throw new ArgumentException($"Name must be {MaxNameLength} characters or fewer.", nameof(dto));
+            if (dto.Description is { Length: > MaxDescriptionLength })
+                throw new ArgumentException($"Description must be {MaxDescriptionLength} characters or fewer.", nameof(dto));
+            if (dto.GeometryJson.Length > MaxGeometryJsonLength)
+                throw new ArgumentException($"GeometryJson must be {MaxGeometryJsonLength} characters or fewer.", nameof(dto));
 
             var userId = CurrentUserId;
 
@@ -89,7 +109,7 @@ namespace Portfolio.Services.Services
             };
 
 var saved = await _repo.AddAsync(entity, cancellationToken);
-_logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}", saved.FeatureId, saved.LayerId, userId);
+_logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}", saved.FeatureId, saved.LayerId, LogRedaction.UserId(userId));
 return MapToDto(saved);
         }
 
@@ -98,7 +118,7 @@ return MapToDto(saved);
             var userId = CurrentUserId;
             var deleted = await _repo.DeleteAsync(id, userId, cancellationToken);
             if (!deleted)
-                _logger.LogWarning("Saved feature DB id {Id} not found for user {UserId} during delete", id, userId);
+                _logger.LogWarning("Saved feature DB id {Id} not found for user {UserId} during delete", id, LogRedaction.UserId(userId));
             return deleted;
         }
 
@@ -108,7 +128,7 @@ return MapToDto(saved);
             var sf = await _repo.GetByFeatureKeyAsync(featureKey, userId, cancellationToken);
             if (sf == null)
             {
-                _logger.LogWarning("Saved feature key {FeatureKey} not found for user {UserId} during delete", featureKey, userId);
+                _logger.LogWarning("Saved feature key {FeatureKey} not found for user {UserId} during delete", featureKey, LogRedaction.UserId(userId));
                 return false;
             }
             return await _repo.DeleteAsync(sf.Id, userId, cancellationToken);

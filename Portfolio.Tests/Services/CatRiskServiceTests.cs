@@ -482,6 +482,121 @@ namespace Portfolio.Tests.Services
                 service.SimulateAsync(new SimulationRequestDto { Locations = locations, Events = events }));
         }
 
+        // ── Upper bounds (WP-06) ────────────────────────────────────────────────
+
+        [Fact]
+        public async Task Accumulation_InsuredValueOverCap_ThrowsArgumentException()
+        {
+            var service = NewService();
+            var bad = Location(1, BaseLat, BaseLon, insuredValue: 1e12 + 1e6);
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.ComputeAccumulationAsync(new AccumulationRequestDto { Locations = [bad], RadiusKm = 5 }));
+            Assert.StartsWith("Insured value must not exceed 1,000,000,000,000.", ex.Message);
+        }
+
+        [Fact]
+        public async Task Accumulation_InsuredValueExactlyAtCap_Succeeds()
+        {
+            var service = NewService();
+
+            var result = await service.ComputeAccumulationAsync(new AccumulationRequestDto
+            {
+                Locations = [Location(1, BaseLat, BaseLon, insuredValue: 1e12)],
+                RadiusKm = 5
+            });
+
+            Assert.Equal(1e12, result.WorstRingTiv);
+        }
+
+        [Fact]
+        public async Task Simulate_EventRadiusOverCap_ThrowsArgumentException()
+        {
+            var service = NewService();
+            var bad = Event(1, BaseLat, BaseLon, radiusKm: 5_000.5);
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.SimulateAsync(new SimulationRequestDto { Locations = [Location(1, BaseLat, BaseLon)], Events = [bad] }));
+            Assert.StartsWith("Event radius must not exceed 5000 km.", ex.Message);
+        }
+
+        [Fact]
+        public async Task Simulate_EventRadiusExactlyAtCap_Succeeds()
+        {
+            var service = NewService();
+
+            var result = await service.SimulateAsync(new SimulationRequestDto
+            {
+                Locations = [Location(1, BaseLat, BaseLon)],
+                Events = [Event(1, BaseLat, BaseLon, radiusKm: 5_000)]
+            });
+
+            Assert.True(result.AverageAnnualLoss >= 0);
+        }
+
+        [Fact]
+        public async Task Simulate_MillionKmEventRadius_IsRejectedQuickly()
+        {
+            // findings-security 5.2: radius 1e6 km took 2.8 s with 5,000 x 12,000.
+            var service = NewService();
+            var locations = Enumerable.Range(1, 5_000).Select(i => Location(i, BaseLat, BaseLon)).ToList();
+            var events = Enumerable.Range(1, 12_000).Select(i => Event(i, BaseLat, BaseLon, radiusKm: 1e6)).ToList();
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.SimulateAsync(new SimulationRequestDto { Locations = locations, Events = events }));
+
+            Assert.True(timer.ElapsedMilliseconds < 5000, $"took {timer.ElapsedMilliseconds} ms");
+        }
+
+        [Theory]
+        [InlineData("lat")]
+        [InlineData("lon")]
+        [InlineData("value")]
+        [InlineData("hazard")]
+        [InlineData("deductible")]
+        [InlineData("limit")]
+        public async Task Simulate_NaNLocationField_ThrowsArgumentException(string field)
+        {
+            var service = NewService();
+            var bad = Location(1, BaseLat, BaseLon);
+            switch (field)
+            {
+                case "lat": bad.Latitude = double.NaN; break;
+                case "lon": bad.Longitude = double.NaN; break;
+                case "value": bad.InsuredValue = double.NaN; break;
+                case "hazard": bad.SiteHazard = double.NaN; break;
+                case "deductible": bad.DeductibleRate = double.NaN; break;
+                default: bad.LimitRate = double.NaN; break;
+            }
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.SimulateAsync(new SimulationRequestDto { Locations = [bad], Events = [Event(1, BaseLat, BaseLon)] }));
+        }
+
+        [Theory]
+        [InlineData("lat")]
+        [InlineData("lon")]
+        [InlineData("intensity")]
+        [InlineData("radius")]
+        [InlineData("rate")]
+        public async Task Simulate_NaNEventField_ThrowsArgumentException(string field)
+        {
+            var service = NewService();
+            var bad = Event(1, BaseLat, BaseLon);
+            switch (field)
+            {
+                case "lat": bad.Latitude = double.NaN; break;
+                case "lon": bad.Longitude = double.NaN; break;
+                case "intensity": bad.Intensity = double.NaN; break;
+                case "radius": bad.RadiusKm = double.NaN; break;
+                default: bad.AnnualRate = double.NaN; break;
+            }
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.SimulateAsync(new SimulationRequestDto { Locations = [Location(1, BaseLat, BaseLon)], Events = [bad] }));
+        }
+
         // ── Policy book ─────────────────────────────────────────────────────────
 
         [Fact]

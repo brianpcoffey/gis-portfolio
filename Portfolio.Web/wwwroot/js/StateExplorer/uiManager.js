@@ -10,16 +10,6 @@ let viewModalInstance = null;
 
 function query(id) { return document.getElementById(id); }
 
-function escapeHtml(s) {
-    if (s === null || s === undefined) return "";
-    return String(s)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-}
-
 // Extract useful metadata pairs from a feature object.
 // Prioritizes a small set of friendly fields (Name, Feature ID, Region, Capital, Population (est.), Area, Admission)
 // Omits any ObjectID/OBJECTID/ObjectId keys and maps common GIS field names to user-friendly labels.
@@ -316,9 +306,9 @@ export const UI = {
 
             // Build display title with optional collection
             const titleText = saved.displayName || saved.Name || saved.name || `State ${featureKey}`;
-            let titleHtml = escapeHtml(titleText);
+            let titleHtml = PortfolioDom.escapeHtml(titleText);
             if (saved.CollectionName || saved.collectionName) {
-                const cname = escapeHtml(saved.CollectionName || saved.collectionName);
+                const cname = PortfolioDom.escapeHtml(saved.CollectionName || saved.collectionName);
                 titleHtml = `<span>${titleHtml} <small class="text-muted ms-2">(${cname})</small></span>`;
             }
             left.innerHTML = titleHtml;
@@ -383,11 +373,15 @@ export const UI = {
                 item.dataset.collectionId = String(col.id);
 
                 // left: badge + name, right: small action buttons
-                item.innerHTML = `<span><span class="badge me-2" style="background:${escapeHtml(col.color)};width:10px;height:10px;border-radius:50%;display:inline-block;"></span>${escapeHtml(col.name)}</span>
+                item.innerHTML = `<span>${PortfolioDom.escapeHtml(col.name)}</span>
                                   <div class="btn-group btn-group-sm">
                                     <button type="button" class="btn btn-outline-light btn-sm" data-action="edit" title="Edit"><i class="fa-solid fa-pen"></i></button>
                                     <button type="button" class="btn btn-outline-danger btn-sm ms-1" data-action="delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
                                   </div>`;
+                // Colour badge: built as a node; the colour reaches CSS only after a hex check.
+                const colorBadge = PortfolioDom.el("span", { class: "badge me-2", style: "width:10px;height:10px;border-radius:50%;display:inline-block;" });
+                if (/^#[0-9a-fA-F]{6}$/.test(col.color)) colorBadge.style.backgroundColor = col.color;
+                item.firstElementChild.prepend(colorBadge);
                 list.appendChild(item);
             }
             if (select) {
@@ -475,7 +469,7 @@ export const UI = {
             // metadata
             const metaPairs = extractMetadataPairs(saved);
             if (metaPairs.length) {
-                const html = metaPairs.map(p => `<div><strong>${escapeHtml(p[0])}:</strong> ${escapeHtml(String(p[1]))}</div>`).join("");
+                const html = metaPairs.map(p => `<div><strong>${PortfolioDom.escapeHtml(p[0])}:</strong> ${PortfolioDom.escapeHtml(String(p[1]))}</div>`).join("");
                 query("viewSavedMeta").innerHTML = html;
             } else {
                 query("viewSavedMeta").innerHTML = "";
@@ -549,21 +543,21 @@ export const UI = {
 
             // Build metadata snippet
             const metaPairs = extractMetadataPairs(feature);
-            const metaHtml = metaPairs.length ? `<div class="mt-2"><small class="text-muted">${metaPairs.map(p => `<div>${escapeHtml(p[0])}: <strong>${escapeHtml(p[1])}</strong></div>`).join("")}</small></div>` : "";
+            const metaHtml = metaPairs.length ? `<div class="mt-2"><small class="text-muted">${metaPairs.map(p => `<div>${PortfolioDom.escapeHtml(p[0])}: <strong>${PortfolioDom.escapeHtml(p[1])}</strong></div>`).join("")}</small></div>` : "";
 
             const card = document.createElement("div");
             card.className = "card mb-2 p-2";
             card.innerHTML = `
                 <div class="d-flex justify-content-between align-items-start">
                     <div style="min-width:0;">
-                        <strong>${escapeHtml(title)}</strong>
-                        <div class="small text-muted">ID: ${escapeHtml(id)}</div>
-                        <div class="small text-truncate" style="max-width:360px;">${escapeHtml(desc)}</div>
+                        <strong>${PortfolioDom.escapeHtml(title)}</strong>
+                        <div class="small text-muted">ID: ${PortfolioDom.escapeHtml(id)}</div>
+                        <div class="small text-truncate" style="max-width:360px;">${PortfolioDom.escapeHtml(desc)}</div>
                         ${metaHtml}
                     </div>
                     <div class="btn-group-vertical btn-group-sm ms-2">
-                        <button type="button" class="btn btn-outline-secondary" data-action="zoom" data-feature-id="${escapeHtml(id)}" title="Zoom to feature">🔎</button>
-                        <button type="button" class="btn btn-outline-danger" data-action="toggle" data-feature-id="${escapeHtml(id)}" title="Remove from comparison">✖</button>
+                        <button type="button" class="btn btn-outline-secondary" data-action="zoom" data-feature-id="${PortfolioDom.escapeHtml(id)}" title="Zoom to feature">🔎</button>
+                        <button type="button" class="btn btn-outline-danger" data-action="toggle" data-feature-id="${PortfolioDom.escapeHtml(id)}" title="Remove from comparison">✖</button>
                     </div>
                 </div>
             `;
@@ -606,15 +600,15 @@ export const UI = {
         // authoritative saved state is in savedFeatures map
         const savedEntry = state.savedFeatures.get(fid);
 
-        const title = escapeHtml(feature.displayName || feature.Name || feature.name || "");
-        const description = escapeHtml(feature.Description || feature.description || "");
+        const title = PortfolioDom.escapeHtml(feature.displayName || feature.Name || feature.name || "");
+        const description = PortfolioDom.escapeHtml(feature.Description || feature.description || "");
 
         // Build metadata table
         const metaPairs = extractMetadataPairs(feature);
         let metaHtml = "";
         if (metaPairs.length) {
             metaHtml = `<dl class="row small mb-2">` +
-                metaPairs.map(([k, v]) => `<dt class="col-5 text-muted">${escapeHtml(k)}</dt><dd class="col-7"><strong>${escapeHtml(v)}</strong></dd>`).join("") +
+                metaPairs.map(([k, v]) => `<dt class="col-5 text-muted">${PortfolioDom.escapeHtml(k)}</dt><dd class="col-7"><strong>${PortfolioDom.escapeHtml(v)}</strong></dd>`).join("") +
                 `</dl>`;
         }
 
@@ -635,7 +629,7 @@ export const UI = {
 
         const html = `
             <h5>${title}</h5>
-            <p class="small text-muted mb-1">Feature ID: ${escapeHtml(fid)}</p>
+            <p class="small text-muted mb-1">Feature ID: ${PortfolioDom.escapeHtml(fid)}</p>
             ${metaHtml}
             <p>${description}</p>
             <div class="d-flex gap-2">

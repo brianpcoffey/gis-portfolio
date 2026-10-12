@@ -12,6 +12,8 @@ namespace Portfolio.Services.Services
         private const int MaxEvents = 20_000;
         private const long MaxEvaluations = 60_000_000;
         private const double MaxRadiusKm = 200.0;
+        private const double MaxInsuredValue = 1e12;
+        private const double MaxEventRadiusKm = 5_000.0;
 
         private const double EarthRadiusKm = 6371.0;
         private const double KmPerLatDegree = 111.32;
@@ -144,6 +146,8 @@ namespace Portfolio.Services.Services
                     throw new ArgumentException("Location coordinates must be finite values.", paramName);
                 if (!IsFinite(location.InsuredValue) || location.InsuredValue <= 0)
                     throw new ArgumentException("Insured value must be greater than zero.", paramName);
+                if (location.InsuredValue > MaxInsuredValue)
+                    throw new ArgumentException("Insured value must not exceed 1,000,000,000,000.", paramName);
                 if (!IsFinite(location.SiteHazard) || location.SiteHazard < 0 || location.SiteHazard > 1)
                     throw new ArgumentException("Site hazard must be between 0 and 1.", paramName);
                 if (!IsFinite(location.DeductibleRate) || location.DeductibleRate < 0 || location.DeductibleRate > 1)
@@ -168,6 +172,8 @@ namespace Portfolio.Services.Services
                     throw new ArgumentException("Event parameters must be finite values.", paramName);
                 if (catEvent.RadiusKm <= 0)
                     throw new ArgumentException("Event radius must be greater than zero.", paramName);
+                if (catEvent.RadiusKm > MaxEventRadiusKm)
+                    throw new ArgumentException($"Event radius must not exceed {MaxEventRadiusKm} km.", paramName);
                 if (catEvent.AnnualRate < 0)
                     throw new ArgumentException("Event annual rate cannot be negative.", paramName);
             }

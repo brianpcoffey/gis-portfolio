@@ -338,20 +338,20 @@ function plotResults(results) {
                 symbol: symbol,
                 attributes: p,
                 popupTemplate: new PopupTemplate({
-                    title: `#${p.rank} \u2014 ${p.street}`,
+                    title: `#${p.rank} \u2014 ${PortfolioDom.escapeHtml(p.street)}`,
                     content: `
                         <b>Score:</b> ${p.compositeScore}/100<br>
                         <b>Price:</b> $${p.price.toLocaleString()} (${pricePerSqft(p)}/sqft)<br>
                         <b>Monthly:</b> $${p.estimatedMonthlyCost.toLocaleString()}<br>
-                        <b>Type:</b> ${escapeHtml(p.propertyType)} \u2014 ${p.stories}-story<br>
+                        <b>Type:</b> ${PortfolioDom.escapeHtml(p.propertyType)} \u2014 ${p.stories}-story<br>
                         <b>Bed/Bath:</b> ${p.bedrooms}/${p.bathrooms}<br>
                         <b>Sq Ft:</b> ${p.lotSqft.toLocaleString()}<br>
                         <b>Built:</b> ${p.yearBuilt}<br>
                         <b>Garage:</b> ${p.garageSpaces} car${p.garageSpaces === 1 ? "" : "s"}${p.hasPool ? " \u2014 Pool" : ""}<br>
                         <b>School rating:</b> ${p.schoolRating}/100<br>
                         <b>HOA:</b> ${p.hoaFee > 0 ? "$" + p.hoaFee.toLocaleString() + "/mo" : "None"}<br>
-                        <b>Zip:</b> ${p.zipCode} \u2014 ${p.daysOnMarket} days on market<br>
-                        <span style="color:#888;">Listed by ${escapeHtml(p.brokeredBy || "")}</span>
+                        <b>Zip:</b> ${PortfolioDom.escapeHtml(p.zipCode)} \u2014 ${p.daysOnMarket} days on market<br>
+                        <span style="color:#888;">Listed by ${PortfolioDom.escapeHtml(p.brokeredBy || "")}</span>
                     `
                 })
             });
@@ -399,16 +399,16 @@ function renderResults(results) {
         return `
             <div class="card theme-card mb-2 p-2" style="cursor:pointer;"
                  data-property-id="${p.propertyId}" tabindex="0" role="button"
-                 aria-label="View property #${p.rank} at ${escapeHtml(p.street)}">
+                 aria-label="View property #${p.rank} at ${PortfolioDom.escapeHtml(p.street)}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1 me-2">
                         <strong class="small">#${p.rank}</strong>
-                        <span class="small ms-1">${escapeHtml(p.street)}</span>
+                        <span class="small ms-1">${PortfolioDom.escapeHtml(p.street)}</span>
                         <div class="theme-text-muted" style="font-size:.75rem;">
                             $${p.price.toLocaleString()} \u2014 ${p.bedrooms}bd/${p.bathrooms}ba \u2014 ${p.lotSqft.toLocaleString()} sqft \u2014 ${pricePerSqft(p)}/sqft
                         </div>
                         <div class="theme-text-muted" style="font-size:.7rem;">
-                            ${escapeHtml(p.propertyType)} \u00b7 Built ${p.yearBuilt} \u00b7 ${p.garageSpaces}-car garage${p.hasPool ? " \u00b7 Pool" : ""} \u00b7 School ${p.schoolRating}
+                            ${PortfolioDom.escapeHtml(p.propertyType)} \u00b7 Built ${p.yearBuilt} \u00b7 ${p.garageSpaces}-car garage${p.hasPool ? " \u00b7 Pool" : ""} \u00b7 School ${p.schoolRating}
                         </div>
                         <div class="score-bar-container" aria-label="Composite score: ${scorePct}%">
                             <div class="score-bar-fill ${barClass}" style="width: 0%;" data-target-width="${scorePct}"></div>
@@ -449,10 +449,6 @@ function renderResults(results) {
             }
         });
     });
-}
-
-function escapeHtml(s) {
-    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /**
@@ -584,7 +580,7 @@ async function loadSavedSearches() {
             <div class="card theme-card mb-2 p-2">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <strong class="small">${escapeHtml(s.name)}</strong>
+                        <strong class="small">${PortfolioDom.escapeHtml(s.name)}</strong>
                         <div class="theme-text-muted" style="font-size:.75rem;">
                             Saved ${new Date(s.createdAt).toLocaleDateString()}
                         </div>
@@ -654,60 +650,11 @@ async function applySavedSearch(searchId) {
         updateAllWeightBars();
         updateWeightStatus();
         await performSearch();
-        showToast(`Loaded "${escapeHtml(saved.name)}"`, "success");
+        showToast(`Loaded "${saved.name}"`, "success");
     } catch (err) {
         console.error("Apply saved search failed:", err);
         showToast("Failed to load search.", "danger");
     }
-}
-
-// ============================================================
-// Toast Helper
-// ============================================================
-
-function showToast(message, type = "success") {
-    const container = document.getElementById("toastContainer") || createToastContainer();
-    const iconMap = {
-        success: "fa-circle-check",
-        danger: "fa-circle-xmark",
-        warning: "fa-triangle-exclamation",
-        info: "fa-circle-info"
-    };
-    const icon = iconMap[type] || iconMap.info;
-
-    const toast = document.createElement("div");
-    toast.className = `toast align-items-center text-bg-${type} border-0 show`;
-    toast.setAttribute("role", "alert");
-    toast.setAttribute("aria-live", "assertive");
-    toast.setAttribute("aria-atomic", "true");
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                <i class="fa-solid ${icon} me-1"></i>${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto"
-                    data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>`;
-    container.appendChild(toast);
-
-    // Animate in
-    requestAnimationFrame(() => toast.classList.add("toast-slide-in"));
-
-    setTimeout(() => {
-        toast.classList.add("toast-slide-out");
-        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
-        // Fallback removal if transition doesn't fire
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
-}
-
-function createToastContainer() {
-    const c = document.createElement("div");
-    c.id = "toastContainer";
-    c.className = "toast-container position-fixed bottom-0 end-0 p-3";
-    c.style.zIndex = "1090";
-    document.body.appendChild(c);
-    return c;
 }
 
 // ============================================================

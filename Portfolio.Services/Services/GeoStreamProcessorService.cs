@@ -8,6 +8,7 @@ namespace Portfolio.Services.Services
     public class GeoStreamProcessorService : IGeoStreamProcessorService
     {
         private const int MaxEventCount = 10000;
+        private const double MinGridSizeDegrees = 1e-6;
         private readonly ILogger<GeoStreamProcessorService> _logger;
 
         public GeoStreamProcessorService(ILogger<GeoStreamProcessorService> logger)
@@ -30,13 +31,34 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("Grid size must be a finite value greater than zero.", nameof(request));
             if (request.AnomalySpeedThresholdMetersPerSecond < 0 || double.IsNaN(request.AnomalySpeedThresholdMetersPerSecond) || double.IsInfinity(request.AnomalySpeedThresholdMetersPerSecond))
                 throw new ArgumentException("Anomaly speed threshold must be a finite non-negative value.", nameof(request));
+            if (request.GridSizeDegrees < MinGridSizeDegrees)
+                throw new ArgumentException("Grid size must be at least 0.000001 degrees.", nameof(request));
+
+            // Non-finite speeds are rejected outright. Events with a non-finite position are
+            // counted as invalid (like out-of-range ones); the native kernel only range-checks
+            // them, so a batch containing one is processed on the managed path.
+            var hasNonFinitePosition = ValidateEvents(request);
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (GeoStreamNativeBridge.TryProcessBatch(request, _logger, out var nativeResult))
+            if (!hasNonFinitePosition && GeoStreamNativeBridge.TryProcessBatch(request, _logger, out var nativeResult))
                 return Task.FromResult(NormalizeResult(nativeResult!));
 
             return Task.FromResult(NormalizeResult(ProcessManaged(request, cancellationToken)));
+        }
+
+        // Throws on a non-finite speed; returns whether any event has a non-finite position.
+        private static bool ValidateEvents(GeoStreamBatchRequestDto request)
+        {
+            var hasNonFinitePosition = false;
+            foreach (var telemetryEvent in request.Events)
+            {
+                if (!double.IsFinite(telemetryEvent.SpeedMetersPerSecond))
+                    throw new ArgumentException("Event speed must be a finite value.", nameof(request));
+                if (!double.IsFinite(telemetryEvent.Latitude) || !double.IsFinite(telemetryEvent.Longitude))
+                    hasNonFinitePosition = true;
+            }
+            return hasNonFinitePosition;
         }
 
         private static GeoStreamBatchResultDto ProcessManaged(GeoStreamBatchRequestDto request, CancellationToken cancellationToken)
@@ -48,6 +70,8 @@ namespace Portfolio.Services.Services
             foreach (var telemetryEvent in request.Events)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (!double.IsFinite(telemetryEvent.Latitude) || !double.IsFinite(telemetryEvent.Longitude))
+                    continue;
                 if (telemetryEvent.Latitude < -90 || telemetryEvent.Latitude > 90 || telemetryEvent.Longitude < -180 || telemetryEvent.Longitude > 180)
                     continue;
 
