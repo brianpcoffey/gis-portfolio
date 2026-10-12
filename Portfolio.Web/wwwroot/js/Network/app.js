@@ -166,7 +166,7 @@
             var hqMarker = L.circleMarker([hq.latitude, hq.longitude], {
                 radius: 10, fillColor: "#198754", color: "#fff", weight: 2.5, fillOpacity: 0.95
             }).addTo(map);
-            hqMarker.bindTooltip("<strong>🏁 " + (hq.label || "Esri HQ") + "</strong>",
+            hqMarker.bindTooltip(PortfolioDom.el("strong", { text: "🏁 " + (hq.label || "Esri HQ") }),
                 { direction: "top", className: "network-tooltip" });
             nodeMarkers[hq.id] = hqMarker;
         }
@@ -177,7 +177,7 @@
             var marker = L.circleMarker([node.latitude, node.longitude], {
                 radius: 5, fillColor: "#64748b", color: "#fff", weight: 1.2, fillOpacity: 0.85
             }).addTo(map);
-            marker.bindTooltip(node.label || ("Node " + id), { direction: "top", className: "network-tooltip" });
+            marker.bindTooltip(PortfolioDom.el("span", { text: node.label || ("Node " + id) }), { direction: "top", className: "network-tooltip" });
             marker.on("click", function (ev) {
                 L.DomEvent.stopPropagation(ev); // don't also trigger map-click snap
                 setOrigin(id);
