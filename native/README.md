@@ -163,7 +163,7 @@ reason — allocation and hashing inside the hot loop:
 - `network_trace_kernel` used `std::unordered_map<int, std::vector<int>>` for adjacency and
   measured **2.5× slower** than managed: a heap allocation per node plus a hash lookup per
   edge visit. Densified node ids, a CSR incidence array and cached per-element endpoint
-  indices — no hashing in the inner loop — turned it into the 1.48× win above (trace + restoration plan; the sweep alone is level at 1.01×).
+  indices — no hashing in the inner loop — turned it into the 1.48× median above (ranges overlap; the sweep alone is level at 1.01×).
 - `vrp_solver_kernel` allocated a fresh `std::vector` per candidate move and measured
   **1.7× slower** (27 ms vs 16 ms at n=120). Hoisting three scratch buffers and reusing
   capacity via `assign` produced 2.26×.
