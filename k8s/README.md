@@ -9,7 +9,8 @@
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml      # fill in real values first
+cp k8s/secret.example.yaml k8s/secret.yaml   # gitignored; fill in real values, then:
+kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/redis.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
@@ -37,7 +38,7 @@ via Redis so all replicas serve any request correctly.
 
 ## Secrets management
 
-`k8s/secret.yaml` contains only placeholder values. Never commit real credentials.
+`k8s/secret.example.yaml` contains only placeholder values; the real `k8s/secret.yaml` is gitignored. Never commit real credentials.
 In production use [Sealed Secrets](https://sealed-secrets.netlify.app/) or
 [External Secrets Operator](https://external-secrets.io/) to inject secrets from
 a vault (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault, etc.).

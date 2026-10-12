@@ -1,7 +1,8 @@
 # --------------------------
 # Build stage
 # --------------------------
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# sdk:10.0 resolved 2026-10-12 (manifest list digest, from MCR Docker-Content-Digest)
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:e70cdb7f80b0348f5cb85f19a8f670fca061f033d57eed12fa003d58b0e06317 AS build
 WORKDIR /src
 
 COPY Directory.Packages.props ./
@@ -26,7 +27,8 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 # --------------------------
 # Runtime stage
 # --------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# aspnet:10.0 resolved 2026-10-12 (manifest list digest, from MCR Docker-Content-Digest)
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:222759b391a1aaf241166672c8f99b2d4ada452e7b5319f3c6e8f265a37b5ad4 AS runtime
 WORKDIR /app
 
 # Install Kerberos GSS library required by Npgsql's SSPI/Kerberos negotiation
@@ -34,12 +36,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-
 
 # Create DataProtection-Keys directory for fallback when Redis is not configured
 # In production with Redis, keys are stored in Redis instead
-RUN mkdir -p /app/DataProtection-Keys
+RUN mkdir -p /app/DataProtection-Keys && chown $APP_UID /app/DataProtection-Keys
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_HTTP_PORTS=${PORT:-10000}
+ENV ASPNETCORE_HTTP_PORTS=10000
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_RUNNING_IN_CONTAINER=true
+
+# Run as the image's built-in non-root user (UID 1654). Everything above that writes runs as root;
+# the only runtime-writable path is /app/DataProtection-Keys, chowned above.
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "Portfolio.Web.dll"]
