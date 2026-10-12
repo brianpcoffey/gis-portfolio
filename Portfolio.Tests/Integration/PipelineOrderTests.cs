@@ -37,9 +37,13 @@ public class PipelineOrderTests
     [Fact]
     public async Task HealthLive_Returns200_WithSecurityHeaders()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act
         var r = await f.Client().GetAsync("/health/live", TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         AssertSecurityHeaders(r);
     }
@@ -47,9 +51,13 @@ public class PipelineOrderTests
     [Fact]
     public async Task StaticFile_IsServedBeforeRouting_WithSecurityHeaders()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act
         var r = await f.Client().GetAsync("/js/api-config.js", TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         AssertSecurityHeaders(r);
     }
@@ -57,9 +65,13 @@ public class PipelineOrderTests
     [Fact]
     public async Task ProtectedApi_WithoutAuth_Is401_WithoutRedirect()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act
         var r = await f.Client().GetAsync("/api/v1/fiber/orders", TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, r.StatusCode);
         Assert.Null(r.Headers.Location);
     }
@@ -67,9 +79,13 @@ public class PipelineOrderTests
     [Fact]
     public async Task ProtectedPage_WithoutAuth_RedirectsToAppLogin()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act
         var r = await f.Client().GetAsync("/Account/Profile", TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.Redirect, r.StatusCode);
         Assert.NotNull(r.Headers.Location);
         Assert.Equal("/Login", r.Headers.Location!.AbsolutePath);
@@ -79,6 +95,7 @@ public class PipelineOrderTests
     [Fact]
     public async Task GlobalLimiter_301stRequest_Is429_BeforeAnonymousIdentity_AndPartitionedByForwardedIp()
     {
+        // Arrange
         // An unrouted path never reaches MVC, so 300 requests are cheap.
         await using var f = new PortfolioAppFactory();
         var c = f.Client();
@@ -88,6 +105,7 @@ public class PipelineOrderTests
             Assert.True(ok.StatusCode == HttpStatusCode.NotFound, $"#{i}: {(int)ok.StatusCode}");
         }
 
+        // Act & Assert
         var r = await c.SendAsync(Get("/api/v1/no-such-route", "text/html"), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.TooManyRequests, r.StatusCode);
         AssertSecurityHeaders(r);
@@ -108,9 +126,13 @@ public class PipelineOrderTests
     [Fact]
     public async Task HtmlRequest_WithoutCookie_CreatesProfile_AndHttpOnlyLaxCookie()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act
         var r = await f.Client().SendAsync(Get("/Privacy", "text/html"), TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         var cookie = r.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith(CookieName + "=", StringComparison.Ordinal));
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
@@ -121,12 +143,16 @@ public class PipelineOrderTests
     [Fact]
     public async Task JsonRequest_WithoutCookie_CreatesNoProfile_AndApiExceptionMiddlewareMapsTheConflict()
     {
+        // Arrange
         // With no cookie and no text/html Accept, AnonymousUserMiddleware passes through without an
         // identity. SavedFeatures then throws InvalidOperationException from GetCurrentUserId, and
         // only ApiExceptionMiddleware being in the pipeline turns that into a 409 ProblemDetails.
         await using var f = new PortfolioAppFactory();
+
+        // Act
         var r = await f.Client().SendAsync(Get("/api/v1/features/saved", "application/json"), TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.Conflict, r.StatusCode);
         Assert.Equal("application/problem+json", r.Content.Headers.ContentType?.MediaType);
         var body = await r.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);

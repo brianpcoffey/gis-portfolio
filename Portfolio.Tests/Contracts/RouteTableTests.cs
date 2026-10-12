@@ -111,11 +111,13 @@ public class RouteTableTests
     [Fact]
     public async Task ControllerActionRoutes_MatchTheGoldenList()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
         _ = f.Client();
 
         var expected = Expected.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
+        // Act & Assert
         Assert.Equal(78, expected.Count);
         GoldenAssert.Equal(expected, ActionRoutes(f));
     }
@@ -123,6 +125,7 @@ public class RouteTableTests
     [Fact]
     public async Task EveryApiRouteInApiConfigJs_MatchesAControllerRoute()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
         var js = await f.Client().GetStringAsync("/js/api-config.js", TestContext.Current.CancellationToken);
         var templates = ActionRoutes(f).Select(r => r[(r.IndexOf(' ') + 1)..]).ToList();
@@ -134,6 +137,7 @@ public class RouteTableTests
             .ToList();
         Assert.True(paths.Count >= 40, $"parsed only {paths.Count} routes from api-config.js");
 
+        // Act & Assert
         static Regex ToRegex(string template) =>
             new("^" + Regex.Replace(Regex.Escape(template), @"\\\{[^}]+\}", "[^/]+") + "$");
 

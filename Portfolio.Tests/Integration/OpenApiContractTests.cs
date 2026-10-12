@@ -214,9 +214,13 @@ public class OpenApiContractTests
     [Fact]
     public async Task OpenApiDocument_IsServed_AsJson()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act
         var r = await f.Client().GetAsync("/openapi/v1.json", TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         Assert.Equal("application/json", r.Content.Headers.ContentType?.MediaType);
     }
@@ -224,8 +228,10 @@ public class OpenApiContractTests
     [Fact]
     public async Task Operations_AndRequestBodyDescriptions_MatchTheGoldenList()
     {
+        // Arrange
         using var doc = await FetchAsync();
 
+        // Act
         var actual = new List<string>();
         foreach (var path in doc.RootElement.GetProperty("paths").EnumerateObject())
         {
@@ -240,17 +246,21 @@ public class OpenApiContractTests
         }
         actual.Sort(StringComparer.Ordinal);
 
+        // Assert
         GoldenAssert.Equal(Lines(ExpectedOperations), actual);
     }
 
     [Fact]
     public async Task SchemaNames_MatchTheGoldenList()
     {
+        // Arrange
         using var doc = await FetchAsync();
 
+        // Act
         var actual = doc.RootElement.GetProperty("components").GetProperty("schemas")
             .EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal).ToList();
 
+        // Assert
         GoldenAssert.Equal(Lines(ExpectedSchemas), actual);
     }
 }

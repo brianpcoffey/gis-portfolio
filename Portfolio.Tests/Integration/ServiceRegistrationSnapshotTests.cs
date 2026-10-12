@@ -62,9 +62,11 @@ public class ServiceRegistrationSnapshotTests
     [Fact]
     public async Task ApplicationServiceRegistrations_MatchTheGoldenList()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
         _ = f.Client(); // build the host so ConfigureTestServices captures the descriptors
 
+        // Act
         var actual = f.Registrations
             .Where(r => r.Service.FullName!.StartsWith("Portfolio.", StringComparison.Ordinal) ||
                         r.Service.Name is "IBatchJobStore" or "IDistributedCache" or "TimeProvider" or "IMemoryCache")
@@ -74,6 +76,7 @@ public class ServiceRegistrationSnapshotTests
 
         var expected = Expected.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
+        // Assert
         GoldenAssert.Equal(expected, actual);
     }
 }

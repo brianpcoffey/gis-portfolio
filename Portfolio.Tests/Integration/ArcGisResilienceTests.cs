@@ -18,12 +18,15 @@ public class ArcGisResilienceTests
     [InlineData("IAddressStandardizationService", 4)]  // arcgis-address:  MaxRetryAttempts = 3
     public async Task Retries503_UpToTheConfiguredBudget(string clientName, int expectedAttempts)
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
         _ = f.Client(); // build the host
         var http = f.Services.GetRequiredService<IHttpClientFactory>().CreateClient(clientName);
 
+        // Act
         var r = await http.GetAsync("http://arcgis.invalid/probe", TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.Equal(HttpStatusCode.ServiceUnavailable, r.StatusCode);
         Assert.Equal(expectedAttempts, f.ArcGisAttempts(clientName));
     }

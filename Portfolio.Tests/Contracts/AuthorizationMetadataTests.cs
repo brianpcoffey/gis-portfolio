@@ -25,6 +25,7 @@ public class AuthorizationMetadataTests
     [Fact]
     public void ControllersAreDiscovered()
     {
+        // Act & Assert
         Assert.Equal(25, Controllers.Length);
         Assert.True(Controllers.SelectMany(Actions).Count() >= 74);
     }
@@ -32,6 +33,7 @@ public class AuthorizationMetadataTests
     [Fact]
     public void EveryPublicAction_HasExplicitAuthorizationMetadata()
     {
+        // Act
         var missing = new List<string>();
         foreach (var c in Controllers)
         {
@@ -45,12 +47,14 @@ public class AuthorizationMetadataTests
             }
         }
 
+        // Assert
         Assert.Empty(missing);
     }
 
     [Fact]
     public void EveryAuthorizeAttribute_UsesTheAuthenticatedPolicy()
     {
+        // Act
         var wrong = new List<string>();
         foreach (var c in Controllers)
         {
@@ -61,18 +65,21 @@ public class AuthorizationMetadataTests
                     if (a.Policy != "Authenticated" || a.Roles is not null || a.AuthenticationSchemes is not null) wrong.Add($"{c.Name}.{m.Name}");
         }
 
+        // Assert
         Assert.Empty(wrong);
     }
 
     [Fact]
     public void MixedControllers_HaveNoClassLevelAllowAnonymous()
     {
+        // Act
         // "Mixed" = at least one action carries its own Authorize or AllowAnonymous attribute.
         var mixed = Controllers
             .Where(c => Actions(c).Any(m => m.GetCustomAttribute<AuthorizeAttribute>() is not null ||
                                             m.GetCustomAttribute<AllowAnonymousAttribute>() is not null))
             .ToList();
 
+        // Assert
         Assert.Equal(["HomeFinderController", "ProfileController", "UserProfileController"], mixed.Select(c => c.Name));
         Assert.All(mixed, c => Assert.Null(c.GetCustomAttribute<AllowAnonymousAttribute>()));
     }

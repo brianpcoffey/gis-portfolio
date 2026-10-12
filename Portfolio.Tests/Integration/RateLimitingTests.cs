@@ -44,11 +44,14 @@ public class RateLimitingTests
     [Fact]
     public async Task Expensive_Allows15_ThenReturns429() // also XFF case (a): no header
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
         var c = f.Client();
 
+        // Act
         var codes = await Send(c, 16, _ => null);
 
+        // Assert
         AssertFifteenThenLimited(codes);
         var limited = await c.GetAsync(Path, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
@@ -58,21 +61,30 @@ public class RateLimitingTests
     [Fact]
     public async Task Xff_CaseB_RotatingSingleEntry_BypassesTheLimit()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act & Assert
         AssertNeverLimited(await Send(f.Client(), 16, i => $"203.0.113.{i + 1}"));
     }
 
     [Fact]
     public async Task Xff_CaseC_RotatingLeftEntry_FixedRight_IsLimitedAfter15()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act & Assert
         AssertFifteenThenLimited(await Send(f.Client(), 16, i => $"198.51.100.{i + 1}, 192.0.2.77"));
     }
 
     [Fact]
     public async Task Xff_CaseD_FixedLeft_RotatingRight_BypassesTheLimit()
     {
+        // Arrange
         await using var f = new PortfolioAppFactory();
+
+        // Act & Assert
         AssertNeverLimited(await Send(f.Client(), 16, i => $"192.0.2.88, 198.51.100.{i + 1}"));
     }
 }
