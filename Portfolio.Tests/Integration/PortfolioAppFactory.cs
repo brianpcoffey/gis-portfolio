@@ -35,6 +35,9 @@ public sealed class PortfolioAppFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:DefaultConnection", "Host=localhost;Database=unused;Username=u;Password=p");
         builder.UseSetting("RunMigrationsOnStartup", "false");
+        // Empty value disables Redis (Program.cs uses IsNullOrWhiteSpace) even if a dev env var/appsettings enables it.
+        builder.UseSetting("Redis__ConnectionString", "");
+        builder.UseSetting("Redis:ConnectionString", "");
         builder.UseSetting("Authentication:Google:ClientId", "test-client-id");
         builder.UseSetting("Authentication:Google:ClientSecret", "test-client-secret");
         builder.ConfigureTestServices(services =>
