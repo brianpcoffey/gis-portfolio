@@ -31,6 +31,54 @@
     --accent-on-fill-h: #215c3f;
     --accent-text: #2c7a53;
     --accent-soft: #e6f4ec;
+
+    /* --- Focus, form-control borders, status, chart tokens (WP-12) ------
+       --focus-ring       keyboard focus ring, >=3:1 on the page and surface
+                          (1.4.11). --focus-ring-on-dark replaces it on the
+                          gradient / footer surfaces (see preferences.css).
+       --input-border     form-control boundary, >=3:1 on surface (1.4.11).
+       --accent-rgb       --accent as a channel triplet for rgba(var(...), a).
+       --status-*         text / fill / soft tints for success, danger,
+                          warning and info; text is >=4.5:1 on the page
+                          background, white (dark on warning) is >=4.5:1 on
+                          the fill.
+       --chart-*          categorical series colours, theme-aware.         */
+    --focus-ring: #2c7a53;
+    --focus-ring-on-dark: #ffffff;
+    --input-border: #7a8699;
+    --accent-rgb: 56, 161, 105;
+
+    --status-success-text: #2c7a53;
+    --status-success-fill: #2c7a53;
+    --status-success-rgb: 44, 122, 83;
+    --status-danger-text: #c53030;
+    --status-danger-fill: #c53030;
+    --status-danger-rgb: 197, 48, 48;
+    --status-warning-text: #975a16;
+    --status-warning-fill: #d69e2e;
+    --status-warning-rgb: 214, 158, 46;
+    --status-info-text: #2b6cb0;
+    --status-info-fill: #2b6cb0;
+    --status-info-rgb: 43, 108, 176;
+    --status-soft-alpha: 0.12;
+    --status-success-soft: rgba(var(--status-success-rgb), var(--status-soft-alpha));
+    --status-danger-soft: rgba(var(--status-danger-rgb), var(--status-soft-alpha));
+    --status-warning-soft: rgba(var(--status-warning-rgb), var(--status-soft-alpha));
+    --status-info-soft: rgba(var(--status-info-rgb), var(--status-soft-alpha));
+
+    --chart-1: #2563eb;
+    --chart-2: #c2410c;
+    --chart-3: #15803d;
+    --chart-4: #9333ea;
+    --chart-5: #0f766e;
+    --chart-6: #be123c;
+    --chart-7: #a16207;
+    --chart-8: #4f46e5;
+    --chart-series: #2c5282;
+
+    --on-dark: #ffffff;
+    --on-dark-muted: rgba(255, 255, 255, 0.9);
+    --code-color: #b02a6e;
 }
 
 body.dark-mode {
@@ -47,6 +95,26 @@ body.dark-mode {
        the darker green so their white label stays legible. */
     --accent-text: #68d391;
     --accent-soft: rgba(104, 211, 145, 0.14);
+
+    --focus-ring: #68d391;
+    /* --input-border, --accent-rgb, --focus-ring-on-dark, --on-dark* and the
+       *-fill / *-rgb status tokens are theme-independent on purpose. */
+    --status-success-text: #68d391;
+    --status-danger-text: #fc8181;
+    --status-warning-text: #f6c26b;
+    --status-info-text: #90cdf4;
+    --status-soft-alpha: 0.18;
+
+    --chart-1: #60a5fa;
+    --chart-2: #fb923c;
+    --chart-3: #4ade80;
+    --chart-4: #c084fc;
+    --chart-5: #2dd4bf;
+    --chart-6: #fb7185;
+    --chart-7: #facc15;
+    --chart-8: #818cf8;
+    --chart-series: #63b3ed;
+    --code-color: #f783ac;
 }
 
 /* ======================================
@@ -109,6 +177,11 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     color: var(--text);
     margin-bottom: 0.5em;
+}
+
+/* Bootstrap's #d63384 is 4.29:1 on --background; pre > code keeps inheriting. */
+code {
+    color: var(--code-color);
 }
 
 .section-title {
