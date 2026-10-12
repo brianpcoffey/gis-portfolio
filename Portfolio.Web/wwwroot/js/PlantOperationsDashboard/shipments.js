@@ -61,7 +61,7 @@ function loadShipmentsTable() {
                             statusBtn.setAttribute('data-id', Number(row.id));
                             statusBtn.setAttribute('data-status', row.status == null ? '' : row.status);
                             statusBtn.setAttribute('aria-label', 'Update status of shipment ' + (row.trackingNumber || row.id));
-                            statusBtn.innerHTML = "<i class='fa fa-truck' aria-hidden=\"true\"></i>";
+                            statusBtn.append(PortfolioDom.el('i', { class: 'fa fa-truck', 'aria-hidden': 'true' }));
                             return `
                                 <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${Number(row.id)}" aria-label="Edit shipment ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
                                 <button class="btn btn-sm btn-outline-danger me-1" data-action="delete" data-id="${Number(row.id)}" aria-label="Delete shipment ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>
