@@ -73,7 +73,7 @@
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Native build:</strong> <code>native/geostream_processor/CMakeLists.txt</code> builds a shared library and copies it beside the .NET output when built locally.</li>
-			<li><strong>Runtime behavior:</strong> <code>NativeLibrary.TryLoad</code> controls the fast path. Missing libraries do not break the web app.</li>
+			<li><strong>Runtime behavior:</strong> <code>NativeLibrary.TryLoad</code> controls the native path. Missing libraries do not break the web app.</li>
 			<li><strong>Container behavior:</strong> The current Dockerfile can run in managed-fallback mode. A future native-enabled image would add CMake compilation before dotnet publish.</li>
 			<li><strong>Scale-out path:</strong> Redis-backed windows, SignalR/WebSockets, or a queue-backed ingestion worker would be the next production step.</li>
 		</ul>
