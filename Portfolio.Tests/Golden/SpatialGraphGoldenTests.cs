@@ -96,10 +96,13 @@ namespace Portfolio.Tests.Golden
 
             Assert.Equal(golden.Explored, result.ExploredNodes);
             Assert.Equal(golden.Explored, result.ExploredNodeIds.Count);
-            Assert.Equal(golden.ExploredFirstTen, result.ExploredNodeIds.Take(10));
             // Dijkstra settles equal-cost nodes in an order that differs between the managed
-            // and native engines, so only the settled set is pinned for it. A* order is
-            // identical in both.
+            // and native engines, so only the settled set (and the first ten as a set) is
+            // pinned for it. A* is managed-only, so its order is pinned exactly.
+            if (golden.Algorithm == "dijkstra")
+                Assert.Equal(golden.ExploredFirstTen.Order(), result.ExploredNodeIds.Take(10).Order());
+            else
+                Assert.Equal(golden.ExploredFirstTen, result.ExploredNodeIds.Take(10));
             IEnumerable<int> settled = golden.Algorithm == "dijkstra" ? result.ExploredNodeIds.Order() : result.ExploredNodeIds;
             Assert.Equal(golden.ExploredHash, OrderHash(settled));
         }
