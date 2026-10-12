@@ -77,8 +77,8 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task CreateAsync_CreatesAndReturnsDto()
         {
-            var dto = new FiberShipmentDto { TrackingNumber = "T1", CarrierName = "C1", Status = "S1" };
-            var created = new FiberShipment { Id = 2, UserId = _testUserId, TrackingNumber = "T1", CarrierName = "C1", Status = "S1" };
+            var dto = new FiberShipmentDto { TrackingNumber = "T1", CarrierName = "C1", Status = "Pending" };
+            var created = new FiberShipment { Id = 2, UserId = _testUserId, TrackingNumber = "T1", CarrierName = "C1", Status = "Pending" };
             _shipmentRepoMock.Setup(r => r.AddAsync(It.IsAny<FiberShipment>(), It.IsAny<CancellationToken>())).ReturnsAsync(created);
             var result = await _service.CreateAsync(dto);
             Assert.Equal(2, result.Id);
@@ -88,8 +88,8 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task UpdateAsync_UpdatesAndReturnsDto()
         {
-            var dto = new FiberShipmentDto { TrackingNumber = "T2", CarrierName = "C2", Status = "S2" };
-            var updated = new FiberShipment { Id = 3, UserId = _testUserId, TrackingNumber = "T2", CarrierName = "C2", Status = "S2" };
+            var dto = new FiberShipmentDto { TrackingNumber = "T2", CarrierName = "C2", Status = "Delivered" };
+            var updated = new FiberShipment { Id = 3, UserId = _testUserId, TrackingNumber = "T2", CarrierName = "C2", Status = "Delivered" };
             _shipmentRepoMock.Setup(r => r.UpdateAsync(3, dto, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
             var result = await _service.UpdateAsync(3, dto);
             Assert.Equal(3, result.Id);
@@ -110,6 +110,146 @@ namespace Portfolio.Tests.Services
             _shipmentRepoMock.Setup(r => r.DeleteAsync(5, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
             var result = await _service.DeleteAsync(5);
             Assert.False(result);
+        }
+
+        // â”€â”€ Persistence limits: values exactly at the boundary are accepted â”€â”€
+
+        private static FiberShipmentDto ValidShipment() => new()
+        {
+            TrackingNumber = "T1",
+            CarrierName = "C1",
+            Status = "Pending",
+            DestinationCity = "Redlands",
+            DestinationState = "CA",
+            Route = new List<RoutePointDto> { new() { Lat = 34.0, Lng = -117.0 } }
+        };
+
+        private void SetupShipmentAdd() =>
+            _shipmentRepoMock
+                .Setup(r => r.AddAsync(It.IsAny<FiberShipment>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((FiberShipment s, CancellationToken _) => s);
+
+        [Theory]
+        [InlineData("Pending")]
+        [InlineData("In Transit")]
+        [InlineData("Delivered")]
+        [InlineData("Exception")]
+        public async Task CreateAsync_AcceptsEachAllowedStatus(string status)
+        {
+            SetupShipmentAdd();
+            var dto = ValidShipment();
+            dto.Status = status;
+
+            var result = await _service.CreateAsync(dto);
+
+            Assert.Equal(status, result.Status);
+        }
+
+        [Fact]
+        public async Task CreateAsync_AcceptsFieldsAtMaximumLength()
+        {
+            SetupShipmentAdd();
+            var dto = ValidShipment();
+            dto.TrackingNumber = new string('t', 100);
+            dto.CarrierName = new string('c', 100);
+            dto.DestinationCity = new string('y', 100);
+            dto.DestinationState = new string('s', 50);
+            dto.Route = Enumerable.Range(0, 1000).Select(i => new RoutePointDto { Lat = 34.0, Lng = -117.0 }).ToList();
+
+            var result = await _service.CreateAsync(dto);
+
+            Assert.Equal(1000, result.Route.Count);
+            Assert.Equal(100, result.TrackingNumber.Length);
+        }
+
+        // â”€â”€ Persistence limits: one over the boundary is a 400 (ArgumentException) â”€â”€
+
+        [Fact]
+        public async Task CreateAsync_RejectsTrackingNumberOverLimit()
+        {
+            var dto = ValidShipment();
+            dto.TrackingNumber = new string('t', 101);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("TrackingNumber must be 100 characters or fewer.", ex.Message);
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsCarrierNameOverLimit()
+        {
+            var dto = ValidShipment();
+            dto.CarrierName = new string('c', 101);
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsDestinationCityOverLimit()
+        {
+            var dto = ValidShipment();
+            dto.DestinationCity = new string('y', 101);
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsDestinationStateOverLimit()
+        {
+            var dto = ValidShipment();
+            dto.DestinationState = new string('s', 51);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("DestinationState must be 50 characters or fewer.", ex.Message);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("pending")]
+        [InlineData("InTransit")]
+        [InlineData("Lost")]
+        public async Task CreateAsync_RejectsStatusOutsideAllowlist(string status)
+        {
+            var dto = ValidShipment();
+            dto.Status = status;
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("Status must be one of: Pending, In Transit, Delivered, Exception.", ex.Message);
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsRouteOverLimit()
+        {
+            var dto = ValidShipment();
+            dto.Route = Enumerable.Range(0, 1001).Select(i => new RoutePointDto { Lat = 34.0, Lng = -117.0 }).ToList();
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("Route can have at most 1000 points.", ex.Message);
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsNonFiniteCoordinates()
+        {
+            var dto = ValidShipment();
+            dto.OriginLat = double.NaN;
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+
+            dto = ValidShipment();
+            dto.Route = new List<RoutePointDto> { new() { Lat = 1, Lng = double.PositiveInfinity } };
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+        }
+
+        [Fact]
+        public async Task UpdateAsync_RejectsInvalidShipment_WithoutCallingRepository()
+        {
+            var dto = ValidShipment();
+            dto.Status = "Lost";
+
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateAsync(3, dto));
+
+            _shipmentRepoMock.Verify(r => r.UpdateAsync(It.IsAny<int>(), It.IsAny<FiberShipmentDto>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateStatusAsync_RejectsStatusOutsideAllowlist()
+        {
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.UpdateStatusAsync(1, new UpdateShipmentStatusDto { Status = "Lost" }));
+
+            _shipmentRepoMock.Verify(r => r.UpdateStatusAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }
     }
 }

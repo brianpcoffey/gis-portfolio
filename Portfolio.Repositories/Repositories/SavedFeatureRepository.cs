@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 
 namespace Portfolio.Repositories.Repositories
@@ -59,7 +60,7 @@ namespace Portfolio.Repositories.Repositories
             var sf = await _db.SavedFeatures.FirstOrDefaultAsync(f => f.Id == id && f.UserId == userId, cancellationToken);
             if (sf == null)
             {
-                _logger.LogWarning("SavedFeature DB id {Id} not found for user {UserId}", id, userId);
+                _logger.LogWarning("SavedFeature DB id {Id} not found for user {UserId}", id, LogRedaction.UserId(userId));
                 return false;
             }
             _db.SavedFeatures.Remove(sf);
