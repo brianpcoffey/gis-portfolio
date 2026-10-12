@@ -173,7 +173,7 @@ reason — allocation and hashing inside the hot loop:
 The .NET nursery allocator beats naive `malloc`/`new` in a tight loop. If a kernel here is
 losing to its fallback, look for allocation or hashing in the inner loop before blaming the
 runtime — and then look at how many times per second the boundary is crossed, because that is
-what the bottom of the table is really measuring. Fan triangulation at **0.37×** does three
+what the clearly losing rows (0.37×–0.83×) are really measuring. Fan triangulation at **0.37×** does three
 index assignments per triangle, so a full array marshal in and out buys nothing whatsoever.
 
 RyuJIT generates good scalar code for tight `double` loops, branch-heavy inner loops defeat
