@@ -91,13 +91,16 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task ItemsAlreadySet_PassesThroughWithoutAuthenticatingOrTouchingTheDatabase()
         {
+            // Arrange
             var existing = Guid.NewGuid();
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: "text/html");
             context.Items[ItemKey] = existing;
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.Equal(existing, context.Items[ItemKey]);
             _auth.Verify(a => a.AuthenticateAsync(It.IsAny<HttpContext>(), It.IsAny<string?>()), Times.Never);
@@ -111,6 +114,7 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task Authenticated_WithMatchingGoogleClaim_SetsItemsToClaimUserId()
         {
+            // Arrange
             var userId = Guid.NewGuid();
             _db.UserClaims.Add(new UserClaim { UserId = userId, ClaimType = ProfileClaimTypes.GoogleId, ClaimValue = "g-123" });
             await _db.SaveChangesAsync();
@@ -118,8 +122,10 @@ namespace Portfolio.Tests.Middleware
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: "text/html");
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.Equal(userId, context.Items[ItemKey]);
             Assert.True(context.User.Identity!.IsAuthenticated);
@@ -132,12 +138,15 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task Authenticated_WithoutMatchingClaimRow_DoesNotSetItems()
         {
+            // Arrange
             SetAuthenticated(_auth, Authenticated("g-unknown"));
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: "text/html");
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.False(context.Items.ContainsKey(ItemKey));
             await using var fresh = Fresh();
@@ -148,12 +157,15 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task Authenticated_WithoutNameIdentifierClaim_DoesNotSetItems()
         {
+            // Arrange
             SetAuthenticated(_auth, Authenticated(null));
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: "text/html");
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.False(context.Items.ContainsKey(ItemKey));
         }
@@ -161,6 +173,7 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task Authenticated_ViaContextUserWhenAuthenticateReturnsNothing_ResolvesTheClaim()
         {
+            // Arrange
             var userId = Guid.NewGuid();
             _db.UserClaims.Add(new UserClaim { UserId = userId, ClaimType = ProfileClaimTypes.GoogleId, ClaimValue = "g-456" });
             await _db.SaveChangesAsync();
@@ -168,22 +181,27 @@ namespace Portfolio.Tests.Middleware
             var context = NewContext();
             context.User = Authenticated("g-456");
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.Equal(userId, context.Items[ItemKey]);
         }
 
         [Fact]
         public async Task Authenticated_ClaimOfAnotherType_IsNotMatched()
         {
+            // Arrange
             _db.UserClaims.Add(new UserClaim { UserId = Guid.NewGuid(), ClaimType = ProfileClaimTypes.Email, ClaimValue = "g-123" });
             await _db.SaveChangesAsync();
             SetAuthenticated(_auth, Authenticated("g-123"));
             var (middleware, _) = NewMiddleware("Production");
             var context = NewContext();
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.False(context.Items.ContainsKey(ItemKey));
         }
 
@@ -192,6 +210,7 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task Cookie_WithStaleProfile_TouchesLastActiveDate()
         {
+            // Arrange
             var userId = Guid.NewGuid();
             var created = Now.UtcDateTime.AddDays(-3);
             var stale = Now.UtcDateTime.AddMinutes(-6);
@@ -200,8 +219,10 @@ namespace Portfolio.Tests.Middleware
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: "application/json", cookie: userId.ToString());
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.Equal(userId, context.Items[ItemKey]);
             await using var fresh = Fresh();
@@ -214,6 +235,7 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task Cookie_WithProfileExactlyFiveMinutesOld_IsTouched()
         {
+            // Arrange
             var userId = Guid.NewGuid();
             _db.UserProfiles.Add(new UserProfile
             {
@@ -224,8 +246,10 @@ namespace Portfolio.Tests.Middleware
             await _db.SaveChangesAsync();
             var (middleware, _) = NewMiddleware("Production");
 
+            // Act
             await Invoke(middleware, NewContext(cookie: userId.ToString()));
 
+            // Assert
             await using var fresh = Fresh();
             Assert.Equal(Now.UtcDateTime, (await fresh.UserProfiles.SingleAsync()).LastActiveDate);
         }
@@ -233,6 +257,7 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task Cookie_WithFreshProfile_DoesNotWrite()
         {
+            // Arrange
             var userId = Guid.NewGuid();
             var recent = Now.UtcDateTime.AddMinutes(-4);
             _db.UserProfiles.Add(new UserProfile { UserId = userId, CreatedDate = recent, LastActiveDate = recent });
@@ -240,8 +265,10 @@ namespace Portfolio.Tests.Middleware
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: "text/html", cookie: userId.ToString());
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.Equal(userId, context.Items[ItemKey]);
             await using var fresh = Fresh();
@@ -255,12 +282,15 @@ namespace Portfolio.Tests.Middleware
         [InlineData(null)]
         public async Task Cookie_WithNoProfile_CreatesProfileWithoutSeedingOrReissuingCookie(string? accept)
         {
+            // Arrange
             var userId = Guid.NewGuid();
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: accept, cookie: userId.ToString());
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.Equal(userId, context.Items[ItemKey]);
             await using var fresh = Fresh();
@@ -281,11 +311,14 @@ namespace Portfolio.Tests.Middleware
         [InlineData("TEXT/HTML,application/xhtml+xml;q=0.9,*/*;q=0.8")]
         public async Task NoCookie_HtmlAccept_CreatesSeededProfileAndSetsCookie(string accept)
         {
+            // Arrange
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: accept);
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             var userId = Assert.IsType<Guid>(context.Items[ItemKey]);
             await using var fresh = Fresh();
@@ -308,11 +341,14 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task NoCookie_HtmlAccept_InDevelopment_CookieIsNotSecure()
         {
+            // Arrange
             var (middleware, _) = NewMiddleware("Development");
             var context = NewContext(accept: "text/html");
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             var setCookie = SetCookieHeaderValue.Parse(context.Response.Headers[HeaderNames.SetCookie].ToString());
             Assert.False(setCookie.Secure);
             Assert.True(setCookie.HttpOnly);
@@ -325,11 +361,14 @@ namespace Portfolio.Tests.Middleware
         [InlineData(null)]
         public async Task NoCookie_NonHtmlAccept_PassesThroughWithoutProfileOrCookie(string? accept)
         {
+            // Arrange
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: accept);
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.False(context.Items.ContainsKey(ItemKey));
             await using var fresh = Fresh();
@@ -343,11 +382,14 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task InvalidGuidCookie_HtmlAccept_CreatesNewSeededProfileAndCookie()
         {
+            // Arrange
             var (middleware, _) = NewMiddleware("Production");
             var context = NewContext(accept: "text/html", cookie: "not-a-guid");
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             var userId = Assert.IsType<Guid>(context.Items[ItemKey]);
             await using var fresh = Fresh();
             Assert.Equal(userId, (await fresh.UserProfiles.SingleAsync()).UserId);
@@ -359,11 +401,14 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task InvalidGuidCookie_JsonAccept_PassesThroughWithoutProfileOrCookie()
         {
+            // Arrange
             var (middleware, nextCalled) = NewMiddleware("Production");
             var context = NewContext(accept: "application/json", cookie: "not-a-guid");
 
+            // Act
             await Invoke(middleware, context);
 
+            // Assert
             Assert.True(nextCalled());
             Assert.False(context.Items.ContainsKey(ItemKey));
             await using var fresh = Fresh();

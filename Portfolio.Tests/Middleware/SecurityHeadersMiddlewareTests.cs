@@ -21,8 +21,10 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task InvokeAsync_SetsExactlyTheFourSecurityHeaders()
         {
+            // Act
             var (context, _) = await RunAsync();
 
+            // Assert
             var headers = context.Response.Headers;
             Assert.Equal(4, headers.Count);
             Assert.Equal("nosniff", headers["X-Content-Type-Options"]);
@@ -34,8 +36,10 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task InvokeAsync_CspIsTheMinimalNonScriptRestrictingPolicy()
         {
+            // Act
             var (context, _) = await RunAsync();
 
+            // Assert
             var csp = context.Response.Headers["Content-Security-Policy"].ToString();
             Assert.DoesNotContain("script-src", csp);
             Assert.DoesNotContain("style-src", csp);
@@ -45,20 +49,25 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task InvokeAsync_CallsNext()
         {
+            // Act
             var (_, nextCalled) = await RunAsync();
 
+            // Assert
             Assert.True(nextCalled);
         }
 
         [Fact]
         public async Task InvokeAsync_OverwritesHeadersAlreadyPresent()
         {
+            // Arrange
             var context = new DefaultHttpContext();
             context.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
             context.Response.Headers["Content-Security-Policy"] = "default-src *";
 
+            // Act
             await RunAsync(context);
 
+            // Assert
             Assert.Equal("DENY", context.Response.Headers["X-Frame-Options"]);
             Assert.Equal(ExpectedCsp, context.Response.Headers["Content-Security-Policy"]);
         }
@@ -66,6 +75,7 @@ namespace Portfolio.Tests.Middleware
         [Fact]
         public async Task InvokeAsync_HeadersAreVisibleToTheNextDelegate()
         {
+            // Arrange
             var context = new DefaultHttpContext();
             string? seenByNext = null;
             var middleware = new SecurityHeadersMiddleware(c =>
@@ -74,8 +84,10 @@ namespace Portfolio.Tests.Middleware
                 return Task.CompletedTask;
             });
 
+            // Act
             await middleware.InvokeAsync(context);
 
+            // Assert
             Assert.Equal("nosniff", seenByNext);
         }
     }
