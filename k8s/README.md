@@ -11,16 +11,19 @@ kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
 cp k8s/secret.example.yaml k8s/secret.yaml   # gitignored; fill in real values, then:
 kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/networkpolicy.yaml
 kubectl apply -f k8s/redis.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/hpa.yaml
 ```
 
+The NetworkPolicies assume an ingress controller in a namespace named `ingress-nginx` and CoreDNS in `kube-system` (NodeLocal DNSCache needs an extra egress rule); adjust for your cluster.
+
 ## Redis connection string for in-cluster Redis
 
 ```
-Redis__ConnectionString=redis:6379,abortConnect=false
+Redis__ConnectionString=redis:6379,password=<REDIS_PASSWORD>,abortConnect=false
 ```
 
 ## Scaling
