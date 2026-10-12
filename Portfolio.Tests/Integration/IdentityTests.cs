@@ -140,11 +140,11 @@ public class IdentityTests
     private static GoogleProfileDto Google(string id) => new() { GoogleId = id, Email = $"{id}@example.test", Name = id };
 
     [Fact]
-    public async Task SignIn_WithCookieOfALinkedProfile_Today_AdoptsItAndOverwritesTheVictimsGoogleId()
+    public async Task SignIn_WithCookieOfSomeoneElsesLinkedProfile_CreatesANewProfile_AndLeavesTheVictimUntouched()
     {
         // Arrange
-        // Characterisation of the takeover WP-15 closes: the attacker's sign-in re-points the
-        // victim's profile at the attacker's Google account.
+        // Flipped from the WP-15 characterisation, which adopted the victim's profile and
+        // re-pointed its google_id at the attacker.
         using var rig = new SignInRig();
         var victim = await rig.AddProfile("g-victim");
         rig.CarryCookie(victim);
@@ -153,14 +153,18 @@ public class IdentityTests
         var result = await rig.Service.CreateOrUpdateFromGoogleAsync(Google("g-attacker"));
 
         // Assert
-        Assert.Equal(victim, result);
+        Assert.NotEqual(victim, result);
         await using var db = rig.Fresh();
-        var claim = await db.UserClaims.SingleAsync(c => c.UserId == victim && c.ClaimType == ProfileClaimTypes.GoogleId);
-        Assert.Equal("g-attacker", claim.ClaimValue);
+        var victimClaim = await db.UserClaims.SingleAsync(c => c.UserId == victim && c.ClaimType == ProfileClaimTypes.GoogleId);
+        Assert.Equal("g-victim", victimClaim.ClaimValue);
+        var attackerClaim = await db.UserClaims.SingleAsync(c => c.UserId == result && c.ClaimType == ProfileClaimTypes.GoogleId);
+        Assert.Equal("g-attacker", attackerClaim.ClaimValue);
+        Assert.True(await db.FiberClients.AnyAsync(c => c.UserId == result));
+        Assert.False(await db.FiberClients.AnyAsync(c => c.UserId == victim));
     }
 
     [Fact]
-    public async Task SignIn_WithCookieOfAnUnlinkedProfile_Today_AdoptsItWithoutSeeding()
+    public async Task SignIn_WithCookieOfAnUnlinkedProfile_AdoptsItSeedsItAndLinksGoogle()
     {
         // Arrange
         using var rig = new SignInRig();
@@ -173,7 +177,8 @@ public class IdentityTests
         // Assert
         Assert.Equal(anon, result);
         await using var db = rig.Fresh();
-        Assert.Empty(db.FiberClients);
+        // Flipped: adoption now seeds (sign-in is where visitors are seeded).
+        Assert.True(await db.FiberClients.AnyAsync(c => c.UserId == anon));
         Assert.Equal("g-new", (await db.UserClaims.SingleAsync(c => c.UserId == anon && c.ClaimType == ProfileClaimTypes.GoogleId)).ClaimValue);
     }
 }

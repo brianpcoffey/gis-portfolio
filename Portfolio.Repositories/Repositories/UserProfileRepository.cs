@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 
 namespace Portfolio.Repositories.Repositories
@@ -87,7 +88,7 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
             if (profile == null)
             {
-                _logger.LogWarning("UserProfile not found for user {UserId} during delete", userId);
+                _logger.LogWarning("UserProfile not found for user {UserId} during delete", LogRedaction.UserId(userId));
                 return false;
             }
             _db.UserProfiles.Remove(profile);
@@ -111,6 +112,22 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
             return await _db.UserClaims
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.ClaimType == type, cancellationToken);
+        }
+
+        // True when the user has a claim of the given type (e.g. a linked google_id).
+        public async Task<bool> HasClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default)
+        {
+            return await _db.UserClaims
+                .AsNoTracking()
+                .AnyAsync(c => c.UserId == userId && c.ClaimType == type, cancellationToken);
+        }
+
+        // Number of claims stored for the given user.
+        public async Task<int> CountClaimsAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            return await _db.UserClaims
+                .AsNoTracking()
+                .CountAsync(c => c.UserId == userId, cancellationToken);
         }
 
         // Creates a new claim or updates the value of an existing one for the given user.
