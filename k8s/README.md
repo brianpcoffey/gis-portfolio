@@ -13,6 +13,8 @@ cp k8s/secret.example.yaml k8s/secret.yaml   # gitignored; fill in real values, 
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/networkpolicy.yaml
 kubectl apply -f k8s/redis.yaml
+# Set the real image tag first: edit `image: portfolio:REPLACE_ME` in k8s/deployment.yaml,
+# or run `kubectl -n <namespace> set image deployment/<name> portfolio=<registry>/portfolio:<tag>` after applying.
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/hpa.yaml
