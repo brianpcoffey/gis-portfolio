@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Polly.CircuitBreaker;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -14,6 +15,7 @@ namespace Portfolio.Web.Controllers.Api
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/features")]
     [AllowAnonymous]
+    [EnableRateLimiting("expensive")] // proxies the ArcGIS feature service
     public class FeaturesController : ControllerBase
     {
         private readonly IArcGisService _arcGisService;

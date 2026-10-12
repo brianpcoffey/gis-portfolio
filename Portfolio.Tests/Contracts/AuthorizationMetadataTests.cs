@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Portfolio.Tests.Contracts;
 
@@ -82,5 +83,27 @@ public class AuthorizationMetadataTests
         // Assert
         Assert.Equal(["HomeFinderController", "ProfileController", "UserProfileController"], mixed.Select(c => c.Name));
         Assert.All(mixed, c => Assert.Null(c.GetCustomAttribute<AllowAnonymousAttribute>()));
+    }
+
+    [Theory]
+    [InlineData("GeoStreamController", "compute")]
+    [InlineData("SpatialGeometryController", "compute")]
+    [InlineData("RasterTerrainController", "compute")]
+    [InlineData("SpatialNetworkController", "compute")]
+    [InlineData("SpatialClusterController", "compute")]
+    [InlineData("ViewshedController", "compute")]
+    [InlineData("SpatialOverlayController", "compute")]
+    [InlineData("FeaturesController", "expensive")]
+    public void ComputeAndProxyControllers_CarryTheirRateLimitPolicy(string controller, string policy)
+    {
+        // Arrange
+        var type = Controllers.Single(c => c.Name == controller);
+
+        // Act
+        var attr = type.GetCustomAttribute<EnableRateLimitingAttribute>();
+
+        // Assert
+        Assert.NotNull(attr);
+        Assert.Equal(policy, attr!.PolicyName);
     }
 }

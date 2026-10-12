@@ -1,4 +1,8 @@
 using System.Net;
+using System.Text;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Routing;
 
 namespace Portfolio.Tests.Integration;
 
@@ -86,5 +90,81 @@ public class RateLimitingTests
 
         // Act & Assert
         AssertNeverLimited(await Send(f.Client(), 16, i => $"192.0.2.88, 198.51.100.{i + 1}"));
+    }
+
+    [Fact]
+    public async Task Compute_Allows60_ThenReturns429_OnThe61st()
+    {
+        // Arrange
+        await using var f = new PortfolioAppFactory();
+        var c = f.Client();
+        var codes = new List<HttpStatusCode>();
+
+        // Act
+        for (var i = 0; i < 61; i++)
+        {
+            using var body = new StringContent("{}", Encoding.UTF8, "application/json");
+            var r = await c.PostAsync("/api/v1/geometry/triangulate", body, TestContext.Current.CancellationToken);
+            codes.Add(r.StatusCode);
+        }
+
+        // Assert
+        // The tiny body is rejected by validation (400); only the limiter's verdict matters here.
+        Assert.All(codes.Take(60), s => Assert.NotEqual(HttpStatusCode.TooManyRequests, s));
+        Assert.Equal(HttpStatusCode.TooManyRequests, codes[60]);
+    }
+
+    [Fact]
+    public async Task Compute_SharesOneBudgetAcrossComputeControllers()
+    {
+        // Arrange
+        await using var f = new PortfolioAppFactory();
+        var c = f.Client();
+        string[] paths = ["/api/v1/geometry/triangulate", "/api/v1/clustering/dbscan", "/api/v1/viewshed/compute"];
+        var codes = new List<HttpStatusCode>();
+
+        // Act
+        for (var i = 0; i < 61; i++)
+        {
+            using var body = new StringContent("{}", Encoding.UTF8, "application/json");
+            codes.Add((await c.PostAsync(paths[i % paths.Length], body, TestContext.Current.CancellationToken)).StatusCode);
+        }
+
+        // Assert
+        Assert.DoesNotContain(HttpStatusCode.TooManyRequests, codes.Take(60));
+        Assert.Equal(HttpStatusCode.TooManyRequests, codes[60]);
+    }
+
+    private static HttpContext ContextWithPolicy(string? policy)
+    {
+        var ctx = new DefaultHttpContext();
+        var metadata = policy is null ? new EndpointMetadataCollection() : new EndpointMetadataCollection(new EnableRateLimitingAttribute(policy));
+        ctx.SetEndpoint(new Endpoint(_ => Task.CompletedTask, metadata, "test"));
+        return ctx;
+    }
+
+    [Theory]
+    [InlineData("compute")]
+    [InlineData("expensive")]
+    public void ConcurrencyKey_ComputeAndExpensive_ShareOnePartition(string policy)
+    {
+        // Act & Assert
+        Assert.Equal(RateLimitKeys.ComputeConcurrencyKey, RateLimitKeys.ConcurrencyKey(ContextWithPolicy(policy)));
+    }
+
+    [Theory]
+    [InlineData("csp")]
+    [InlineData(null)]
+    public void ConcurrencyKey_OtherEndpoints_AreNotLimited(string? policy)
+    {
+        // Act & Assert
+        Assert.Null(RateLimitKeys.ConcurrencyKey(ContextWithPolicy(policy)));
+    }
+
+    [Fact]
+    public void ConcurrencyKey_NoEndpoint_IsNotLimited()
+    {
+        // Act & Assert
+        Assert.Null(RateLimitKeys.ConcurrencyKey(new DefaultHttpContext()));
     }
 }
