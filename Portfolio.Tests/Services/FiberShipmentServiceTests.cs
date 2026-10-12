@@ -112,7 +112,7 @@ namespace Portfolio.Tests.Services
             Assert.False(result);
         }
 
-        // â”€â”€ Persistence limits: values exactly at the boundary are accepted â”€â”€
+        // -- Persistence limits: values exactly at the boundary are accepted --
 
         private static FiberShipmentDto ValidShipment() => new()
         {
@@ -162,7 +162,7 @@ namespace Portfolio.Tests.Services
             Assert.Equal(100, result.TrackingNumber.Length);
         }
 
-        // â”€â”€ Persistence limits: one over the boundary is a 400 (ArgumentException) â”€â”€
+        // -- Persistence limits: one over the boundary is a 400 (ArgumentException) --
 
         [Fact]
         public async Task CreateAsync_RejectsTrackingNumberOverLimit()
