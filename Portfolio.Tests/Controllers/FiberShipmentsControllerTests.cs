@@ -156,10 +156,11 @@ namespace Portfolio.Tests.Controllers
         private static void AssertValidationProblem(IActionResult result)
         {
             var bad = Assert.IsType<ObjectResult>(result);
-            // StatusCode is filled in later by the formatter; the 400 lives on the problem itself.
+            // With no ProblemDetailsFactory (a bare controller) neither the result nor the problem
+            // carries a status; the 400 is applied at runtime by the [ApiController] factory.
             Assert.Null(bad.StatusCode);
             var problem = Assert.IsType<ValidationProblemDetails>(bad.Value);
-            Assert.Equal(400, problem.Status);
+            Assert.Null(problem.Status);
             Assert.Equal(["Name is required."], problem.Errors["Name"]);
         }
 
