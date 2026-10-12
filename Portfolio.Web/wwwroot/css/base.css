@@ -29,6 +29,7 @@
          --accent-soft      tinted surface behind --accent-text          */
     --accent-on-fill: #2c7a53;
     --accent-on-fill-h: #215c3f;
+    --accent-on-fill-rgb: 44, 122, 83;
     --accent-text: #2c7a53;
     --accent-soft: #e6f4ec;
 

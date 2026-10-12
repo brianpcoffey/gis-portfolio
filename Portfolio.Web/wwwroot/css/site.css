@@ -24,19 +24,20 @@
    preferences.css (--focus-ring); --bs-btn-focus-shadow-rgb only feeds
    Bootstrap's own focus shadow, which that file suppresses. */
 .btn-accent {
-    --bs-btn-color: #fff;
+    --bs-btn-color: var(--on-dark);
     --bs-btn-bg: var(--accent-on-fill);
     --bs-btn-border-color: var(--accent-on-fill);
-    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-color: var(--on-dark);
     --bs-btn-hover-bg: var(--accent-on-fill-h);
     --bs-btn-hover-border-color: var(--accent-on-fill-h);
-    --bs-btn-active-color: #fff;
+    --bs-btn-active-color: var(--on-dark);
     --bs-btn-active-bg: var(--accent-on-fill-h);
     --bs-btn-active-border-color: var(--accent-on-fill-h);
-    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-color: var(--on-dark);
     --bs-btn-disabled-bg: var(--accent-on-fill);
     --bs-btn-disabled-border-color: var(--accent-on-fill);
-    --bs-btn-focus-shadow-rgb: 44, 122, 83;
+    --bs-btn-focus-shadow-rgb: var(--accent-on-fill-rgb);
+    --bs-btn-focus-box-shadow: none;
     font-weight: 600;
     transition: all var(--transition);
 }
@@ -51,16 +52,17 @@
     --bs-btn-color: var(--accent-text);
     --bs-btn-bg: transparent;
     --bs-btn-border-color: var(--accent-text);
-    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-color: var(--on-dark);
     --bs-btn-hover-bg: var(--accent-on-fill);
     --bs-btn-hover-border-color: var(--accent-on-fill);
-    --bs-btn-active-color: #fff;
+    --bs-btn-active-color: var(--on-dark);
     --bs-btn-active-bg: var(--accent-on-fill-h);
     --bs-btn-active-border-color: var(--accent-on-fill-h);
     --bs-btn-disabled-color: var(--accent-text);
     --bs-btn-disabled-bg: transparent;
     --bs-btn-disabled-border-color: var(--accent-text);
-    --bs-btn-focus-shadow-rgb: 44, 122, 83;
+    --bs-btn-focus-shadow-rgb: var(--accent-on-fill-rgb);
+    --bs-btn-focus-box-shadow: none;
     font-weight: 600;
 }
 
