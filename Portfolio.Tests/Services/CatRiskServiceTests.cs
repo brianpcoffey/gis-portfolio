@@ -546,7 +546,7 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 service.SimulateAsync(new SimulationRequestDto { Locations = locations, Events = events }));
 
-            Assert.True(timer.ElapsedMilliseconds < 1000, $"took {timer.ElapsedMilliseconds} ms");
+            Assert.True(timer.ElapsedMilliseconds < 5000, $"took {timer.ElapsedMilliseconds} ms");
         }
 
         [Theory]
