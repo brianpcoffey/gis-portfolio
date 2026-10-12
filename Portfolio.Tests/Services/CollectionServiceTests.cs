@@ -165,11 +165,11 @@ namespace Portfolio.Tests.Services
                 .Setup(r => r.UpdateAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Collection c, CancellationToken _) => c);
 
-            var dto = new CollectionUpdateDto { Name = "Renamed", Color = "#bbb" };
+            var dto = new CollectionUpdateDto { Name = "Renamed", Color = "#bbbbbb" };
             var result = await _service.UpdateAsync(1, dto);
 
             Assert.Equal("Renamed", result.Name);
-            Assert.Equal("#bbb", result.Color);
+            Assert.Equal("#bbbbbb", result.Color);
             Assert.Equal(_timeProvider.GetUtcNow().UtcDateTime, result.LastModified);
         }
 
@@ -257,6 +257,66 @@ namespace Portfolio.Tests.Services
             var result = await _service.UpdateAsync(4, new CollectionUpdateDto { Color = "#0A1b2C" });
 
             Assert.Equal("#0A1b2C", result.Color);
+        }
+
+        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
+
+        [Theory]
+        [InlineData("#fff")]
+        [InlineData("#12345")]
+        [InlineData("#1234567")]
+        [InlineData("123456")]
+        [InlineData("#12345g")]
+        [InlineData("red")]
+        [InlineData("red;background:url(x)")]
+        public async Task CreateAsync_RejectsNonHexColor(string color)
+        {
+            var ex = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.CreateAsync(new CollectionCreateDto { Name = "Palette", Color = color }));
+            Assert.StartsWith("Color must be a hex value like #6c757d.", ex.Message);
+            _repoMock.Verify(r => r.AddAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_RejectsNonHexColor()
+        {
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.UpdateAsync(4, new CollectionUpdateDto { Color = "#1234567" }));
+            _repoMock.Verify(r => r.UpdateAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateAsync_BlankColor_StillDefaults()
+        {
+            _repoMock
+                .Setup(r => r.AddAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Collection c, CancellationToken _) => c);
+
+            var result = await _service.CreateAsync(new CollectionCreateDto { Name = "Palette", Color = "  " });
+
+            Assert.Equal("#6c757d", result.Color);
+        }
+
+        [Fact]
+        public async Task Logs_NeverContainTheRawOwnerId()
+        {
+            var logger = new Repositories.CapturingLogger<CollectionService>();
+            var service = new CollectionService(_repoMock.Object, _userProfileServiceMock.Object, _timeProvider, logger);
+            _repoMock.Setup(r => r.AddAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Collection c, CancellationToken _) => c);
+            var entity = new Collection { Id = 4, OwnerId = _testUserId, Name = "Palette", Color = "#6c757d" };
+            _repoMock.Setup(r => r.GetByIdAsync(4, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+            _repoMock.Setup(r => r.UpdateAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Collection c, CancellationToken _) => c);
+            _repoMock.Setup(r => r.DeleteAsync(It.IsAny<int>(), _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+            await service.CreateAsync(new CollectionCreateDto { Name = "Palette" });
+            await service.UpdateAsync(4, new CollectionUpdateDto { Color = "#112233" });
+            await service.DeleteAsync(9);
+
+            Assert.Equal(3, logger.Entries.Count);
+            Assert.Contains(Portfolio.Repositories.Diagnostics.LogRedaction.UserId(_testUserId), logger.All);
+            Assert.DoesNotContain(_testUserId.ToString(), logger.All, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

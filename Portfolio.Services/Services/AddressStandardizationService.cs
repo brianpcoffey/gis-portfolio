@@ -95,10 +95,20 @@ namespace Portfolio.Services.Services
             _logger = logger;
         }
 
+        private const int MaxRawAddressLength = 1000;
+
+        private static void ValidateLength(string rawAddress)
+        {
+            if (rawAddress.Length > MaxRawAddressLength)
+                throw new ArgumentException(
+                    $"Address must be {MaxRawAddressLength} characters or fewer.", nameof(rawAddress));
+        }
+
         // Parses a raw freeform address into structured, standardized components.
         public Task<AddressParsedDto> ParseAsync(string rawAddress, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(rawAddress, nameof(rawAddress));
+            ValidateLength(rawAddress);
             var result = ParseAddress(rawAddress);
             return Task.FromResult(result);
         }
@@ -108,6 +118,7 @@ namespace Portfolio.Services.Services
         public async Task<AddressValidationResultDto> ValidateAsync(string rawAddress, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(rawAddress, nameof(rawAddress));
+            ValidateLength(rawAddress);
 
             var parsed = ParseAddress(rawAddress);
 
@@ -121,8 +132,8 @@ namespace Portfolio.Services.Services
                 if (!string.IsNullOrWhiteSpace(fallbackQuery))
                 {
                     _logger.LogWarning(
-                        "Full-address geocode score {Score} below 75 for \"{Address}\". Retrying with City+State+ZIP.",
-                        score, parsed.StandardizedAddress);
+                        "Full-address geocode score {Score} below 75 (address length {AddressLength}). Retrying with City+State+ZIP.",
+                        score, parsed.StandardizedAddress.Length);
 
                     var (fallbackMatch, fallbackScore) = await GeocodeAddressAsync(fallbackQuery, cancellationToken);
                     if (fallbackScore >= 50.0)
@@ -172,7 +183,7 @@ namespace Portfolio.Services.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP error geocoding address \"{Address}\"", address);
+                _logger.LogError(ex, "HTTP error geocoding address (length {AddressLength})", address.Length);
                 return (string.Empty, 0.0);
             }
         }

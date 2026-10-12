@@ -260,5 +260,50 @@ namespace Portfolio.Tests.Services
             Assert.Equal(200, result.Name!.Length);
             Assert.Equal(50, result.PropertyIds!.Length);
         }
+
+        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
+
+        [Fact]
+        public async Task CreateSavedSearchAsync_RejectsNameOverLimit()
+        {
+            var dto = new CreateSavedSearchDto { Name = new string('n', 201), Preferences = new HomeSearchPreferencesDto() };
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateSavedSearchAsync(dto, _testUserId));
+
+            Assert.StartsWith("Name must be 200 characters or fewer.", ex.Message);
+            _repoMock.Verify(r => r.AddAsync(It.IsAny<SavedSearch>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateSavedSearchAsync_RejectsMoreThanFiftyIds()
+        {
+            var dto = new CreateSavedSearchDto
+            {
+                Name = "Many",
+                Preferences = new HomeSearchPreferencesDto(),
+                PropertyIds = Enumerable.Range(1, 51).ToArray()
+            };
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateSavedSearchAsync(dto, _testUserId));
+
+            Assert.StartsWith("No more than 50 property IDs can be saved.", ex.Message);
+            _repoMock.Verify(r => r.AddAsync(It.IsAny<SavedSearch>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateSavedSearchAsync_RejectsIdsThatOverflowTheColumn()
+        {
+            // 50 ten-digit ids join to 549 characters, past the 500-character column.
+            var dto = new CreateSavedSearchDto
+            {
+                Name = "Wide",
+                Preferences = new HomeSearchPreferencesDto(),
+                PropertyIds = Enumerable.Repeat(2_000_000_000, 50).ToArray()
+            };
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateSavedSearchAsync(dto, _testUserId));
+
+            Assert.StartsWith("The property IDs are too long to save.", ex.Message);
+        }
     }
 }

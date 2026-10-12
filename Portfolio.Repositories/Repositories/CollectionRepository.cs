@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 
 namespace Portfolio.Repositories.Repositories
@@ -51,7 +52,7 @@ namespace Portfolio.Repositories.Repositories
             var entity = await GetByIdAsync(id, ownerId, cancellationToken);
             if (entity is null)
             {
-                _logger.LogWarning("Collection {CollectionId} not found for owner {OwnerId}", id, ownerId);
+                _logger.LogWarning("Collection {CollectionId} not found for owner {OwnerId}", id, LogRedaction.UserId(ownerId));
                 return false;
             }
             _db.Collections.Remove(entity);

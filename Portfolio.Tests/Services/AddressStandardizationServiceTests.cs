@@ -286,5 +286,69 @@ namespace Portfolio.Tests.Services
 
             Assert.Equal("1", result.HouseNumber);
         }
+
+        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
+
+        [Fact]
+        public async Task ParseAsync_RejectsAddressOverLimit()
+        {
+            var service = CreateService(BuildEmptyCandidateResponse());
+            var address = "1 Main St " + new string('x', 991);
+            Assert.Equal(1001, address.Length);
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.ParseAsync(address));
+
+            Assert.StartsWith("Address must be 1000 characters or fewer.", ex.Message);
+        }
+
+        [Fact]
+        public async Task ValidateAsync_RejectsAddressOverLimit_WithoutGeocoding()
+        {
+            var callCount = 0;
+            var handler = new CountingFakeHandler(BuildEmptyCandidateResponse(), () => callCount++);
+            var service = new AddressStandardizationService(new HttpClient(handler), _loggerMock.Object);
+
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => service.ValidateAsync("1 Main St " + new string('x', 991)));
+
+            Assert.Equal(0, callCount);
+        }
+
+        [Fact]
+        public async Task Logs_RecordScoreAndLengthButNeverTheAddress()
+        {
+            var logger = new Repositories.CapturingLogger<AddressStandardizationService>();
+            var handler = new CountingFakeHandler(BuildCandidateResponse("x", 40), () => { });
+            var service = new AddressStandardizationService(new HttpClient(handler), logger);
+
+            await service.ValidateAsync("123 Zebra Crossing Lane, Redlands, CA 92373");
+
+            var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+            Assert.Contains("40", warning.Message);
+            Assert.Matches(@"length \d+", warning.Message);
+            Assert.DoesNotContain("Zebra", logger.All, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("92373", logger.All);
+        }
+
+        [Fact]
+        public async Task Logs_HttpFailureRecordsLengthButNeverTheAddress()
+        {
+            var logger = new Repositories.CapturingLogger<AddressStandardizationService>();
+            var service = new AddressStandardizationService(new HttpClient(new ThrowingHandler()), logger);
+
+            var result = await service.ValidateAsync("123 Zebra Crossing Lane, Redlands, CA 92373");
+
+            Assert.Equal(0.0, result.Score);
+            Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error);
+            Assert.DoesNotContain("Zebra", logger.All, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("92373", logger.All);
+        }
+
+        private sealed class ThrowingHandler : HttpMessageHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request, CancellationToken cancellationToken)
+                => throw new HttpRequestException("boom");
+        }
     }
 }
