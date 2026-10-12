@@ -125,7 +125,7 @@ body.dark-mode .form-control {
 /* ======================================
    Toasts (shared slide in / out; showToast in toasts.js adds the classes)
    ====================================== */
-.toast {
+.toast:not(.fade) {
     opacity: 0;
     transform: translateX(100%);
     transition: opacity 0.3s ease, transform 0.3s ease;
