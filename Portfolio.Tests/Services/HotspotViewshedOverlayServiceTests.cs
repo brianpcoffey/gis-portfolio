@@ -230,6 +230,122 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
         }
 
+        // ── Viewshed caps and finite validation (WP-06) ─────────────────────────
+
+        private static ViewshedRequestDto FlatViewshed(int width, int height, int observerX = 0, int observerY = 0) => new()
+        {
+            Width = width, Height = height, CellSize = 30,
+            ObserverX = observerX, ObserverY = observerY,
+            Elevation = Enumerable.Repeat(0.0, width * height).ToList()
+        };
+
+        [Theory]
+        [InlineData(513, 1)]
+        [InlineData(1, 513)]
+        [InlineData(250000, 1)]
+        public async Task Viewshed_SideOverCap_ThrowsArgumentException(int width, int height)
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(FlatViewshed(width, height)));
+            Assert.StartsWith("Viewshed width and height are each limited to 512 cells.", ex.Message);
+        }
+
+        [Fact]
+        public async Task Viewshed_WidthOf250000_IsRejectedQuickly()
+        {
+            // findings-security 5.2: 237 s of CPU before the side cap.
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            var request = FlatViewshed(250000, 1);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
+
+            Assert.True(timer.ElapsedMilliseconds < 1000, $"took {timer.ElapsedMilliseconds} ms");
+        }
+
+        [Theory]
+        [InlineData(512, 488)]
+        [InlineData(40, 40)]
+        [InlineData(512, 1)]
+        public async Task Viewshed_AtOrBelowBoundary_Succeeds(int width, int height)
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+
+            var result = await service.ComputeAsync(FlatViewshed(width, height, width / 2, height / 2));
+
+            Assert.Equal(width * height, result.TotalCells);
+            Assert.Equal(width * height, result.VisibleCells);
+        }
+
+        [Fact]
+        public async Task Viewshed_CellCountMessageStillWinsOverSideCap()
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            var request = FlatViewshed(1, 1);
+            request.Width = 300000;
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
+            Assert.Equal("Viewshed operations are limited to 250000 cells.", ex.Message);
+        }
+
+        [Fact]
+        public async Task Viewshed_NonFiniteElevation_ThrowsArgumentException()
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            var request = FlatViewshed(3, 3, 1, 1);
+            request.Elevation[8] = double.NaN;
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
+        }
+
+        [Fact]
+        public async Task Viewshed_CancelledToken_ThrowsOperationCanceled()
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ComputeAsync(FlatViewshed(64, 64, 32, 32), cts.Token));
+        }
+
+        // ── DBSCAN seed de-duplication (WP-06) ──────────────────────────────────
+
+        private static DbscanRequestDto IdenticalPoints(int count) => new()
+        {
+            Epsilon = 1, MinPoints = 1,
+            Points = Enumerable.Range(0, count).Select(_ => new ClusterPointDto { X = 3, Y = 4 }).ToList()
+        };
+
+        [Fact]
+        public void Dbscan_5000IdenticalPoints_ManagedPathAllocatesUnder32Mb()
+        {
+            // findings-security 5.2: 313 MB allocated before seed de-duplication.
+            var request = IdenticalPoints(5000);
+            RunManagedDbscan(IdenticalPoints(10)); // warm up JIT outside the measurement
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            var labels = RunManagedDbscan(request);
+            timer.Stop();
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.All(labels, label => Assert.Equal(0, label));
+            Assert.True(allocated < 32L * 1024 * 1024, $"allocated {allocated} bytes");
+            Assert.True(timer.ElapsedMilliseconds < 1000, $"took {timer.ElapsedMilliseconds} ms");
+        }
+
+        [Fact]
+        public async Task Dbscan_5000IdenticalPoints_ServiceFormsOneCluster()
+        {
+            var service = new SpatialClusterService(NullLogger<SpatialClusterService>.Instance);
+
+            var result = await service.RunDbscanAsync(IdenticalPoints(5000));
+
+            Assert.Equal(1, result.ClusterCount);
+            Assert.Equal([5000], result.ClusterSizes);
+        }
+
         // ── Spatial Overlay / Zone Tagger ───────────────────────────────────────
 
         [Fact]
@@ -326,6 +442,101 @@ namespace Portfolio.Tests.Services
                 Zones = [new() { Name = "Z", Ring = Rect(0, 0, 1, 1) }]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.SpatialJoinAsync(request));
+        }
+
+        // ── DBSCAN: managed labels versus the pre-dedup algorithm ───────────────
+
+        private static int[] RunManagedDbscan(DbscanRequestDto request)
+        {
+            var method = typeof(SpatialClusterService).GetMethod(
+                "RunDbscanManaged", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            return (int[])method.Invoke(null, [request, CancellationToken.None])!;
+        }
+
+        // Verbatim copy of the managed DBSCAN as it stood before seed de-duplication (WP-06).
+        private static int[] ReferenceDbscan(DbscanRequestDto request)
+        {
+            const int unvisited = -2;
+            const int noise = -1;
+            var points = request.Points;
+            var count = points.Count;
+            var labels = new int[count];
+            Array.Fill(labels, unvisited);
+
+            var epsilonSquared = request.Epsilon * request.Epsilon;
+            var clusterId = 0;
+            var neighbors = new List<int>();
+            var seeds = new List<int>();
+
+            void RegionQuery(int origin)
+            {
+                neighbors.Clear();
+                var ox = points[origin].X;
+                var oy = points[origin].Y;
+                for (var i = 0; i < points.Count; i++)
+                {
+                    var dx = points[i].X - ox;
+                    var dy = points[i].Y - oy;
+                    if (dx * dx + dy * dy <= epsilonSquared)
+                        neighbors.Add(i);
+                }
+            }
+
+            for (var p = 0; p < count; p++)
+            {
+                if (labels[p] != unvisited)
+                    continue;
+
+                RegionQuery(p);
+                if (neighbors.Count < request.MinPoints)
+                {
+                    labels[p] = noise;
+                    continue;
+                }
+
+                labels[p] = clusterId;
+                seeds.Clear();
+                seeds.AddRange(neighbors);
+                for (var s = 0; s < seeds.Count; s++)
+                {
+                    var q = seeds[s];
+                    if (labels[q] == noise)
+                        labels[q] = clusterId;
+                    if (labels[q] != unvisited)
+                        continue;
+
+                    labels[q] = clusterId;
+                    RegionQuery(q);
+                    if (neighbors.Count >= request.MinPoints)
+                        seeds.AddRange(neighbors);
+                }
+
+                clusterId++;
+            }
+
+            return labels;
+        }
+
+        [Fact]
+        public void Dbscan_ManagedLabels_MatchReferenceAlgorithmOnSeededRandomCases()
+        {
+            var random = new Random(20261012);
+            for (var caseIndex = 0; caseIndex < 1000; caseIndex++)
+            {
+                var pointCount = random.Next(1, 80);
+                // A coarse integer lattice yields many exact duplicates and dense overlap.
+                var points = Enumerable.Range(0, pointCount)
+                    .Select(_ => new ClusterPointDto { X = random.Next(0, 9), Y = random.Next(0, 9) })
+                    .ToList();
+                var request = new DbscanRequestDto
+                {
+                    Epsilon = 0.5 + random.NextDouble() * 2.5,
+                    MinPoints = random.Next(1, 6),
+                    Points = points
+                };
+
+                Assert.Equal(ReferenceDbscan(request), RunManagedDbscan(request));
+            }
         }
 
         private static List<OverlayPointDto> Rect(double minX, double minY, double maxX, double maxY) =>

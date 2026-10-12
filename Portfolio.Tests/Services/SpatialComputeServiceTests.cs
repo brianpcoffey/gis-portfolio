@@ -938,6 +938,246 @@ namespace Portfolio.Tests.Services
                 () => service.GetRedlandsGraphAsync(cts.Token));
         }
 
+        // ── Edges to undeclared nodes (managed Dijkstra / A*) ───────────────────
+
+        private static RouteRequestDto UndeclaredEdgeRoute(string algorithm) => new()
+        {
+            StartNodeId = 1, EndNodeId = 3, Algorithm = algorithm,
+            Nodes =
+            [
+                new() { Id = 1, Latitude = 34.0, Longitude = -117.3 },
+                new() { Id = 2, Latitude = 34.0, Longitude = -117.2 },
+                new() { Id = 3, Latitude = 34.056, Longitude = -117.196 }
+            ],
+            Edges =
+            [
+                new() { FromNodeId = 1, ToNodeId = 99, Cost = 1, Bidirectional = false },
+                new() { FromNodeId = 1, ToNodeId = 2, Cost = 2, Bidirectional = true },
+                new() { FromNodeId = 2, ToNodeId = 3, Cost = 2, Bidirectional = true }
+            ]
+        };
+
+        [Theory]
+        [InlineData("dijkstra")]
+        [InlineData("astar")]
+        public async Task SpatialGraphService_EdgeToUndeclaredNode_IsSkippedAndRouteIsReturned(string algorithm)
+        {
+            // WP-06 (D-04b): undeclared edges are dropped, matching the native kernel's CSR build.
+            var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
+
+            var result = await service.FindShortestPathAsync(UndeclaredEdgeRoute(algorithm));
+
+            Assert.True(result.Found);
+            Assert.Equal([1, 2, 3], result.NodeIds);
+            Assert.Equal(4.0, result.TotalCost, precision: 2);
+        }
+
+        // ── Compute work caps and finite validation (WP-06) ─────────────────────
+
+        private static RasterHillshadeRequestDto Hillshade(int width, int height) => new()
+        {
+            Width = width,
+            Height = height,
+            Elevation = Enumerable.Repeat(10.0, width * height).ToList()
+        };
+
+        private static HeatmapRequestDto Heatmap(int width, int height, int pointCount) => new()
+        {
+            Width = width, Height = height, MinX = 0, MinY = 0, MaxX = 1, MaxY = 1, Radius = 0.1,
+            Points = Enumerable.Range(0, pointCount)
+                .Select(i => new WeightedPointDto { X = (i % 10) / 10.0, Y = (i % 7) / 7.0, Weight = 1 })
+                .ToList()
+        };
+
+        [Fact]
+        public async Task RasterTerrainHillshade_SideOverCap_ThrowsArgumentException()
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHillshadeAsync(Hillshade(513, 1)));
+            Assert.StartsWith("Raster width and height are each limited to 512 cells.", ex.Message);
+        }
+
+        [Fact]
+        public async Task RasterTerrainHillshade_AtBoundary512x488_Succeeds()
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+
+            var result = await service.GenerateHillshadeAsync(Hillshade(512, 488));
+
+            Assert.Equal(512 * 488, result.Intensities.Count);
+        }
+
+        [Fact]
+        public async Task RasterTerrainHeatmap_SideOverCap_ThrowsArgumentException()
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHeatmapAsync(Heatmap(513, 1, 1)));
+        }
+
+        [Fact]
+        public async Task RasterTerrainHeatmap_WorkJustOverBudget_ThrowsArgumentException()
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+
+            // 500 x 500 x 101 = 25,250,000 > 25,000,000.
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHeatmapAsync(Heatmap(500, 500, 101)));
+            Assert.StartsWith("Heatmaps are limited to 25000000 cell-point evaluations.", ex.Message);
+        }
+
+        [Fact]
+        public async Task RasterTerrainHeatmap_WorkExactlyAtBudget_Succeeds()
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+
+            // 500 x 500 x 100 = 25,000,000.
+            var result = await service.GenerateHeatmapAsync(Heatmap(500, 500, 100));
+
+            Assert.Equal(250_000, result.Values.Count);
+        }
+
+        [Fact]
+        public async Task RasterTerrainHeatmap_UiMaximum_Succeeds()
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+
+            var result = await service.GenerateHeatmapAsync(Heatmap(40, 40, 500));
+
+            Assert.Equal(1600, result.Values.Count);
+        }
+
+        [Fact]
+        public async Task RasterTerrainHeatmap_TenThousandPointsOn500x500_IsRejectedQuickly()
+        {
+            // findings-security 5.2: this input took 29.2 s before the cap.
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+            var request = Heatmap(500, 500, 10_000);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHeatmapAsync(request));
+
+            Assert.True(timer.ElapsedMilliseconds < 1000, $"took {timer.ElapsedMilliseconds} ms");
+        }
+
+        [Fact]
+        public async Task RasterTerrainHillshade_NonFiniteElevation_ThrowsArgumentException()
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+            var request = Hillshade(2, 2);
+            request.Elevation[3] = double.NaN;
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHillshadeAsync(request));
+        }
+
+        [Theory]
+        [InlineData(double.NaN, 45)]
+        [InlineData(315, double.NaN)]
+        [InlineData(double.PositiveInfinity, 45)]
+        public async Task RasterTerrainHillshade_NonFiniteSun_ThrowsArgumentException(double azimuth, double altitude)
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+            var request = Hillshade(2, 2);
+            request.AzimuthDegrees = azimuth;
+            request.AltitudeDegrees = altitude;
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHillshadeAsync(request));
+        }
+
+        [Theory]
+        [InlineData("minx")]
+        [InlineData("maxx")]
+        [InlineData("miny")]
+        [InlineData("maxy")]
+        [InlineData("x")]
+        [InlineData("y")]
+        [InlineData("weight")]
+        public async Task RasterTerrainHeatmap_NaNInAnyGuardedField_ThrowsArgumentException(string field)
+        {
+            var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
+            var request = Heatmap(4, 4, 2);
+            switch (field)
+            {
+                case "minx": request.MinX = double.NaN; break;
+                case "maxx": request.MaxX = double.NaN; break;
+                case "miny": request.MinY = double.NaN; break;
+                case "maxy": request.MaxY = double.NaN; break;
+                case "x": request.Points[1].X = double.NaN; break;
+                case "y": request.Points[1].Y = double.NaN; break;
+                default: request.Points[1].Weight = double.NaN; break;
+            }
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHeatmapAsync(request));
+        }
+
+        [Theory]
+        [InlineData(0.0000009)]
+        [InlineData(1e-9)]
+        public async Task GeoStream_GridSizeBelowMinimum_ThrowsArgumentException(double grid)
+        {
+            var service = new GeoStreamProcessorService(NullLogger<GeoStreamProcessorService>.Instance);
+            var request = new GeoStreamBatchRequestDto
+            {
+                GridSizeDegrees = grid,
+                Events = [new() { EntityId = 1, Latitude = 1, Longitude = 1, SpeedMetersPerSecond = 1 }]
+            };
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.ProcessBatchAsync(request));
+            Assert.StartsWith("Grid size must be at least 0.000001 degrees.", ex.Message);
+        }
+
+        [Fact]
+        public async Task GeoStream_GridSizeExactlyMinimum_Succeeds()
+        {
+            var service = new GeoStreamProcessorService(NullLogger<GeoStreamProcessorService>.Instance);
+            var request = new GeoStreamBatchRequestDto
+            {
+                GridSizeDegrees = 1e-6,
+                Events = [new() { EntityId = 1, Latitude = 34, Longitude = -117, SpeedMetersPerSecond = 1 }]
+            };
+
+            var result = await service.ProcessBatchAsync(request);
+
+            Assert.Equal(1, result.ValidEvents);
+        }
+
+        [Theory]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        public async Task GeoStream_NonFiniteSpeed_ThrowsArgumentException(double speed)
+        {
+            var service = new GeoStreamProcessorService(NullLogger<GeoStreamProcessorService>.Instance);
+            var request = new GeoStreamBatchRequestDto
+            {
+                Events = [new() { EntityId = 1, Latitude = 34, Longitude = -117, SpeedMetersPerSecond = speed }]
+            };
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.ProcessBatchAsync(request));
+        }
+
+        [Fact]
+        public async Task GeoStream_NonFiniteLatLon_AreCountedInvalidNotThrown()
+        {
+            var service = new GeoStreamProcessorService(NullLogger<GeoStreamProcessorService>.Instance);
+            var request = new GeoStreamBatchRequestDto
+            {
+                GridSizeDegrees = 1,
+                Events =
+                [
+                    new() { EntityId = 1, Latitude = 34.05, Longitude = -117.18, SpeedMetersPerSecond = 12 },
+                    new() { EntityId = 2, Latitude = double.NaN, Longitude = -117.18, SpeedMetersPerSecond = 12 },
+                    new() { EntityId = 3, Latitude = 34.05, Longitude = double.PositiveInfinity, SpeedMetersPerSecond = 12 }
+                ]
+            };
+
+            var result = await service.ProcessBatchAsync(request);
+
+            Assert.Equal(3, result.TotalEvents);
+            Assert.Equal(1, result.ValidEvents);
+            Assert.Equal(2, result.InvalidEvents);
+            Assert.Equal(1, result.Aggregates.Sum(a => a.Count));
+        }
+
         // ── Controller integration ───────────────────────────────────────────────
 
         [Fact]

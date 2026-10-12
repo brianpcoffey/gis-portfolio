@@ -8,6 +8,8 @@ namespace Portfolio.Services.Services
     public class ViewshedService : IViewshedService
     {
         private const int MaxRasterCells = 250000;
+        private const int MaxDimension = 512;
+        private const int CancellationCheckInterval = 4096;
         private readonly ILogger<ViewshedService> _logger;
 
         public ViewshedService(ILogger<ViewshedService> logger)
@@ -32,6 +34,11 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("Observer position must fall inside the grid.", nameof(request));
             if (double.IsNaN(request.ObserverHeight) || double.IsInfinity(request.ObserverHeight))
                 throw new ArgumentException("Observer height must be a finite value.", nameof(request));
+            foreach (var value in request.Elevation)
+            {
+                if (!double.IsFinite(value))
+                    throw new ArgumentException("Elevation values must be finite.", nameof(request));
+            }
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -49,12 +56,19 @@ namespace Portfolio.Services.Services
             var visibility = new byte[width * height];
             var observerElevation = elevation[request.ObserverY * width + request.ObserverX] + request.ObserverHeight;
             var visibleCount = 0;
+            var cellsSinceCheck = 0;
 
             for (var ty = 0; ty < height; ty++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (var tx = 0; tx < width; tx++)
                 {
+                    if (++cellsSinceCheck >= CancellationCheckInterval)
+                    {
+                        cellsSinceCheck = 0;
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+
                     if (tx == request.ObserverX && ty == request.ObserverY)
                     {
                         visibility[ty * width + tx] = 1;
@@ -121,6 +135,8 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException($"Viewshed operations are limited to {MaxRasterCells} cells.");
             if (valueCount != width * height)
                 throw new ArgumentException("Elevation value count must equal width multiplied by height.");
+            if (width > MaxDimension || height > MaxDimension)
+                throw new ArgumentException($"Viewshed width and height are each limited to {MaxDimension} cells.");
         }
     }
 }

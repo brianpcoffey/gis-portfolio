@@ -46,6 +46,10 @@ namespace Portfolio.Services.Services
             if (longitude < -180.0 || longitude > 180.0)
                 throw new ArgumentException("Longitude must be between -180 and 180", nameof(longitude));
 
+            // NaN passes both range checks above, so reject it here before any outbound call.
+            if (!double.IsFinite(latitude) || !double.IsFinite(longitude))
+                throw new ArgumentException("Latitude and longitude must be finite numbers", nameof(latitude));
+
             // Snap to grid to enable spatial cache hits for nearby coordinates.
             var snappedLat = SnapToGrid(latitude, _gridResolution);
             var snappedLng = SnapToGrid(longitude, _gridResolution);

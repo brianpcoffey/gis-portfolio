@@ -68,6 +68,11 @@ namespace Portfolio.Services.Services
             var clusterId = 0;
             var neighbors = new List<int>();
             var seeds = new List<int>();
+            // queuedIn[i] is the cluster that last queued point i as a seed. A point queued twice
+            // for one cluster is a no-op the second time (it is already labelled), so skipping the
+            // duplicate keeps labels identical while bounding the seed list to one entry per point.
+            var queuedIn = new int[count];
+            Array.Fill(queuedIn, -1);
 
             for (var p = 0; p < count; p++)
             {
@@ -84,7 +89,7 @@ namespace Portfolio.Services.Services
 
                 labels[p] = clusterId;
                 seeds.Clear();
-                seeds.AddRange(neighbors);
+                QueueSeeds(seeds, neighbors, queuedIn, clusterId);
                 for (var s = 0; s < seeds.Count; s++)
                 {
                     var q = seeds[s];
@@ -96,13 +101,25 @@ namespace Portfolio.Services.Services
                     labels[q] = clusterId;
                     RegionQuery(points, q, epsilonSquared, neighbors);
                     if (neighbors.Count >= request.MinPoints)
-                        seeds.AddRange(neighbors);
+                        QueueSeeds(seeds, neighbors, queuedIn, clusterId);
                 }
 
                 clusterId++;
             }
 
             return labels;
+        }
+
+        private static void QueueSeeds(List<int> seeds, List<int> neighbors, int[] queuedIn, int clusterId)
+        {
+            foreach (var neighbor in neighbors)
+            {
+                if (queuedIn[neighbor] == clusterId)
+                    continue;
+
+                queuedIn[neighbor] = clusterId;
+                seeds.Add(neighbor);
+            }
         }
 
         private static void RegionQuery(List<ClusterPointDto> points, int origin, double epsilonSquared, List<int> neighbors)
