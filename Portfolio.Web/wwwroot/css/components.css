@@ -552,7 +552,7 @@ body.dark-mode .dataTables_wrapper .dataTables_length label {
 body.dark-mode .dataTables_wrapper .dataTables_filter input {
     background-color: var(--surface);
     color: var(--text);
-    border-color: var(--border);
+    border-color: var(--input-border);
 }
 
 body.dark-mode .dataTables_wrapper .dataTables_filter input::placeholder {
@@ -563,7 +563,7 @@ body.dark-mode .dataTables_wrapper .dataTables_filter input::placeholder {
 body.dark-mode .dataTables_wrapper .dataTables_length select {
     background-color: var(--surface);
     color: var(--text);
-    border-color: var(--border);
+    border-color: var(--input-border);
 }
 
 body.dark-mode .dataTables_wrapper .dataTables_length select option {
