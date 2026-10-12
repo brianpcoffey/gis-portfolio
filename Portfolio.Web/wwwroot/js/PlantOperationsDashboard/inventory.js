@@ -26,7 +26,7 @@ function loadInventoryTable() {
         .then(data => {
             if (inventoryTable) {
                 inventoryTable.clear().rows.add(data).draw();
-                plantOpsToast('Inventory loaded', 'success');
+                showToast('Inventory loaded', 'success');
                 return;
             }
             inventoryTable = $('#plantOpsInventoryTable').DataTable({
@@ -67,9 +67,9 @@ function loadInventoryTable() {
                 autoWidth: false,
                 language: { emptyTable: 'No inventory found.' }
             });
-            plantOpsToast('Inventory loaded', 'success');
+            showToast('Inventory loaded', 'success');
         })
-        .catch(() => plantOpsToast('Failed to load inventory', 'error'))
+        .catch(() => showToast('Failed to load inventory', 'danger'))
         .finally(() => $('#inventoryTableSpinner').addClass('d-none'));
 }
 
@@ -159,10 +159,10 @@ window.showReceiveStockModal = function (materialId) {
         })
         .then(() => {
             modal.hide();
-            plantOpsToast('Stock received', 'success');
+            showToast('Stock received', 'success');
             loadInventoryTable();
         })
-        .catch(() => plantOpsToast('Failed to receive stock', 'error'));
+        .catch(() => showToast('Failed to receive stock', 'danger'));
     });
 };
 
@@ -258,10 +258,10 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            plantOpsToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
+            showToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
             loadInventoryTable();
         })
-        .catch(() => plantOpsToast('Failed to save material', 'error'));
+        .catch(() => showToast('Failed to save material', 'danger'));
     });
 }
 window.renderMaterialModal = renderMaterialModal;
@@ -274,9 +274,9 @@ async function deleteMaterial(materialId) {
     })
     .then(r => {
         if (!r.ok) throw new Error('Failed to delete material');
-        plantOpsToast('Material deleted', 'success');
+        showToast('Material deleted', 'success');
         loadInventoryTable();
     })
-    .catch(() => plantOpsToast('Failed to delete material', 'error'));
+    .catch(() => showToast('Failed to delete material', 'danger'));
 }
 window.deleteMaterial = deleteMaterial;

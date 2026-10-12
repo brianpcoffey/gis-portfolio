@@ -16,7 +16,7 @@ $(document).ready(function () {
 
 function loadShipmentsTable() {
     if (typeof $.fn.DataTable !== 'function') {
-        plantOpsToast('DataTables library is not loaded. Please check your script order.', 'error');
+        showToast('DataTables library is not loaded. Please check your script order.', 'danger');
         return;
     }
     window.fetchWithAuth(window.PortfolioApi.routes.fiber.shipments)
@@ -105,11 +105,11 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
         })
         .then(() => {
             modal.hide();
-            plantOpsToast('Shipment status updated', 'success');
+            showToast('Shipment status updated', 'success');
             loadShipmentsTable();
         })
         .catch(() => {
-            plantOpsToast('Failed to update shipment status', 'error');
+            showToast('Failed to update shipment status', 'danger');
         });
     });
 };
@@ -221,10 +221,10 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            plantOpsToast(`Shipment ${isEdit ? 'updated' : 'created'}`, 'success');
+            showToast(`Shipment ${isEdit ? 'updated' : 'created'}`, 'success');
             loadShipmentsTable();
         })
-        .catch(() => plantOpsToast('Failed to save shipment', 'error'));
+        .catch(() => showToast('Failed to save shipment', 'danger'));
     });
 }
 window.renderShipmentModal = renderShipmentModal;
@@ -292,10 +292,10 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            plantOpsToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
+            showToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
             loadInventoryTable();
         })
-        .catch(() => plantOpsToast('Failed to save material', 'error'));
+        .catch(() => showToast('Failed to save material', 'danger'));
     });
 }
 window.renderMaterialModal = renderMaterialModal;
@@ -308,9 +308,9 @@ async function deleteShipment(shipmentId) {
     })
     .then(r => {
         if (!r.ok) throw new Error('Failed to delete shipment');
-        plantOpsToast('Shipment deleted', 'success');
+        showToast('Shipment deleted', 'success');
         loadShipmentsTable();
     })
-    .catch(() => plantOpsToast('Failed to delete shipment', 'error'));
+    .catch(() => showToast('Failed to delete shipment', 'danger'));
 }
 window.deleteShipment = deleteShipment;

@@ -22,7 +22,7 @@ function formatCurrency(val) {
 
 function loadOrdersTable() {
     if (typeof $.fn.DataTable !== 'function') {
-        plantOpsToast('DataTables library is not loaded. Please check your script order.', 'error');
+        showToast('DataTables library is not loaded. Please check your script order.', 'danger');
         return;
     }
     window.apiFetch(window.PortfolioApi.routes.fiber.orders)
@@ -167,11 +167,11 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
         })
         .then(() => {
             modal.hide();
-            plantOpsToast(isEdit ? 'Order updated' : 'Order created', 'success');
+            showToast(isEdit ? 'Order updated' : 'Order created', 'success');
             loadOrdersTable();
         })
         .catch(() => {
-            plantOpsToast('Failed to save order', 'error');
+            showToast('Failed to save order', 'danger');
         });
     });
 }
@@ -182,8 +182,8 @@ window.deleteOrder = async function (orderId) {
     window.apiFetch(`${window.PortfolioApi.routes.fiber.orders}/${orderId}`, { method: 'DELETE' })
         .then(r => {
             if (!r.ok) throw new Error('Failed to delete order');
-            plantOpsToast('Order deleted', 'success');
+            showToast('Order deleted', 'success');
             loadOrdersTable();
         })
-        .catch(() => plantOpsToast('Failed to delete order', 'error'));
+        .catch(() => showToast('Failed to delete order', 'danger'));
 };
