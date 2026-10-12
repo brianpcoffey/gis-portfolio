@@ -31,7 +31,8 @@ namespace Portfolio.Services.Services
             _logger = logger;
         }
 
-        // Write-side limits. IDs and Name mirror the column sizes; GeometryJson is 2x the largest
+        // Write-side limits. Only Name mirrors its column (200); the LayerId/FeatureId columns are unbounded,
+        // so those caps exist only here. GeometryJson is 2x the largest
         // Census state polygon measured from the State Explorer feature read (85,516), floored at 1 MB.
         private const int MaxIdLength = 64;
         private const int MaxNameLength = 200;
