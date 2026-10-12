@@ -59,7 +59,7 @@
 			<li><strong>Managed fallback:</strong> <code>CatRiskNativeBridge.IsAvailable</code> gates the native path. The managed implementation mirrors the kernel line for line — same haversine, same decay, same clamp order — so results are identical either way. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries, so what runs in production today is the managed path.</li>
 			<li><strong>Optimisation worth naming:</strong> Both paths bounding-box reject a pair before computing haversine. On a spatially clustered book most locations lie outside most event footprints, so the reject eliminates the majority of the trigonometry — the difference between a naive loop and one that understands its data.</li>
 			<li>
-				<strong>Measured speedup — and the honest answer:</strong> Native is only about <strong>1.1×</strong> faster than the managed fallback, with numerically identical results. Measured on the same machine, warm, over the shipped book:
+				<strong>Measured speedup — and the honest answer:</strong> Native is no faster than the managed fallback — <strong>0.92×</strong> on ring accumulation and <strong>1.02×</strong> on the Monte Carlo simulation — with numerically identical results. Median of 9 timed runs after 3 warmups, from the benchmark harness described in <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>:
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
 						<caption class="visually-hidden">Native versus managed benchmark results for the catastrophe risk kernel, by workload.</caption>
@@ -67,10 +67,8 @@
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><th scope="row" class="fw-normal">Ring accumulation, 900 locations</th><td class="text-end">5.4 ms</td><td class="text-end">5.9 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><th scope="row" class="fw-normal">Ring accumulation, 5,000 locations</th><td class="text-end">166 ms</td><td class="text-end">186 ms</td><td class="text-end">1.12×</td></tr>
-							<tr><th scope="row" class="fw-normal">Simulation, 900 × 5,000 events</th><td class="text-end">51.6 ms</td><td class="text-end">56.3 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><th scope="row" class="fw-normal">Simulation, 5,000 × 12,000 events</th><td class="text-end">568 ms</td><td class="text-end">645 ms</td><td class="text-end">1.13×</td></tr>
+							<tr><th scope="row" class="fw-normal">Ring accumulation, 20 × 900 locations, 3 km</th><td class="text-end">106 ms</td><td class="text-end">97.3 ms</td><td class="text-end">0.92×</td></tr>
+							<tr><th scope="row" class="fw-normal">Monte Carlo loss simulation, 900 × 5,000 events</th><td class="text-end">49.3 ms</td><td class="text-end">50.3 ms</td><td class="text-end">1.02×</td></tr>
 						</tbody>
 					</table>
 				</div>
@@ -96,7 +94,7 @@
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
-			<li>This kernel measures at 1.1× over managed C#. Was the native path worth building, and how would you decide that before writing it rather than after?</li>
+			<li>This kernel measures 0.92× (ring accumulation) and 1.02× (Monte Carlo) against managed C#. Was the native path worth building, and how would you decide that before writing it rather than after?</li>
 			<li>What would you change to make the native path genuinely faster — SIMD intrinsics, parallelising the event loop, or restructuring the data layout? Which gives the most speedup per unit of complexity, and what does each cost in portability?</li>
 			<li>Why does the EP curve use exceedance <em>rate</em> rather than a simple percentile of the loss distribution — and what breaks if events are not independent?</li>
 			<li>Where is the boundary between OEP and AEP, and which one does a reinsurance treaty attach to?</li>
