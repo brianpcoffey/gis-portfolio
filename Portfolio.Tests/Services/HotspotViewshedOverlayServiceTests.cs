@@ -230,6 +230,122 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
         }
 
+        // ── Viewshed caps and finite validation (WP-06) ─────────────────────────
+
+        private static ViewshedRequestDto FlatViewshed(int width, int height, int observerX = 0, int observerY = 0) => new()
+        {
+            Width = width, Height = height, CellSize = 30,
+            ObserverX = observerX, ObserverY = observerY,
+            Elevation = Enumerable.Repeat(0.0, width * height).ToList()
+        };
+
+        [Theory]
+        [InlineData(513, 1)]
+        [InlineData(1, 513)]
+        [InlineData(250000, 1)]
+        public async Task Viewshed_SideOverCap_ThrowsArgumentException(int width, int height)
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(FlatViewshed(width, height)));
+            Assert.StartsWith("Viewshed width and height are each limited to 512 cells.", ex.Message);
+        }
+
+        [Fact]
+        public async Task Viewshed_WidthOf250000_IsRejectedQuickly()
+        {
+            // findings-security 5.2: 237 s of CPU before the side cap.
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            var request = FlatViewshed(250000, 1);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
+
+            Assert.True(timer.ElapsedMilliseconds < 1000, $"took {timer.ElapsedMilliseconds} ms");
+        }
+
+        [Theory]
+        [InlineData(512, 488)]
+        [InlineData(40, 40)]
+        [InlineData(512, 1)]
+        public async Task Viewshed_AtOrBelowBoundary_Succeeds(int width, int height)
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+
+            var result = await service.ComputeAsync(FlatViewshed(width, height, width / 2, height / 2));
+
+            Assert.Equal(width * height, result.TotalCells);
+            Assert.Equal(width * height, result.VisibleCells);
+        }
+
+        [Fact]
+        public async Task Viewshed_CellCountMessageStillWinsOverSideCap()
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            var request = FlatViewshed(1, 1);
+            request.Width = 300000;
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
+            Assert.Equal("Viewshed operations are limited to 250000 cells.", ex.Message);
+        }
+
+        [Fact]
+        public async Task Viewshed_NonFiniteElevation_ThrowsArgumentException()
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            var request = FlatViewshed(3, 3, 1, 1);
+            request.Elevation[8] = double.NaN;
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
+        }
+
+        [Fact]
+        public async Task Viewshed_CancelledToken_ThrowsOperationCanceled()
+        {
+            var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ComputeAsync(FlatViewshed(64, 64, 32, 32), cts.Token));
+        }
+
+        // ── DBSCAN seed de-duplication (WP-06) ──────────────────────────────────
+
+        private static DbscanRequestDto IdenticalPoints(int count) => new()
+        {
+            Epsilon = 1, MinPoints = 1,
+            Points = Enumerable.Range(0, count).Select(_ => new ClusterPointDto { X = 3, Y = 4 }).ToList()
+        };
+
+        [Fact]
+        public void Dbscan_5000IdenticalPoints_ManagedPathAllocatesUnder32Mb()
+        {
+            // findings-security 5.2: 313 MB allocated before seed de-duplication.
+            var request = IdenticalPoints(5000);
+            RunManagedDbscan(IdenticalPoints(10)); // warm up JIT outside the measurement
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            var labels = RunManagedDbscan(request);
+            timer.Stop();
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.All(labels, label => Assert.Equal(0, label));
+            Assert.True(allocated < 32L * 1024 * 1024, $"allocated {allocated} bytes");
+            Assert.True(timer.ElapsedMilliseconds < 1000, $"took {timer.ElapsedMilliseconds} ms");
+        }
+
+        [Fact]
+        public async Task Dbscan_5000IdenticalPoints_ServiceFormsOneCluster()
+        {
+            var service = new SpatialClusterService(NullLogger<SpatialClusterService>.Instance);
+
+            var result = await service.RunDbscanAsync(IdenticalPoints(5000));
+
+            Assert.Equal(1, result.ClusterCount);
+            Assert.Equal([5000], result.ClusterSizes);
+        }
+
         // ── Spatial Overlay / Zone Tagger ───────────────────────────────────────
 
         [Fact]

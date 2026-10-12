@@ -121,6 +121,35 @@ namespace Portfolio.Tests.Services
             Assert.Contains(expectedMessage, ex.Message);
         }
 
+        [Theory]
+        [InlineData(double.NaN, 0.0)]
+        [InlineData(0.0, double.NaN)]
+        [InlineData(double.NaN, double.NaN)]
+        public async Task ReverseGeocodeAsync_NaNCoordinates_ThrowsArgumentException(double lat, double lng)
+        {
+            // Arrange
+            var service = CreateService("{}");
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<ArgumentException>(
+                () => service.ReverseGeocodeAsync(lat, lng));
+            Assert.Contains("Latitude and longitude must be finite numbers", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(double.PositiveInfinity, 0.0, "Latitude must be between -90 and 90")]
+        [InlineData(0.0, double.NegativeInfinity, "Longitude must be between -180 and 180")]
+        public async Task ReverseGeocodeAsync_InfiniteCoordinates_KeepRangeMessages(double lat, double lng, string expectedMessage)
+        {
+            // Arrange
+            var service = CreateService("{}");
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<ArgumentException>(
+                () => service.ReverseGeocodeAsync(lat, lng));
+            Assert.Contains(expectedMessage, ex.Message);
+        }
+
         [Fact]
         public async Task ReverseGeocodeAsync_NoArcGisResult_ThrowsKeyNotFoundException()
         {

@@ -241,8 +241,12 @@ namespace Portfolio.Services.Services
                 {
                     if (settled.Contains(edge.To))
                         continue;
+                    // Edges to undeclared nodes are dropped, as the native kernel does when it
+                    // builds its CSR adjacency.
+                    if (!distances.TryGetValue(edge.To, out var known))
+                        continue;
                     var candidate = curDist + edge.Cost;
-                    if (candidate >= distances[edge.To])
+                    if (candidate >= known)
                         continue;
 
                     distances[edge.To] = candidate;
@@ -319,8 +323,12 @@ namespace Portfolio.Services.Services
                 {
                     if (closed.Contains(edge.To))
                         continue;
+                    // Edges to undeclared nodes are dropped, as the native kernel does when it
+                    // builds its CSR adjacency.
+                    if (!gScore.TryGetValue(edge.To, out var known))
+                        continue;
                     var tentativeG = curG + edge.Cost;
-                    if (tentativeG >= gScore[edge.To])
+                    if (tentativeG >= known)
                         continue;
 
                     gScore[edge.To] = tentativeG;
@@ -442,9 +450,8 @@ namespace Portfolio.Services.Services
                     if (settled.Contains(edge.To))
                         continue;
                     // Edges may reference a node that was never declared. Skip them rather
-                    // than indexing (which throws) — this mirrors the native kernel, where
-                    // the equivalent std::map lookup would silently insert a zero-cost
-                    // phantom node instead.
+                    // than indexing (which throws) — this mirrors the native kernel, which
+                    // drops undeclared edges when it builds its CSR adjacency.
                     if (!distances.TryGetValue(edge.To, out var known))
                         continue;
 
