@@ -235,5 +235,30 @@ namespace Portfolio.Tests.Services
                 () => _service.DeleteSavedSearchAsync(999, _testUserId));
             Assert.Contains("999", ex.Message);
         }
+
+        // ── Persistence limits: values exactly at the boundary are accepted ──
+
+        [Fact]
+        public async Task CreateSavedSearchAsync_AcceptsNameAtMaximumLengthAndFiftyIds()
+        {
+            var name = new string('n', 200);
+            _repoMock
+                .Setup(r => r.ExistsByNameAsync(_testUserId, name, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _repoMock
+                .Setup(r => r.AddAsync(It.IsAny<SavedSearch>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SavedSearch s, CancellationToken _) => s);
+            var dto = new CreateSavedSearchDto
+            {
+                Name = name,
+                Preferences = new HomeSearchPreferencesDto(),
+                PropertyIds = Enumerable.Range(1, 50).ToArray()
+            };
+
+            var result = await _service.CreateSavedSearchAsync(dto, _testUserId);
+
+            Assert.Equal(200, result.Name!.Length);
+            Assert.Equal(50, result.PropertyIds!.Length);
+        }
     }
 }

@@ -177,5 +177,36 @@ namespace Portfolio.Tests.Services
 
             Assert.False(result);
         }
+
+        // ── Persistence limits: values exactly at the boundary are accepted ──
+
+        private void SetupSavedFeatureAdd()
+        {
+            _repoMock
+                .Setup(r => r.GetByLayerAndFeatureIdAsync(It.IsAny<string>(), It.IsAny<string>(), _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SavedFeature?)null);
+            _repoMock
+                .Setup(r => r.AddAsync(It.IsAny<SavedFeature>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SavedFeature f, CancellationToken _) => { f.Id = 1; return f; });
+        }
+
+        [Fact]
+        public async Task CreateAsync_AcceptsFieldsAtMaximumLength()
+        {
+            SetupSavedFeatureAdd();
+            var dto = new CreateSavedFeatureDto
+            {
+                LayerId = new string('l', 64),
+                FeatureId = new string('f', 64),
+                Name = new string('n', 200),
+                Description = new string('d', 2000),
+                GeometryJson = new string('g', 1_000_000)
+            };
+
+            var result = await _service.CreateAsync(dto);
+
+            Assert.Equal(1, result.Id);
+            Assert.Equal(1_000_000, result.GeometryJson!.Length);
+        }
     }
 }

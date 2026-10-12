@@ -272,5 +272,19 @@ namespace Portfolio.Tests.Services
                 return Task.FromResult(response);
             }
         }
+
+        // ── Persistence limits: an address exactly at the boundary is accepted ──
+
+        [Fact]
+        public async Task ParseAsync_AcceptsAddressAtMaximumLength()
+        {
+            var service = CreateService(BuildEmptyCandidateResponse());
+            var address = "1 Main St " + new string('x', 990);
+            Assert.Equal(1000, address.Length);
+
+            var result = await service.ParseAsync(address);
+
+            Assert.Equal("1", result.HouseNumber);
+        }
     }
 }

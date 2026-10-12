@@ -111,5 +111,55 @@ namespace Portfolio.Tests.Services
             var result = await _service.DeleteAsync(5);
             Assert.False(result);
         }
+
+        // ── Persistence limits: values exactly at the boundary are accepted ──
+
+        private static FiberShipmentDto ValidShipment() => new()
+        {
+            TrackingNumber = "T1",
+            CarrierName = "C1",
+            Status = "Pending",
+            DestinationCity = "Redlands",
+            DestinationState = "CA",
+            Route = new List<RoutePointDto> { new() { Lat = 34.0, Lng = -117.0 } }
+        };
+
+        private void SetupShipmentAdd() =>
+            _shipmentRepoMock
+                .Setup(r => r.AddAsync(It.IsAny<FiberShipment>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((FiberShipment s, CancellationToken _) => s);
+
+        [Theory]
+        [InlineData("Pending")]
+        [InlineData("In Transit")]
+        [InlineData("Delivered")]
+        [InlineData("Exception")]
+        public async Task CreateAsync_AcceptsEachAllowedStatus(string status)
+        {
+            SetupShipmentAdd();
+            var dto = ValidShipment();
+            dto.Status = status;
+
+            var result = await _service.CreateAsync(dto);
+
+            Assert.Equal(status, result.Status);
+        }
+
+        [Fact]
+        public async Task CreateAsync_AcceptsFieldsAtMaximumLength()
+        {
+            SetupShipmentAdd();
+            var dto = ValidShipment();
+            dto.TrackingNumber = new string('t', 100);
+            dto.CarrierName = new string('c', 100);
+            dto.DestinationCity = new string('y', 100);
+            dto.DestinationState = new string('s', 50);
+            dto.Route = Enumerable.Range(0, 1000).Select(i => new RoutePointDto { Lat = 34.0, Lng = -117.0 }).ToList();
+
+            var result = await _service.CreateAsync(dto);
+
+            Assert.Equal(1000, result.Route.Count);
+            Assert.Equal(100, result.TrackingNumber.Length);
+        }
     }
 }
