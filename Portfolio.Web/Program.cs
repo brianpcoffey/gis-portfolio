@@ -31,6 +31,19 @@ using System.Security.Claims;
 var builder = WebApplication.CreateBuilder(args);
 
 // --------------------------
+// Kestrel limits
+// --------------------------
+// 1 MB is the default request-body ceiling for every endpoint; the compute and upload actions
+// that legitimately need more raise it per endpoint with [RequestSizeLimit] (a Kestrel-level
+// limit, so only a live run enforces it, not TestServer). The Server response header is dropped
+// so the stack is not advertised.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 1_000_000;
+    options.AddServerHeader = false;
+});
+
+// --------------------------
 // Startup Diagnostics
 // --------------------------
 using var loggerFactory = LoggerFactory.Create(config => config.AddConsole());
@@ -238,6 +251,18 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         ForwardedHeaders.XForwardedProto;
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
+});
+
+// --------------------------
+// HSTS (non-Development only; see UseHsts below)
+// --------------------------
+// One year, current host only. includeSubDomains and preload are deliberately off:
+// preload is effectively irreversible, and subdomains are not all under this app's control.
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = false;
+    options.Preload = false;
 });
 
 // --------------------------
