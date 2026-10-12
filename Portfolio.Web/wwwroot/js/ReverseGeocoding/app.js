@@ -85,7 +85,7 @@
             item.setAttribute("role", "button");
             item.setAttribute("tabindex", "0");
             item.innerHTML =
-                '<div class="rg-lookup-address">' + escapeHtml(entry.dto.matchedAddress || "Unknown address") + "</div>" +
+                '<div class="rg-lookup-address">' + PortfolioDom.escapeHtml(entry.dto.matchedAddress || "Unknown address") + "</div>" +
                 '<div class="rg-lookup-coords">Lat: ' + entry.lat.toFixed(6) + "  Lng: " + entry.lng.toFixed(6) + "</div>";
 
             item.addEventListener("click", function () {
@@ -112,12 +112,6 @@
     }
 
     // ── UI helpers ─────────────────────────────────────────────────────────────
-    function escapeHtml(str) {
-        var d = document.createElement("div");
-        d.textContent = str;
-        return d.innerHTML;
-    }
-
     function showState(state) {
         // state: "placeholder" | "loading" | "notfound" | "result"
         placeholder.classList.add("d-none");
@@ -167,7 +161,7 @@
 
         var ltClass = getLocationTypeBadgeClass(dto.locationType);
         locationTypeBadge.className = "badge rg-location-type-badge " + ltClass;
-        locationTypeBadge.innerHTML = '<i class="fa-solid fa-map-pin me-1"></i>' + escapeHtml(dto.locationType || "Unknown");
+        locationTypeBadge.innerHTML = '<i class="fa-solid fa-map-pin me-1"></i>' + PortfolioDom.escapeHtml(dto.locationType || "Unknown");
 
         houseNumber.textContent = dto.houseNumber || "—";
         street.textContent = dto.street || "—";
@@ -208,8 +202,8 @@
     function updateMarkerPopup(dto) {
         if (!markerGraphic) return;
         markerGraphic.popupTemplate = {
-            title: dto.matchedAddress || "Address",
-            content: dto.locationType ? "Location type: " + dto.locationType : ""
+            title: PortfolioDom.escapeHtml(dto.matchedAddress || "Address"),
+            content: dto.locationType ? "Location type: " + PortfolioDom.escapeHtml(dto.locationType) : ""
         };
         if (mapView && mapView.popup) {
             mapView.popup.open({ features: [markerGraphic], location: markerGraphic.geometry });
