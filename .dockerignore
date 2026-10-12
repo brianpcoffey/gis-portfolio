@@ -32,3 +32,6 @@ Dockerfile
 .dockerignore
 README.md
 LICENSE
+
+# Developer measurement and audit tools (tools/metrics, tools/fe-audit)
+tools/
