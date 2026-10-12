@@ -42,7 +42,7 @@ public class RateLimitingTests
     }
 
     [Fact]
-    public async Task Expensive_Allows15_ThenReturns429()
+    public async Task Expensive_Allows15_ThenReturns429() // also XFF case (a): no header
     {
         await using var f = new PortfolioAppFactory();
         var c = f.Client();
@@ -53,13 +53,6 @@ public class RateLimitingTests
         var limited = await c.GetAsync(Path, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
         Assert.Equal("nosniff", limited.Headers.GetValues("X-Content-Type-Options").Single());
-    }
-
-    [Fact]
-    public async Task Xff_CaseA_NoHeader_IsLimitedAfter15()
-    {
-        await using var f = new PortfolioAppFactory();
-        AssertFifteenThenLimited(await Send(f.Client(), 16, _ => null));
     }
 
     [Fact]
