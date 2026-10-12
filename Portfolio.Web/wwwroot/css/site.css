@@ -3,8 +3,9 @@
    --------------------------------------
    Palette variables, base element styles (html/body/a/headings) and
    .section-title live in base.css — the single source of truth. This file
-   holds shared component styles only. layout.css and components.css are
-   linked directly in _Layout.cshtml; base + utilities are pulled in below.
+   holds shared component styles only. base.css, utilities.css, layout.css,
+   components.css and preferences.css are all linked directly in
+   _Layout.cshtml (base and utilities before this file).
    ====================================== */
 /* base.css and utilities.css used to be @imported here. They are now linked
    directly from _Layout so asp-append-version can cache-bust them — an
@@ -17,45 +18,64 @@
 /* White label on --accent is 3.24:1 and on --accent-light 2.45:1; both are
    under AA. The filled tokens carry the label instead, and hover goes
    *darker* rather than lighter so the contrast improves on interaction. */
+/* Both variants are written on Bootstrap's button variable API so hover,
+   focus-visible, active and disabled resolve to defined colours instead of
+   falling back to transparent. The focus ring itself comes from
+   preferences.css (--focus-ring); --bs-btn-focus-shadow-rgb only feeds
+   Bootstrap's own focus shadow, which that file suppresses. */
 .btn-accent {
-    background-color: var(--accent-on-fill);
-    border-color: var(--accent-on-fill);
-    color: #fff;
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--accent-on-fill);
+    --bs-btn-border-color: var(--accent-on-fill);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--accent-on-fill-h);
+    --bs-btn-hover-border-color: var(--accent-on-fill-h);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--accent-on-fill-h);
+    --bs-btn-active-border-color: var(--accent-on-fill-h);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--accent-on-fill);
+    --bs-btn-disabled-border-color: var(--accent-on-fill);
+    --bs-btn-focus-shadow-rgb: 44, 122, 83;
     font-weight: 600;
     transition: all var(--transition);
 }
 
 .btn-accent:hover,
 .btn-accent:focus {
-    background-color: var(--accent-on-fill-h);
-    border-color: var(--accent-on-fill-h);
-    color: #fff;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(47, 133, 90, 0.35);
 }
 
 .btn-outline-accent {
-    color: var(--accent-text);
-    border-color: var(--accent-text);
-    background: transparent;
+    --bs-btn-color: var(--accent-text);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: var(--accent-text);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--accent-on-fill);
+    --bs-btn-hover-border-color: var(--accent-on-fill);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--accent-on-fill-h);
+    --bs-btn-active-border-color: var(--accent-on-fill-h);
+    --bs-btn-disabled-color: var(--accent-text);
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: var(--accent-text);
+    --bs-btn-focus-shadow-rgb: 44, 122, 83;
     font-weight: 600;
-}
-
-.btn-outline-accent:hover {
-    background-color: var(--accent-on-fill);
-    border-color: var(--accent-on-fill);
-    color: #fff;
 }
 
 /* Light mode: ensure outline buttons on hero have visible contrast */
 .hero-section .btn-outline-accent {
-    color: #fff;
-    border-color: #fff;
-}
-
-.hero-section .btn-outline-accent:hover {
-    background-color: #fff;
-    color: var(--accent-text);
+    --bs-btn-color: var(--on-dark);
+    --bs-btn-border-color: var(--on-dark);
+    --bs-btn-hover-color: var(--accent-text);
+    --bs-btn-hover-bg: var(--on-dark);
+    --bs-btn-hover-border-color: var(--on-dark);
+    --bs-btn-active-color: var(--accent-text);
+    --bs-btn-active-bg: var(--on-dark);
+    --bs-btn-active-border-color: var(--on-dark);
+    --bs-btn-disabled-color: var(--on-dark);
+    --bs-btn-disabled-border-color: var(--on-dark);
 }
 
 /* ======================================
@@ -320,7 +340,7 @@ body.dark-mode .btn-google {
 .dropdown-item:hover,
 .dropdown-item:focus {
     background-color: var(--background);
-    color: var(--accent);
+    color: var(--accent-text);
 }
 
 /* Limit the height of the View Saved modal and add a vertical scrollbar if needed */
