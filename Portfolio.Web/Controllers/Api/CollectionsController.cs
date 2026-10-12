@@ -61,6 +61,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token for the request.</param>
         /// <returns>The created collection.</returns>
         [HttpPost]
+        [RequestSizeLimit(4_096)]
         [ProducesResponseType(typeof(CollectionDto), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(409)]
@@ -91,6 +92,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token for the request.</param>
         /// <returns>The updated collection.</returns>
         [HttpPut("{id:int}")]
+        [RequestSizeLimit(4_096)]
         [ProducesResponseType(typeof(CollectionDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]

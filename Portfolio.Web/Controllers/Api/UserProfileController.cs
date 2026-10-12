@@ -47,6 +47,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Updates editable fields on the current user's profile.
         /// </summary>
         [HttpPut("me")]
+        [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ProfileDto), 200)]
         [ProducesResponseType(400)]
@@ -120,6 +121,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Sets a claim for the current user.
         /// </summary>
         [HttpPut("me/claims")]
+        [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]

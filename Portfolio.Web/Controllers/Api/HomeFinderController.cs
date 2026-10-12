@@ -34,6 +34,7 @@ namespace Portfolio.Web.Controllers.Api
     /// <summary>Compute and return top 10 properties matching user preferences.</summary>
     [AllowAnonymous]
     [HttpPost("search")]
+    [RequestSizeLimit(16_384)]
     [ProducesResponseType(typeof(List<ScoredPropertyDto>), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -47,6 +48,7 @@ namespace Portfolio.Web.Controllers.Api
     /// <summary>Backward-compatible alias for computing matching properties.</summary>
     [AllowAnonymous]
     [HttpPost("score")]
+    [RequestSizeLimit(16_384)]
     [ApiExplorerSettings(IgnoreApi = true)]
     [Obsolete("Use POST /api/v1/homefinder/search.")]
     [ProducesResponseType(typeof(List<ScoredPropertyDto>), 200)]
@@ -84,6 +86,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Save a new search to the user's profile.</summary>
     [HttpPost("searches")]
+    [RequestSizeLimit(16_384)]
     [Authorize(Policy = "Authenticated")]
     [ProducesResponseType(typeof(SavedSearchDto), 201)]
     [ProducesResponseType(400)]

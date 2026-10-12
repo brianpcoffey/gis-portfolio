@@ -60,6 +60,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Sets or updates a claim for the anonymous user.
         /// </summary>
         [HttpPost("claims")]
+        [RequestSizeLimit(8_192)]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ClaimDto), 200)]
         [ProducesResponseType(400)]
@@ -107,6 +108,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Sets or updates a claim for the authenticated user.
         /// </summary>
         [HttpPut("me/claims")]
+        [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ClaimDto), 200)]
         [ProducesResponseType(400)]

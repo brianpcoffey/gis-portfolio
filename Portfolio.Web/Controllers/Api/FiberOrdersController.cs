@@ -77,6 +77,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Creates a new fiber order.</summary>
     [HttpPost]
+    [RequestSizeLimit(65_536)]
     [ProducesResponseType(201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -104,6 +105,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Updates an existing fiber order.</summary>
     [HttpPut("{id}")]
+    [RequestSizeLimit(65_536)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]

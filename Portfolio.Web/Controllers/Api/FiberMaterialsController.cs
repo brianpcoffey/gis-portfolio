@@ -90,6 +90,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Creates a new fiber material.</summary>
     [HttpPost]
+    [RequestSizeLimit(65_536)]
     [ProducesResponseType(201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -117,6 +118,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Updates an existing fiber material.</summary>
     [HttpPut("{id}")]
+    [RequestSizeLimit(65_536)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -171,6 +173,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Records a stock receipt for a fiber material.</summary>
     [HttpPost("{id}/receive")]
+    [RequestSizeLimit(65_536)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]

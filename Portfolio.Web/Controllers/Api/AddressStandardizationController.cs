@@ -35,6 +35,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Structured address components including a standardized single-line output and parse confidence score.</returns>
         [HttpPost("parse")]
+        [RequestSizeLimit(16_384)]
         [ProducesResponseType(typeof(AddressParsedDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -74,6 +75,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Validation result with parsed components, ArcGIS matched address, score, and confidence tier.</returns>
         [HttpPost("validate")]
+        [RequestSizeLimit(16_384)]
         [ProducesResponseType(typeof(AddressValidationResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
