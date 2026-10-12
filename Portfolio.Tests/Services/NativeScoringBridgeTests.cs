@@ -153,8 +153,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void ScoreProperty_WhenNativeAvailable_MatchesManagedWithinTolerance()
         {
-            if (!NativeScoringBridge.IsAvailable)
-                return; // library absent; skip parity assertions
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
             var p     = MakeProperty();
             var prefs = MakePrefs();
@@ -168,8 +167,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void ScoreProperty_WhenNativeAvailable_MonthlyCostWithinTolerance()
         {
-            if (!NativeScoringBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
             var p     = MakeProperty();
             var prefs = MakePrefs();
@@ -184,8 +182,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void ScoreProperty_WhenNativeAvailable_AllSubScoresClamped()
         {
-            if (!NativeScoringBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
             var native = NativeScoringBridge.ScoreProperty(MakeProperty(), MakePrefs());
 
@@ -207,8 +204,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void ScorePropertyBatch_WhenNativeAvailable_ReturnsCorrectCount()
         {
-            if (!NativeScoringBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
             var p1  = MakeProperty();
             var p2  = MakeProperty(); p2.Id = 2; p2.Price = 500_000m;
@@ -222,8 +218,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void ScorePropertyBatch_WhenNativeAvailable_EachElementMatchesSingle()
         {
-            if (!NativeScoringBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
             var p1    = MakeProperty();
             var p2    = MakeProperty(); p2.Id = 2; p2.Price = 500_000m;
@@ -242,8 +237,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void ScoreProperty_ZeroBudget_AffordabilityDefaultsFifty()
         {
-            if (!NativeScoringBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
             var p     = MakeProperty();
             var prefs = MakePrefs();
@@ -257,8 +251,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void ScoreProperty_UnknownRenovation_ConditionHasNoBonus()
         {
-            if (!NativeScoringBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
             var pWithReno    = MakeProperty();
             var pWithout     = MakeProperty();

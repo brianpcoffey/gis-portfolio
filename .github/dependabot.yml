@@ -1,0 +1,28 @@
+# Dependabot opens pull requests; it never merges them. NuGet central package
+# management (Directory.Packages.props) is handled by the nuget ecosystem.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      aspnetcore-efcore:
+        patterns: ["Microsoft.*", "Npgsql.*", "Asp.Versioning.*"]
+        exclude-patterns: ["Microsoft.NET.Test.Sdk"]
+      test:
+        patterns: ["xunit*", "Moq", "coverlet.*", "Microsoft.NET.Test.Sdk"]
+    ignore:
+      # Microsoft.OpenApi 2.7.5 is pinned deliberately; 3.x breaks compilation.
+      - dependency-name: "Microsoft.OpenApi"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly

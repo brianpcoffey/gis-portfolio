@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, 'cleanup/**']
   workflow_dispatch:
 
 # A newer push to the same branch makes an in-flight run irrelevant.
@@ -41,16 +41,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: '10.0.x'
 
       # Central package management means one file pins every version, so it is
       # an exact cache key for the whole restore graph.
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
@@ -80,11 +80,16 @@ jobs:
       - name: Enforce coverage thresholds
         run: |
           python3 - <<'PY'
-          import glob, sys, xml.etree.ElementTree as ET
+          import glob, hashlib, sys, xml.etree.ElementTree as ET
 
-          reports = glob.glob('TestResults/**/coverage.cobertura.xml', recursive=True)
+          reports = sorted(glob.glob('TestResults/**/coverage.cobertura.xml', recursive=True))
           if not reports:
               sys.exit('::error::No coverage report was produced.')
+
+          # The trx logger can leave a byte-identical copy of the report under another
+          # folder. More than one distinct report would mean the gate reads an arbitrary one.
+          if len({hashlib.sha256(open(r, 'rb').read()).hexdigest() for r in reports}) != 1:
+              sys.exit('::error::Expected exactly one distinct coverage report.')
 
           root = ET.parse(reports[0]).getroot()
           lc, lv = int(root.get('lines-covered')), int(root.get('lines-valid'))
@@ -119,7 +124,7 @@ jobs:
 
       - name: Upload test results & coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: test-results
           path: |
@@ -130,7 +135,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # Builds all thirteen C++ kernels and runs the suite again with them present.
   #
-  # This is the job that matters most. NativeParityTests no-op when the shared
+  # This is the job that matters most. NativeParityTests skip when the shared
   # libraries are absent, so the gate above never exercises a single line of
   # C++. Two real defects shipped precisely because nothing compared the two
   # implementations: a bounding-box clip that clamped vertices instead of
@@ -142,14 +147,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: '10.0.x'
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
@@ -188,7 +193,13 @@ jobs:
             exit 1
           fi
 
+      # NativeAvailabilityTests fails this step if any of the 13 bridges did not load,
+      # so a broken staging step cannot leave the native-gated tests all skipped and
+      # the job green. No coverage gate here by design (it measures lower than the
+      # managed run).
       - name: Test with native kernels present
+        env:
+          PORTFOLIO_REQUIRE_NATIVE: '1'
         run: dotnet test Portfolio.Tests --no-build -c Debug --logger "console;verbosity=normal"
 
       # The fallback is production behaviour — the deployed container compiles no
@@ -207,18 +218,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           push: false
           load: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # Flags a pull request that introduces a vulnerable dependency. Not a deploy
+  # prerequisite: it only runs on pull requests.
+  # ---------------------------------------------------------------------------
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          fail-on-severity: low
 
   # ---------------------------------------------------------------------------
   # Optional deploy gate. Inert until BOTH of these are true:
