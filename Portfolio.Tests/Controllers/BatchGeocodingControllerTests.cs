@@ -274,6 +274,134 @@ namespace Portfolio.Tests.Controllers
             var problem = Assert.IsType<ProblemDetails>(status.Value);
             Assert.Equal(503, problem.Status);
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        private static IFormFile BuildNamedFile(string name, long length)
+        {
+            var fileMock = new Mock<IFormFile>();
+            fileMock.Setup(f => f.Length).Returns(length);
+            fileMock.Setup(f => f.FileName).Returns(name);
+            return fileMock.Object;
+        }
+
+        [Fact]
+        public async Task SubmitAsync_NoFile_PinsProblemDetailsBody()
+        {
+            // Act
+            var result = await _controller.SubmitAsync(null!, CancellationToken.None);
+
+            // Assert
+            var bad = Assert.IsType<BadRequestObjectResult>(result);
+            var problem = Assert.IsType<ProblemDetails>(bad.Value);
+            Assert.Equal("File required", problem.Title);
+            Assert.Equal(400, problem.Status);
+            Assert.Null(problem.Detail);
+        }
+
+        [Fact]
+        public async Task SubmitAsync_EmptyFile_PinsProblemDetailsBody()
+        {
+            // Act
+            var result = await _controller.SubmitAsync(BuildNamedFile("a.csv", 0), CancellationToken.None);
+
+            // Assert
+            var bad = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("File required", Assert.IsType<ProblemDetails>(bad.Value).Title);
+        }
+
+        [Fact]
+        public async Task SubmitAsync_NonCsvFile_PinsProblemDetailsBody()
+        {
+            // Act
+            var result = await _controller.SubmitAsync(BuildNamedFile("a.txt", 10), CancellationToken.None);
+
+            // Assert
+            var bad = Assert.IsType<BadRequestObjectResult>(result);
+            var problem = Assert.IsType<ProblemDetails>(bad.Value);
+            Assert.Equal("A .csv file is required", problem.Title);
+            Assert.Equal(400, problem.Status);
+        }
+
+        [Fact]
+        public async Task SubmitAsync_ArgumentException_PinsExactErrorBody()
+        {
+            // Arrange
+            var file = BuildNamedFile("a.csv", 10);
+            _serviceMock.Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Too many rows."));
+
+            // Act
+            var result = await _controller.SubmitAsync(file, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Too many rows.");
+        }
+
+        [Fact]
+        public async Task SubmitAsync_BrokenCircuit_PinsExact503Body()
+        {
+            // Arrange
+            var file = BuildNamedFile("a.csv", 10);
+            _serviceMock.Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
+
+            // Act
+            var result = await _controller.SubmitAsync(file, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.GeocodingUnavailable(result);
+        }
+
+        [Fact]
+        public async Task GeocodeAddresses_NoFile_PinsExactErrorBody()
+        {
+            // Act
+            var result = await _controller.GeocodeAddresses(null!, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "A non-empty CSV file is required.");
+        }
+
+        [Fact]
+        public async Task GeocodeAddresses_NonCsvFile_PinsExactErrorBody()
+        {
+            // Act
+            var result = await _controller.GeocodeAddresses(BuildNamedFile("a.txt", 10), CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "A .csv file is required.");
+        }
+
+        [Fact]
+        public async Task GeocodeAddresses_ArgumentException_PinsExactErrorBody()
+        {
+            // Arrange
+            var file = BuildNamedFile("a.csv", 10);
+            _serviceMock.Setup(s => s.GeocodeAsync(file, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Too many rows."));
+
+            // Act
+            var result = await _controller.GeocodeAddresses(file, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Too many rows.");
+        }
+
+        [Fact]
+        public async Task GeocodeAddresses_BrokenCircuit_PinsExact503Body()
+        {
+            // Arrange
+            var file = BuildNamedFile("a.csv", 10);
+            _serviceMock.Setup(s => s.GeocodeAsync(file, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
+
+            // Act
+            var result = await _controller.GeocodeAddresses(file, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.GeocodingUnavailable(result);
+        }
     }
 }
 

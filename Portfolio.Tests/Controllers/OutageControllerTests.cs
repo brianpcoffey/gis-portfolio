@@ -98,5 +98,37 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
+
+        [Fact]
+        public async Task OutageTrace_ArgumentException_PinsExactErrorBody()
+        {
+            // Arrange
+            var service = new Mock<IOutageTraceService>();
+            service.Setup(s => s.TraceAsync(It.IsAny<TraceRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Bad trace.", "request"));
+            var controller = NewController(service);
+
+            // Act
+            var result = await controller.Trace(new TraceRequestDto(), CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad trace. (Parameter 'request')");
+        }
+
+        [Fact]
+        public async Task OutageRestore_ArgumentException_PinsExactErrorBody()
+        {
+            // Arrange
+            var service = new Mock<IOutageTraceService>();
+            service.Setup(s => s.ProposeRestorationAsync(It.IsAny<RestoreRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Bad restore.", "request"));
+            var controller = NewController(service);
+
+            // Act
+            var result = await controller.Restore(new RestoreRequestDto(), CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad restore. (Parameter 'request')");
+        }
     }
 }

@@ -121,5 +121,123 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<BadRequestObjectResult>(result);
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        [Fact]
+        public async Task Get_WhenNoIdentity_PinsExactErrorBody()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.GetCurrentUserId()).Returns((Guid?)null);
+
+            // Act
+            var result = await _controller.Get(CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Anonymous identity not established.");
+        }
+
+        [Fact]
+        public async Task SetClaim_NullBody_PinsExactErrorBody()
+        {
+            // Act
+            var result = await _controller.SetClaim(null!, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Type and value required.");
+        }
+
+        [Fact]
+        public async Task SetClaim_ProtectedType_PinsExactErrorBody()
+        {
+            // Arrange
+            var type = Portfolio.Common.Constants.ProfileClaimTypes.GoogleId;
+
+            // Act
+            var result = await _controller.SetClaim(new ClaimCreateDto { Type = type, Value = "v" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, $"Claim type '{type}' cannot be set anonymously.");
+            _serviceMock.Verify(s => s.SetClaimAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task RemoveClaim_BlankType_PinsExactErrorBody()
+        {
+            // Act
+            var result = await _controller.RemoveClaim(" ", CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Type required.");
+        }
+
+        [Fact]
+        public async Task RemoveClaim_ProtectedType_PinsExactErrorBody()
+        {
+            // Arrange
+            var type = Portfolio.Common.Constants.ProfileClaimTypes.Name;
+
+            // Act
+            var result = await _controller.RemoveClaim(type, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, $"Claim type '{type}' cannot be removed anonymously.");
+        }
+
+        // ── SetAuthenticatedClaim (PUT me/claims) ──────────────────────────────
+
+        [Fact]
+        public async Task SetAuthenticatedClaim_ValidClaim_StoresClaimAndEchoesRequest()
+        {
+            // Arrange
+            var claim = new ClaimCreateDto { Type = "theme", Value = "dark" };
+
+            // Act
+            var result = await _controller.SetAuthenticatedClaim(claim, CancellationToken.None);
+
+            // Assert
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.Same(claim, ok.Value);
+            _serviceMock.Verify(s => s.SetClaimAsync("theme", "dark", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SetAuthenticatedClaim_NullBody_PinsExactErrorBody()
+        {
+            // Act
+            var result = await _controller.SetAuthenticatedClaim(null!, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Type and value required.");
+        }
+
+        [Fact]
+        public async Task SetAuthenticatedClaim_BlankType_PinsExactErrorBody()
+        {
+            // Act
+            var result = await _controller.SetAuthenticatedClaim(
+                new ClaimCreateDto { Type = "  ", Value = "v" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Type and value required.");
+        }
+
+        [Theory]
+        [InlineData("google_id")]
+        [InlineData("EMAIL")]
+        [InlineData("name")]
+        [InlineData("picture")]
+        public async Task SetAuthenticatedClaim_ProtectedType_PinsExactErrorBody(string type)
+        {
+            // Act
+            // The protected-type set is case-insensitive and the message echoes the caller's casing.
+            var result = await _controller.SetAuthenticatedClaim(
+                new ClaimCreateDto { Type = type, Value = "v" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400,
+                $"Claim type '{type}' is managed by Google OAuth and cannot be set manually.");
+            _serviceMock.Verify(s => s.SetClaimAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
     }
 }
