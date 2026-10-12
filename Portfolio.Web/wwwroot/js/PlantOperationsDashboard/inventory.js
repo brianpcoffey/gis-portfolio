@@ -4,13 +4,22 @@
 let inventoryTable;
 
 
-// Use shared toast helper (window.plantOpsToast provided by dashboard script)
+// Use shared toast helper (global showToast from toasts.js; types: success, danger, warning, info)
 
 
 $(document).ready(function () {
     loadInventoryTable();
     $(document).on('click', '#btnNewMaterial', function () {
         showMaterialModal();
+    });
+    // Row and detail-modal actions (delegated; replaces inline onclick handlers)
+    $(document).on('click', '#plantOpsInventoryTable [data-action], #plantOpsModals [data-action]', function () {
+        const id = Number($(this).attr('data-id'));
+        switch ($(this).attr('data-action')) {
+            case 'edit': showMaterialModal(id); break;
+            case 'receive': showReceiveStockModal(id); break;
+            case 'delete': deleteMaterial(id); break;
+        }
     });
     // Row click for details removed to prevent double modal issue
     // $('#plantOpsInventoryTable').on('click', 'tbody tr', function () {
@@ -49,9 +58,9 @@ function loadInventoryTable() {
                             // as the mouse tooltip.
                             let rowLabel = plantOpsEscape(row.name || row.sku || row.id);
                             return `
-                                <button class="btn btn-sm btn-outline-primary me-1" onclick="showMaterialModal(${row.id})" title="Edit" aria-label="Edit material ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
-                                <button class="btn btn-sm btn-outline-success me-1" onclick="showReceiveStockModal(${row.id})" title="Receive Stock" aria-label="Receive stock for material ${rowLabel}"><i class='fa fa-arrow-down' aria-hidden="true"></i></button>
-                                <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteMaterial(${row.id})" title="Delete" aria-label="Delete material ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${Number(row.id)}" title="Edit" aria-label="Edit material ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-success me-1" data-action="receive" data-id="${Number(row.id)}" title="Receive Stock" aria-label="Receive stock for material ${rowLabel}"><i class='fa fa-arrow-down' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-danger me-1" data-action="delete" data-id="${Number(row.id)}" title="Delete" aria-label="Delete material ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>
                                 ${row.isLowStock ? '<span class="badge bg-danger plant-ops-low-stock">Low</span>' : ''}
                             `;
                         }
@@ -98,7 +107,7 @@ function showMaterialDetailModal(material) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-accent theme-btn" onclick="showReceiveStockModal(${material.id})">Receive Stock</button>
+        <button type="button" class="btn btn-accent theme-btn" data-action="receive" data-id="${Number(material.id)}">Receive Stock</button>
       </div>
     </div>
   </div>

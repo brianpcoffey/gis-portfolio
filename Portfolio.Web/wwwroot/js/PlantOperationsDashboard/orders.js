@@ -5,12 +5,20 @@
 let ordersTable;
 
 
-// Use shared toast helper (window.plantOpsToast provided by dashboard script)
+// Use shared toast helper (global showToast from toasts.js; types: success, danger, warning, info)
 
 $(document).ready(function () {
     loadOrdersTable();
     $('#btnNewOrder').on('click', function () {
         showOrderModal();
+    });
+    // Row actions (delegated; replaces inline onclick handlers)
+    $(document).on('click', '#plantOpsOrdersTable [data-action]', function () {
+        const id = Number($(this).attr('data-id'));
+        switch ($(this).attr('data-action')) {
+            case 'edit': showOrderModal(id); break;
+            case 'delete': deleteOrder(id); break;
+        }
     });
 });
 
@@ -52,8 +60,8 @@ function loadOrdersTable() {
                             // The icons carry no text, so each button needs a name that also
                             // identifies its row — otherwise every row reads as the same "Edit".
                             let rowLabel = plantOpsEscape(row.orderNumber || row.id);
-                            return `<button class="btn btn-sm btn-outline-primary me-1" onclick="showOrderModal(${row.id})" aria-label="Edit order ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${row.id})" aria-label="Delete order ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>`;
+                            return `<button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${Number(row.id)}" aria-label="Edit order ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${Number(row.id)}" aria-label="Delete order ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>`;
                         }
                     }
                 ],

@@ -4,13 +4,23 @@
 let shipmentsTable;
 
 
-// Use shared toast helper (window.plantOpsToast provided by dashboard script)
+// Use shared toast helper (global showToast from toasts.js; types: success, danger, warning, info)
 
 
 $(document).ready(function () {
     loadShipmentsTable();
     $(document).on('click', '#btnNewShipment', function () {
         showShipmentModal();
+    });
+    // Row actions (delegated; replaces inline onclick handlers). The status is read back
+    // from data-status, which was written with setAttribute, never concatenated into script.
+    $(document).on('click', '#plantOpsShipmentsTable [data-action]', function () {
+        const id = Number($(this).attr('data-id'));
+        switch ($(this).attr('data-action')) {
+            case 'edit': showShipmentModal(id); break;
+            case 'delete': deleteShipment(id); break;
+            case 'status': showShipmentStatusModal(id, $(this).attr('data-status')); break;
+        }
     });
 });
 
@@ -43,10 +53,19 @@ function loadShipmentsTable() {
                             // The icons carry no text, so each button needs a name that also
                             // identifies its row — otherwise every row reads as the same "Edit".
                             let rowLabel = plantOpsEscape(row.trackingNumber || row.id);
+                            // The status is user-saved free text, so that button is built as a DOM
+                            // node (data-status via setAttribute) and serialised, which escapes it.
+                            const statusBtn = document.createElement('button');
+                            statusBtn.className = 'btn btn-sm btn-outline-secondary';
+                            statusBtn.setAttribute('data-action', 'status');
+                            statusBtn.setAttribute('data-id', Number(row.id));
+                            statusBtn.setAttribute('data-status', row.status == null ? '' : row.status);
+                            statusBtn.setAttribute('aria-label', 'Update status of shipment ' + (row.trackingNumber || row.id));
+                            statusBtn.innerHTML = "<i class='fa fa-truck' aria-hidden=\"true\"></i>";
                             return `
-                                <button class="btn btn-sm btn-outline-primary me-1" onclick="showShipmentModal(${row.id})" aria-label="Edit shipment ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
-                                <button class="btn btn-sm btn-outline-danger me-1" onclick="deleteShipment(${row.id})" aria-label="Delete shipment ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>
-                                <button class="btn btn-sm btn-outline-secondary" onclick="showShipmentStatusModal(${row.id}, '${row.status}')" aria-label="Update status of shipment ${rowLabel}"><i class='fa fa-truck' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${Number(row.id)}" aria-label="Edit shipment ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
+                                <button class="btn btn-sm btn-outline-danger me-1" data-action="delete" data-id="${Number(row.id)}" aria-label="Delete shipment ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>
+                                ${statusBtn.outerHTML}
                             `;
                         }
                     }
