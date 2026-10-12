@@ -79,5 +79,31 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
+
+        [Fact]
+        public async Task FleetScenario_ArgumentException_PinsExactErrorBody()
+        {
+            var service = new Mock<IFleetRoutingService>();
+            service.Setup(s => s.GetScenarioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Unknown preset.", "presetName"));
+            var controller = new FleetRoutingController(service.Object, NullLogger<FleetRoutingController>.Instance);
+
+            var result = await controller.Scenario("nope", CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Unknown preset. (Parameter 'presetName')");
+        }
+
+        [Fact]
+        public async Task FleetOptimize_ArgumentException_PinsExactErrorBody()
+        {
+            var service = new Mock<IFleetRoutingService>();
+            service.Setup(s => s.OptimizeAsync(It.IsAny<OptimizeRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Bad fleet.", "request"));
+            var controller = new FleetRoutingController(service.Object, NullLogger<FleetRoutingController>.Instance);
+
+            var result = await controller.Optimize(new OptimizeRequestDto(), CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad fleet. (Parameter 'request')");
+        }
     }
 }

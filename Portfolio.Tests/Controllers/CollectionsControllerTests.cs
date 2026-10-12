@@ -169,5 +169,41 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        [Fact]
+        public async Task Create_ArgumentException_PinsExactErrorBody()
+        {
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CollectionCreateDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Name is required.", "dto"));
+
+            var result = await _controller.Create(new CollectionCreateDto(), CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Name is required. (Parameter 'dto')");
+        }
+
+        [Fact]
+        public async Task Create_InvalidOperation_PinsExactConflictBody()
+        {
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CollectionCreateDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("A collection with that name already exists."));
+
+            var result = await _controller.Create(new CollectionCreateDto(), CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 409, "A collection with that name already exists.");
+        }
+
+        [Fact]
+        public async Task Update_KeyNotFound_ReturnsBareNotFound()
+        {
+            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<CollectionUpdateDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new KeyNotFoundException("gone"));
+
+            var result = await _controller.Update(7, new CollectionUpdateDto(), CancellationToken.None);
+
+            var notFound = Assert.IsType<NotFoundResult>(result.Result);
+            Assert.Equal(404, notFound.StatusCode);
+        }
     }
 }

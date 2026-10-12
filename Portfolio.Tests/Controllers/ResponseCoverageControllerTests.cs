@@ -91,5 +91,31 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
+
+        [Fact]
+        public async Task ResponseIsochrone_ArgumentException_PinsExactErrorBody()
+        {
+            var service = new Mock<IResponseCoverageService>();
+            service.Setup(s => s.ComputeIsochroneAsync(It.IsAny<IsochroneRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Bad isochrone.", "request"));
+            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
+
+            var result = await controller.Isochrone(new IsochroneRequestDto(), CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad isochrone. (Parameter 'request')");
+        }
+
+        [Fact]
+        public async Task ResponseOptimize_ArgumentException_PinsExactErrorBody()
+        {
+            var service = new Mock<IResponseCoverageService>();
+            service.Setup(s => s.OptimizeAsync(It.IsAny<OptimizeCoverageRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Bad coverage.", "request"));
+            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
+
+            var result = await controller.Optimize(new OptimizeCoverageRequestDto(), CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad coverage. (Parameter 'request')");
+        }
     }
 }

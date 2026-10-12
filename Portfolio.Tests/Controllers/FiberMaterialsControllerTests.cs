@@ -245,5 +245,72 @@ namespace Portfolio.Tests.Controllers
             var status = Assert.IsType<ObjectResult>(result);
             Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
         }
+
+        // ── Exact 500 bodies for every catch-all (the exception message must not leak) ──
+
+        [Fact]
+        public async Task GetAll_ServiceThrows_PinsExact500Body()
+        {
+            _serviceMock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            ControllerBodyAssert.Unexpected(await _controller.GetAll(CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Get_ServiceThrows_PinsExact500Body()
+        {
+            _serviceMock.Setup(s => s.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            ControllerBodyAssert.Unexpected(await _controller.Get(1, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Create_ServiceThrows_PinsExact500Body()
+        {
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            ControllerBodyAssert.Unexpected(await _controller.Create(new CreateFiberMaterialDto(), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Update_ServiceThrows_PinsExact500Body()
+        {
+            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            ControllerBodyAssert.Unexpected(await _controller.Update(1, new UpdateFiberMaterialDto(), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Delete_ServiceThrows_PinsExact500Body()
+        {
+            _serviceMock.Setup(s => s.DeleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            ControllerBodyAssert.Unexpected(await _controller.Delete(1, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task ReceiveStock_ServiceThrows_PinsExact500Body()
+        {
+            _serviceMock.Setup(s => s.ReceiveStockAsync(It.IsAny<int>(), It.IsAny<ReceiveStockDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            ControllerBodyAssert.Unexpected(await _controller.ReceiveStock(1, new ReceiveStockDto(), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task ReceiveStock_ArgumentException_IsSwallowedIntoThe500CatchAll()
+        {
+            // Characterises current behaviour: unlike the spatial controllers, an ArgumentException
+            // from the service is NOT a 400 here; it is reported as the generic 500.
+            _serviceMock.Setup(s => s.ReceiveStockAsync(It.IsAny<int>(), It.IsAny<ReceiveStockDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Quantity must be positive."));
+
+            ControllerBodyAssert.Unexpected(await _controller.ReceiveStock(1, new ReceiveStockDto(), CancellationToken.None));
+        }
     }
 }

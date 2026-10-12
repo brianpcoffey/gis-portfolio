@@ -345,5 +345,37 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        [Fact]
+        public async Task GetCurrentProfile_InvalidOperation_PinsExactNotFoundBody()
+        {
+            _serviceMock.Setup(s => s.GetCurrentProfileAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("internal detail"));
+
+            var result = await _controller.GetCurrentProfile(CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 404, "Profile not found");
+        }
+
+        [Fact]
+        public async Task SetClaim_MissingType_PinsExactErrorBody()
+        {
+            var result = await _controller.SetClaim(new ClaimDto { Type = " ", Value = "v" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "Type and Value are required.");
+        }
+
+        [Fact]
+        public async Task SetClaim_ProtectedType_PinsExactErrorBody()
+        {
+            var type = Portfolio.Common.Constants.ProfileClaimTypes.Email;
+
+            var result = await _controller.SetClaim(new ClaimDto { Type = type, Value = "v" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400,
+                $"Claim type '{type}' is managed by Google OAuth and cannot be set manually.");
+        }
     }
 }

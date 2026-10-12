@@ -85,5 +85,26 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(503, problem.Status);
             Assert.Equal("Feature Service Unavailable", problem.Title);
         }
+
+        [Fact]
+        public async Task GetFeatures_BlankLayerId_PinsExactErrorBody()
+        {
+            var result = await _controller.GetFeatures(" ", null, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "layerId is required.");
+        }
+
+        [Fact]
+        public async Task GetFeatures_BrokenCircuit_PinsExact503Body()
+        {
+            _serviceMock
+                .Setup(s => s.QueryFeaturesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new BrokenCircuitException("open"));
+
+            var result = await _controller.GetFeatures("1", null, CancellationToken.None);
+
+            ControllerBodyAssert.Unavailable(result, "Feature Service Unavailable",
+                "The upstream GIS feature service is temporarily unavailable. Retry after 30 seconds.", 30);
+        }
     }
 }

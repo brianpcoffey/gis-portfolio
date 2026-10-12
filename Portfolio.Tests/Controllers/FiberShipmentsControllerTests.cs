@@ -149,5 +149,81 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
+
+        // ── Error paths: FiberShipmentsController has no catch clauses, so invalid model
+        //    state returns a 400 validation problem and a service exception propagates. ──
+
+        private static void AssertValidationProblem(IActionResult result)
+        {
+            var bad = Assert.IsType<ObjectResult>(result);
+            // StatusCode is filled in later by the formatter; the 400 lives on the problem itself.
+            Assert.Null(bad.StatusCode);
+            var problem = Assert.IsType<ValidationProblemDetails>(bad.Value);
+            Assert.Equal(400, problem.Status);
+            Assert.Equal(["Name is required."], problem.Errors["Name"]);
+        }
+
+        [Fact]
+        public async Task Create_InvalidModelState_ReturnsValidationProblemWithoutCallingService()
+        {
+            _controller.ModelState.AddModelError("Name", "Name is required.");
+
+            var result = await _controller.Create(new FiberShipmentDto(), CancellationToken.None);
+
+            AssertValidationProblem(result);
+            _serviceMock.Verify(s => s.CreateAsync(It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Update_InvalidModelState_ReturnsValidationProblemWithoutCallingService()
+        {
+            _controller.ModelState.AddModelError("Name", "Name is required.");
+
+            var result = await _controller.Update(1, new FiberShipmentDto(), CancellationToken.None);
+
+            AssertValidationProblem(result);
+            _serviceMock.Verify(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateStatus_InvalidModelState_ReturnsValidationProblemWithoutCallingService()
+        {
+            _controller.ModelState.AddModelError("Name", "Name is required.");
+
+            var result = await _controller.UpdateStatus(1, new UpdateShipmentStatusDto(), CancellationToken.None);
+
+            AssertValidationProblem(result);
+            _serviceMock.Verify(s => s.UpdateStatusAsync(It.IsAny<int>(), It.IsAny<UpdateShipmentStatusDto>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Create_ServiceThrows_ExceptionPropagatesToTheCaller()
+        {
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("boom"));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => _controller.Create(new FiberShipmentDto(), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Update_ServiceThrows_ExceptionPropagatesToTheCaller()
+        {
+            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new KeyNotFoundException("missing"));
+
+            await Assert.ThrowsAsync<KeyNotFoundException>(
+                () => _controller.Update(1, new FiberShipmentDto(), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task UpdateStatus_ServiceThrows_ExceptionPropagatesToTheCaller()
+        {
+            _serviceMock.Setup(s => s.UpdateStatusAsync(It.IsAny<int>(), It.IsAny<UpdateShipmentStatusDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("bad status"));
+
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _controller.UpdateStatus(1, new UpdateShipmentStatusDto(), CancellationToken.None));
+        }
     }
 }

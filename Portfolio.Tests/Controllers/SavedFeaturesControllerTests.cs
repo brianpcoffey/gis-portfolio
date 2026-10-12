@@ -145,5 +145,41 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<BadRequestResult>(result);
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        [Fact]
+        public async Task Create_MissingIds_PinsExactErrorBody()
+        {
+            var result = await _controller.Create(
+                new CreateSavedFeatureDto { LayerId = "", FeatureId = "f" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "LayerId and FeatureId are required.");
+        }
+
+        [Fact]
+        public async Task Create_ArgumentException_PinsExactErrorBody()
+        {
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CreateSavedFeatureDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Unknown layer.", "dto"));
+
+            var result = await _controller.Create(
+                new CreateSavedFeatureDto { LayerId = "l", FeatureId = "f" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "Unknown layer. (Parameter 'dto')");
+        }
+
+        [Fact]
+        public async Task Create_InvalidOperation_PinsFixedConflictBody()
+        {
+            // The service message is discarded: the body is always this fixed text.
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CreateSavedFeatureDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("internal detail that must not leak"));
+
+            var result = await _controller.Create(
+                new CreateSavedFeatureDto { LayerId = "l", FeatureId = "f" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 409, "Feature already saved");
+        }
     }
 }
