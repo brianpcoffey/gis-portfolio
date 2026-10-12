@@ -1,3 +1,5 @@
+using Portfolio.Tests.Helpers;
+
 namespace Portfolio.Tests.Integration;
 
 /// <summary>
@@ -72,6 +74,6 @@ public class ServiceRegistrationSnapshotTests
 
         var expected = Expected.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
-        Assert.Equal(expected, actual);
+        GoldenAssert.Equal(expected, actual);
     }
 }

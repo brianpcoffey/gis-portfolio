@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Portfolio.Tests.Helpers;
 using Portfolio.Tests.Integration;
 
 namespace Portfolio.Tests.Contracts;
@@ -116,7 +117,7 @@ public class RouteTableTests
         var expected = Expected.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
         Assert.Equal(78, expected.Count);
-        Assert.Equal(expected, ActionRoutes(f));
+        GoldenAssert.Equal(expected, ActionRoutes(f));
     }
 
     [Fact]

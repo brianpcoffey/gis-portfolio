@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Portfolio.Tests.Helpers;
 
 namespace Portfolio.Tests.Integration;
 
@@ -239,7 +240,7 @@ public class OpenApiContractTests
         }
         actual.Sort(StringComparer.Ordinal);
 
-        Assert.Equal(Lines(ExpectedOperations), actual);
+        GoldenAssert.Equal(Lines(ExpectedOperations), actual);
     }
 
     [Fact]
@@ -250,6 +251,6 @@ public class OpenApiContractTests
         var actual = doc.RootElement.GetProperty("components").GetProperty("schemas")
             .EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal).ToList();
 
-        Assert.Equal(Lines(ExpectedSchemas), actual);
+        GoldenAssert.Equal(Lines(ExpectedSchemas), actual);
     }
 }
