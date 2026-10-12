@@ -191,5 +191,84 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(503, problem.Status);
             Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        private static (AddressStandardizationController Controller, Mock<IAddressStandardizationService> Service) NewPinned()
+        {
+            var service = new Mock<IAddressStandardizationService>();
+            var controller = new AddressStandardizationController(
+                service.Object,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<AddressStandardizationController>.Instance);
+            return (controller, service);
+        }
+
+        [Fact]
+        public async Task Parse_BlankAddress_PinsExactErrorBody()
+        {
+            var (controller, _) = NewPinned();
+
+            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = " " }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "RawAddress is required.");
+        }
+
+        [Fact]
+        public async Task Parse_ArgumentException_PinsExactErrorBody()
+        {
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Unparseable address.", "rawAddress"));
+
+            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "Unparseable address. (Parameter 'rawAddress')");
+        }
+
+        [Fact]
+        public async Task Parse_BrokenCircuit_PinsExact503Body()
+        {
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
+
+            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            ControllerBodyAssert.GeocodingUnavailable(result);
+        }
+
+        [Fact]
+        public async Task Validate_BlankAddress_PinsExactErrorBody()
+        {
+            var (controller, _) = NewPinned();
+
+            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "RawAddress is required.");
+        }
+
+        [Fact]
+        public async Task Validate_ArgumentException_PinsExactErrorBody()
+        {
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Unvalidatable address.", "rawAddress"));
+
+            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result, 400, "Unvalidatable address. (Parameter 'rawAddress')");
+        }
+
+        [Fact]
+        public async Task Validate_BrokenCircuit_PinsExact503Body()
+        {
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
+
+            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            ControllerBodyAssert.GeocodingUnavailable(result);
+        }
     }
 }

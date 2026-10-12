@@ -93,5 +93,31 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
+
+        [Fact]
+        public async Task ChangeScene_ArgumentException_PinsExactErrorBody()
+        {
+            var service = new Mock<IChangeDetectionService>();
+            service.Setup(s => s.GetSceneAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Bad scene size."));
+            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
+
+            var result = await controller.Scene(0, 0, 0.5, CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad scene size.");
+        }
+
+        [Fact]
+        public async Task ChangeDetect_ArgumentException_PinsExactErrorBody()
+        {
+            var service = new Mock<IChangeDetectionService>();
+            service.Setup(s => s.DetectAsync(It.IsAny<DetectRequestDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Bad detect.", "request"));
+            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
+
+            var result = await controller.Detect(new DetectRequestDto(), CancellationToken.None);
+
+            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad detect. (Parameter 'request')");
+        }
     }
 }
