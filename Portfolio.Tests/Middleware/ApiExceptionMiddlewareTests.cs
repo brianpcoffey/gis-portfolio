@@ -9,24 +9,24 @@ namespace Portfolio.Tests.Middleware
     {
         private const string Generic500 = "An unexpected error occurred.";
 
-        // An exception already thrown by framework code is re-raised with its original stack
-        // (so TargetSite still names the framework method); any other is thrown from this
+        // preserveStack re-raises with the original stack (so TargetSite still names the throwing
+        // method: framework code, or an async method here); otherwise it is thrown from this
         // (Portfolio.Tests) assembly, standing in for a Portfolio service.
-        private static Task ThrowAsync(Exception ex, bool fromFramework)
+        private static Task ThrowAsync(Exception ex, bool preserveStack)
         {
-            if (fromFramework)
+            if (preserveStack)
                 System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(ex);
             throw ex;
         }
 
-        private static async Task<(DefaultHttpContext Context, JsonElement Body)> RunAsync(Exception toThrow, CancellationToken aborted = default, bool fromFramework = false)
+        private static async Task<(DefaultHttpContext Context, JsonElement Body)> RunAsync(Exception toThrow, CancellationToken aborted = default, bool preserveStack = false)
         {
             var context = new DefaultHttpContext();
             context.Request.Path = "/api/v1/thing";
             context.RequestAborted = aborted;
             context.Response.Body = new MemoryStream();
 
-            var middleware = new ApiExceptionMiddleware(_ => ThrowAsync(toThrow, fromFramework), NullLogger<ApiExceptionMiddleware>.Instance);
+            var middleware = new ApiExceptionMiddleware(_ => ThrowAsync(toThrow, preserveStack), NullLogger<ApiExceptionMiddleware>.Instance);
             await middleware.InvokeAsync(context);
 
             context.Response.Body.Position = 0;
@@ -95,7 +95,7 @@ namespace Portfolio.Tests.Middleware
         public async Task FrameworkKeyNotFound_Returns404WithGenericDetail()
         {
             var ex = Assert.Throws<KeyNotFoundException>(() => new Dictionary<string, int>()["missing-key"]);
-            var (context, body) = await RunAsync(ex, fromFramework: true);
+            var (context, body) = await RunAsync(ex, preserveStack: true);
 
             Assert.Equal(404, context.Response.StatusCode);
             Assert.Equal("The requested resource was not found.", body.GetProperty("detail").GetString());
@@ -106,7 +106,7 @@ namespace Portfolio.Tests.Middleware
         public async Task FrameworkThrowHelper_Returns400WithGenericDetail()
         {
             var ex = Assert.Throws<ArgumentNullException>(() => ArgumentNullException.ThrowIfNull((object?)null, "secretParam"));
-            var (context, body) = await RunAsync(ex, fromFramework: true);
+            var (context, body) = await RunAsync(ex, preserveStack: true);
 
             Assert.Equal(400, context.Response.StatusCode);
             Assert.Equal("The request was invalid.", body.GetProperty("detail").GetString());
@@ -123,7 +123,7 @@ namespace Portfolio.Tests.Middleware
         public async Task OwnArgumentExceptionFromAsyncMethod_KeepsOriginalMessage()
         {
             var ex = await Assert.ThrowsAsync<ArgumentException>(ServiceThrowsAsync);
-            var (context, body) = await RunAsync(ex);
+            var (context, body) = await RunAsync(ex, preserveStack: true);
 
             Assert.Equal(400, context.Response.StatusCode);
             Assert.Equal("service says no", body.GetProperty("detail").GetString());
