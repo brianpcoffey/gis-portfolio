@@ -67,8 +67,18 @@
 .form-control {
     background-color: var(--surface);
     color: var(--text);
-    border-color: var(--border);
+    border-color: var(--input-border);
     transition: all var(--transition);
+}
+
+/* Boundary of every form control is --input-border (>=3:1, 1.4.11); the
+   decorative --border (1.2:1) stays for cards and dividers. */
+.form-select {
+    border-color: var(--input-border);
+}
+
+.form-check-input {
+    border-color: var(--input-border);
 }
 
 .form-control:focus {
@@ -79,7 +89,7 @@
 body.dark-mode .form-control {
     background-color: var(--surface);
     color: var(--text);
-    border-color: var(--border);
+    border-color: var(--input-border);
 }
 
 /* ======================================
@@ -110,6 +120,163 @@ body.dark-mode .form-control {
     to {
         transform: rotate(360deg);
     }
+}
+
+/* ======================================
+   Toasts (shared slide in / out; showToast in toasts.js adds the classes)
+   ====================================== */
+.toast:not(.fade) {
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.toast-slide-in {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.toast-slide-out {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+/* ======================================
+   Project hero bar (all project Index pages)
+   Copied from the rule that wins today (gis.css).
+   ====================================== */
+.project-hero {
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.10), rgba(56, 161, 105, 0.12));
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+body.dark-mode .project-hero {
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.18), rgba(56, 161, 105, 0.18));
+    border-bottom-color: var(--border);
+}
+
+/* ======================================
+   Panel (additive; nothing uses it yet)
+   One surface/border/radius/shadow for result and control panels.
+   ====================================== */
+.panel {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 0.85rem;
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.panel__header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+}
+
+.panel__header > :last-child {
+    margin-bottom: 0;
+}
+
+.panel__body {
+    padding: 1rem;
+}
+
+/* ======================================
+   KPI tile (additive)
+   Markup: <dl class="kpi"><dt class="kpi__label">..</dt><dd class="kpi__value">..</dd></dl>
+   or a <div> with aria-describedby from the value to the label.
+   ====================================== */
+.kpi {
+    margin: 0;
+    padding: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--background);
+    color: var(--text);
+}
+
+.kpi__value {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+}
+
+.kpi__label {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.kpi--accent .kpi__value { color: var(--accent-text); }
+.kpi--success .kpi__value { color: var(--status-success-text); }
+.kpi--danger .kpi__value { color: var(--status-danger-text); }
+
+/* ======================================
+   Legend (additive)
+   Swatch colour is passed as --swatch via el.style.setProperty (CSP-safe).
+   ====================================== */
+.legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+.legend > li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.legend__swatch {
+    flex: 0 0 auto;
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    background: var(--swatch, var(--chart-series));
+    border: 1px solid var(--border);
+}
+
+/* ======================================
+   Loading / empty / error states (additive)
+   ====================================== */
+.state-loading,
+.state-empty,
+.state-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.state-error {
+    color: var(--status-danger-text);
+}
+
+.state-loading::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
 /* ======================================
@@ -246,7 +413,7 @@ body.dark-mode input::placeholder {
 body.dark-mode .form-select {
     background-color: var(--surface);
     color: var(--text);
-    border-color: var(--border);
+    border-color: var(--input-border);
 }
 
 body.dark-mode .form-select:focus {
@@ -385,7 +552,7 @@ body.dark-mode .dataTables_wrapper .dataTables_length label {
 body.dark-mode .dataTables_wrapper .dataTables_filter input {
     background-color: var(--surface);
     color: var(--text);
-    border-color: var(--border);
+    border-color: var(--input-border);
 }
 
 body.dark-mode .dataTables_wrapper .dataTables_filter input::placeholder {
@@ -396,7 +563,7 @@ body.dark-mode .dataTables_wrapper .dataTables_filter input::placeholder {
 body.dark-mode .dataTables_wrapper .dataTables_length select {
     background-color: var(--surface);
     color: var(--text);
-    border-color: var(--border);
+    border-color: var(--input-border);
 }
 
 body.dark-mode .dataTables_wrapper .dataTables_length select option {

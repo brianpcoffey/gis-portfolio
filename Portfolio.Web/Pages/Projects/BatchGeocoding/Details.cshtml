@@ -29,12 +29,12 @@
 	<section class="theme-surface shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
-			The UI is a Razor Page backed by <code>wwwroot/js/BatchGeocoding/app.js</code>. It keeps state in page-level JavaScript rather than a SPA framework: selected file, submitted job id, polling state, progress metrics, and result rows are managed in the browser and reflected into Bootstrap cards and a DataTables grid.
+			The UI is a Razor Page backed by <code>wwwroot/js/BatchGeocoding/app.js</code>. It keeps state in page-level JavaScript rather than a SPA framework: selected file, progress metrics, and result rows are managed in the browser and reflected into Bootstrap cards and a DataTables grid.
 		</p>
 		<ul>
-			<li><strong>API communication:</strong> Shared route constants from <code>api-config.js</code> point to <code>/api/v1/geocoding/batch</code>; shared fetch helpers send cookies and normalize error handling.</li>
+			<li><strong>API communication:</strong> Shared route constants from <code>api-config.js</code> point to <code>/api/v1/geocoding/batch/sync</code>; shared fetch helpers send cookies and normalize error handling.</li>
 			<li><strong>Upload flow:</strong> The browser posts <code>multipart/form-data</code> without manually setting <code>Content-Type</code>, allowing the browser to generate the boundary correctly.</li>
-			<li><strong>Async UX:</strong> The recommended path returns <code>202 Accepted</code> with a status URL; the client polls until the job reaches a terminal state, then renders metrics and row-level results.</li>
+			<li><strong>Async UX (API only):</strong> the job endpoint returns <code>202</code> with a status URL for clients that poll; this demo posts synchronously and renders the response.</li>
 			<li><strong>Performance:</strong> DataTables provides client-side filtering, sorting, and export for completed results, keeping the server focused on geocoding and job orchestration.</li>
 		</ul>
 	</section>
@@ -43,7 +43,7 @@
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>BatchGeocodingController</code> is a versioned API controller at <code>/api/v1/geocoding/batch</code> and is intentionally <code>[AllowAnonymous]</code>.</li>
-			<li><strong>Endpoints:</strong> <code>POST /api/v1/geocoding/batch</code> enqueues a job; <code>GET /api/v1/geocoding/batch/{jobId}/status</code> returns progress and results; <code>POST /api/v1/geocoding/batch/sync</code> is retained as an obsolete compatibility path.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/geocoding/batch</code> enqueues a job; <code>GET /api/v1/geocoding/batch/{jobId}/status</code> returns progress and results; <code>POST /api/v1/geocoding/batch/sync</code> is marked obsolete but is the endpoint this demo page calls; the async job API exists but the demo does not use it.</li>
 			<li><strong>Validation:</strong> The controller rejects null or empty files before calling the service; deeper CSV validation occurs in the service.</li>
 			<li><strong>Error handling:</strong> <code>ArgumentException</code> maps to 400, an open Polly circuit maps to 503 with retry guidance, and unexpected errors flow through the global exception middleware.</li>
 			<li><strong>Security:</strong> No user identity is required; the API accepts only uploaded files and does not trust caller-supplied user ownership fields.</li>

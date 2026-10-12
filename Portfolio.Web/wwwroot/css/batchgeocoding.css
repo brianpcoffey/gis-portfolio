@@ -20,7 +20,11 @@
 .batch-geocoding-page .upload-zone:focus {
     border-color: var(--accent);
     background: var(--surface);
-    outline: none;
+}
+
+.batch-geocoding-page .upload-zone:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .batch-geocoding-page .upload-zone.dragover {

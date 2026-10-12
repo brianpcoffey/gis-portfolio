@@ -61,7 +61,7 @@
 			<li><strong>Marshalling:</strong> Blittable <code>[StructLayout(Sequential, Pack = 8)]</code> structs with preallocated managed output arrays and explicit <code>[In]</code>/<code>[Out]</code> direction attributes. Native code never allocates across the boundary.</li>
 			<li><strong>Managed fallback:</strong> <code>VrpSolverNativeBridge.IsAvailable</code> gates the native path. The managed solver mirrors the kernel move for move — same savings ordering, same tiebreaks, same acceptance epsilon — so both paths return the identical solution. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries.</li>
 			<li>
-				<strong>Measured speedup:</strong> Native is about <strong>2.3×</strong> faster than the managed fallback, with bit-identical solutions. Best of five warm runs on the same machine, solve time only (matrix construction and polyline expansion excluded):
+				<strong>Measured speedup:</strong> Native is <strong>1.9×</strong> to <strong>2.3×</strong> faster than the managed fallback, with bit-identical solutions. Median of 9 timed runs after 3 warmups, solve time only (matrix construction and polyline expansion excluded), from the harness described in <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>:
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
 						<caption class="visually-hidden">Native versus managed benchmark results for the vehicle routing solver kernel, by workload.</caption>
@@ -69,9 +69,8 @@
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><th scope="row" class="fw-normal">60 stops, 5 local-search passes</th><td class="text-end">0.64 ms</td><td class="text-end">1.66 ms</td><td class="text-end">2.59×</td></tr>
-							<tr><th scope="row" class="fw-normal">90 stops, 31 local-search passes</th><td class="text-end">4.89 ms</td><td class="text-end">11.41 ms</td><td class="text-end">2.33×</td></tr>
-							<tr><th scope="row" class="fw-normal">120 stops, 26 local-search passes</th><td class="text-end">7.33 ms</td><td class="text-end">16.78 ms</td><td class="text-end">2.29×</td></tr>
+							<tr><th scope="row" class="fw-normal">120 stops, 10 vehicles, 8 solves</th><td class="text-end">24.7 ms</td><td class="text-end">55.9 ms</td><td class="text-end">2.26×</td></tr>
+							<tr><th scope="row" class="fw-normal">Shipped "fullday" preset, 40 stops, 30 solves</th><td class="text-end">10.9 ms</td><td class="text-end">20.9 ms</td><td class="text-end">1.92×</td></tr>
 						</tbody>
 					</table>
 				</div>

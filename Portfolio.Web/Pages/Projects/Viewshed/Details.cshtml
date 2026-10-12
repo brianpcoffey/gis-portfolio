@@ -32,7 +32,7 @@
 			<li><strong>Ray-casting viewshed:</strong> For every target cell a ray is walked from the observer; the maximum vertical angle to intervening terrain is tracked, and the target is visible only if its own angle clears that running maximum.</li>
 			<li><strong>Observer height:</strong> The eye sits at the observer cell's elevation plus a configurable height, which materially changes coverage — a key thing to demonstrate interactively.</li>
 			<li><strong>Deterministic sampling:</strong> Each ray takes <code>max(|dx|, |dy|)</code> steps and samples the nearest cell, keeping the native and managed passes numerically aligned.</li>
-			<li><strong>Complexity:</strong> O(n · √n) for an n-cell grid — cheap enough for interactive grids, and an obvious SIMD/tiling candidate for large DEMs.</li>
+			<li><strong>Complexity:</strong> O(n · √n) for an n-cell grid — cheap enough for interactive grids (no SIMD or tiling is implemented).</li>
 		</ul>
 	</section>
 
@@ -52,7 +52,7 @@
 			<li><strong>Service:</strong> <code>ViewshedService</code> validates the request and dispatches to <code>ViewshedNativeBridge</code> when the kernel is present.</li>
 			<li><strong>Native bridge:</strong> <code>ViewshedNativeBridge</code> passes a dense elevation array and a preallocated visibility buffer into C++ and maps the result to the DTO.</li>
 			<li><strong>C++ library:</strong> <code>native/viewshed_kernel</code> exposes <code>Viewshed_Compute</code>, returning the visible-cell count.</li>
-			<li><strong>Why C++ here:</strong> The per-cell ray walk is dense pointer arithmetic over contiguous elevation memory — exactly the workload where cache locality and vectorization matter.</li>
+			<li><strong>Why C++ here:</strong> The per-cell ray walk is dense pointer arithmetic over contiguous elevation memory — measured at 0.98×, no faster than the managed path (3 × 500×500 grid; see <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>).</li>
 			<li><strong>Managed fallback:</strong> <code>ViewshedService</code> mirrors the ray-casting logic in C#, keeping the demo portable on Render with no native artifact.</li>
 		</ul>
 	</section>
