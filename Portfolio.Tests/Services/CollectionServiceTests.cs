@@ -280,8 +280,40 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task UpdateAsync_RejectsNonHexColor()
         {
+            var entity = new Collection { Id = 4, OwnerId = _testUserId, Name = "Palette", Color = "#6c757d" };
+            _repoMock.Setup(r => r.GetByIdAsync(4, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+
             await Assert.ThrowsAsync<ArgumentException>(
                 () => _service.UpdateAsync(4, new CollectionUpdateDto { Color = "#1234567" }));
+            _repoMock.Verify(r => r.UpdateAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Theory]
+        [InlineData("#bbb")]
+        [InlineData("red")]
+        public async Task UpdateAsync_UnchangedLegacyColor_NameOnlyEditSucceeds(string legacy)
+        {
+            var entity = new Collection { Id = 5, OwnerId = _testUserId, Name = "Old", Color = legacy };
+            _repoMock.Setup(r => r.GetByIdAsync(5, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+            _repoMock
+                .Setup(r => r.UpdateAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Collection c, CancellationToken _) => c);
+
+            var result = await _service.UpdateAsync(5, new CollectionUpdateDto { Name = "Renamed", Color = legacy });
+
+            Assert.Equal("Renamed", result.Name);
+            Assert.Equal(legacy, result.Color);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ChangingLegacyColorToInvalid_IsRejected()
+        {
+            var entity = new Collection { Id = 6, OwnerId = _testUserId, Name = "Old", Color = "red" };
+            _repoMock.Setup(r => r.GetByIdAsync(6, _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(entity);
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.UpdateAsync(6, new CollectionUpdateDto { Color = "blue" }));
+            Assert.StartsWith("Color must be a hex value like #6c757d.", ex.Message);
             _repoMock.Verify(r => r.UpdateAsync(It.IsAny<Collection>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 

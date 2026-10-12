@@ -95,9 +95,6 @@ _logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", 
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(dto);
-            if (!string.IsNullOrWhiteSpace(dto.Color))
-                ValidateColor(dto.Color.Trim(), nameof(dto));
-
             var ownerId = CurrentUserId;
             var entity = await _repository.GetByIdAsync(id, ownerId, cancellationToken)
                 ?? throw new KeyNotFoundException($"Collection {id} not found.");
@@ -114,7 +111,12 @@ _logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", 
             }
 
             if (!string.IsNullOrWhiteSpace(dto.Color))
-                entity.Color = dto.Color.Trim();
+            {
+                var color = dto.Color.Trim();
+                if (!string.Equals(color, entity.Color, StringComparison.Ordinal))
+                    ValidateColor(color, nameof(dto));
+                entity.Color = color;
+            }
 
 entity.LastModified = _timeProvider.GetUtcNow().UtcDateTime;
 var updated = await _repository.UpdateAsync(entity, cancellationToken);
