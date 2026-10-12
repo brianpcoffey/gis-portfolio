@@ -328,6 +328,101 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.SpatialJoinAsync(request));
         }
 
+        // ── DBSCAN: managed labels versus the pre-dedup algorithm ───────────────
+
+        private static int[] RunManagedDbscan(DbscanRequestDto request)
+        {
+            var method = typeof(SpatialClusterService).GetMethod(
+                "RunDbscanManaged", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            return (int[])method.Invoke(null, [request, CancellationToken.None])!;
+        }
+
+        // Verbatim copy of the managed DBSCAN as it stood before seed de-duplication (WP-06).
+        private static int[] ReferenceDbscan(DbscanRequestDto request)
+        {
+            const int unvisited = -2;
+            const int noise = -1;
+            var points = request.Points;
+            var count = points.Count;
+            var labels = new int[count];
+            Array.Fill(labels, unvisited);
+
+            var epsilonSquared = request.Epsilon * request.Epsilon;
+            var clusterId = 0;
+            var neighbors = new List<int>();
+            var seeds = new List<int>();
+
+            void RegionQuery(int origin)
+            {
+                neighbors.Clear();
+                var ox = points[origin].X;
+                var oy = points[origin].Y;
+                for (var i = 0; i < points.Count; i++)
+                {
+                    var dx = points[i].X - ox;
+                    var dy = points[i].Y - oy;
+                    if (dx * dx + dy * dy <= epsilonSquared)
+                        neighbors.Add(i);
+                }
+            }
+
+            for (var p = 0; p < count; p++)
+            {
+                if (labels[p] != unvisited)
+                    continue;
+
+                RegionQuery(p);
+                if (neighbors.Count < request.MinPoints)
+                {
+                    labels[p] = noise;
+                    continue;
+                }
+
+                labels[p] = clusterId;
+                seeds.Clear();
+                seeds.AddRange(neighbors);
+                for (var s = 0; s < seeds.Count; s++)
+                {
+                    var q = seeds[s];
+                    if (labels[q] == noise)
+                        labels[q] = clusterId;
+                    if (labels[q] != unvisited)
+                        continue;
+
+                    labels[q] = clusterId;
+                    RegionQuery(q);
+                    if (neighbors.Count >= request.MinPoints)
+                        seeds.AddRange(neighbors);
+                }
+
+                clusterId++;
+            }
+
+            return labels;
+        }
+
+        [Fact]
+        public void Dbscan_ManagedLabels_MatchReferenceAlgorithmOnSeededRandomCases()
+        {
+            var random = new Random(20261012);
+            for (var caseIndex = 0; caseIndex < 1000; caseIndex++)
+            {
+                var pointCount = random.Next(1, 80);
+                // A coarse integer lattice yields many exact duplicates and dense overlap.
+                var points = Enumerable.Range(0, pointCount)
+                    .Select(_ => new ClusterPointDto { X = random.Next(0, 9), Y = random.Next(0, 9) })
+                    .ToList();
+                var request = new DbscanRequestDto
+                {
+                    Epsilon = 0.5 + random.NextDouble() * 2.5,
+                    MinPoints = random.Next(1, 6),
+                    Points = points
+                };
+
+                Assert.Equal(ReferenceDbscan(request), RunManagedDbscan(request));
+            }
+        }
+
         private static List<OverlayPointDto> Rect(double minX, double minY, double maxX, double maxY) =>
         [
             new() { X = minX, Y = minY },

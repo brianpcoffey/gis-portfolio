@@ -938,6 +938,55 @@ namespace Portfolio.Tests.Services
                 () => service.GetRedlandsGraphAsync(cts.Token));
         }
 
+        // ── Edges to undeclared nodes (managed Dijkstra / A*) ───────────────────
+
+        private static RouteRequestDto UndeclaredEdgeRoute(string algorithm) => new()
+        {
+            StartNodeId = 1, EndNodeId = 3, Algorithm = algorithm,
+            Nodes =
+            [
+                new() { Id = 1, Latitude = 34.0, Longitude = -117.3 },
+                new() { Id = 2, Latitude = 34.0, Longitude = -117.2 },
+                new() { Id = 3, Latitude = 34.056, Longitude = -117.196 }
+            ],
+            Edges =
+            [
+                new() { FromNodeId = 1, ToNodeId = 99, Cost = 1, Bidirectional = false },
+                new() { FromNodeId = 1, ToNodeId = 2, Cost = 2, Bidirectional = true },
+                new() { FromNodeId = 2, ToNodeId = 3, Cost = 2, Bidirectional = true }
+            ]
+        };
+
+        [Fact]
+        public async Task SpatialGraphService_AStarWithEdgeToUndeclaredNode_ThrowsKeyNotFound()
+        {
+            // Characterization of the current managed behaviour (flipped by WP-06 commit 2).
+            var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
+
+            await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+                service.FindShortestPathAsync(UndeclaredEdgeRoute("astar")));
+        }
+
+        [Fact]
+        public async Task SpatialGraphService_DijkstraWithEdgeToUndeclaredNode_ManagedThrowsKeyNotFound()
+        {
+            // Characterization of the current managed behaviour (flipped by WP-06 commit 2).
+            // Native already drops undeclared edges when it builds its CSR, so the throw only
+            // exists on the managed path; with native present the route is returned.
+            var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
+            var request = UndeclaredEdgeRoute("dijkstra");
+
+            if (Portfolio.Services.Native.SpatialGraphNativeBridge.IsAvailable)
+            {
+                var result = await service.FindShortestPathAsync(request);
+                Assert.True(result.Found);
+            }
+            else
+            {
+                await Assert.ThrowsAsync<KeyNotFoundException>(() => service.FindShortestPathAsync(request));
+            }
+        }
+
         // ── Controller integration ───────────────────────────────────────────────
 
         [Fact]
