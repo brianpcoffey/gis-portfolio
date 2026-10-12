@@ -64,7 +64,7 @@
 			<li><strong>No fast math, deliberately:</strong> Every other kernel compiles with <code>/fp:fast</code>. This one does not. Unreachable demand points carry positive infinity through the entire search, and fast math permits the compiler to assume infinities never occur. Precise semantics also keep the objective identical to the managed path, which is what the parity check asserts.</li>
 			<li><strong>Tie-breaking is part of the contract:</strong> Sorting demand points by response time alone is not a total order, and two sort implementations may order equal values differently — which changes the weighted percentile. Both paths sort on (response time, index), which is total, so the percentile is reproducible across the boundary.</li>
 			<li>
-				<strong>Measured speedup:</strong> Native runs between <strong>1.2×</strong> and <strong>2.2×</strong> the managed fallback depending on the objective, with identical results. Measured on the same machine, warm, averaged over repeated runs:
+				<strong>Measured speedup:</strong> Native runs between <strong>1.5×</strong> and <strong>1.7×</strong> the managed fallback depending on the objective, with identical results. Median of 9 timed runs after 3 warmups, solver stage only, from the harness described in <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>:
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
 						<caption class="visually-hidden">Native versus managed benchmark results for the facility location kernel, by workload.</caption>
@@ -72,16 +72,15 @@
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><th scope="row" class="fw-normal">Shipped scenario, 450 × 24, 4 stations, p90</th><td class="text-end">8.5 ms</td><td class="text-end">10.6 ms</td><td class="text-end">1.25×</td></tr>
-							<tr><th scope="row" class="fw-normal">Synthetic 800 × 60, 8 stations, p90</th><td class="text-end">139 ms</td><td class="text-end">170 ms</td><td class="text-end">1.22×</td></tr>
-							<tr><th scope="row" class="fw-normal">Synthetic 1,600 × 120, 10 stations, p90</th><td class="text-end">1,164 ms</td><td class="text-end">1,685 ms</td><td class="text-end">1.45×</td></tr>
-							<tr><th scope="row" class="fw-normal">Synthetic 1,600 × 120, 10 stations, weighted mean</th><td class="text-end">12.0 ms</td><td class="text-end">26.8 ms</td><td class="text-end">2.23×</td></tr>
+							<tr><th scope="row" class="fw-normal">Shipped scenario, 450 × 24, 4 stations, p90, 4 solves</th><td class="text-end">22.4 ms</td><td class="text-end">38.8 ms</td><td class="text-end">1.73×</td></tr>
+							<tr><th scope="row" class="fw-normal">Synthetic 1,400 × 64, 8 stations, weighted p90</th><td class="text-end">138 ms</td><td class="text-end">228 ms</td><td class="text-end">1.66×</td></tr>
+							<tr><th scope="row" class="fw-normal">Synthetic 1,400 × 64, 8 stations, weighted mean, 10 solves</th><td class="text-end">22.7 ms</td><td class="text-end">34.8 ms</td><td class="text-end">1.53×</td></tr>
 						</tbody>
 					</table>
 				</div>
 				Chosen station sets, per-demand assignments, the full iteration trace, and all five distribution statistics match exactly on every case.
 			</li>
-			<li><strong>Why the p90 gap is smaller than the mean gap:</strong> The mean objective is a flat arithmetic loop, which is where native code has the most room. The p90 objective sorts the demand array on every trial, and the two sorts are not comparable work — <code>std::sort</code> inlines its comparator while <code>Array.Sort</code> dispatches through a <code>Comparer&lt;int&gt;</code> delegate. Most of the p90 run time is that sort on both sides, which compresses the ratio. Replacing the per-trial sort with an incremental order-statistic structure would speed up both paths far more than the language choice does.</li>
+			<li><strong>The p90 objective sorts every trial:</strong> The mean objective is a flat arithmetic loop; the p90 objective sorts the demand array on every trial, and the two sorts are not comparable work — <code>std::sort</code> inlines its comparator while <code>Array.Sort</code> dispatches through a <code>Comparer&lt;int&gt;</code> delegate. In the measurements p90 (1.66×–1.73×) gains slightly more than the mean (1.53×). Replacing the per-trial sort with an incremental order-statistic structure is the obvious next optimisation for both paths.</li>
 			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across every kernel in the portfolio and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
 		</ul>
 	</section>
@@ -110,7 +109,7 @@
 			<li>Isochrones are computed as node sets, not polygons. When would you need real polygons, and how would you build them from the node set?</li>
 			<li>This model assumes the nearest station always responds. What actually happens when it is already on a call, and how would you model unit availability?</li>
 			<li>How would you handle the political constraint that you cannot close an existing station?</li>
-			<li>The native kernel is 1.2× to 2.2× faster depending on the objective. What does that spread tell you about where the time is actually going, and would you have predicted it before measuring?</li>
+			<li>The native kernel is 1.5× to 1.7× faster depending on the objective. What does that spread tell you about where the time is actually going, and would you have predicted it before measuring?</li>
 		</ul>
 	</section>
 </div>

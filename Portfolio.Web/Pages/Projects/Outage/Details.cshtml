@@ -61,7 +61,7 @@
 			<li><strong>Marshalling:</strong> Blittable <code>[StructLayout(Sequential, Pack = 8)]</code> structs with preallocated managed output arrays and explicit <code>[In]</code>/<code>[Out]</code> direction attributes. Native code never allocates across the boundary.</li>
 			<li><strong>Managed fallback:</strong> <code>NetworkTraceNativeBridge.IsAvailable</code> gates the native path, and the managed implementation mirrors the kernel's traversal order element for element, so the two produce byte-identical id lists. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries, so what runs in production today is the managed path.</li>
 			<li>
-				<strong>Measured speedup — and the honest answer:</strong> Native is faster on the shipped circuit and <em>slower</em> on a large one. Same machine, warm, medians of three runs, with byte-identical result checksums on every run:
+				<strong>Measured speedup — and the honest answer:</strong> On the shipped 267-element circuit native is level on the sweep and faster on trace + restoration. Median of 9 timed runs after 3 warmups, with byte-identical result checksums, from the harness described in <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>:
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
 						<caption class="visually-hidden">Native versus managed benchmark results for the network trace kernel, by workload.</caption>
@@ -69,15 +69,14 @@
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><th scope="row" class="fw-normal">Trace + restore, 267-element circuit, 1,290 faults</th><td class="text-end">149 ms</td><td class="text-end">192 ms</td><td class="text-end">1.29×</td></tr>
-							<tr><th scope="row" class="fw-normal">Trace + restore, 4,603-element circuit, 600 faults</th><td class="text-end">882 ms</td><td class="text-end">768 ms</td><td class="text-end">0.87×</td></tr>
-							<tr><th scope="row" class="fw-normal">Energization sweeps only, 4,603 elements, 720 sweeps</th><td class="text-end">413 ms</td><td class="text-end">423 ms</td><td class="text-end">1.02×</td></tr>
+							<tr><th scope="row" class="fw-normal">Downstream trace sweep, 267 elements × 266 faults</th><td class="text-end">16.8 ms</td><td class="text-end">17.0 ms</td><td class="text-end">1.01×</td></tr>
+							<tr><th scope="row" class="fw-normal">Trace + restoration plan, 266 faults</th><td class="text-end">20.2 ms</td><td class="text-end">29.8 ms</td><td class="text-end">1.48×</td></tr>
 						</tbody>
 					</table>
 				</div>
 				Every downstream, upstream, isolation and energized id list matches the managed path exactly — the checksums are equal, not merely close, because this is integer graph traversal with no floating-point arithmetic anywhere.
 			</li>
-			<li><strong>Why the crossover happens:</strong> A trace is three separate P/Invoke calls, and each one re-marshals the whole element array and rebuilds the graph. At 267 elements that overhead is negligible and the kernel's cache-friendly CSR traversal wins by ~1.3×. At 4,603 elements the marshalling and rebuild dominate and the native path loses. The single-call sweep, which pays that cost once, is a wash. The fix is an ABI change — one entry point that returns all three traces from a single marshalled array, or a caller-owned opaque graph handle built once and reused — not a faster inner loop.</li>
+			<li><strong>Where the gain is:</strong> On the shipped circuit, trace + restoration runs 1.48× faster native and the single-call sweep is a wash (1.01×). A trace is three separate P/Invoke calls, and each one re-marshals the whole element array and rebuilds the graph; an ABI change — one entry point that returns all three traces from a single marshalled array, or a caller-owned opaque graph handle built once and reused — would cut that cost. Behaviour on much larger networks has not been measured.</li>
 			<li><strong>What this says about native code generally:</strong> The first version of this kernel used <code>std::unordered_map&lt;int, std::vector&lt;int&gt;&gt;</code> for adjacency and measured <em>2.5× slower</em> than the C# it was meant to accelerate, because it heap-allocated once per node and hashed on every edge visit. .NET's allocator and <code>Dictionary</code> are genuinely fast. Writing C++ buys nothing on its own; it buys the ability to control layout, and only if you actually do.</li>
 			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across all kernels and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
 		</ul>
@@ -106,7 +105,7 @@
 			<li>SAIDI is customer-minutes ÷ total customers. Why do utilities optimize for it, and what behavior does that incentivize that might not serve customers well?</li>
 			<li>The restoration search evaluates every tie one at a time. When does that stop working, and what would you do for a network with 200 ties?</li>
 			<li>How would you extend this to handle a partial trace when the SCADA state of a device is unknown?</li>
-			<li>This kernel is 1.3× faster than managed C# at 267 elements and 0.87× at 4,603. What does that tell you about where the cost actually is, and what would you change first?</li>
+			<li>This kernel measures 1.01× on the single-call sweep and 1.48× on trace + restoration at 267 elements. What does that tell you about where the cost actually is, and what would you change first?</li>
 			<li>The first version of the kernel was 2.5× <em>slower</em> than the C# it replaced. How would you have caught that before shipping it?</li>
 		</ul>
 	</section>

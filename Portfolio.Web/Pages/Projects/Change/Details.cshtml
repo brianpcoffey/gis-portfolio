@@ -62,7 +62,7 @@
 			<li><strong>Per-stage fallback:</strong> Each of the four stages falls back independently, and <code>NativeAccelerated</code> is only reported true when every stage took the native path. A partial native run is honestly reported as not accelerated.</li>
 			<li><strong>Managed fallback:</strong> The C# implementation mirrors the kernel line for line — same histogram binning, same bin-centre means, same union-by-smaller-root, same border convention — so results are identical either way. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries, so what runs in production today is the managed path.</li>
 			<li>
-				<strong>Measured speedup:</strong> Benchmarked on a 512×512 four-band stack, warm, best-of-50 per stage, with the shared library present versus moved out of the probe path. Checksums over the magnitude raster, the mask, the threshold, and every blob statistic are <strong>bit-identical</strong> between the two paths.
+				<strong>Measured speedup:</strong> Benchmarked on a 512×512 four-band stack: median of 9 timed runs after 3 warmups, native versus managed, from the harness described in <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>. Checksums over the magnitude raster, the mask, the threshold, and every blob statistic are <strong>bit-identical</strong> between the two paths.
 				<div class="table-responsive mt-2 mb-2">
 					<table class="table table-sm w-auto mb-0">
 						<caption class="visually-hidden">Native versus managed benchmark results for the change detection kernel, by pipeline stage.</caption>
@@ -70,19 +70,13 @@
 							<tr><th scope="col">Stage</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
 						<tbody>
-							<tr><th scope="row" class="fw-normal">CVA magnitude, 512×512×4</th><td class="text-end">1.18 ms</td><td class="text-end">1.72 ms</td><td class="text-end">1.46×</td></tr>
-							<tr><th scope="row" class="fw-normal">Otsu threshold + histogram</th><td class="text-end">0.24 ms</td><td class="text-end">0.50 ms</td><td class="text-end">2.11×</td></tr>
-							<tr><th scope="row" class="fw-normal">Morphological open, 2 iterations</th><td class="text-end">2.90 ms</td><td class="text-end">3.16 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><th scope="row" class="fw-normal">Connected components</th><td class="text-end">0.62 ms</td><td class="text-end">0.75 ms</td><td class="text-end">1.20×</td></tr>
-							<tr><th scope="row" class="fw-normal"><strong>Compute total</strong></th><td class="text-end"><strong>4.93 ms</strong></td><td class="text-end"><strong>6.13 ms</strong></td><td class="text-end"><strong>1.24×</strong></td></tr>
-							<tr><th scope="row" class="fw-normal">End-to-end <code>DetectAsync</code>, 512×512×4</th><td class="text-end">7.74 ms</td><td class="text-end">8.45 ms</td><td class="text-end">1.09×</td></tr>
-							<tr><th scope="row" class="fw-normal">End-to-end <code>DetectAsync</code>, 256×256×4</th><td class="text-end">1.51 ms</td><td class="text-end">1.76 ms</td><td class="text-end">1.17×</td></tr>
+							<tr><th scope="row" class="fw-normal">CVA + Otsu + open + components, 512×512×4</th><td class="text-end">15.0 ms</td><td class="text-end">14.8 ms</td><td class="text-end">0.99×</td></tr>
 						</tbody>
 					</table>
 				</div>
-				For comparison, <code>cat_risk_kernel</code> measures ~1.1×. The dense, branch-free stages do measurably better — Otsu's single histogram pass is the biggest win at 2.1× — and the branch-heavy morphological open, which short-circuits on almost every pixel, does barely better than the JIT. That gradient is the actual finding: <em>the flatter and more predictable the inner loop, the more native buys.</em>
+				Native and managed are indistinguishable on this pipeline: their timing ranges (10.2–22.9 ms and 10.3–20.4 ms) overlap. Earlier per-stage timings used a different method and are withdrawn.
 			</li>
-			<li><strong>Why end-to-end is lower than compute:</strong> Roughly a third of <code>DetectAsync</code> is <code>List&lt;double&gt;</code> ⇄ <code>double[]</code> conversion at the DTO edge, which is identical on both paths and dilutes the ratio. Nothing in this kernel uses SIMD intrinsics or threading; the gains above are plain scalar C++ against RyuJIT.</li>
+			<li><strong>Why there is no gain:</strong> <code>DetectAsync</code> converts <code>List&lt;double&gt;</code> ⇄ <code>double[]</code> at the DTO edge, identically on both paths. Nothing in this kernel uses SIMD intrinsics or threading; it is plain scalar C++ against RyuJIT.</li>
 			<li><strong>Known wart:</strong> <code>IsNativeInvocationException</code> includes <code>InvalidOperationException</code>, which is exactly what the negative-status check throws. A genuine native error — including the <code>-6</code> too-many-components status — therefore logs one warning and silently degrades to managed rather than surfacing. This is consistent across all the kernels and is a deliberate availability-over-visibility trade, but it means native failures are invisible in production metrics.</li>
 		</ul>
 	</section>
@@ -111,7 +105,7 @@
 			<li>Morphological open removes speckle but also erodes real small changes. How do you choose the structuring element size, and what do you lose?</li>
 			<li><code>Confidence</code> is mean magnitude over max magnitude. Why is that not a probability, and what would you need to produce a calibrated one?</li>
 			<li>At 512×512×4 bands this is 4 MB of doubles crossing the P/Invoke boundary per call. Where does that stop scaling, and what would you change — tiling, floats instead of doubles, memory-mapped rasters, or moving the compute to the client?</li>
-			<li>The dense CVA pass measures 1.46× native over managed while the branch-heavy morphological open measures 1.09×. What does that gradient tell you about when to reach for native code at all?</li>
+			<li>The full pipeline measures 0.99× native over managed, with overlapping timing ranges. What does that tell you about when to reach for native code at all?</li>
 			<li>How would this change if you had 12 epochs instead of 2?</li>
 		</ul>
 	</section>

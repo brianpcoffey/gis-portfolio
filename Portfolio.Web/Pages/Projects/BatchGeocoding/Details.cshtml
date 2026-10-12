@@ -43,7 +43,7 @@
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>BatchGeocodingController</code> is a versioned API controller at <code>/api/v1/geocoding/batch</code> and is intentionally <code>[AllowAnonymous]</code>.</li>
-			<li><strong>Endpoints:</strong> <code>POST /api/v1/geocoding/batch</code> enqueues a job; <code>GET /api/v1/geocoding/batch/{jobId}/status</code> returns progress and results; <code>POST /api/v1/geocoding/batch/sync</code> is retained as an obsolete compatibility path.</li>
+			<li><strong>Endpoints:</strong> <code>POST /api/v1/geocoding/batch</code> enqueues a job; <code>GET /api/v1/geocoding/batch/{jobId}/status</code> returns progress and results; <code>POST /api/v1/geocoding/batch/sync</code> is marked obsolete but is the endpoint this demo page calls; the async job API exists but the demo does not use it.</li>
 			<li><strong>Validation:</strong> The controller rejects null or empty files before calling the service; deeper CSV validation occurs in the service.</li>
 			<li><strong>Error handling:</strong> <code>ArgumentException</code> maps to 400, an open Polly circuit maps to 503 with retry guidance, and unexpected errors flow through the global exception middleware.</li>
 			<li><strong>Security:</strong> No user identity is required; the API accepts only uploaded files and does not trust caller-supplied user ownership fields.</li>

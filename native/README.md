@@ -122,9 +122,9 @@ and by different methods per kernel. Those figures are withdrawn in favour of th
 Best-of-N and single-shot both reward a lucky run, and they systematically flatter whichever
 path has the higher variance — the previously published 1.66× for `spatial_graph_engine` was
 exactly that artifact. Where the new data disagrees with the old, the new number stands:
-`facility_location_kernel` weighted mean 2.23× → 1.65×, `spatial_graph_engine` Dijkstra
-1.66× → 1.26×, `change_detection_kernel` pipeline 1.24× → 1.06×, and `cat_risk_kernel` ring
-accumulation 1.09× → **0.98×**, which reverses the direction of the result. The 0.87× figure
+`facility_location_kernel` weighted mean 2.23× → 1.53×, `spatial_graph_engine` Dijkstra
+1.66× → 0.45× (a noise-dominated row, see above), `change_detection_kernel` pipeline 1.24× → 0.99×, and
+`cat_risk_kernel` ring accumulation 1.09× → **0.92×**, which reverses the direction of the result. The 0.87× figure
 for a 4,603-element trace could not be reproduced at all: no public API yields a network that
 size, and the shipped one has 267 elements.
 
@@ -163,17 +163,17 @@ reason — allocation and hashing inside the hot loop:
 - `network_trace_kernel` used `std::unordered_map<int, std::vector<int>>` for adjacency and
   measured **2.5× slower** than managed: a heap allocation per node plus a hash lookup per
   edge visit. Densified node ids, a CSR incidence array and cached per-element endpoint
-  indices — no hashing in the inner loop — turned it into the 1.24× win above.
+  indices — no hashing in the inner loop — turned it into the 1.48× win above (trace + restoration plan; the sweep alone is level at 1.01×).
 - `vrp_solver_kernel` allocated a fresh `std::vector` per candidate move and measured
   **1.7× slower** (27 ms vs 16 ms at n=120). Hoisting three scratch buffers and reusing
-  capacity via `assign` produced 2.27×.
+  capacity via `assign` produced 2.26×.
 - `spatial_graph_engine` used `std::map<int, std::vector<Edge>>` — the same losing shape — and
   lost on every workload it was tried on until it was rewritten to CSR.
 
 The .NET nursery allocator beats naive `malloc`/`new` in a tight loop. If a kernel here is
 losing to its fallback, look for allocation or hashing in the inner loop before blaming the
 runtime — and then look at how many times per second the boundary is crossed, because that is
-what the bottom of the table is really measuring. Fan triangulation at **0.34×** does three
+what the bottom of the table is really measuring. Fan triangulation at **0.37×** does three
 index assignments per triangle, so a full array marshal in and out buys nothing whatsoever.
 
 RyuJIT generates good scalar code for tight `double` loops, branch-heavy inner loops defeat
@@ -229,8 +229,9 @@ Both are needed. The bridges probe `DllImportSearchPath.AssemblyDirectory`, whic
 is the *web host's* output directory — so copying only to `Portfolio.Services/bin` builds
 cleanly and still leaves every page reporting "Native: No".
 
-`Portfolio.Tests` is deliberately **not** a copy target: the suite asserts
-`NativeAccelerated == false` and must exercise the managed fallback.
+`Portfolio.Tests` is deliberately **not** a copy target: a default test run exercises the
+managed fallback, and the CI `native-parity` job stages the built kernels into the test output
+itself.
 
 To target a different output directory (e.g. a publish folder):
 
@@ -311,8 +312,8 @@ COPY --from=build /src/build/native/vrp_solver_kernel/vrp_solver_kernel.so /app/
 > copies no native libraries, so every kernel runs its managed fallback in the deployed
 > container and the UI correctly reports "Native: No".
 >
-> That is a decision taken on the measurements above, not an omission. Native wins 8 of the 21
-> workloads, loses 8, and is indistinguishable on 5. Shipping it would mean compiling thirteen
+> That is a decision taken on the measurements above, not an omission. Native wins 9 of the 21
+> workloads (at a ±15% threshold), loses 5, and is indistinguishable on 7. Shipping it would mean compiling thirteen
 > CMake projects on every deploy, carrying a C++ toolchain in the build image, and maintaining a
 > second binary per kernel that can silently diverge from the managed one — which two of them
 > did, until the parity check caught it. That is a real cost for a coin-flip speedup.
@@ -326,30 +327,26 @@ COPY --from=build /src/build/native/vrp_solver_kernel/vrp_solver_kernel.so /app/
 
 ## Verifying parity with the managed implementation
 
-The scoring kernel has a true native-vs-managed **parity** test (`NativeScoringBridgeTests`) that
-asserts the native result matches the managed result, and passes whether or not the native library
-is present (absent → both sides run the managed path). Run it:
+Native is checked against managed in three places:
+
+- `Portfolio.Benchmarks` checksums the native and managed result of every one of the 21
+  workloads (all thirteen kernels) and reports any disagreement; all 21 agree (the Parity
+  column above). It is run by hand, not in CI.
+- `NativeParityTests` drives the native geometry-clip and viewshed kernels directly, and the
+  scoring kernel has `NativeScoringBridgeTests`. Each passes whether or not the native library
+  is present (absent → no-op, or both sides run the managed path). Run them:
 
 ```powershell
-dotnet test Portfolio.Tests --filter "FullyQualifiedName~NativeScoringBridgeTests"
+dotnet test Portfolio.Tests --filter "FullyQualifiedName~NativeParityTests|FullyQualifiedName~NativeScoringBridgeTests"
 ```
 
-The other kernels are covered by managed-path correctness tests (asserting results with
-`NativeAccelerated == false`) rather than dedicated native-parity tests, spread across three suites:
+- The CI `native-parity` job builds all thirteen kernels, stages them into the test output, and
+  runs the whole suite with them present and again with `PORTFOLIO_DISABLE_NATIVE=1`.
 
-```powershell
-# geostream, geometry, raster terrain, spatial graph
-dotnet test Portfolio.Tests --filter "FullyQualifiedName~SpatialComputeServiceTests"
-# clustering, viewshed, overlay
-dotnet test Portfolio.Tests --filter "FullyQualifiedName~HotspotViewshedOverlayServiceTests"
-# catastrophe risk
-dotnet test Portfolio.Tests --filter "FullyQualifiedName~CatRiskServiceTests"
-```
-
-`cat_risk_kernel` additionally has an out-of-band parity check: running the same workload
+`cat_risk_kernel` also has an out-of-band parity check: running the same workload
 with and without the shared library present produced bit-identical ring-TIV checksums, with
 AAL differing only in the final ULP from floating-point summation order under `/fp:fast`.
-That comparison is not yet automated in the test suite.
+The benchmark harness above repeats that comparison; it is not a test in the suite.
 
 Numeric kernels assert equality within a small floating-point tolerance (rounding only).
 
