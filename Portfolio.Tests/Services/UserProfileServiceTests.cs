@@ -169,6 +169,22 @@ namespace Portfolio.Tests.Services
         }
 
         [Fact]
+        public async Task SetClaimAsync_WithOversizedTypeAndValue_IsAcceptedToday()
+        {
+            // Arrange
+            // Characterisation (WP-15): there is no length or count cap on claims yet.
+            var type = new string('t', 500);
+            var value = new string('v', 5000);
+            _repoMock.Setup(r => r.SetClaimAsync(_testUserId, type, value, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+            // Act
+            await _service.SetClaimAsync(type, value);
+
+            // Assert
+            _repoMock.Verify(r => r.SetClaimAsync(_testUserId, type, value, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
         public async Task RemoveClaimAsync_WithExistingClaim_ReturnsTrue()
         {
             // Arrange

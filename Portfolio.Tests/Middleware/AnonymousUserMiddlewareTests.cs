@@ -415,5 +415,65 @@ namespace Portfolio.Tests.Middleware
             Assert.Empty(fresh.UserProfiles);
             Assert.False(context.Response.Headers.ContainsKey(HeaderNames.SetCookie));
         }
+
+        // ── WP-15 characterisation: behaviours the identity work package changes ──
+
+        [Fact]
+        public async Task Cookie_ForProfileLinkedToGoogle_TodayIsHonouredAsTheIdentity()
+        {
+            // Arrange
+            // Characterisation of the bug WP-15 fixes: an unauthenticated request carrying the
+            // GUID of a Google-linked profile is given that profile's identity.
+            var victim = Guid.NewGuid();
+            _db.UserProfiles.Add(new UserProfile { UserId = victim, CreatedDate = Now.UtcDateTime, LastActiveDate = Now.UtcDateTime });
+            _db.UserClaims.Add(new UserClaim { UserId = victim, ClaimType = ProfileClaimTypes.GoogleId, ClaimValue = "g-victim" });
+            await _db.SaveChangesAsync();
+            var (middleware, _) = NewMiddleware("Production");
+            var context = NewContext(accept: "text/html", cookie: victim.ToString());
+
+            // Act
+            await Invoke(middleware, context);
+
+            // Assert
+            Assert.Equal(victim, context.Items[ItemKey]);
+            Assert.False(context.Response.Headers.ContainsKey(HeaderNames.SetCookie));
+        }
+
+        [Fact]
+        public async Task NoCookie_HtmlAccept_OnApiPath_TodayStillCreatesAProfile()
+        {
+            // Arrange
+            var (middleware, _) = NewMiddleware("Production");
+            var context = NewContext(accept: "text/html");
+            context.Request.Path = "/api/v1/features/saved";
+
+            // Act
+            await Invoke(middleware, context);
+
+            // Assert
+            Assert.IsType<Guid>(context.Items[ItemKey]);
+            await using var fresh = Fresh();
+            Assert.Equal(1, await fresh.UserProfiles.CountAsync());
+        }
+
+        [Fact]
+        public async Task NoCookie_HtmlAccept_TwelveIdentitiesFromOneAddress_AreAllCreatedToday()
+        {
+            // Arrange
+            var (middleware, _) = NewMiddleware("Production");
+
+            // Act
+            for (var i = 0; i < 12; i++)
+            {
+                var context = NewContext(accept: "text/html");
+                context.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("203.0.113.9");
+                await Invoke(middleware, context);
+                Assert.IsType<Guid>(context.Items[ItemKey]);
+            }
+
+            // Assert
+            await using var fresh = Fresh();
+            Assert.Equal(12, await fresh.UserProfiles.CountAsync());
+        }
     }
 }
