@@ -18,7 +18,10 @@
 
     /**
      * Core fetch wrapper.
-     * - On 401: redirects the whole page to /Login?returnUrl=<current path>.
+     * - On 401: redirects the whole page to /Login?returnUrl=<current path>,
+     *   unless options.redirectOn401 === false (pages valid for anonymous visitors).
+     * - options.timeoutMs aborts the request after that many milliseconds.
+     * - redirectOn401 and timeoutMs are stripped before fetch is called.
      * - Returns the raw Response so callers can inspect status before parsing.
      *
      * @param {string}      url
@@ -26,14 +29,34 @@
      * @returns {Promise<Response>}
      */
     function apiFetch(url, options) {
-        options = options || {};
+        // Copy so the caller's object is untouched, then strip the custom keys before fetch.
+        var opts = Object.assign({}, options || {});
+        var redirectOn401 = opts.redirectOn401 !== false;
+        var timeoutMs = opts.timeoutMs;
+        delete opts.redirectOn401;
+        delete opts.timeoutMs;
+
         // Always send cookies so authentication and anonymous-identity cookies travel with each request.
-        if (!options.credentials) {
-            options.credentials = "same-origin";
+        if (!opts.credentials) {
+            opts.credentials = "same-origin";
         }
 
-        return fetch(url, options).then(function (res) {
-            if (res.status === 401) {
+        var timer = null;
+        if (typeof timeoutMs === "number" && timeoutMs > 0 && typeof global.AbortController === "function") {
+            var controller = new global.AbortController();
+            var callerSignal = opts.signal;
+            if (callerSignal) {
+                // Honour a caller-supplied signal as well as the timeout.
+                if (callerSignal.aborted) { controller.abort(); }
+                else { callerSignal.addEventListener("abort", function () { controller.abort(); }); }
+            }
+            opts.signal = controller.signal;
+            timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+        }
+
+        return fetch(url, opts).then(function (res) {
+            if (timer) { clearTimeout(timer); }
+            if (res.status === 401 && redirectOn401) {
                 var returnUrl = encodeURIComponent(
                     global.location.pathname + global.location.search
                 );
@@ -43,20 +66,29 @@
                 return new Promise(function () {});
             }
             return res;
+        }, function (err) {
+            if (timer) { clearTimeout(timer); }
+            throw err;
         });
     }
 
+    var TOO_MANY_REQUESTS = "Too many requests. Please wait a minute and try again.";
+
     /**
      * Extracts a human-readable error message from an error Response.
-     * Tries to parse JSON { error: "..." }, falls back to statusText.
+     * 429 returns a dedicated rate-limit message. Otherwise parses JSON and returns
+     * body.error, then the ProblemDetails detail, then title; falls back to a generic message.
      *
      * @param {Response} response
      * @returns {Promise<string>}
      */
     function getApiError(response) {
+        if (response.status === 429) {
+            return Promise.resolve(TOO_MANY_REQUESTS);
+        }
         return response.json()
             .then(function (body) {
-                return body && body.error ? body.error : "An unexpected error occurred.";
+                return (body && (body.error || body.detail || body.title)) || "An unexpected error occurred.";
             })
             .catch(function () {
                 return "An unexpected error occurred (HTTP " + response.status + ").";

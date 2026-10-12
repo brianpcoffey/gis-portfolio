@@ -1,5 +1,7 @@
 // Shared toast helper used across pages
 (function () {
+    const AUTO_HIDE_MS = 6000;
+
     function createToastContainer() {
         const c = document.createElement("div");
         c.id = "toastContainer";
@@ -40,8 +42,13 @@
         body.appendChild(document.createTextNode(message));
         const closeBtn = document.createElement("button");
         closeBtn.type = "button";
-        closeBtn.className = "btn-close btn-close-white me-2 m-auto";
-        closeBtn.setAttribute("data-bs-dismiss", "toast");
+        // White glyph only on the dark fills (success, danger); warning/info fills are light.
+        const whiteClose = type === "success" || type === "danger";
+        closeBtn.className = "btn-close" + (whiteClose ? " btn-close-white" : "") + " me-2 m-auto";
+        // WCAG 2.5.8: at least 24x24 CSS px target.
+        closeBtn.style.boxSizing = "border-box";
+        closeBtn.style.minWidth = "24px";
+        closeBtn.style.minHeight = "24px";
         closeBtn.setAttribute("aria-label", "Close");
         flex.appendChild(body);
         flex.appendChild(closeBtn);
@@ -51,23 +58,46 @@
         // Animate in
         requestAnimationFrame(() => toast.classList.add("toast-slide-in"));
 
-        setTimeout(() => {
+        function dismiss() {
+            clearTimeout(timer);
             toast.classList.add("toast-slide-out");
             toast.addEventListener("transitionend", () => toast.remove(), { once: true });
             setTimeout(() => toast.remove(), 500);
-        }, 4000);
+        }
+        closeBtn.addEventListener("click", dismiss);
+
+        // Danger and warning persist until dismissed (WCAG 2.2.1). Success and info last
+        // 6 s and pause while the pointer or keyboard focus is inside the toast.
+        let timer = null;
+        if (!assertive) {
+            let remaining = AUTO_HIDE_MS;
+            let startedAt = 0;
+            const start = () => {
+                startedAt = Date.now();
+                timer = setTimeout(dismiss, remaining);
+            };
+            const pause = () => {
+                if (timer === null) { return; }
+                clearTimeout(timer);
+                timer = null;
+                remaining = Math.max(1000, remaining - (Date.now() - startedAt));
+            };
+            const resume = () => { if (timer === null && !toast.matches(":hover, :focus-within")) { start(); } };
+            toast.addEventListener("mouseenter", pause);
+            toast.addEventListener("mouseleave", resume);
+            toast.addEventListener("focusin", pause);
+            toast.addEventListener("focusout", resume);
+            start();
+        }
     }
 
     // Expose globally
     window.showToast = showToast;
-    window.plantOpsToast = function (message, type) {
-        const mapped = type === 'error' ? 'danger' : type;
-        showToast(message, mapped);
-    };
 
     // Themed confirm dialog — returns a Promise<boolean>. Replaces window.confirm so
     // destructive actions use the site's Bootstrap modal (themed, dark-mode aware) instead
     // of the browser's unstyled dialog. The message is inserted as text (no markup injection).
+    let confirmSeq = 0;
     function confirmDialog(message, opts) {
         opts = opts || {};
         return new Promise(function (resolve) {
@@ -76,6 +106,8 @@
             wrap.setAttribute("tabindex", "-1");
             wrap.setAttribute("aria-modal", "true");
             wrap.setAttribute("role", "dialog");
+            const messageId = "confirmDialogMessage" + (++confirmSeq);
+            wrap.setAttribute("aria-labelledby", messageId);
 
             const dialog = document.createElement("div");
             dialog.className = "modal-dialog modal-dialog-centered";
@@ -86,6 +118,7 @@
             body.className = "modal-body";
             const p = document.createElement("p");
             p.className = "mb-0";
+            p.id = messageId;
             p.textContent = message;
             body.appendChild(p);
 
@@ -117,8 +150,9 @@
                 resolve(result);
             });
             modal.show();
-            setTimeout(function () { okBtn.focus(); }, 150);
+            // Focus the safe choice (Cancel), not the destructive one.
+            setTimeout(function () { cancelBtn.focus(); }, 150);
         });
     }
     window.confirmDialog = confirmDialog;
-})();
+})();
