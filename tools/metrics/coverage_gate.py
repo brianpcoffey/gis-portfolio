@@ -6,13 +6,14 @@ Usage (from the repo root):
   py -I tools/metrics/coverage_gate.py [results_dir=TestResults] [--min-line 80] [--min-branch 60]
                                        [--summary PATH]
 
-results_dir is searched recursively for coverage.cobertura.xml (the first match is used), or may be the
-XML file itself. MIN_LINE_COVERAGE / MIN_BRANCH_COVERAGE environment variables are honoured as defaults
+results_dir is searched recursively for coverage.cobertura.xml (all matches must be byte-identical,
+otherwise the gate refuses), or may be the XML file itself. MIN_LINE_COVERAGE / MIN_BRANCH_COVERAGE environment variables are honoured as defaults
 (CI compatibility). A markdown summary is written only when --summary PATH is given (nothing is written by default).
-Exit status: 0 = pass, 1 = below a minimum, 2 = no report found.
+Exit status: 0 = pass, 1 = below a minimum, 2 = no report found, or more than one distinct report.
 """
 import argparse
 import glob
+import hashlib
 import os
 import sys
 import xml.etree.ElementTree as ET
@@ -31,6 +32,10 @@ else:
     reports = sorted(glob.glob(os.path.join(args.results_dir, '**', 'coverage.cobertura.xml'), recursive=True))
 if not reports:
     print(f'::error::No coverage.cobertura.xml found under {args.results_dir}.')
+    sys.exit(2)
+distinct = {hashlib.sha256(open(r, 'rb').read()).hexdigest() for r in reports}
+if len(distinct) > 1:
+    print(f'::error::Expected exactly one distinct coverage report under {args.results_dir}; found {len(distinct)}.')
     sys.exit(2)
 
 root = ET.parse(reports[0]).getroot()
