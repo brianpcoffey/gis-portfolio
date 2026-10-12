@@ -47,6 +47,7 @@ namespace Portfolio.Tests.Golden
         [InlineData("2525 Rd, Reno, NV 89501", "2525", "", "Road", "", "Reno", "NV", "89501", "2525 Road, Reno, NV 89501", 0.8333333333333334)]
         [InlineData("8 Cedar Aly, Madison, WI 53703", "8", "Cedar", "Alley", "", "Madison", "WI", "53703", "8 Cedar Alley, Madison, WI 53703", 1.0)]
         [InlineData("1234 Mission Road Floor 3, San Francisco, CA 94110", "1234", "Mission", "Road", "", "Floor 3 San Francisco", "CA", "94110", "1234 Mission Road, Floor 3 San Francisco, CA 94110", 1.0)]
+        [InlineData("42 Elm Street Apt 5B, Portland, OR", "42", "Elm", "Street", "Apt 5B", "Portland", "OR", "", "42 Elm Street Apt 5B, Portland, OR", 0.8571428571428571)]
         public async Task Parse_PinsEveryField(
             string raw,
             string houseNumber,
