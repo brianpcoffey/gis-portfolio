@@ -48,7 +48,7 @@ namespace Portfolio.Services.Services
 
             // NaN passes both range checks above, so reject it here before any outbound call.
             if (!double.IsFinite(latitude) || !double.IsFinite(longitude))
-                throw new ArgumentException("Latitude and longitude must be finite numbers", nameof(latitude));
+                throw new ArgumentException("Latitude and longitude must be finite numbers", double.IsFinite(latitude) ? nameof(longitude) : nameof(latitude));
 
             // Snap to grid to enable spatial cache hits for nearby coordinates.
             var snappedLat = SnapToGrid(latitude, _gridResolution);

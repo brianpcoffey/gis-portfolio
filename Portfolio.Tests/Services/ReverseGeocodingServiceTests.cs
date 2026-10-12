@@ -134,6 +134,7 @@ namespace Portfolio.Tests.Services
             var ex = await Assert.ThrowsAsync<ArgumentException>(
                 () => service.ReverseGeocodeAsync(lat, lng));
             Assert.Contains("Latitude and longitude must be finite numbers", ex.Message);
+            Assert.Equal(double.IsFinite(lat) ? "longitude" : "latitude", ex.ParamName);
         }
 
         [Theory]
