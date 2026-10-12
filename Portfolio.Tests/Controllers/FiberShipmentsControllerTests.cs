@@ -167,10 +167,13 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task Create_InvalidModelState_ReturnsValidationProblemWithoutCallingService()
         {
+            // Arrange
             _controller.ModelState.AddModelError("Name", "Name is required.");
 
+            // Act
             var result = await _controller.Create(new FiberShipmentDto(), CancellationToken.None);
 
+            // Assert
             AssertValidationProblem(result);
             _serviceMock.Verify(s => s.CreateAsync(It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -178,10 +181,13 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task Update_InvalidModelState_ReturnsValidationProblemWithoutCallingService()
         {
+            // Arrange
             _controller.ModelState.AddModelError("Name", "Name is required.");
 
+            // Act
             var result = await _controller.Update(1, new FiberShipmentDto(), CancellationToken.None);
 
+            // Assert
             AssertValidationProblem(result);
             _serviceMock.Verify(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -189,10 +195,13 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task UpdateStatus_InvalidModelState_ReturnsValidationProblemWithoutCallingService()
         {
+            // Arrange
             _controller.ModelState.AddModelError("Name", "Name is required.");
 
+            // Act
             var result = await _controller.UpdateStatus(1, new UpdateShipmentStatusDto(), CancellationToken.None);
 
+            // Assert
             AssertValidationProblem(result);
             _serviceMock.Verify(s => s.UpdateStatusAsync(It.IsAny<int>(), It.IsAny<UpdateShipmentStatusDto>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -200,9 +209,11 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task Create_ServiceThrows_ExceptionPropagatesToTheCaller()
         {
+            // Arrange
             _serviceMock.Setup(s => s.CreateAsync(It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("boom"));
 
+            // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => _controller.Create(new FiberShipmentDto(), CancellationToken.None));
         }
@@ -210,9 +221,11 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task Update_ServiceThrows_ExceptionPropagatesToTheCaller()
         {
+            // Arrange
             _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<FiberShipmentDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new KeyNotFoundException("missing"));
 
+            // Act & Assert
             await Assert.ThrowsAsync<KeyNotFoundException>(
                 () => _controller.Update(1, new FiberShipmentDto(), CancellationToken.None));
         }
@@ -220,9 +233,11 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task UpdateStatus_ServiceThrows_ExceptionPropagatesToTheCaller()
         {
+            // Arrange
             _serviceMock.Setup(s => s.UpdateStatusAsync(It.IsAny<int>(), It.IsAny<UpdateShipmentStatusDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("bad status"));
 
+            // Act & Assert
             await Assert.ThrowsAsync<ArgumentException>(
                 () => _controller.UpdateStatus(1, new UpdateShipmentStatusDto(), CancellationToken.None));
         }

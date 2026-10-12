@@ -108,22 +108,28 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task GetPlaceData_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             _serviceMock.Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Latitude out of range.", "latitude"));
 
+            // Act
             var result = await _controller.GetPlaceData(95, 0, CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result, 400, "Latitude out of range. (Parameter 'latitude')");
         }
 
         [Fact]
         public async Task GetPlaceData_KeyNotFound_ReturnsBareNotFound()
         {
+            // Arrange
             _serviceMock.Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new KeyNotFoundException("no match"));
 
+            // Act
             var result = await _controller.GetPlaceData(1, 1, CancellationToken.None);
 
+            // Assert
             var notFound = Assert.IsType<NotFoundResult>(result);
             Assert.Equal(404, notFound.StatusCode);
         }
@@ -131,11 +137,14 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task GetPlaceData_BrokenCircuit_PinsExact503Body()
         {
+            // Arrange
             _serviceMock.Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
 
+            // Act
             var result = await _controller.GetPlaceData(1, 1, CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.GeocodingUnavailable(result);
         }
     }

@@ -70,11 +70,14 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task GetStats_ServiceThrows_PinsExact500BodyWithoutLeakingMessage()
         {
+            // Arrange
             _serviceMock.Setup(s => s.GetDashboardAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("connection string leaked here"));
 
+            // Act
             var result = await _controller.GetStats(CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.Unexpected(result);
         }
     }

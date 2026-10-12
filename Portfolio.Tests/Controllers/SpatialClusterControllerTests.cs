@@ -73,12 +73,15 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task RunDbscan_ValidRequest_ReturnsOkWithResult()
         {
+            // Arrange
             var expected = new DbscanResultDto { ClusterCount = 2, NoiseCount = 1 };
             _service.Setup(s => s.RunDbscanAsync(It.IsAny<DbscanRequestDto>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expected);
 
+            // Act
             var result = await _controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None);
 
+            // Assert
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             Assert.Same(expected, ok.Value);
         }
@@ -86,32 +89,40 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task RunDbscan_ServiceArgumentException_ReturnsBadRequestWithErrorBody()
         {
+            // Arrange
             _service.Setup(s => s.RunDbscanAsync(It.IsAny<DbscanRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Bad epsilon."));
 
+            // Act
             var result = await _controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad epsilon.");
         }
 
         [Fact]
         public async Task RunDbscan_RealServiceWithNoPoints_BodyCarriesParameterSuffix()
         {
+            // Arrange
             var controller = new SpatialClusterController(
                 new SpatialClusterService(NullLogger<SpatialClusterService>.Instance),
                 NullLogger<SpatialClusterController>.Instance);
 
+            // Act
             var result = await controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "At least one point is required. (Parameter 'request')");
         }
 
         [Fact]
         public async Task RunDbscan_ServiceThrowsOtherException_Propagates()
         {
+            // Arrange
             _service.Setup(s => s.RunDbscanAsync(It.IsAny<DbscanRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("boom"));
 
+            // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => _controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None));
         }

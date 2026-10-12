@@ -22,12 +22,15 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task SpatialJoin_ValidRequest_ReturnsOkWithResult()
         {
+            // Arrange
             var expected = new SpatialJoinResultDto { AssignedCount = 3, UnassignedCount = 1 };
             _service.Setup(s => s.SpatialJoinAsync(It.IsAny<SpatialJoinRequestDto>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expected);
 
+            // Act
             var result = await _controller.SpatialJoin(new SpatialJoinRequestDto(), CancellationToken.None);
 
+            // Assert
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             Assert.Same(expected, ok.Value);
         }
@@ -35,23 +38,29 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task SpatialJoin_ServiceArgumentException_ReturnsBadRequestWithErrorBody()
         {
+            // Arrange
             _service.Setup(s => s.SpatialJoinAsync(It.IsAny<SpatialJoinRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Bad zones."));
 
+            // Act
             var result = await _controller.SpatialJoin(new SpatialJoinRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad zones.");
         }
 
         [Fact]
         public async Task SpatialJoin_RealServiceWithNoPoints_BodyCarriesParameterSuffix()
         {
+            // Arrange
             var controller = new SpatialOverlayController(
                 new SpatialOverlayService(NullLogger<SpatialOverlayService>.Instance),
                 NullLogger<SpatialOverlayController>.Instance);
 
+            // Act
             var result = await controller.SpatialJoin(new SpatialJoinRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "At least one point is required. (Parameter 'request')");
         }
     }

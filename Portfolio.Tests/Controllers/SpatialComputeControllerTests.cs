@@ -373,117 +373,144 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task GeoStreamProcessEvents_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<IGeoStreamProcessorService>();
             service.Setup(s => s.ProcessBatchAsync(It.IsAny<GeoStreamBatchRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad batch."));
             var controller = new GeoStreamController(service.Object, NullLogger<GeoStreamController>.Instance);
 
+            // Act
             var result = await controller.ProcessEvents(new GeoStreamBatchRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad batch. (Parameter 'request')");
         }
 
         [Fact]
         public async Task SpatialGeometryTriangulate_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<ISpatialGeometryService>();
             service.Setup(s => s.TriangulateAsync(It.IsAny<GeometryPointSetDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad points."));
             var controller = new SpatialGeometryController(service.Object, NullLogger<SpatialGeometryController>.Instance);
 
+            // Act
             var result = await controller.Triangulate(new GeometryPointSetDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad points. (Parameter 'request')");
         }
 
         [Fact]
         public async Task SpatialGeometryClip_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<ISpatialGeometryService>();
             service.Setup(s => s.ClipToBoundingBoxAsync(It.IsAny<PolygonClipRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad clip."));
             var controller = new SpatialGeometryController(service.Object, NullLogger<SpatialGeometryController>.Instance);
 
+            // Act
             var result = await controller.Clip(new PolygonClipRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad clip. (Parameter 'request')");
         }
 
         [Fact]
         public async Task RasterTerrainHillshade_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<IRasterTerrainService>();
             service.Setup(s => s.GenerateHillshadeAsync(It.IsAny<RasterHillshadeRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad raster."));
             var controller = new RasterTerrainController(service.Object, NullLogger<RasterTerrainController>.Instance);
 
+            // Act
             var result = await controller.Hillshade(new RasterHillshadeRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad raster. (Parameter 'request')");
         }
 
         [Fact]
         public async Task RasterTerrainHeatmap_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<IRasterTerrainService>();
             service.Setup(s => s.GenerateHeatmapAsync(It.IsAny<HeatmapRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad heatmap."));
             var controller = new RasterTerrainController(service.Object, NullLogger<RasterTerrainController>.Instance);
 
+            // Act
             var result = await controller.Heatmap(new HeatmapRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad heatmap. (Parameter 'request')");
         }
 
         [Fact]
         public async Task SpatialNetworkRoute_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<ISpatialGraphService>();
             service.Setup(s => s.FindShortestPathAsync(It.IsAny<RouteRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad route."));
             var controller = new SpatialNetworkController(service.Object, NullLogger<SpatialNetworkController>.Instance);
 
+            // Act
             var result = await controller.Route(new RouteRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad route. (Parameter 'request')");
         }
 
         [Fact]
         public async Task SpatialNetworkServiceArea_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<ISpatialGraphService>();
             service.Setup(s => s.ComputeServiceAreaAsync(It.IsAny<ServiceAreaRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad service area."));
             var controller = new SpatialNetworkController(service.Object, NullLogger<SpatialNetworkController>.Instance);
 
+            // Act
             var result = await controller.ServiceArea(new ServiceAreaRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad service area. (Parameter 'request')");
         }
 
         [Fact]
         public async Task CatRiskAccumulation_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<ICatRiskService>();
             service.Setup(s => s.ComputeAccumulationAsync(It.IsAny<AccumulationRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad accumulation."));
             var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
 
+            // Act
             var result = await controller.Accumulation(new AccumulationRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad accumulation. (Parameter 'request')");
         }
 
         [Fact]
         public async Task CatRiskSimulate_ArgumentException_PinsExactErrorBody()
         {
+            // Arrange
             var service = new Mock<ICatRiskService>();
             service.Setup(s => s.SimulateAsync(It.IsAny<SimulationRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(Bad("Bad simulation."));
             var controller = new CatRiskController(service.Object, NullLogger<CatRiskController>.Instance);
 
+            // Act
             var result = await controller.Simulate(new SimulationRequestDto(), CancellationToken.None);
 
+            // Assert
             ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad simulation. (Parameter 'request')");
         }
     }
