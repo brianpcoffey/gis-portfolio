@@ -37,6 +37,19 @@ namespace Portfolio.Services.Services
             // Non-finite speeds are rejected outright. Events with a non-finite position are
             // counted as invalid (like out-of-range ones); the native kernel only range-checks
             // them, so a batch containing one is processed on the managed path.
+            var hasNonFinitePosition = ValidateEvents(request);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!hasNonFinitePosition && GeoStreamNativeBridge.TryProcessBatch(request, _logger, out var nativeResult))
+                return Task.FromResult(NormalizeResult(nativeResult!));
+
+            return Task.FromResult(NormalizeResult(ProcessManaged(request, cancellationToken)));
+        }
+
+        // Throws on a non-finite speed; returns whether any event has a non-finite position.
+        private static bool ValidateEvents(GeoStreamBatchRequestDto request)
+        {
             var hasNonFinitePosition = false;
             foreach (var telemetryEvent in request.Events)
             {
@@ -45,13 +58,7 @@ namespace Portfolio.Services.Services
                 if (!double.IsFinite(telemetryEvent.Latitude) || !double.IsFinite(telemetryEvent.Longitude))
                     hasNonFinitePosition = true;
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!hasNonFinitePosition && GeoStreamNativeBridge.TryProcessBatch(request, _logger, out var nativeResult))
-                return Task.FromResult(NormalizeResult(nativeResult!));
-
-            return Task.FromResult(NormalizeResult(ProcessManaged(request, cancellationToken)));
+            return hasNonFinitePosition;
         }
 
         private static GeoStreamBatchResultDto ProcessManaged(GeoStreamBatchRequestDto request, CancellationToken cancellationToken)

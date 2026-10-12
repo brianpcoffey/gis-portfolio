@@ -64,6 +64,18 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("Heatmap radius must be a finite value greater than zero.", nameof(request));
             if ((long)request.Width * request.Height * request.Points.Count > MaxHeatmapWork)
                 throw new ArgumentException($"Heatmaps are limited to {MaxHeatmapWork} cell-point evaluations.", nameof(request));
+            ValidateHeatmapValues(request);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (RasterTerrainNativeBridge.TryGenerateHeatmap(request, _logger, out var nativeResult))
+                return Task.FromResult(NormalizeHeatmap(nativeResult!));
+
+            return Task.FromResult(NormalizeHeatmap(GenerateHeatmapManaged(request, cancellationToken)));
+        }
+
+        private static void ValidateHeatmapValues(HeatmapRequestDto request)
+        {
             if (!double.IsFinite(request.MinX) || !double.IsFinite(request.MaxX) ||
                 !double.IsFinite(request.MinY) || !double.IsFinite(request.MaxY))
                 throw new ArgumentException("Heatmap extent must be finite values.", nameof(request));
@@ -72,13 +84,6 @@ namespace Portfolio.Services.Services
                 if (!double.IsFinite(point.X) || !double.IsFinite(point.Y) || !double.IsFinite(point.Weight))
                     throw new ArgumentException("Heatmap point coordinates and weights must be finite values.", nameof(request));
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (RasterTerrainNativeBridge.TryGenerateHeatmap(request, _logger, out var nativeResult))
-                return Task.FromResult(NormalizeHeatmap(nativeResult!));
-
-            return Task.FromResult(NormalizeHeatmap(GenerateHeatmapManaged(request, cancellationToken)));
         }
 
         private static RasterHillshadeResultDto GenerateHillshadeManaged(RasterHillshadeRequestDto request, CancellationToken cancellationToken)
