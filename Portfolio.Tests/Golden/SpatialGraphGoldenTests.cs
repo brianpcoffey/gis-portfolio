@@ -71,10 +71,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(RouteIndexes))]
         public async Task Route_ToEsriHq_MatchesPinnedPathAndCost(int index)
         {
+            // Arrange
             var golden = Routes[index];
 
+            // Act
             var result = await RouteAsync(NewService(), golden.Start, golden.Algorithm);
 
+            // Assert
             Assert.True(result.Found);
             Assert.Equal(golden.Algorithm, result.AlgorithmUsed);
             Assert.Equal(golden.Cost, result.TotalCost, 1e-6);
@@ -90,10 +93,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(RouteIndexes))]
         public async Task Route_ToEsriHq_SettlesThePinnedNodes(int index)
         {
+            // Arrange
             var golden = Routes[index];
 
+            // Act
             var result = await RouteAsync(NewService(), golden.Start, golden.Algorithm);
 
+            // Assert
             Assert.Equal(golden.Explored, result.ExploredNodes);
             Assert.Equal(golden.Explored, result.ExploredNodeIds.Count);
             // Dijkstra settles equal-cost nodes in an order that differs between the managed
@@ -114,11 +120,14 @@ namespace Portfolio.Tests.Golden
         [InlineData(2100)]
         public async Task AStar_ExploresFewerNodesThanDijkstra_AndFindsTheSamePath(int start)
         {
+            // Arrange
             var service = NewService();
 
+            // Act
             var dijkstra = await RouteAsync(service, start, "dijkstra");
             var astar = await RouteAsync(service, start, "astar");
 
+            // Assert
             Assert.True(astar.ExploredNodes < dijkstra.ExploredNodes);
             Assert.Equal(dijkstra.TotalCost, astar.TotalCost, 1e-9);
             Assert.Equal(dijkstra.NodeIds, astar.NodeIds);
@@ -127,8 +136,10 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task StartAtDestination_IsAZeroCostSingleNodePath()
         {
+            // Act
             var result = await RouteAsync(NewService(), EsriHq, "dijkstra");
 
+            // Assert
             Assert.True(result.Found);
             Assert.Equal(0, result.TotalCost);
             Assert.Equal([EsriHq], result.NodeIds);
@@ -140,9 +151,11 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task ServiceArea_ThreeKmFromEsriHq_ReachesThePinnedNodeCount()
         {
+            // Arrange
             var service = NewService();
             var graph = await service.GetRedlandsGraphAsync();
 
+            // Act
             var result = await service.ComputeServiceAreaAsync(new ServiceAreaRequestDto
             {
                 Nodes = graph.Nodes,
@@ -151,6 +164,7 @@ namespace Portfolio.Tests.Golden
                 MaxCost = 3
             });
 
+            // Assert
             Assert.Equal(1244, result.ReachableNodeIds.Count);
             Assert.Equal(1513739L, result.ReachableNodeIds.Sum(id => (long)id));
             Assert.Contains(EsriHq, result.ReachableNodeIds);
@@ -159,11 +173,14 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task OneToAllDistances_FromEsriHq_MatchPinnedChecksum()
         {
+            // Arrange
             var service = NewService();
             var graph = await service.GetRedlandsGraphAsync();
 
+            // Act
             var distances = await service.ComputeDistancesAsync(graph, EsriHq);
 
+            // Assert
             Assert.Equal(graph.Nodes.Count, distances.Length);
             Assert.All(distances, d => Assert.True(double.IsFinite(d)));
             Assert.Equal(7701.523, distances.Sum(), 1e-3);
@@ -197,12 +214,14 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task SharedGraph_IsUnchanged_ByRouteFleetAndResponseRuns()
         {
+            // Arrange
             var graphService = NewService();
             var graph = await graphService.GetRedlandsGraphAsync();
             var before = GraphHash(graph);
             var nodeCount = graph.Nodes.Count;
             var edgeCount = graph.Edges.Count;
 
+            // Act
             await RouteAsync(graphService, 1687, "dijkstra");
             await RouteAsync(graphService, 1687, "astar");
 
@@ -233,6 +252,7 @@ namespace Portfolio.Tests.Golden
                 ExistingStationIds = responseScenario.ExistingStationIds
             });
 
+            // Assert
             var after = await graphService.GetRedlandsGraphAsync();
             Assert.Same(graph, after);
             Assert.Equal(nodeCount, after.Nodes.Count);
@@ -243,10 +263,12 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task SharedGraph_IsTheSameInstanceAcrossServicesAndCalls()
         {
+            // Act
             var first = await NewService().GetRedlandsGraphAsync();
             var second = await NewService().GetRedlandsGraphAsync();
             var third = await NewService().GetRedlandsGraphAsync();
 
+            // Assert
             Assert.Same(first, second);
             Assert.Same(second, third);
         }

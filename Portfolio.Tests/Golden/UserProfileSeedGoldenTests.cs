@@ -61,11 +61,14 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task FreshUser_GetsPinnedRowCountsPerEntity()
         {
+            // Arrange
             using var db = NewDb();
             var userId = Guid.NewGuid();
 
+            // Act
             await NewService(db).SeedForUserAsync(userId);
 
+            // Assert
             Assert.Equal(12, await db.FiberClients.CountAsync(c => c.UserId == userId));
             Assert.Equal(12, await db.FiberMaterials.CountAsync(m => m.UserId == userId));
             Assert.Equal(17, await db.FiberOrders.CountAsync(o => o.UserId == userId));
@@ -76,11 +79,14 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task FreshUser_BusinessFieldsMatchPinnedText()
         {
+            // Arrange
             using var db = NewDb();
             var userId = Guid.NewGuid();
 
+            // Act
             await NewService(db).SeedForUserAsync(userId);
 
+            // Assert
             var actual = await CanonicalAsync(db, userId);
             Assert.Equal(ExpectedCanonical.ReplaceLineEndings("\n"), actual);
         }
@@ -88,6 +94,7 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task SeedingTwice_AddsNothing()
         {
+            // Arrange
             using var db = NewDb();
             var userId = Guid.NewGuid();
             var service = NewService(db);
@@ -96,8 +103,10 @@ namespace Portfolio.Tests.Golden
             var before = await CanonicalAsync(db, userId);
             var totalBefore = await TotalRowsAsync(db);
 
+            // Act
             await service.SeedForUserAsync(userId);
 
+            // Assert
             Assert.Equal(totalBefore, await TotalRowsAsync(db));
             Assert.Equal(before, await CanonicalAsync(db, userId));
         }
@@ -105,6 +114,7 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task SeedingUserB_LeavesUserAUntouched_AndGivesBTheSameBusinessData()
         {
+            // Arrange
             using var db = NewDb();
             var userA = Guid.NewGuid();
             var userB = Guid.NewGuid();
@@ -113,8 +123,10 @@ namespace Portfolio.Tests.Golden
             await service.SeedForUserAsync(userA);
             var aBefore = await CanonicalAsync(db, userA);
 
+            // Act
             await service.SeedForUserAsync(userB);
 
+            // Assert
             Assert.Equal(aBefore, await CanonicalAsync(db, userA));
             Assert.Equal(aBefore, await CanonicalAsync(db, userB));
             Assert.Equal(12, await db.FiberClients.CountAsync(c => c.UserId == userA));
@@ -128,15 +140,18 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task Properties_AreSeededOnceGlobally_NotPerUser()
         {
+            // Arrange
             using var db = NewDb();
             var service = NewService(db);
 
+            // Act
             await service.SeedForUserAsync(Guid.NewGuid());
             Assert.Equal(ExpectedPropertyCount, await db.Properties.CountAsync());
             var streets = (await db.Properties.Select(p => p.Street).ToListAsync()).Order(StringComparer.Ordinal).ToList();
 
             await service.SeedForUserAsync(Guid.NewGuid());
 
+            // Assert
             Assert.Equal(ExpectedPropertyCount, await db.Properties.CountAsync());
             Assert.Equal(streets, (await db.Properties.Select(p => p.Street).ToListAsync()).Order(StringComparer.Ordinal).ToList());
             Assert.Equal(ExpectedPropertyStreets, streets);

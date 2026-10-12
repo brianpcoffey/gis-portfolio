@@ -89,10 +89,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(PresetNames))]
         public async Task Preset_SolvesToPinnedFleetDistanceAndObjective(string preset)
         {
+            // Arrange
             var golden = For(preset);
 
+            // Act
             var (scenario, result) = await SolvePresetAsync(preset);
 
+            // Assert
             Assert.Equal(golden.StopCount, scenario.Stops.Count);
             Assert.Equal(golden.FleetSize, scenario.VehicleCount);
             Assert.True(result.Feasible);
@@ -106,10 +109,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(PresetNames))]
         public async Task Preset_RoutesAreTheExactPinnedStopSequences(string preset)
         {
+            // Arrange
             var golden = For(preset);
 
+            // Act
             var (_, result) = await SolvePresetAsync(preset);
 
+            // Assert
             Assert.Equal(golden.Routes.Length, result.Routes.Count);
             for (var i = 0; i < golden.Routes.Length; i++)
             {
@@ -126,10 +132,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(PresetNames))]
         public async Task Preset_IterationCostsFollowThePinnedImprovementTrace(string preset)
         {
+            // Arrange
             var golden = For(preset);
 
+            // Act
             var (_, result) = await SolvePresetAsync(preset);
 
+            // Assert
             Assert.Equal(golden.IterationCosts.Length, result.IterationCosts.Count);
             for (var i = 0; i < golden.IterationCosts.Length; i++)
                 Assert.Equal(golden.IterationCosts[i], result.IterationCosts[i], 1e-3);
@@ -214,12 +223,15 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(InvalidCaseIndexes))]
         public async Task Optimize_InvalidRequest_ThrowsArgumentExceptionWithPinnedMessage(int index)
         {
+            // Arrange
             var (breakRule, message) = InvalidCases[index];
             var request = ValidRequest();
             breakRule(request);
 
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().OptimizeAsync(request));
 
+            // Assert
             Assert.StartsWith(message, ex.Message);
             Assert.Equal("request", ex.ParamName);
         }
@@ -227,19 +239,24 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task Optimize_NullStopList_ThrowsArgumentException()
         {
+            // Arrange
             var request = ValidRequest();
             request.Stops = null!;
 
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().OptimizeAsync(request));
 
+            // Assert
             Assert.StartsWith("At least one stop is required.", ex.Message);
         }
 
         [Fact]
         public async Task GetScenario_UnknownPreset_NamesTheShippedPresets()
         {
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().GetScenarioAsync("nope"));
 
+            // Assert
             Assert.StartsWith("Unknown scenario preset. Expected one of: ", ex.Message);
             Assert.Contains("morning", ex.Message);
             Assert.Contains("fullday", ex.Message);
@@ -254,13 +271,16 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task Optimize_MoreRoutesThanVehicles_KeepsTwoRoutesAndReportsTheRestUnserved()
         {
+            // Arrange
             var request = ValidRequest();
             request.Stops = [.. Enumerable.Range(1, 8).Select(i => Stop(i, demand: 400))];
             request.VehicleCount = 2;
             request.MaxIterations = 200;
 
+            // Act
             var result = await NewService().OptimizeAsync(request);
 
+            // Assert
             Assert.Equal(TruncatedRouteStopIds.Length, result.Routes.Count);
             Assert.Equal(TruncatedRouteStopIds, result.Routes.Select(r => r.StopIds.Single()).ToArray());
             Assert.Equal(TruncatedUnservedStopIds, result.UnservedStopIds.Order().ToArray());

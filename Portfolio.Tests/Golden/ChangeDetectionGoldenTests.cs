@@ -69,10 +69,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Noises))]
         public async Task PageDefaults_ProducePinnedThresholdAndChangedPixels(double noise)
         {
+            // Arrange
             var golden = For(noise);
 
+            // Act
             var (_, result) = await RunAsync(noise);
 
+            // Assert
             Assert.Equal("otsu", result.ThresholdMode);
             Assert.Equal(golden.Threshold, result.Threshold, 1e-4);
             Assert.Equal(golden.ChangedPixels, result.ChangedPixels);
@@ -84,10 +87,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Noises))]
         public async Task PageDefaults_ProducePinnedBlobBoxes(double noise)
         {
+            // Arrange
             var golden = For(noise);
 
+            // Act
             var (_, result) = await RunAsync(noise);
 
+            // Assert
             Assert.Equal(golden.Blobs.Length, result.Blobs.Count);
             for (var i = 0; i < golden.Blobs.Length; i++)
             {
@@ -101,10 +107,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Noises))]
         public async Task PageDefaults_ProducePinnedHistogramChecksum(double noise)
         {
+            // Arrange
             var golden = For(noise);
 
+            // Act
             var (_, result) = await RunAsync(noise);
 
+            // Assert
             Assert.Equal(128, result.Histogram.Count);
             Assert.Equal(256 * 256, result.Histogram.Sum(h => (long)h));
             Assert.Equal(golden.HistogramWeightedSum, result.Histogram.Select((h, i) => (long)h * (i + 1)).Sum());
@@ -114,8 +123,10 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Noises))]
         public async Task EachGroundTruthBox_IsOverlappedByADetectedBlob(double noise)
         {
+            // Act
             var (scene, result) = await RunAsync(noise);
 
+            // Assert
             Assert.Equal(4, scene.GroundTruth.Count);
             Assert.All(scene.GroundTruth, truth =>
                 Assert.Contains(result.Blobs, b =>
@@ -130,6 +141,7 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task UShapedMask_MergesBothArmsIntoOneBlob()
         {
+            // Arrange
             const int size = 12;
             var epochB = new double[size * size];
             for (var y = 1; y <= 6; y++)
@@ -140,6 +152,7 @@ namespace Portfolio.Tests.Golden
             for (var x = 2; x <= 4; x++)
                 epochB[6 * size + x] = 1.0;
 
+            // Act
             var result = await NewService().DetectAsync(new DetectRequestDto
             {
                 Width = size,
@@ -153,6 +166,7 @@ namespace Portfolio.Tests.Golden
                 MinBlobArea = 0
             });
 
+            // Assert
             Assert.Equal(15, result.ChangedPixels);
             var blob = Assert.Single(result.Blobs);
             Assert.Equal(15, blob.Area);
@@ -200,12 +214,15 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(InvalidCaseIndexes))]
         public async Task Detect_InvalidRequest_ThrowsArgumentExceptionWithPinnedMessage(int index)
         {
+            // Arrange
             var (breakRule, message) = InvalidCases[index];
             var request = Valid();
             breakRule(request);
 
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().DetectAsync(request));
 
+            // Assert
             Assert.StartsWith(message, ex.Message);
         }
 
@@ -217,8 +234,10 @@ namespace Portfolio.Tests.Golden
         [InlineData(8, 8, double.NaN, "Noise level must be between 0 and 0.3.")]
         public async Task GetScene_InvalidArguments_ThrowsPinnedMessage(int width, int height, double noise, string message)
         {
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().GetSceneAsync(width, height, noise));
 
+            // Assert
             Assert.StartsWith(message, ex.Message);
         }
     }

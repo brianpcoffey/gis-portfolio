@@ -41,8 +41,10 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task Scenario_HasTheShippedShape()
         {
+            // Act
             var scenario = await NewService().GetScenarioAsync();
 
+            // Assert
             Assert.Equal(450, scenario.DemandPoints.Count);
             Assert.Equal(24, scenario.Candidates.Count);
             Assert.Equal([1, 2], scenario.ExistingStationIds);
@@ -83,10 +85,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Modes))]
         public async Task FourStations_ChooseThePinnedSitesForEachObjective(int mode)
         {
+            // Arrange
             var golden = For(mode);
 
+            // Act
             var result = await SolveAsync(mode);
 
+            // Assert
             Assert.Equal(golden.Chosen, result.ChosenCandidateIds);
             Assert.True(result.MeetsNfpa1710);
         }
@@ -95,10 +100,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Modes))]
         public async Task FourStations_OptimizedStatsMatchThePinnedValues(int mode)
         {
+            // Arrange
             var golden = For(mode);
 
+            // Act
             var stats = (await SolveAsync(mode)).Optimized;
 
+            // Assert
             Assert.Equal(golden.Mean, stats.MeanMinutes, StatsTolerance);
             Assert.Equal(golden.P50, stats.P50Minutes, StatsTolerance);
             Assert.Equal(golden.P90, stats.P90Minutes, StatsTolerance);
@@ -110,10 +118,13 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Modes))]
         public async Task FourStations_IterationObjectivesFollowThePinnedTrace(int mode)
         {
+            // Arrange
             var golden = For(mode);
 
+            // Act
             var objectives = (await SolveAsync(mode)).IterationObjectives;
 
+            // Assert
             Assert.Equal(golden.IterationObjectives.Length, objectives.Count);
             for (var i = 0; i < golden.IterationObjectives.Length; i++)
                 Assert.Equal(golden.IterationObjectives[i], objectives[i], ObjectiveTolerance);
@@ -125,8 +136,10 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(Modes))]
         public async Task Baseline_IsTheTwoExistingStations(int mode)
         {
+            // Act
             var baseline = (await SolveAsync(mode)).Baseline;
 
+            // Assert
             Assert.Equal(2.479, baseline.MeanMinutes, StatsTolerance);
             Assert.Equal(1.802, baseline.P50Minutes, StatsTolerance);
             Assert.Equal(4.677, baseline.P90Minutes, StatsTolerance);
@@ -137,9 +150,11 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task P90Objective_BeatsMeanObjectiveOnP90_AndTheBaselineOnEverything()
         {
+            // Act
             var mean = await SolveAsync(0);
             var p90 = await SolveAsync(1);
 
+            // Assert
             Assert.True(p90.Optimized.P90Minutes <= mean.Optimized.P90Minutes + 1e-9);
             Assert.True(p90.Optimized.P90Minutes < p90.Baseline.P90Minutes);
             Assert.True(p90.Optimized.PercentWithinFirstThreshold > p90.Baseline.PercentWithinFirstThreshold);
@@ -197,12 +212,15 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(InvalidCaseIndexes))]
         public async Task Optimize_InvalidRequest_ThrowsArgumentExceptionWithPinnedMessage(int index)
         {
+            // Arrange
             var (breakRule, message) = InvalidCases[index];
             var request = ValidRequest();
             breakRule(request);
 
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().OptimizeAsync(request));
 
+            // Assert
             Assert.StartsWith(message, ex.Message);
             Assert.Equal("request", ex.ParamName);
         }
@@ -210,13 +228,16 @@ namespace Portfolio.Tests.Golden
         [Fact]
         public async Task Optimize_StationCountAboveTwentyFails_WithTheCandidateCountMessageFirst()
         {
+            // Arrange
             // 21 stations against 21 candidates passes the candidate check and reaches the cap.
             var request = ValidRequest();
             request.Candidates = [.. Enumerable.Range(1, 21).Select(i => new CandidateSiteDto { Id = i, NodeId = 1 })];
             request.StationCount = 21;
 
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().OptimizeAsync(request));
 
+            // Assert
             Assert.StartsWith("Station count is limited to 20.", ex.Message);
         }
 
@@ -226,6 +247,7 @@ namespace Portfolio.Tests.Golden
         [MemberData(nameof(BadBandCases))]
         public async Task Isochrone_InvalidBands_ThrowsPinnedMessage(int index)
         {
+            // Arrange
             List<double>[] bands =
             [
                 [],
@@ -235,18 +257,22 @@ namespace Portfolio.Tests.Golden
                 [.. Enumerable.Range(1, 13).Select(i => (double)i)]
             ];
 
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().ComputeIsochroneAsync(
                 new IsochroneRequestDto { OriginNodeId = 1, AvgSpeedKmh = 40, BandMinutes = bands[index] }));
 
+            // Assert
             Assert.StartsWith("Isochrone bands must be ascending positive values.", ex.Message);
         }
 
         [Fact]
         public async Task Isochrone_UnknownOrigin_ThrowsPinnedMessage()
         {
+            // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => NewService().ComputeIsochroneAsync(
                 new IsochroneRequestDto { OriginNodeId = -99, AvgSpeedKmh = 40, BandMinutes = [2, 4] }));
 
+            // Assert
             Assert.StartsWith("The origin node was not found in the road network.", ex.Message);
         }
     }

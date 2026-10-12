@@ -60,8 +60,10 @@ namespace Portfolio.Tests.Golden
             string standardized,
             double confidence)
         {
+            // Act
             var parsed = await NewService().ParseAsync(raw);
 
+            // Assert
             Assert.Equal(houseNumber, parsed.HouseNumber);
             Assert.Equal(streetName, parsed.StreetName);
             Assert.Equal(streetSuffix, parsed.StreetSuffix);
@@ -78,12 +80,14 @@ namespace Portfolio.Tests.Golden
         [InlineData("   ")]
         public async Task Parse_BlankInput_Throws(string raw)
         {
+            // Act & Assert
             await Assert.ThrowsAsync<ArgumentException>(() => NewService().ParseAsync(raw));
         }
 
         [Fact]
         public async Task Parse_NullInput_Throws()
         {
+            // Act & Assert
             await Assert.ThrowsAsync<ArgumentNullException>(() => NewService().ParseAsync(null!));
         }
     }
