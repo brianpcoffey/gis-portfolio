@@ -39,19 +39,20 @@
     var serviceAreaLayer = null;
     var exploredLayer    = null;   // L.LayerGroup of settled-node dots
     var lastResult       = null;
-    var lastServiceAreaIds = null; // reachable node ids of the service area on the map (null when none)
-    var lastDark         = document.body.classList.contains("dark-mode");
     var C                = readColors();
 
-    // Canvas/Leaflet need concrete colours, so resolve the theme tokens (re-read on theme change).
+    // Canvas/Leaflet need concrete colours, so resolve the tokens once. Every mark sits over the
+    // OpenStreetMap tiles, which stay light in both themes, so they use the theme-independent
+    // map tokens (--map-series-N, --map-muted), the white --on-dark halo and the status fills:
+    // the colours never change with the theme and nothing needs restyling when it flips.
     function readColors() {
-        var pal = Charts.palette(8);
+        var pal = Charts.mapPalette(8);
         return {
-            node:     Charts.token("text-muted"),
-            outline:  Charts.token("surface"),
-            origin:   pal[0],                    // --chart-1
+            node:     Charts.token("map-muted"),
+            outline:  Charts.token("on-dark"),
+            origin:   pal[0],                    // --map-series-1
             route:    pal[0],
-            astar:    pal[4],                    // --chart-5
+            astar:    pal[4],                    // --map-series-5
             dijkstra: Charts.status("warning"),
             area:     Charts.status("warning"),
             dest:     Charts.status("success")
@@ -93,16 +94,6 @@
     map.on("click", function (e) {
         var id = nearestJunction(e.latlng.lat, e.latlng.lng);
         if (id != null) setOrigin(id);
-    });
-
-    // themeChanged also fires for display preferences (text size, contrast, motion): only a
-    // light/dark switch needs the map restyled.
-    Charts.onThemeChange(function (e) {
-        var dark = e && e.detail ? !!e.detail.dark : document.body.classList.contains("dark-mode");
-        if (dark === lastDark) return;
-        lastDark = dark;
-        C = readColors();
-        restyleAll();
     });
 
     fetchGraph();
@@ -214,31 +205,6 @@
         }
     }
 
-    // Re-applies the theme colours after a light/dark switch.
-    function restyleAll() {
-        if (!graph) return;
-        if (edgeGroup) edgeGroup.setStyle({ color: C.node });
-        var hq = nodeMarkers[graph.destinationNodeId];
-        if (hq) hq.setStyle({ fillColor: C.dest, color: C.outline });
-        resetJunctionStyles();
-        if (originNodeId != null && nodeMarkers[originNodeId]) {
-            nodeMarkers[originNodeId].setStyle({ fillColor: C.origin, radius: 8 });
-        }
-        if (lastServiceAreaIds) renderServiceArea(lastServiceAreaIds);
-        if (lastResult) {
-            renderExplored(lastResult);
-            if (routePolyline) routePolyline.setStyle({ color: C.route });
-            highlightRouteNodes(lastResult);
-        }
-    }
-
-    function resetJunctionStyles() {
-        junctionIds.forEach(function (id) {
-            if (id === originNodeId) return;
-            if (nodeMarkers[id]) nodeMarkers[id].setStyle({ fillColor: C.node, color: C.outline, radius: 5, fillOpacity: 0.85 });
-        });
-    }
-
     // ── Nearest-junction snap ──────────────────────────────────────────────
     function nearestJunction(lat, lng) {
         var best = null, bestD = Infinity;
@@ -310,7 +276,6 @@
             function () { return apiPost(window.PortfolioApi.routes.spatialCompute.network.route, request); },
             function (result) {
                 lastResult = result;
-                lastServiceAreaIds = null;
                 renderExplored(result);
                 renderRoute(result);
                 updateKpis(result);
@@ -403,7 +368,6 @@
     }
 
     function renderServiceArea(reachableIds) {
-        lastServiceAreaIds = reachableIds;   // so a theme switch can redraw it
         var idSet = {};
         reachableIds.forEach(function (id) { idSet[id] = true; });
         junctionIds.forEach(function (id) {
@@ -422,7 +386,6 @@
         if (serviceAreaLayer) { map.removeLayer(serviceAreaLayer); serviceAreaLayer = null; }
         if (exploredLayer) { map.removeLayer(exploredLayer); exploredLayer = null; }
         lastResult = null;
-        lastServiceAreaIds = null;
 
         junctionIds.forEach(function (id) {
             if (id === originNodeId) return;
