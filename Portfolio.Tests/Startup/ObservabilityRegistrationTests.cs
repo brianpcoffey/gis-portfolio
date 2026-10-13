@@ -133,7 +133,7 @@ public class ObservabilityRegistrationTests
 
     private sealed class CapturingMetricExporter : BaseExporter<Metric>
     {
-        public ConcurrentQueue<(string Instrument, Dictionary<string, object?> Tags)> Points { get; } = new();
+        public ConcurrentQueue<(string Meter, string Instrument, Dictionary<string, object?> Tags)> Points { get; } = new();
 
         public override ExportResult Export(in Batch<Metric> batch)
         {
@@ -144,7 +144,7 @@ public class ObservabilityRegistrationTests
                     var tags = new Dictionary<string, object?>();
                     foreach (var tag in point.Tags)
                         tags[tag.Key] = tag.Value;
-                    Points.Enqueue((metric.Name, tags));
+                    Points.Enqueue((metric.MeterName, metric.Name, tags));
                 }
             }
 
@@ -385,8 +385,11 @@ public class ObservabilityRegistrationTests
         services.ConfigureOpenTelemetryMeterProvider(builder => builder.AddReader(new BaseExportingMetricReader(exporter)));
         using var provider = services.BuildServiceProvider();
         var meterProvider = provider.GetRequiredService<MeterProvider>();
+        // A name of its own, because Npgsql's static meter also reports db.client.connection.count for any pool the
+        // process has opened (other tests open one against an unreachable database), and those points are not ours.
+        var instrumentName = "portfolio.tests." + Guid.NewGuid().ToString("N");
         using var meter = new Meter("Npgsql");
-        var connections = meter.CreateCounter<long>("db.client.connection.count");
+        var connections = meter.CreateCounter<long>(instrumentName);
 
         // Act
         connections.Add(
@@ -396,9 +399,14 @@ public class ObservabilityRegistrationTests
         meterProvider.ForceFlush(10_000);
 
         // Assert
-        var point = Assert.Single(exporter.Points, p => p.Instrument == "db.client.connection.count");
+        var point = Assert.Single(exporter.Points, p => p.Instrument == instrumentName);
+        Assert.Equal("Npgsql", point.Meter);
         Assert.False(point.Tags.ContainsKey("db.client.connection.pool.name"));
         Assert.Equal("idle", point.Tags["db.client.connection.state"]);
+        // The view strips the pool name from every Npgsql instrument, Npgsql's own included.
+        Assert.All(
+            exporter.Points.Where(p => p.Meter == "Npgsql"),
+            p => Assert.False(p.Tags.ContainsKey("db.client.connection.pool.name"), $"{p.Instrument} kept the pool name"));
     }
 
     // ---- the real host, with an endpoint nothing listens on ----
