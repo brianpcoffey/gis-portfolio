@@ -1,7 +1,8 @@
 #include "spatial_graph_engine.h"
 
 #include <algorithm>
-#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <limits>
 #include <queue>
 #include <utility>
@@ -10,6 +11,18 @@
 namespace
 {
 	constexpr double kInfinity = std::numeric_limits<double>::infinity();
+
+	// Bit-level finite test. The build uses -ffast-math (GCC) and /fp:fast (MSVC), which allow the
+	// compiler to assume that no NaN or infinity exists and to fold std::isfinite to true; every
+	// unreachable node (distance +infinity) would then count as reached. Integer operations on the
+	// bits cannot be folded that way. The geostream and cluster kernels use the same test.
+	bool is_finite(double v) noexcept
+	{
+		constexpr std::uint64_t kExponentMask = 0x7FF0000000000000ULL;
+		std::uint64_t bits;
+		std::memcpy(&bits, &v, sizeof bits);
+		return (bits & kExponentMask) != kExponentMask;
+	}
 
 	// Compressed-sparse-row adjacency.
 	//
@@ -216,7 +229,7 @@ extern "C" GRAPH_API int Graph_FindShortestPath(
 		}
 
 		*result = {};
-		if (!std::isfinite(distances[end]))
+		if (!is_finite(distances[end]))
 			return 0;
 
 		// Walk the predecessor tree back to the origin. A -1 predecessor means the tree is
@@ -327,7 +340,7 @@ extern "C" GRAPH_API int Graph_ComputeDistances(
 			const int index = csr.indexOf(nodes[i].id);
 			const double d = index < 0 ? kInfinity : distances[index];
 			outDistances[i] = d;
-			if (std::isfinite(d))
+			if (is_finite(d))
 				++reachable;
 		}
 

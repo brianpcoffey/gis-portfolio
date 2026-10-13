@@ -85,8 +85,8 @@ Across 21 workloads: **9 are a clear win (≥ 1.15×), 5 a clear loss (≤ 0.85�
 |---|---|---:|
 | Fastest | `vrp_solver_kernel` — CVRPTW, 120 stops | **2.26×** |
 | | `spatial_overlay_kernel` — point-in-polygon join | **1.90×** |
-| Slowest | `geostream_processor` — telemetry aggregation | **0.59×** |
-| | `spatial_geometry_kernel` — fan triangulation | **0.37×** |
+| Slowest | `spatial_geometry_kernel` — fan triangulation | **0.37×** |
+| | `geostream_processor` — telemetry aggregation | **0.41×** |
 
 Native wins where the inner loop is flat, branch-free, and allocation-free, and where the work is large relative to the number of P/Invoke crossings. It loses where marshalling dominates — fan triangulation's "computation" is three index assignments per triangle, so copying the array in and out saves nothing. `portfolio_scoring` measures 0.99× **despite genuinely compiling with `/arch:AVX2`**: setting the flag is not the same as being vectorised.
 
@@ -111,16 +111,17 @@ high priority. Every workload folds its result into a deterministic checksum, an
 paths' checksums are compared; a row whose checksums disagree is a correctness defect and its
 speedup means nothing.
 
-Measured on 20 logical cores, .NET 10.0.9, Windows 11:
+Measured on 20 logical cores, .NET 10.0.9, Windows 11 (the two rows marked † were re-measured later, on
+.NET 10.0.12; see the reading notes):
 
 | Kernel | Workload | Native median | Managed median | Speedup | Native min–max | Managed min–max | Parity |
 |---|---|---:|---:|---:|---:|---:|---|
 | `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 108 ms | 107 ms | 0.99x | 98.4 ms–112 ms | 79.3 ms–117 ms | exact |
-| `geostream_processor` | parse + filter + grid aggregate, 40 x 10,000 events | 92.4 ms | 54.9 ms | 0.59x | 73.1 ms–153 ms | 32.0 ms–114 ms | exact |
+| `geostream_processor` † | parse + filter + grid aggregate, 40 x 10,000 events | 80.4 ms | 33.1 ms | 0.41x | 65.4 ms–103 ms | 31.2 ms–113 ms | exact |
 | `spatial_geometry_kernel` | fan triangulation, 400 x 5,000 vertices | 188 ms | 70.2 ms | 0.37x | 170 ms–192 ms | 66.0 ms–86.4 ms | exact |
 | `spatial_geometry_kernel` | bounding-box clip, 400 x 5,000-vertex polygon | 81.5 ms | 62.5 ms | 0.77x | 75.4 ms–93.3 ms | 61.1 ms–63.1 ms | exact |
 | `raster_terrain_kernel` | hillshade, 20 x 500x500 elevation grid | 196 ms | 164 ms | 0.83x | 183 ms–202 ms | 156 ms–185 ms | exact |
-| `raster_terrain_kernel` | Gaussian heatmap, 500x500 over 200 points | 215 ms | 263 ms | **1.22x** | 215 ms–217 ms | 263 ms–278 ms | exact |
+| `raster_terrain_kernel` † | Gaussian heatmap, 2 x 500x500 over 100 points | 218 ms | 278 ms | **1.28x** | 215 ms–230 ms | 275 ms–293 ms | exact |
 | `spatial_graph_engine` | one-to-all Dijkstra, 40 x (2,530 nodes / 3,187 edges) | 33.2 ms | 15.0 ms | 0.45x | 27.1 ms–48.2 ms | 12.2 ms–46.3 ms | exact |
 | `spatial_graph_engine` | 40x40 cost matrix over the same network, 10 builds | 63.1 ms | 82.9 ms | **1.31x** | 62.2 ms–71.7 ms | 82.4 ms–89.7 ms | exact |
 | `spatial_cluster_kernel` | DBSCAN, 8 x 5,000 points, eps 0.16 / minPts 6 | 186 ms | 175 ms | 0.94x | 183 ms–191 ms | 165 ms–182 ms | exact |
@@ -146,8 +147,23 @@ Reading notes:
   them is `spatial_graph_engine` work and would otherwise dominate the row.
 - Several workloads are a burst of full-size calls rather than one large call, because the
   services cap their inputs (10,000 telemetry events, 5,000 geometry points, 250,000 raster
-  cells). Those caps are production guardrails, so the per-call marshalling is counted — it
-  is part of what a caller actually pays.
+  cells, 25,000,000 heatmap cell-point evaluations). Those caps are production guardrails, so
+  the per-call marshalling is counted — it is part of what a caller actually pays.
+- The Gaussian heatmap row (†) was re-measured on 2026-10-13 after the service gained its
+  25,000,000 cell-point request limit. The row it replaces (one call, 500x500 over 200 points,
+  1.22x) is a request the service now rejects. The workload is now two calls of 500x500 over 100
+  points: the same 50,000,000 cell-point evaluations, but the output is marshalled and normalized
+  twice. A second full run measured a noisier managed path (1.54x); the first run, with the
+  tighter spread and the lower speedup, is the one published.
+- The geostream row (†) was re-measured on 2026-10-13 after the kernel stopped being built with
+  `/fp:fast`. The fast-math build compiled the cell-index division as a multiplication by
+  `1 / grid`, so a coordinate on a cell boundary could land one cell away from the managed path
+  (longitude -128.4 at a 0.1 degree grid: cell 515 managed, 516 native). Three runs of each build,
+  alternating: fast-math 0.59x, 0.40x, 0.38x; precise 0.39x, 0.44x, 0.41x (the middle one is
+  published). The two builds' native times overlap, so the change itself is not measurable; what
+  moved is the managed median (54.9 ms in the earlier 0.59x run, 33.1–34.9 ms in five of these
+  six). The row is still a clear loss, and the 9 / 5 / 7 split and the 0.37x–2.26x range are
+  unchanged. Every other row is as previously published, measured on .NET 10.0.9.
 - `portfolio_scoring` is the only native-backed service whose public entry point reads from a
   repository. The harness supplies a fixed-seed in-memory one; every other kernel runs on an
   in-repo deterministic dataset reached through its public API.
@@ -252,6 +268,8 @@ cp build/native/portfolio_scoring/portfolio_scoring.so Portfolio.Services/bin/De
 ```
 
 Swap `portfolio_scoring` for any other directory under `native/` to build the rest (the CI `native-parity` job loops over all thirteen). Each bridge calls `NativeLibrary.TryLoad("<kernel_name>")`; the runtime resolves the library first from the directory containing `Portfolio.Services.dll` (`DllImportSearchPath.AssemblyDirectory`), then from the standard OS library paths. If a library is not found the bridge logs a warning and the service falls back to its managed C# implementation, so any subset of the kernels can be built and shipped.
+
+**After pulling a change to a kernel's C ABI, rebuild all kernels** (or delete the copies under `Portfolio.Services/bin` and `Portfolio.Web/bin`, and wherever else you staged them). A kernel whose exported signatures change keeps its export names, so an old build would still load and be called with the new argument list. The kernels whose ABI has changed therefore export a version function — `Viewshed_AbiVersion`, `Raster_AbiVersion` and `Scoring_AbiVersion`, all returning 2 (the `*_ABI_VERSION` macro in the kernel's header, mirrored by `ExpectedAbiVersion` in `Portfolio.Services/Native/*NativeInterop.cs`) — and the bridge refuses a library that reports another version or none: it logs a warning naming the library and the service runs its managed path. That makes a stale library harmless; it does not make it work. When you change an exported signature or struct layout, bump the version in the header and the interop file together, and give the kernel a version function if it has none yet.
 
 ### What shipping natively would require
 
@@ -378,7 +396,7 @@ Authenticated operations dashboard for fiber orders, materials, shipments, and K
 ---
 
 ### 📡 Live Location Stream
-GPS-style telemetry batch processing pipeline that reduces high-volume sensor or vehicle events into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard. A native C++ kernel handles the numeric loops when the shared library is present; the managed fallback activates automatically when it is not. **Measured at 0.59× — this is the worst-performing kernel of the thirteen**, because the service caps a batch at 10,000 events, so the per-call marshalling is paid far more often than the aggregation work amortises it.
+GPS-style telemetry batch processing pipeline that reduces high-volume sensor or vehicle events into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard. A native C++ kernel handles the numeric loops when the shared library is present; the managed fallback activates automatically when it is not. **Measured at 0.41× — the second-slowest of the 21 workloads** (only geometry fan triangulation, at 0.37×, is slower), because the service caps a batch at 10,000 events, so the per-call marshalling is paid far more often than the aggregation work amortises it.
 
 - Channel-oriented GPS event batching with configurable grid size and anomaly threshold
 - Native C++ telemetry kernel (`geostream_processor`) processes contiguous event arrays via a stable C ABI
@@ -406,7 +424,7 @@ Computational geometry API that transforms map-drawn coordinates into derived ge
 ---
 
 ### ⛰️ Terrain Analyzer
-Raster terrain analysis API that generates hillshade and heatmap outputs from dense numeric grid inputs and renders the results as a browser-visible raster grid. The native C++ kernel processes dense arrays when available; the managed fallback computes slope/aspect and Gaussian-style kernel weights in C#. **Measured split: the Gaussian heatmap runs 1.22× faster natively, hillshade 0.83× — slower.** Same kernel, same grid size; the heatmap loop is flat arithmetic over every cell while hillshade pays a 250,000-element `ToArray()` before touching a pixel.
+Raster terrain analysis API that generates hillshade and heatmap outputs from dense numeric grid inputs and renders the results as a browser-visible raster grid. The native C++ kernel processes dense arrays when available; the managed fallback computes slope/aspect and Gaussian-style kernel weights in C#. **Measured split: the Gaussian heatmap runs 1.28× faster natively, hillshade 0.83× — slower.** Same kernel, same grid size; the heatmap loop is flat arithmetic over every cell while hillshade pays a 250,000-element `ToArray()` before touching a pixel.
 
 - Hillshade computation from configurable sun azimuth/altitude and per-cell slope/aspect approximation
 - Gaussian-style heatmap kernel from weighted point samples over a target raster extent

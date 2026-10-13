@@ -1,5 +1,7 @@
 #include "spatial_overlay_kernel.h"
 
+#include <limits>
+
 namespace
 {
 	// Even-odd (crossing-number) point-in-polygon test over a contiguous ring.
@@ -38,14 +40,19 @@ extern "C" OVERLAY_API int Overlay_AssignPointsToZones(
 		if (!polygonVertices || totalVertices <= 0)
 			return -2;
 
-		// Validate that the ring sizes account for exactly the supplied vertices.
-		int accumulated = 0;
+		// Validate that the ring sizes account for exactly the supplied vertices. The sum is formed in
+		// 64 bits (at most INT_MAX rings of INT_MAX vertices each, which fits): in an int it can wrap
+		// to the value of totalVertices, and the point loop below would then walk rings far larger
+		// than the vertex buffer. A sum no int can hold can never equal totalVertices, so it is refused.
+		long long accumulated = 0;
 		for (int z = 0; z < zoneCount; ++z)
 		{
 			if (ringSizes[z] < 3)
 				return -3;
 			accumulated += ringSizes[z];
 		}
+		if (accumulated > std::numeric_limits<int>::max())
+			return -1;
 		if (accumulated != totalVertices)
 			return -4;
 

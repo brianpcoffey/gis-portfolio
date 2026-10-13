@@ -9,7 +9,7 @@ namespace Portfolio.Benchmarks;
 /// <summary>Native-versus-managed benchmark harness for all thirteen kernels.</summary>
 /// <remarks>
 /// <para><b>Why it spawns children.</b> Every bridge probes availability exactly once, when its type
-/// is initialized (a static field initializer calling <c>NativeKernelLoader.TryLoad</c>), and
+/// is initialized (a static field initializer calling <c>NativeKernelLoader.TryLoad</c>, or <c>NativeKernelLoader.Load</c> for the three kernels with an ABI version check), and
 /// <c>NativeToggle</c> reads <c>PORTFOLIO_DISABLE_NATIVE</c> once per process. One process can
 /// therefore only ever measure one path. The parent runs itself twice — once with
 /// <c>PORTFOLIO_DISABLE_NATIVE=0</c> and once with <c>=1</c> — collects each child's JSON from

@@ -9,10 +9,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# This kernel does NOT enable fast math. The cell index is floor((coordinate + offset) / grid), and
+# fast math lets the compiler turn that division into a multiplication by 1.0 / grid (MSVC does
+# exactly that under /fp:fast). The two differ in the last bit, so a coordinate on a cell boundary
+# (-128.4 at grid 0.1: 515 in managed code, 516 from the fast-math build) landed one cell away from the
+# managed fallback. Precise semantics keep every cell index, and the cell centre that follows from
+# it, identical to ProcessManaged, which the parity tests assert.
 if(MSVC)
-    add_compile_options(/O2 /fp:fast /GR-)
+    add_compile_options(/O2 /GR-)
 else()
-    add_compile_options(-O3 -ffast-math -fno-rtti)
+    add_compile_options(-O3 -fno-rtti)
 endif()
 
 add_library(geostream_processor SHARED

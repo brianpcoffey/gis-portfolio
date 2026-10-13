@@ -5,12 +5,22 @@ namespace Portfolio.Services.Native
 {
     internal static class ViewshedNativeBridge
     {
-        private static readonly bool _available = NativeKernelLoader.TryLoad("viewshed_kernel");
+        // Loaded only when the library reports the ABI version this assembly was written against.
+        private static readonly NativeLoadResult _load = NativeKernelLoader.Load(
+            "viewshed_kernel", ViewshedNativeInterop.AbiVersion, ViewshedNativeInterop.ExpectedAbiVersion);
+
+        private static readonly bool _available = _load == NativeLoadResult.Loaded;
 
         internal static bool IsAvailable => _available;
 
         internal static void LogAvailability(ILogger logger)
         {
+            if (_load == NativeLoadResult.AbiMismatch)
+            {
+                NativeKernelLoader.LogAbiMismatch(logger, "viewshed_kernel", ViewshedNativeInterop.ExpectedAbiVersion);
+                return;
+            }
+
             logger.LogInformation(_available
                 ? "Native viewshed kernel loaded. Line-of-sight analysis will use the C++ fast path."
                 : "Native viewshed kernel unavailable; using managed viewshed implementation.");
@@ -27,9 +37,11 @@ namespace Portfolio.Services.Native
 
             try
             {
+                var elevation = request.Elevation.ToArray();
                 var output = new byte[request.Width * request.Height];
                 var status = ViewshedNativeInterop.Compute(
-                    request.Elevation.ToArray(),
+                    elevation,
+                    elevation.Length,
                     request.Width,
                     request.Height,
                     request.CellSize,
