@@ -46,16 +46,12 @@
     var $unresolvedAlert     = $("#asUnresolvedAlert");
 
     // ── Helpers ────────────────────────────────────────────────────────────────
-    function escapeHtml(str) {
-        if (!str) return "";
-        var d = document.createElement("div");
-        d.textContent = str;
-        return d.innerHTML;
-    }
+    var escapeHtml = window.PortfolioDom.escapeHtml;
+    var announce = window.PortfolioUi.announce;
 
     function dash(val) {
         if (val === null || val === undefined || val === "") {
-            return '<span class="text-muted">&mdash;</span>';
+            return '<span class="theme-text-muted">&mdash;</span>';
         }
         return escapeHtml(val);
     }
@@ -70,9 +66,16 @@
         $alertBox.removeClass("show").addClass("d-none");
     }
 
-    function setButtonsBusy(busy) {
-        $btnParse.prop("disabled", busy || $textarea.val().trim() === "");
-        $btnValidate.prop("disabled", busy || $textarea.val().trim() === "");
+    // Parse / Validate stay disabled only while the textarea is empty; during a request they are
+    // marked busy (aria-disabled + click guard) so keyboard focus is not dropped to <body>.
+    function syncButtons() {
+        var empty = $textarea.val().trim() === "";
+        $btnParse.prop("disabled", empty);
+        $btnValidate.prop("disabled", empty);
+    }
+
+    function beginBusy(region) {
+        return window.PortfolioUi.busy({ buttons: [$btnParse[0], $btnValidate[0]], region: region });
     }
 
     function showAnalyzing(show) {
@@ -112,6 +115,7 @@
         var container = document.getElementById("confidence-chart");
         if (!container) return;
         confWidth = container.clientWidth || 400;
+        container.setAttribute("role", "img");
         var height = 24;
         var r = 4;
 
@@ -140,10 +144,11 @@
         confidenceSvgInit = true;
     }
 
-    function getConfidenceColor(pct) {
-        if (pct >= 0.85) return "#38a169";   // green / --accent
-        if (pct >= 0.60) return "#d69e2e";   // amber
-        return "#e53e3e";                     // red
+    // Bar fill and label text come from the status tokens (the text token is contrast-safe in both themes).
+    function getConfidenceKind(pct) {
+        if (pct >= 0.85) return "success";
+        if (pct >= 0.60) return "warning";
+        return "danger";
     }
 
     function updateConfidenceMeter(value) {
@@ -153,16 +158,18 @@
         if (!container) return;
         var totalW = container.clientWidth || 400;
         var targetW = Math.max(0, Math.min(1, value)) * totalW;
-        var color = getConfidenceColor(value);
+        var kind = getConfidenceKind(value);
         var pct = Math.round(value * 100);
+        var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
         confFill.transition()
-            .duration(300)
+            .duration(reduce ? 0 : 300)
             .ease(d3.easeQuadOut)
             .attr("width", targetW)
-            .attr("fill", color);
+            .attr("fill", "var(--status-" + kind + "-fill)");
 
-        $confidenceLabel.text(pct + "% confident").css("color", color);
+        $confidenceLabel.text(pct + "% confident").css("color", "var(--status-" + kind + "-text)");
+        container.setAttribute("aria-label", "Parse confidence " + pct + "%");
     }
 
     // ── D3 Score Sparkline ─────────────────────────────────────────────────────
@@ -172,13 +179,21 @@
         if (!container) return;
 
         d3.select(container).selectAll("*").remove();
+        container.removeAttribute("role");
+        container.removeAttribute("aria-label");
 
         if (!scores || scores.length < 2) {
             d3.select(container).append("div")
-                .attr("class", "text-muted small text-center py-2")
+                .attr("class", "theme-text-muted small text-center py-2")
                 .text(scores && scores.length === 1 ? "Validate one more address to see trend." : "No scores yet.");
             return;
         }
+
+        // The SVG is decorative; the scores are described for assistive technology.
+        container.setAttribute("role", "img");
+        container.setAttribute("aria-label", "Recent validation scores");
+        window.PortfolioCharts.describe(container, "Recent validation scores, oldest to newest: " +
+            scores.map(function (s) { return window.PortfolioFormat.number(s, { decimals: 1 }); }).join(", ") + ".");
 
         var W = container.clientWidth || 200;
         var H = 60;
@@ -224,7 +239,7 @@
             .on("mouseover", function (event, d) {
                 var score = typeof d === "number" ? d : d;
                 if (tooltipEl) {
-                    tooltipEl.textContent = "Score: " + (Math.round(score * 10) / 10);
+                    tooltipEl.textContent = "Score: " + window.PortfolioFormat.number(score, { decimals: 1 });
                     tooltipEl.classList.add("visible");
                     var rect = container.getBoundingClientRect();
                     var cx = parseFloat(d3.select(this).attr("cx")) + pad.left;
@@ -266,6 +281,10 @@
         $parseResult.removeClass("d-none");
     }
 
+    function announceParsed(dto) {
+        announce("Address parsed: " + (dto.standardizedAddress || "no standardized form") + ".");
+    }
+
     // ── Render validation result ───────────────────────────────────────────────
     // confidenceTier arrives as an integer from the API (System.Text.Json default enum serialization):
     //   0 = High, 1 = Medium, 2 = Low, 3 = Unresolved
@@ -292,9 +311,9 @@
         $tierCard
             .removeClass("tier-high tier-medium tier-low tier-unresolved")
             .addClass(cfg.cls);
-        $tierIcon.html('<i class="fa-solid ' + cfg.icon + '"></i>');
+        $tierIcon.html('<i class="fa-solid ' + cfg.icon + '" aria-hidden="true"></i>');
         $tierLabel.text(cfg.label);
-        $tierScore.text("Score: " + (Math.round(score * 10) / 10));
+        $tierScore.text("Score: " + window.PortfolioFormat.number(score, { decimals: 1 }));
 
         $matchedAddress.text(matched);
 
@@ -354,11 +373,12 @@
     // ── Parse action ───────────────────────────────────────────────────────────
     function doParse(raw, fromDebounce) {
         hideAlert();
+        var done = null;
         if (fromDebounce) {
             showAnalyzing(true);
         } else {
             $parseSpinner.removeClass("d-none");
-            setButtonsBusy(true);
+            done = beginBusy(document.getElementById("asParseResult"));
         }
 
         callParse(raw)
@@ -366,6 +386,7 @@
                 if (resp.ok) {
                     return resp.json().then(function (dto) {
                         renderParseResult(dto);
+                        if (!fromDebounce) announceParsed(dto);
                     });
                 } else {
                     $parsePlaceholder.removeClass("d-none");
@@ -375,11 +396,12 @@
             })
             .catch(function (err) {
                 if (window.showToast) window.showToast("Network error: " + err.message, "danger");
+                announce("Network error: " + err.message);
             })
             .finally(function () {
                 showAnalyzing(false);
                 $parseSpinner.addClass("d-none");
-                setButtonsBusy(false);
+                if (done) done();
             });
     }
 
@@ -388,13 +410,15 @@
         hideAlert();
         $parseSpinner.removeClass("d-none");
         $validateSpinner.removeClass("d-none");
-        setButtonsBusy(true);
+        var done = beginBusy(document.getElementById("asValidateResult"));
 
         callValidate(raw)
             .then(function (resp) {
                 if (resp.ok) {
                     return resp.json().then(function (dto) {
                         renderValidateResult(dto);
+                        announce((tierConfig[dto.confidenceTier] || tierConfig.Unresolved).label.toLowerCase() +
+                            ", score " + window.PortfolioFormat.number(dto.score, { decimals: 1 }) + ".");
                     });
                 } else {
                     return handleApiError(resp);
@@ -406,7 +430,7 @@
             .finally(function () {
                 $parseSpinner.addClass("d-none");
                 $validateSpinner.addClass("d-none");
-                setButtonsBusy(false);
+                done();
             });
     }
 
@@ -417,8 +441,7 @@
         $charCount.text(len + (len === 1 ? " character" : " characters"));
 
         var hasText = val.trim().length > 0;
-        $btnParse.prop("disabled", !hasText);
-        $btnValidate.prop("disabled", !hasText);
+        syncButtons();
 
         // Reset validation when input changes
         resetValidation();

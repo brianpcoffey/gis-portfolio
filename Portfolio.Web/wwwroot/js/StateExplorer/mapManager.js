@@ -11,16 +11,40 @@ const graphicsById = new Map(); // featureId => Graphic
 let clickHandle = null;
 let hoverHandle = null;
 
-// Symbols used for different states
-const symbols = {
-    default: { type: "simple-fill", color: [100, 100, 100, 0.1], outline: { color: [80, 80, 80], width: 1 } },
-    saved: { type: "simple-fill", color: [40, 167, 69, 0.4], outline: { color: "#28a745", width: 2 } },
-    selected: { type: "simple-fill", color: [13, 110, 253, 0.5], outline: { color: "#0d6efd", width: 3 } },
-    comparing: { type: "simple-fill", color: [255, 193, 7, 0.4], outline: { color: "#ffc107", width: 3 } },
-    hover: { type: "simple-fill", color: [108, 117, 125, 0.3], outline: { color: "#6c757d", width: 2 } }
-};
+// The Esri widget theme (light/dark) is loaded by esri-theme.js; start it before the map exists.
+window.PortfolioEsri.loadTheme();
 
-function symbolFor(featureId, state) {
+// Reads a CSS token as [r, g, b]. Handles "#rrggbb" and the "r, g, b" channel tokens (--status-*-rgb).
+function tokenRgb(name) {
+    const raw = getComputedStyle(document.body).getPropertyValue("--" + name).trim();
+    const hex = /^#([0-9a-f]{6})$/i.exec(raw);
+    if (hex) {
+        const n = parseInt(hex[1], 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+    const parts = raw.split(",").map(s => parseInt(s, 10));
+    return parts.length === 3 && parts.every(Number.isFinite) ? parts : [0, 0, 0];
+}
+
+// Symbols used for different states, drawn from the brand and status tokens (D-09c) so the
+// map matches the rest of the page: saved = success, selected = info, comparing = warning.
+function buildSymbols() {
+    const muted = tokenRgb("text-muted");
+    const fill = (rgb, alpha, width) => ({
+        type: "simple-fill",
+        color: [...rgb, alpha],
+        outline: { color: rgb, width }
+    });
+    return {
+        default: { type: "simple-fill", color: [...muted, 0.1], outline: { color: muted, width: 1 } },
+        saved: fill(tokenRgb("status-success-rgb"), 0.4, 2),
+        selected: fill(tokenRgb("status-info-rgb"), 0.5, 3),
+        comparing: fill(tokenRgb("status-warning-rgb"), 0.4, 3),
+        hover: fill(muted, 0.3, 2)
+    };
+}
+
+function symbolFor(featureId, state, symbols) {
     if (state.selectedFeatureId === featureId) return symbols.selected;
     if (state.compareSet.has(featureId)) return symbols.comparing;
     if (state.savedFeatures.has(featureId)) return symbols.saved;
@@ -29,11 +53,14 @@ function symbolFor(featureId, state) {
 
 export const MapManager = {
 
-    // exported placeholders — will be assigned during init
+    // exported placeholders â€” will be assigned during init
     view: null,
     map: null,
 
     async init() {
+
+        // Load the ArcGIS API (and its theme) through the shared loader.
+        await window.PortfolioEsri.load();
 
         return new Promise((resolve, reject) => {
 
@@ -70,6 +97,13 @@ export const MapManager = {
                     this.view = view;
                     this.map = map;
 
+                    // ArcGIS nests its own role="application" surface in the container; name that one.
+                    view.when(() => {
+                        const surface = view.container.querySelector(".esri-view-surface");
+                        const label = document.getElementById("mapView")?.dataset.mapLabel;
+                        if (surface && label) surface.setAttribute("aria-label", label);
+                    });
+
                     // Subscribe to state changes
                     subscribe(state => {
                         this.renderFeatures(state);
@@ -85,6 +119,7 @@ export const MapManager = {
     renderFeatures(stateSnapshot) {
 
         const state = stateSnapshot || getState();
+        const symbols = buildSymbols();
 
         const currentIds = new Set(
             state.features.map(f => String(f.featureId || f.FeatureId))
@@ -126,7 +161,7 @@ export const MapManager = {
             geometry.type = geometry.type || "polygon";
 
 
-            const sym = symbolFor(id, state);
+            const sym = symbolFor(id, state, symbols);
 
 
             if (graphicsById.has(id)) {
@@ -177,7 +212,7 @@ export const MapManager = {
 
             geometry: g.geometry,
 
-            symbol: symbols.hover
+            symbol: buildSymbols().hover
 
         });
 

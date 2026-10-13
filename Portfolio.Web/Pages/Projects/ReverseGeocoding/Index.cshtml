@@ -1,38 +1,17 @@
 @page
 @model Portfolio.Web.Pages.Projects.ReverseGeocoding.IndexModel
+@using Portfolio.Common.Models
 @{
 	Layout = "/Pages/Shared/_Layout.cshtml";
 	ViewData["Title"] = "Reverse Geocoding";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/reversegeocoding.css" />
+@section Styles {
+	<link rel="stylesheet" href="~/css/gis.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/css/reversegeocoding.css" asp-append-version="true" />
+}
 
-<div class="project-hero py-4 mb-4">
-	<div class="container">
-		<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-			<div>
-				<h1 class="mb-1">
-					<i class="fa-solid fa-map-pin me-2"></i>Reverse Geocoding
-				</h1>
-				<p class="text-muted theme-text-muted mb-0">
-					Click anywhere on the map to discover what address or place is at that location.
-				</p>
-			</div>
-			<div class="d-flex align-items-center gap-2">
-				<span class="badge badge-gis fs-6">
-					<i class="fa-solid fa-satellite-dish me-1"></i>ArcGIS Geocoding API
-				</span>
-				<a class="btn btn-outline-accent btn-sm project-info-btn"
-				   href="/Projects/ReverseGeocoding/Details"
-				   aria-label="View technical details for Reverse Geocoding"
-				   title="Technical Details">
-					<i class="fa-solid fa-circle-info"></i>
-				</a>
-			</div>
-		</div>
-	</div>
-</div>
+<partial name="_ProjectHero" model='new ProjectHero("Reverse Geocoding", "fa-solid fa-map-pin", "Click anywhere on the map to discover what address or place is at that location.", new[] { new ProjectHeroBadge("fa-solid fa-satellite-dish", "ArcGIS Geocoding API") }, "/Projects/ReverseGeocoding/Details")' />
 
 <div class="reverse-geocoding-page">
 
@@ -41,7 +20,7 @@
 
 		<!-- Error alert area -->
 		<div id="rgAlert" class="alert alert-warning alert-dismissible fade d-none mb-3 mx-0" role="alert">
-			<i class="fa-solid fa-triangle-exclamation me-1"></i>
+			<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>
 			<span id="rgAlertMsg"></span>
 			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 		</div>
@@ -50,7 +29,7 @@
 
 			<!-- MAP COLUMN -->
 			<div class="col-lg-8">
-				<div id="rgMapView" class="rg-map-container shadow-sm"></div>
+				<div id="rgMapView" class="rg-map-container shadow-sm" data-map-label="Map: click to look up the address at a location"></div>
 			</div>
 
 			<!-- RIGHT PANEL -->
@@ -60,10 +39,10 @@
 					<!-- COORDINATE DISPLAY -->
 					<div class="rg-coordinate-display p-3 border-bottom">
 						<div class="d-flex align-items-center gap-2 mb-1">
-							<i class="fa-solid fa-crosshairs text-accent"></i>
-							<span class="fw-semibold small text-muted text-uppercase tracking-wide">Clicked Coordinates</span>
+							<i class="fa-solid fa-crosshairs text-accent" aria-hidden="true"></i>
+							<h2 class="fw-semibold small theme-text-muted text-uppercase mb-0 rg-caps">Clicked Coordinates</h2>
 						</div>
-						<div id="rgCoordinateReadout" class="rg-coord-readout text-muted">
+						<div id="rgCoordinateReadout" class="rg-coord-readout theme-text-muted">
 							Click the map to select a location
 						</div>
 					</div>
@@ -71,8 +50,8 @@
 					<!-- MANUAL INPUT FORM -->
 					<div class="p-3 border-bottom">
 						<div class="d-flex align-items-center gap-2 mb-2">
-							<i class="fa-solid fa-keyboard text-accent"></i>
-							<span class="fw-semibold small text-muted text-uppercase tracking-wide">Manual Lookup</span>
+							<i class="fa-solid fa-keyboard text-accent" aria-hidden="true"></i>
+							<h2 class="fw-semibold small theme-text-muted text-uppercase mb-0 rg-caps">Manual Lookup</h2>
 						</div>
 						<div class="row g-2 mb-2">
 							<div class="col-6">
@@ -89,14 +68,14 @@
 							</div>
 						</div>
 						<button id="rgLookupBtn" class="btn btn-accent btn-sm w-100">
-							<i class="fa-solid fa-magnifying-glass me-1"></i>Look Up
+							<i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Look Up
 						</button>
 					</div>
 
 					<!-- RESULT AREA -->
 					<div id="rgResultArea" class="p-3 border-bottom">
-						<div id="rgPlaceholder" class="text-center text-muted py-4">
-							<i class="fa-solid fa-map-pin fa-2x mb-2 d-block"></i>
+						<div id="rgPlaceholder" class="text-center theme-text-muted py-4">
+							<i class="fa-solid fa-map-pin fa-2x mb-2 d-block" aria-hidden="true"></i>
 							<small>Your result will appear here after clicking the map.</small>
 						</div>
 
@@ -105,12 +84,12 @@
 							<div class="spinner-border text-accent" role="status">
 								<span class="visually-hidden">Looking up address…</span>
 							</div>
-							<div class="small text-muted mt-2">Looking up address…</div>
+							<div class="small theme-text-muted mt-2">Looking up address…</div>
 						</div>
 
 						<!-- 404 message (hidden by default) -->
 						<div id="rgNotFound" class="alert alert-secondary d-none" role="alert">
-							<i class="fa-solid fa-circle-xmark me-1"></i>
+							<i class="fa-solid fa-circle-xmark me-1" aria-hidden="true"></i>
 							No address found at this location. Try clicking a nearby point.
 						</div>
 
@@ -154,14 +133,14 @@
 								</div>
 							</div>
 
-							<div class="rg-coords-row small text-muted mb-3">
-								<i class="fa-solid fa-location-dot me-1"></i>
+							<div class="rg-coords-row small theme-text-muted mb-3">
+								<i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>
 								Lat: <span id="rgResultLat"></span>&nbsp;&nbsp;
 								Lng: <span id="rgResultLng"></span>
 							</div>
 
 							<button id="rgSaveHistoryBtn" class="btn btn-outline-accent btn-sm w-100">
-								<i class="fa-solid fa-bookmark me-1"></i>Save to History
+								<i class="fa-solid fa-bookmark me-1" aria-hidden="true"></i>Save to History
 							</button>
 						</div>
 					</div>
@@ -169,11 +148,11 @@
 					<!-- RECENT LOOKUPS -->
 					<div class="p-3">
 						<div class="d-flex align-items-center gap-2 mb-2">
-							<i class="fa-solid fa-clock-rotate-left text-accent"></i>
-							<span class="fw-semibold small text-muted text-uppercase tracking-wide">Recent Lookups</span>
+							<i class="fa-solid fa-clock-rotate-left text-accent" aria-hidden="true"></i>
+							<h2 class="fw-semibold small theme-text-muted text-uppercase mb-0 rg-caps">Recent Lookups</h2>
 						</div>
 						<div id="rgHistoryList" class="rg-recent-lookups-list">
-							<div class="text-muted small text-center py-2" id="rgHistoryEmpty">No recent lookups yet.</div>
+							<div class="theme-text-muted small text-center py-2" id="rgHistoryEmpty">No recent lookups yet.</div>
 						</div>
 					</div>
 
@@ -185,6 +164,6 @@
 </div>
 
 @section Scripts {
-	<script defer src="https://js.arcgis.com/4.29/"></script>
+	<script defer src="~/js/esri-theme.js" asp-append-version="true"></script>
 	<script defer src="~/js/ReverseGeocoding/app.js" asp-append-version="true"></script>
 }

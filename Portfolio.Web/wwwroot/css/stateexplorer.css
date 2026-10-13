@@ -1,0 +1,92 @@
+/* ======================================
+   US State Explorer
+   Page-specific rules only. Colours come from the brand and status tokens in base.css.
+   ====================================== */
+
+.state-explorer-page .se-map {
+    height: 600px;
+}
+
+.state-explorer-page .se-basemap {
+    min-width: 150px;
+    max-width: 100%;
+}
+
+.state-explorer-page .se-scroll-sm {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.state-explorer-page .se-scroll-lg {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Statistics: status tokens keep the figures readable in both themes (FE-A09 T3/T4) */
+.state-explorer-page .se-stat-saved {
+    color: var(--status-success-text);
+}
+
+.state-explorer-page .se-stat-selected {
+    color: var(--status-info-text);
+}
+
+.state-explorer-page .se-stat-comparing {
+    color: var(--status-warning-text);
+}
+
+/* Collections list: the row is a div; the name is its own button, so no button nests in a button */
+.state-explorer-page .se-collection-select {
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+}
+
+.state-explorer-page .se-collection-select > span:last-child {
+    overflow-wrap: anywhere;
+}
+
+.state-explorer-page .se-color-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--input-border);
+}
+
+.state-explorer-page #collectionsList .list-group-item.active {
+    background-color: var(--accent-on-fill);
+    border-color: var(--accent-on-fill);
+    color: var(--on-dark);
+}
+
+.state-explorer-page #collectionsList .list-group-item.active .se-collection-select {
+    color: var(--on-dark);
+}
+
+.state-explorer-page #collectionsList .list-group-item.active .btn-outline-secondary {
+    --bs-btn-color: var(--on-dark);
+    --bs-btn-border-color: var(--on-dark);
+    --bs-btn-hover-color: var(--accent-on-fill);
+    --bs-btn-hover-bg: var(--on-dark);
+    --bs-btn-hover-border-color: var(--on-dark);
+}
+
+/* Saved-state rows: the name is a button too, styled as text */
+.state-explorer-page .se-saved-select {
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* "+ New" while signed out: aria-disabled keeps it focusable so the tooltip/hint is reachable */
+.state-explorer-page .btn[aria-disabled="true"] {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Comparison cards */
+.state-explorer-page .se-compare-desc {
+    max-width: 360px;
+}
