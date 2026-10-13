@@ -96,11 +96,15 @@ async function initialize() {
 
     await initMapOrReport();
 
+    // The server renders data-signed-in on the page root; only a signed-in visitor can use collections.
+    // A missing attribute counts as signed in, so the 401 fallback in CollectionService still applies.
+    const signedIn = document.querySelector(".state-explorer-page")?.dataset.signedIn !== "false";
+
     // Load data (includes collections from server)
     const [features, saved, collections] = await Promise.all([
         FeatureService.getFeatures(),
         FeatureService.getSavedFeatures(),
-        CollectionService.getCollections()
+        CollectionService.getCollections({ signedIn })
     ]);
 
     updateFeatures(features);
