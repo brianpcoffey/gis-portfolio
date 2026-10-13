@@ -91,8 +91,9 @@
     <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/preferences.css" asp-append-version="true" />
 
-    @* Page-level stylesheets (and vendor CSS such as DataTables) render here, after the
-       global CSS, so the cascade order matches the old in-body links. *@
+    @* Page-level stylesheets (and vendor CSS such as DataTables) render here. The page Styles
+       section comes after preferences.css; the DataTables CSS used to load in <head> before
+       base.css. Computed styles on Batch Geocoding and Plant Ops are unchanged (reviewed). *@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
