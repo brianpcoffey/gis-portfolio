@@ -2,6 +2,8 @@
     min-width: 100px;
 }
 
+.theme-toolbar .toolbar-btn { --bs-btn-color: var(--text); }
+
 #mapView {
     border-radius: 8px;
     overflow: hidden;
