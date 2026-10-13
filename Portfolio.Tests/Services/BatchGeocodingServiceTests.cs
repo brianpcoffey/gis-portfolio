@@ -227,6 +227,41 @@ namespace Portfolio.Tests.Services
             Assert.DoesNotContain("Secret", summary);
         }
 
+        [Fact]
+        public async Task ProcessJobAsync_EveryRowFaultsWithNonHttpException_JobFailsPromptly()
+        {
+            // Regression: when every per-row worker died on an exception other than
+            // HttpRequestException/OCE, the producer blocked forever on the bounded channel
+            // and the job stayed Processing, holding a BatchGeocodingWorker loop.
+            var csv = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 0; i < 600; i++)
+                csv.Append($"{i:D4},{i} Main St,Denver,CO,80201\n");
+
+            var service = new BatchGeocodingService(
+                new HttpClient(new ThrowingHttpMessageHandler()), _memoryCache, _loggerMock.Object,
+                _jobStoreMock.Object, new Portfolio.Services.BoundedBatchJobQueue(),
+                Options.Create(new BatchGeocodingOptions { MaxConcurrency = 4, MinMatchScore = 80.0 }));
+            var job = new Portfolio.Common.Models.BatchJob
+            {
+                JobId = "faulty", Status = Portfolio.Common.Models.BatchJobStatus.Queued, FileName = "faulty.csv"
+            };
+
+            var run = service.ProcessJobAsync(
+                new BatchWorkItem(job, Encoding.UTF8.GetBytes(csv.ToString())), CancellationToken.None);
+            var finished = await Task.WhenAny(run, Task.Delay(TimeSpan.FromSeconds(30)));
+
+            Assert.Same(run, finished);
+            await run;
+            Assert.Equal(Portfolio.Common.Models.BatchJobStatus.Failed, job.Status);
+        }
+
+        private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request, CancellationToken cancellationToken) =>
+                throw new InvalidOperationException("simulated non-HTTP fault");
+        }
+
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler
         {
             protected override Task<HttpResponseMessage> SendAsync(
