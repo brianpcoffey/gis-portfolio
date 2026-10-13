@@ -129,13 +129,11 @@ public class ArcGisUnavailableAttributeTests
     }
 
     [Fact]
-    public void AnUnknownUpstream_IsRejected()
+    public void AnUnknownUpstream_IsRejectedWhenTheAttributeIsConstructed()
     {
-        // Arrange
-        var (context, _) = NewContext(new BrokenCircuitException("open"), typeof(FeaturesController));
-
-        // Act & Assert
-        Assert.Throws<ArgumentOutOfRangeException>(() => new ArcGisUnavailableAttribute((ArcGisUpstream)99).OnException(context));
+        // Act & Assert: it fails at construction (MVC instantiates the attribute while discovering the action's filters), not on the first outage.
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new ArcGisUnavailableAttribute((ArcGisUpstream)99));
+        Assert.Equal("upstream", ex.ParamName);
     }
 
     [Fact]
