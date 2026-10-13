@@ -42,6 +42,9 @@ public sealed class PortfolioAppFactory : WebApplicationFactory<Program>
         // dev env var or appsettings enables it.
         builder.UseSetting("Redis__ConnectionString", "");
         builder.UseSetting("Redis:ConnectionString", "");
+        // Telemetry stays off even on a machine that sets OTEL_EXPORTER_OTLP_ENDPOINT globally; the tests that want
+        // it set the endpoint themselves, after this.
+        builder.UseSetting("OTEL_EXPORTER_OTLP_ENDPOINT", "");
         builder.UseSetting("Authentication:Google:ClientId", "test-client-id");
         builder.UseSetting("Authentication:Google:ClientSecret", "test-client-secret");
         builder.ConfigureTestServices(services =>
