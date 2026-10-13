@@ -30,6 +30,14 @@ namespace Portfolio.Tests.Integration;
 /// A test never uses the database named in that string for its own work: it creates a database called
 /// <c>portfolio_pgtest_&lt;guid&gt;</c> through that connection, works only in the new database, and drops it afterwards,
 /// so pointing the variable at a server that also hosts real data leaves that data alone.
+/// <para>
+/// Point the variable at a local server rather than a hosted one such as Neon: every test is a create and a drop
+/// over the connection. The drop uses <c>DROP DATABASE name WITH (FORCE)</c>, which needs PostgreSQL 13 or later.
+/// A run that is killed or cancelled between the create and the drop leaves its <c>portfolio_pgtest_*</c> database
+/// behind. List the strays with
+/// <c>SELECT datname FROM pg_database WHERE datname LIKE 'portfolio\_pgtest\_%'</c> and drop each with
+/// <c>DROP DATABASE "name" WITH (FORCE)</c>.
+/// </para>
 /// </remarks>
 public class PostgresMigrationTests
 {
