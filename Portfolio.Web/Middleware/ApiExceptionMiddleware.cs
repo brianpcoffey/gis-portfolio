@@ -58,7 +58,7 @@ namespace Portfolio.Web.Middleware
         /// throw helpers (Dictionary indexer, serializer, ThrowIfNull...) are not
         /// own; a null TargetSite counts as not own.
         /// </summary>
-        private static bool IsOwn(Exception ex) =>
+        internal static bool IsOwn(Exception ex) =>
             ex.TargetSite?.DeclaringType?.Assembly.GetName().Name?.StartsWith("Portfolio.", StringComparison.Ordinal) == true;
 
         private static async Task WriteProblemDetailsAsync(HttpContext context, Exception ex)
