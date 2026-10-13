@@ -146,6 +146,34 @@ namespace Portfolio.Tests.Middleware
         }
 
         [Theory]
+        [InlineData("anonuserid")]
+        [InlineData("ANONUSERID")]
+        [InlineData(".aspnetcore.cookies")]
+        [InlineData(".ASPNETCORE.COOKIES")]
+        [InlineData(".aspnetcore.cookiesC1")]
+        public async Task UnsafeMethod_WithAnIdentityCookieNameInAnyCaseAndNoHeader_Returns403(string cookieName)
+        {
+            // Arrange
+            // ASP.NET reads cookies case-insensitively, so a differently cased name is still the identity cookie.
+
+            // Act
+            var outcome = await RunAsync("POST", "/api/v1/fiber/orders", cookie: $"{cookieName}=value");
+
+            // Assert
+            AssertRejected(outcome);
+        }
+
+        [Fact]
+        public async Task UnsafeMethod_WithAConfiguredAuthCookieNameInAnotherCase_Returns403()
+        {
+            // Act
+            var outcome = await RunAsync("POST", "/api/v1/fiber/orders", cookie: "myauthC1=ticket", authCookieName: "MyAuth");
+
+            // Assert
+            AssertRejected(outcome);
+        }
+
+        [Theory]
         [InlineData("XMLHttpRequest")]
         [InlineData("x")]
         [InlineData("1")]

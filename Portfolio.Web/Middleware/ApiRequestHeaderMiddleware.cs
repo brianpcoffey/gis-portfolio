@@ -19,7 +19,8 @@ namespace Portfolio.Web.Middleware
     /// The rule applies when all of these hold: the path is under <c>/api</c>; the method is not GET, HEAD or OPTIONS
     /// (everything else is treated as state-changing, so an unusual verb cannot slip past); and the request carries an
     /// identity cookie, either <c>AnonUserId</c> or the cookie-authentication cookie (matched by prefix, because a large
-    /// ticket is split into <c>.AspNetCore.CookiesC1</c>, <c>C2</c>, ...). A request with no identity cookie has no
+    /// ticket is split into <c>.AspNetCore.CookiesC1</c>, <c>C2</c>, ...; names match ignoring case, as ASP.NET reads
+    /// cookies). A request with no identity cookie has no
     /// ambient authority, so curl, probes and Scalar without cookies pass unchanged. <c>/csp-report</c> is not under
     /// <c>/api</c>: browsers send CSP reports themselves and cannot add headers to them.
     /// </para>
@@ -88,17 +89,17 @@ namespace Portfolio.Web.Middleware
         private static bool HasHeader(HttpRequest request) =>
             request.Headers.TryGetValue(HeaderName, out var values) && values.Any(v => !string.IsNullOrWhiteSpace(v));
 
+        // Names are compared ignoring case: ASP.NET reads cookies case-insensitively, so ".aspnetcore.cookies" still
+        // authenticates and "anonuserid" is still taken as the anonymous identity.
         private bool HasIdentityCookie(HttpRequest request)
         {
-            var cookies = request.Cookies;
-            if (cookies.ContainsKey(AnonymousCookieName))
-                return true;
-
             var authName = _cookieOptions.Get(CookieAuthenticationDefaults.AuthenticationScheme).Cookie.Name;
             if (string.IsNullOrEmpty(authName))
                 authName = DefaultAuthCookieName;
 
-            return cookies.Keys.Any(name => name.StartsWith(authName, StringComparison.Ordinal));
+            return request.Cookies.Keys.Any(name =>
+                name.Equals(AnonymousCookieName, StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith(authName, StringComparison.OrdinalIgnoreCase));
         }
     }
 }
