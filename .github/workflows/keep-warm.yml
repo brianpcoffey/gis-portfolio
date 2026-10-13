@@ -34,7 +34,8 @@ jobs:
             code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 75 \
               -A 'gis-portfolio-keep-warm (+https://github.com/brianpcoffey/gis-portfolio)' "$URL") || code=000
             [ "$code" = 200 ] && { echo "attempt $attempt: 200"; exit 0; }
-            echo "attempt $attempt: HTTP $code"; sleep 10
+            echo "attempt $attempt: HTTP $code"
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
           done
           if [ "$STRICT" = true ]; then echo "::error::/health/live failed 3 times (last $code)"; exit 1; fi
           echo "::warning::/health/live failed 3 times (last $code); next run retries"

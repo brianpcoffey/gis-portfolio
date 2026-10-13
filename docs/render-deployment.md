@@ -250,13 +250,13 @@ On the free plan Render stops the service after 15 minutes without inbound HTTP,
 | Failed run | a warning annotation; the next run retries |
 | Strict run | 15:41 UTC daily, and manual runs: a failure fails the run and notifies |
 
-The window is fixed in UTC, so local times move with daylight saving. In summer (EDT and PDT) it is 8 AM to midnight Eastern and 5 AM to 8:59 PM Pacific; in winter it starts and ends one hour earlier.
+The window is fixed in UTC, so local times move with daylight saving. In summer (EDT and PDT) it is 8 AM to 11:59 PM Eastern and 5 AM to 8:59 PM Pacific; in winter (EST and PST) it is 7 AM to 10:59 PM Eastern and 4 AM to 7:59 PM Pacific.
 
-**Budget.** The free plan includes 750 instance-hours per workspace per month, shared by every free service. Pinging for 16 hours a day uses about 500 of them in a 31-day month. Before relying on this, check the Render dashboard under **Billing** → **Monthly Included Usage**. If other free services share the workspace, or usage nears the limit, the alternative is the Starter plan ($7/month), which removes spin-down.
+**Budget.** The free plan includes 750 instance-hours per workspace per month, shared by every free service; when they run out, Render suspends every free service in the workspace until the 1st. The pings alone keep the instance up about 16 hours a day (about 500 hours in a 31-day month), and visitors, crawlers and deploys outside the window add to that. One free service can never use more than 744 hours in a month (24 × 31), so a single service fits; a second free service in the same workspace is the real risk. Check the Render dashboard under **Billing** → **Monthly Included Usage**. If other free services share the workspace, or usage nears the limit, the alternative is the Starter plan ($7/month), which removes spin-down.
 
-**Acceptable use.** Render's acceptable-use policy does not mention keep-alive pings. The ping stays inside working hours as the conservative reading of that policy. If Render objects, disable the workflow and move to Starter.
+**Acceptable use.** Render's Acceptable Use Policy forbids attempts to "bypass, circumvent, or defeat any access or usage restrictions" and does not say whether a keep-alive ping counts, so it is ambiguous. The ping stays inside working hours as the conservative reading. If Render objects, disable the workflow and move to Starter.
 
-**Turning it off and on.** Disable it with `gh workflow disable keep-warm.yml` or from the Actions tab; re-enable it with `gh workflow enable keep-warm.yml`. GitHub disables scheduled workflows in a public repository after 60 days without repository activity, so the workflow can stop on its own. It then shows as disabled in the Actions tab; re-enable it with the command above.
+**Turning it off and on.** Disable it with `gh workflow disable keep-warm.yml` or from the Actions tab; re-enable it with `gh workflow enable keep-warm.yml`. GitHub disables scheduled workflows in a public repository after 60 days without repository activity, so the workflow can stop on its own (users report a warning email about 7 days before). It then shows as disabled in the Actions tab; re-enable it with the command above.
 
 **Failure notifications.** A failed strict run notifies the person who last edited the cron lines, subject to their Actions notification settings. Warning-only runs do not fail, so they send no email. To see recent runs, use `gh run list --workflow keep-warm.yml`.
 
