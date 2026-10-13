@@ -38,8 +38,4 @@
     <PackageReference Include="Scalar.AspNetCore" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="obj\Debug\net10.0\Microsoft.AspNetCore.OpenApi.SourceGenerators\Microsoft.AspNetCore.OpenApi.SourceGenerators.XmlCommentGenerator\" />
-  </ItemGroup>
-
 </Project>
