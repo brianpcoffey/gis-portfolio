@@ -47,9 +47,11 @@
   }
 
   // Theme plus the API script. Resolves when the API script has loaded.
+  var loadPromise = null;
   function load() {
+    if (loadPromise) { return loadPromise; }
     loadTheme();
-    return new Promise(function (resolve, reject) {
+    loadPromise = new Promise(function (resolve, reject) {
       var s = document.createElement("script");
       s.src = BASE;
       applyIntegrity(s, BASE);
@@ -57,6 +59,7 @@
       s.onerror = function () { reject(new Error("Failed to load the ArcGIS API.")); };
       document.head.appendChild(s);
     });
+    return loadPromise;
   }
 
   g.PortfolioEsri = { version: VERSION, baseUrl: BASE, themeHref: themeHref, integrity: integrity, loadTheme: loadTheme, load: load };
