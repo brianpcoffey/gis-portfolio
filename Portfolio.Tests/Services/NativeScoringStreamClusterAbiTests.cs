@@ -353,8 +353,10 @@ namespace Portfolio.Tests.Services
 
         // Grids far below the managed service minimum (1e-6), so the quotient overflows int32 for every
         // event but those on the lower edge (numerator 0) - or overflows double itself to +Infinity.
-        // Denormal grids are left out on purpose: -ffast-math on GCC flushes denormals to zero when
-        // the library loads, so how the platform treats one is not part of this contract.
+        // Denormal grids are left out on purpose: whether a denormal is flushed to zero depends on the
+        // thread's floating-point mode, which is not part of this contract. (GCC before 13 linked
+        // crtfastmath.o into a -ffast-math shared library, which set flush-to-zero for the loading
+        // thread; GCC 13 and later do not do that for -shared, and this kernel no longer uses fast math.)
         public static TheoryData<double> SaturatingGrids => new()
         {
             1e-9,
