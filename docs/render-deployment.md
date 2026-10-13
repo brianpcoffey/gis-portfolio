@@ -238,6 +238,28 @@ If using Render's **Free tier** (not Starter $7/month):
 
 Redis connection will be re-established automatically on cold start.
 
+## Cold starts and the keep-warm ping
+
+On the free plan Render stops the service after 15 minutes without inbound HTTP, and the next request waits about a minute while it starts. The workflow `.github/workflows/keep-warm.yml` reduces that during working hours: a scheduled GitHub Actions job sends `GET https://brianpcoffey.com/health/live` so the instance stays up. Outside the window the free instance is still allowed to sleep.
+
+| Setting | Value |
+|---------|-------|
+| Window | 12:00 to 03:59 UTC, every day |
+| Cadence | every 5 minutes, at minutes 3 to 58 (runs at the top of the hour are avoided because GitHub delays them) |
+| Attempts | up to three per run; each waits up to 75 seconds for a response, with 10 seconds between attempts |
+| Failed run | a warning annotation; the next run retries |
+| Strict run | 15:41 UTC daily, and manual runs: a failure fails the run and notifies |
+
+The window is fixed in UTC, so local times move with daylight saving. In summer (EDT and PDT) it is 8 AM to midnight Eastern and 5 AM to 8:59 PM Pacific; in winter it starts and ends one hour earlier.
+
+**Budget.** The free plan includes 750 instance-hours per workspace per month, shared by every free service. Pinging for 16 hours a day uses about 500 of them in a 31-day month. Before relying on this, check the Render dashboard under **Billing** → **Monthly Included Usage**. If other free services share the workspace, or usage nears the limit, the alternative is the Starter plan ($7/month), which removes spin-down.
+
+**Acceptable use.** Render's acceptable-use policy does not mention keep-alive pings. The ping stays inside working hours as the conservative reading of that policy. If Render objects, disable the workflow and move to Starter.
+
+**Turning it off and on.** Disable it with `gh workflow disable keep-warm.yml` or from the Actions tab; re-enable it with `gh workflow enable keep-warm.yml`. GitHub disables scheduled workflows in a public repository after 60 days without repository activity, so the workflow can stop on its own. It then shows as disabled in the Actions tab; re-enable it with the command above.
+
+**Failure notifications.** A failed strict run notifies the person who last edited the cron lines, subject to their Actions notification settings. Warning-only runs do not fail, so they send no email. To see recent runs, use `gh run list --workflow keep-warm.yml`.
+
 ## Cost Estimate
 
 | Service | Tier | Cost |
