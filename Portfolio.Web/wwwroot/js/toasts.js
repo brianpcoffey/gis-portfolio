@@ -21,9 +21,19 @@
         };
         const icon = iconMap[type] || iconMap.info;
 
+        // Identical toasts don't stack: reuse the live one (timed types restart their timer).
+        const key = type + "|" + message;
+        for (const live of container.children) {
+            if (live.dataset.key === key && !live.classList.contains("toast-slide-out")) {
+                if (typeof live._restart === "function") { live._restart(); }
+                return;
+            }
+        }
+
         const assertive = type === "danger" || type === "warning";
         const toast = document.createElement("div");
         toast.className = `toast align-items-center text-bg-${type} border-0 show`;
+        toast.dataset.key = key;
         toast.setAttribute("role", assertive ? "alert" : "status");
         // Errors/warnings interrupt (assertive); routine success/info announce politely.
         toast.setAttribute("aria-live", assertive ? "assertive" : "polite");
@@ -87,6 +97,11 @@
             toast.addEventListener("mouseleave", resume);
             toast.addEventListener("focusin", pause);
             toast.addEventListener("focusout", resume);
+            toast._restart = function () {
+                if (timer !== null) { clearTimeout(timer); timer = null; }
+                remaining = AUTO_HIDE_MS;
+                if (!toast.matches(":hover, :focus-within")) { start(); }
+            };
             start();
         }
     }
