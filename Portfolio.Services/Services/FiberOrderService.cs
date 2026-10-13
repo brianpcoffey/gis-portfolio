@@ -83,8 +83,11 @@ public class FiberOrderService : IFiberOrderService
     // and a per-user, per-day sequence that starts at 0001 (it widens past 9999 rather than wrapping). The next
     // sequence is one past the highest the user already holds for that day, so deleting an earlier order never lets
     // a later create reuse a surviving order's number. The seeded demo orders follow the same scheme, dated by their
-    // own order date (FiberDemoSeedData). There is no unique constraint on the column, so two creates by the same
-    // user racing in the same instant could be issued the same number; the dashboard issues one request at a time.
+    // own order date (FiberDemoSeedData). Reading the highest sequence and inserting are separate steps and the column
+    // has no unique index, so two overlapping creates by the same user could be issued the same number. Today the
+    // dashboard's order form prevents that by disabling its submit button until a create finishes (orders.js), so one
+    // form sends one create at a time. Nothing on the server stops a second client (another tab or a script) from
+    // racing; closing that gap would take a unique (UserId, OrderNumber) index and a retry, which is not done here.
     private async Task<string> NextOrderNumberAsync(Guid userId, CancellationToken cancellationToken)
     {
         var prefix = $"ORD-{_timeProvider.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-";
