@@ -1,6 +1,3 @@
-/* ======================================
-   Animation Classes
-   ====================================== */
 .fade-in {
     opacity: 0;
     transform: translateY(20px);
@@ -12,9 +9,6 @@
     transform: translateY(0);
 }
 
-/* ======================================
-   Cards (General)
-   ====================================== */
 .card {
     background-color: var(--surface);
     color: var(--text);
@@ -39,9 +33,6 @@
     transform: scale(1.15);
 }
 
-/* ======================================
-   Skill tags (adapt to theme via CSS variables)
-   ====================================== */
 .skill-tag {
     display: inline-block;
     background: var(--surface);
@@ -61,9 +52,6 @@
     border-color: var(--accent-on-fill);
 }
 
-/* ======================================
-   Form Controls
-   ====================================== */
 .form-control {
     background-color: var(--surface);
     color: var(--text);
@@ -92,9 +80,6 @@ body.dark-mode .form-control {
     border-color: var(--input-border);
 }
 
-/* ======================================
-   Badges & Tags
-   ====================================== */
 .badge-gis {
     background-color: var(--accent-on-fill);
     color: #fff;
@@ -104,9 +89,6 @@ body.dark-mode .form-control {
     font-weight: 600;
 }
 
-/* ======================================
-   Loading Spinner
-   ====================================== */
 .spinner-gis {
     width: 40px;
     height: 40px;
@@ -122,9 +104,6 @@ body.dark-mode .form-control {
     }
 }
 
-/* ======================================
-   Busy Buttons
-   ====================================== */
 /* PortfolioUi.busy swaps `disabled` for aria-disabled="true" + .is-busy so a button keeps focus while its
    request runs; nothing else dims it, so it would look clickable. Same dimming Bootstrap gives :disabled.
    Specificity is (0,2,0): a page rule for aria-disabled on its own terms (State Explorer's signed-out
@@ -135,9 +114,7 @@ body.dark-mode .form-control {
     cursor: progress;
 }
 
-/* ======================================
-   Toasts (shared slide in / out; showToast in toasts.js adds the classes)
-   ====================================== */
+/* Toasts: shared slide in / out; showToast in toasts.js adds the classes. */
 .toast:not(.fade) {
     opacity: 0;
     transform: translateX(100%);
@@ -154,10 +131,6 @@ body.dark-mode .form-control {
     transform: translateX(100%);
 }
 
-/* ======================================
-   Project hero bar (all project Index pages)
-   Copied from the rule that wins today (gis.css).
-   ====================================== */
 .project-hero {
     background: linear-gradient(135deg, rgba(26, 54, 93, 0.10), rgba(56, 161, 105, 0.12));
     border-bottom: 1px solid var(--border);
@@ -169,10 +142,8 @@ body.dark-mode .project-hero {
     border-bottom-color: var(--border);
 }
 
-/* ======================================
-   Panel (used by the 18 project Details pages)
-   One surface/border/radius/shadow for result and control panels.
-   ====================================== */
+/* Panel: one surface/border/radius/shadow for result and control panels, used by the project
+   Details pages. */
 .panel {
     background: var(--surface);
     color: var(--text);
@@ -196,11 +167,8 @@ body.dark-mode .project-hero {
     padding: 1rem;
 }
 
-/* ======================================
-   KPI tile (additive)
-   Markup: <dl class="kpi"><dt class="kpi__label">..</dt><dd class="kpi__value">..</dd></dl>
-   or a <div> with aria-describedby from the value to the label.
-   ====================================== */
+/* KPI tile. Markup: <dl class="kpi"><dt class="kpi__label">..</dt><dd class="kpi__value">..</dd></dl>
+   or a <div> with aria-describedby from the value to the label. */
 .kpi {
     margin: 0;
     padding: 0.85rem;
@@ -231,10 +199,7 @@ body.dark-mode .project-hero {
 .kpi--success .kpi__value { color: var(--status-success-text); }
 .kpi--danger .kpi__value { color: var(--status-danger-text); }
 
-/* ======================================
-   Legend (additive)
-   Swatch colour is passed as --swatch via el.style.setProperty (CSP-safe).
-   ====================================== */
+/* Legend. Swatch colour is passed as --swatch via el.style.setProperty (CSP-safe). */
 .legend {
     list-style: none;
     margin: 0;
@@ -262,9 +227,6 @@ body.dark-mode .project-hero {
     border: 1px solid var(--border);
 }
 
-/* ======================================
-   Loading / empty / error states (additive)
-   ====================================== */
 .state-loading,
 .state-empty,
 .state-error {
@@ -292,9 +254,6 @@ body.dark-mode .project-hero {
     animation: spin 1s linear infinite;
 }
 
-/* ======================================
-   Responsive Utilities
-   ====================================== */
 @media (max-width: 768px) {
     .hero-title {
         font-size: 2.5rem;
@@ -318,18 +277,12 @@ body.dark-mode .project-hero {
     }
 }
 
-/* ======================================
-   Logout Card
-   ====================================== */
 .logout-card {
     max-width: 400px;
 }
 
-/* ======================================
-   Dark Mode – Bootstrap Component Overrides
-   ====================================== */
+/* Dark mode: Bootstrap component overrides */
 
-/* Card headers */
 body.dark-mode .card-header {
     background-color: var(--background);
     color: var(--text);
@@ -338,7 +291,6 @@ body.dark-mode .card-header {
     border-top-right-radius: inherit;
 }
 
-/* Outline secondary buttons */
 body.dark-mode .btn-outline-secondary {
     color: var(--text-muted);
     border-color: var(--border);
@@ -351,7 +303,6 @@ body.dark-mode .btn-outline-secondary:focus {
     border-color: var(--border);
 }
 
-/* Tables */
 body.dark-mode .table {
     --bs-table-bg: var(--surface);
     --bs-table-striped-bg: var(--background);
@@ -389,7 +340,6 @@ body.dark-mode .table-hover > tbody > tr:hover > * {
     color: var(--text);
 }
 
-/* Alerts */
 body.dark-mode .alert-info {
     background-color: rgba(49, 130, 206, 0.15);
     color: #90cdf4;
@@ -414,7 +364,6 @@ body.dark-mode .alert-danger {
     border-color: rgba(229, 62, 62, 0.3);
 }
 
-/* Form controls */
 body.dark-mode .form-control::placeholder,
 body.dark-mode .form-select::placeholder,
 body.dark-mode textarea::placeholder,
@@ -440,7 +389,6 @@ body.dark-mode .input-group-text {
     border-color: var(--border);
 }
 
-/* List group */
 body.dark-mode .list-group-item {
     background-color: var(--surface);
     color: var(--text);
@@ -453,7 +401,6 @@ body.dark-mode .list-group-item-action:focus {
     color: var(--text);
 }
 
-/* Modals */
 body.dark-mode .modal-content {
     background-color: var(--surface);
     color: var(--text);
@@ -469,7 +416,6 @@ body.dark-mode .modal .btn-close {
     filter: invert(1) grayscale(1);
 }
 
-/* Dropdowns */
 body.dark-mode .dropdown-menu {
     background-color: var(--surface);
     border-color: var(--border);
@@ -490,7 +436,6 @@ body.dark-mode .dropdown-divider {
     border-color: var(--border);
 }
 
-/* Nav tabs */
 body.dark-mode .nav-tabs {
     border-bottom-color: var(--border);
 }
@@ -513,7 +458,6 @@ body.dark-mode .nav-tabs .nav-item.show .nav-link {
     color: var(--text);
 }
 
-/* Badges */
 body.dark-mode .badge.text-bg-secondary {
     background-color: var(--text-muted) !important;
     color: var(--background) !important;
@@ -529,9 +473,7 @@ body.dark-mode .badge.text-bg-dark {
     color: var(--text) !important;
 }
 
-/* ======================================
-   Dark Mode – DataTables Overrides
-   ====================================== */
+/* Dark mode: DataTables overrides */
 
 body.dark-mode table.dataTable thead th,
 body.dark-mode table.dataTable thead td {

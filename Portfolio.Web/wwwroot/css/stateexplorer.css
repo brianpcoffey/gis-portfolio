@@ -1,7 +1,4 @@
-/* ======================================
-   US State Explorer
-   Page-specific rules only. Colours come from the brand and status tokens in base.css.
-   ====================================== */
+/* Page-specific rules only. Colours come from the brand and status tokens in base.css. */
 
 .state-explorer-page .se-map {
     height: 600px;
@@ -86,7 +83,6 @@
     cursor: not-allowed;
 }
 
-/* Comparison cards */
 .state-explorer-page .se-compare-desc {
     max-width: 360px;
 }

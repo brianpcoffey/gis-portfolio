@@ -1,17 +1,11 @@
-﻿/* ======================================================
-   Reverse Geocoding Page Styles
-   Colours come from the tokens in base.css; dark mode follows the tokens, and the shared
-   dark-mode rules (forms, alerts, buttons, modals) live in components.css.
-   All selectors scoped under .reverse-geocoding-page.
-   ====================================================== */
+/* Colours come from the tokens in base.css; dark mode follows the tokens, and the shared dark-mode rules
+   (forms, alerts, buttons, modals) live in components.css. All selectors scoped under .reverse-geocoding-page. */
 
-/* -- Layout -------------------------------------------------------- */
 .reverse-geocoding-page .rg-layout {
     min-height: calc(100vh - 180px);
     align-items: stretch;
 }
 
-/* -- Map Container ------------------------------------------------- */
 .reverse-geocoding-page .rg-map-container {
     height: calc(100vh - 180px);
     min-height: 400px;
@@ -31,7 +25,6 @@
     }
 }
 
-/* -- Result Panel -------------------------------------------------- */
 .reverse-geocoding-page .rg-result-panel {
     height: calc(100vh - 180px);
     min-height: 400px;
@@ -61,7 +54,6 @@
     letter-spacing: 0.05em;
 }
 
-/* -- Coordinate Display -------------------------------------------- */
 .reverse-geocoding-page .rg-coordinate-display {
     background: var(--background);
 }
@@ -73,7 +65,6 @@
     color: var(--text);
 }
 
-/* -- Result Card --------------------------------------------------- */
 .reverse-geocoding-page .rg-result-card {
     background: var(--background);
     border: 1px solid var(--border);
@@ -87,7 +78,6 @@
     color: var(--text);
 }
 
-/* -- Detail Grid --------------------------------------------------- */
 .reverse-geocoding-page .rg-detail-grid {
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -135,7 +125,7 @@
     font-size: 0.8rem;
 }
 
-/* -- Location Type Badge (status fills; label colour is contrast-safe on each) */
+/* Location type badge: status fills; the label colour is contrast-safe on each. */
 .reverse-geocoding-page .rg-location-type-badge {
     font-size: 0.7rem;
     padding: 0.3em 0.55em;
@@ -161,7 +151,6 @@
     color: var(--on-dark);
 }
 
-/* -- Recent Lookups ------------------------------------------------ */
 .reverse-geocoding-page .rg-recent-lookups-list {
     display: flex;
     flex-direction: column;
@@ -206,7 +195,7 @@
     font-family: 'Courier New', Courier, monospace;
 }
 
-/* -- Form inputs: boundary is --input-border (from components.css); only the fill differs here */
+/* Form inputs: the boundary is --input-border (from components.css); only the fill differs here. */
 .reverse-geocoding-page .form-control {
     background: var(--background);
     color: var(--text);

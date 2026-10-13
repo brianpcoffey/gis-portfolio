@@ -1,6 +1,3 @@
-/* Plant Operations Dashboard combined styles: datatables + custom + map fix */
-
-/* === Dark mode improvements for DataTables pagination buttons === */
 body.dark-mode .pagination .page-link {
   background: var(--surface) !important;
   color: var(--text) !important;
@@ -28,7 +25,6 @@ body.dark-mode .pagination .page-item.disabled .page-link {
   opacity: 0.6;
   pointer-events: none;
 }
-/* DataTable length menu styling for Plant Operations Dashboard */
 .dataTables_length label {
     font-size: 0.95rem;
     color: var(--text);
@@ -75,7 +71,6 @@ body.dark-mode .pagination .page-item.disabled .page-link {
     }
 }
 
-/* Responsive DataTables: horizontal scroll and controls wrapping */
 @media (max-width: 991.98px) {
     .dataTables_wrapper .dataTables_scroll {
         overflow-x: auto;
@@ -104,7 +99,7 @@ body.dark-mode .pagination .page-item.disabled .page-link {
     }
 }
 
-/* Plant Operations Dashboard custom styles: Only add rules not covered by site/Bootstrap. */
+/* Only rules not covered by site.css or Bootstrap. */
 
 /* Low-stock highlight: status tokens (was --accent-light with --surface text, 2.45:1). Badges keep
    their bg-danger fill, so they get light text; table rows tint the cell text instead. */
@@ -122,14 +117,12 @@ body.dark-mode .table > tbody > tr.plant-ops-low-stock > td {
     color: var(--status-danger-text);
 }
 
-/* Map frame (was an inline style on the wrapper div) */
 .plant-ops-map-frame {
     width: 100%;
     min-height: 400px;
     position: relative;
 }
 
-/* GIS map container - FIXED: prevent overflow */
 .plant-ops-map-wrapper {
     height: 100%;
     min-height: 400px;
@@ -156,7 +149,6 @@ body.dark-mode .table > tbody > tr.plant-ops-low-stock > td {
     box-sizing: border-box;
 }
 
-/* Ensure map canvas and overlays fit perfectly */
 #plantOpsMap .esri-view-root,
 #plantOpsMap .esri-view-surface,
 #plantOpsMap canvas {
@@ -166,7 +158,6 @@ body.dark-mode .table > tbody > tr.plant-ops-low-stock > td {
     box-sizing: border-box;
 }
 
-/* Responsive: reduce padding on small screens */
 @media (max-width: 600px) {
     .plant-ops-map-wrapper {
         padding: 6px;
@@ -177,14 +168,12 @@ body.dark-mode .table > tbody > tr.plant-ops-low-stock > td {
     }
 }
 
-/* D3 chart container */
 .plant-ops-chart {
     min-height: 320px;
     width: 100%;
     margin-bottom: 2rem;
 }
 
-/* Responsive tweaks for Orders/Shipments tabs */
 .plant-ops-tabs-card .tab-content {
     width: 100%;
     overflow-x: auto;

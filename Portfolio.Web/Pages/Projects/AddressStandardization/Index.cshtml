@@ -41,14 +41,11 @@
 
 <div class="address-standardization-page">
 
-	<!-- MAIN CONTENT -->
 	<div class="container pb-5">
 
-		<!-- ── ZONE 1: INPUT ─────────────────────────────────────────── -->
 		<div class="row justify-content-center mb-4">
 			<div class="col-12 as-input-zone">
 
-				<!-- Alert area -->
 				<div id="asAlert" class="alert alert-warning alert-dismissible fade d-none mb-3" role="alert">
 					<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>
 					<span id="asAlertMsg"></span>
@@ -58,7 +55,6 @@
 				<div class="card shadow-sm theme-card">
 					<div class="card-body p-4">
 
-						<!-- Textarea label row -->
 						<div class="d-flex align-items-center justify-content-between mb-1">
 							<label for="asRawAddress" class="form-label fw-semibold mb-0">
 								<i class="fa-solid fa-keyboard me-1 text-accent" aria-hidden="true"></i>Raw Address
@@ -81,7 +77,6 @@
 							<small id="asCharCount" class="theme-text-muted">0 characters</small>
 						</div>
 
-						<!-- Action buttons -->
 						<div class="d-flex flex-wrap gap-2 mb-3">
 							<button id="asBtnParse" class="btn btn-outline-accent" disabled>
 								<i class="fa-solid fa-search me-1" aria-hidden="true"></i>Parse Address
@@ -91,7 +86,6 @@
 							</button>
 						</div>
 
-						<!-- Example addresses collapse -->
 						<div>
 							<button class="btn btn-link btn-sm px-0 text-accent text-decoration-none"
 									type="button"
@@ -143,10 +137,8 @@
 			</div>
 		</div>
 
-		<!-- ── ZONES 2 & 3: RESULTS ──────────────────────────────────── -->
 		<div class="row g-4">
 
-			<!-- ZONE 2: PARSE RESULTS -->
 			<div class="col-lg-7">
 				<div class="card shadow-sm h-100 theme-card">
 					<div class="card-header theme-card-header d-flex align-items-center justify-content-between">
@@ -160,16 +152,13 @@
 					</div>
 					<div class="card-body">
 
-						<!-- Parse placeholder -->
 						<div id="asParsePlaceholder" class="text-center theme-text-muted py-5">
 							<i class="fa-solid fa-signs-post fa-2x mb-3 d-block text-accent opacity-50" aria-hidden="true"></i>
 							<p class="mb-0">Enter an address above to see parsed components.</p>
 						</div>
 
-						<!-- Parse result content (hidden until first parse) -->
 						<div id="asParseResult" class="d-none">
 
-							<!-- Standardized address card -->
 							<div class="as-mailing-label-card mb-3">
 								<div class="d-flex align-items-start justify-content-between gap-2">
 									<div id="asStandardizedAddress" class="as-mailing-label-text flex-grow-1"></div>
@@ -182,7 +171,6 @@
 								</div>
 							</div>
 
-							<!-- Component breakdown table -->
 							<table class="table table-sm as-component-table mb-3">
 								<caption class="visually-hidden">Address components extracted from the parsed input</caption>
 								<thead>
@@ -194,7 +182,6 @@
 								<tbody id="asComponentsBody"></tbody>
 							</table>
 
-							<!-- Parse confidence meter -->
 							<div class="mb-1 d-flex align-items-center justify-content-between">
 								<small class="theme-text-muted text-uppercase fw-semibold as-caps">Parse Confidence</small>
 								<small id="asConfidenceLabel" class="fw-semibold"></small>
@@ -208,7 +195,6 @@
 				</div>
 			</div>
 
-			<!-- ZONE 3: VALIDATION RESULTS -->
 			<div class="col-lg-5">
 				<div class="card shadow-sm h-100 theme-card">
 					<div class="card-header theme-card-header d-flex align-items-center justify-content-between">
@@ -222,41 +208,34 @@
 					</div>
 					<div class="card-body d-flex flex-column">
 
-						<!-- Validation placeholder -->
 						<div id="asValidatePlaceholder" class="text-center theme-text-muted py-5 flex-grow-1 d-flex flex-column align-items-center justify-content-center">
 							<i class="fa-solid fa-shield-halved fa-2x mb-3 d-block text-accent opacity-50" aria-hidden="true"></i>
 							<p class="mb-0 small">Click <strong>Parse &amp; Validate</strong> to check this address against ArcGIS.</p>
 						</div>
 
-						<!-- Validation result content (hidden until first validate) -->
 						<div id="asValidateResult" class="d-none flex-grow-1 d-flex flex-column">
 
-							<!-- Confidence tier banner -->
 							<div id="asTierCard" class="as-tier-badge-card rounded mb-3 p-3 text-center">
 								<div id="asTierIcon" class="fs-3 mb-1"></div>
 								<div id="asTierLabel" class="fw-bold text-uppercase"></div>
 								<div id="asTierScore" class="small mt-1 opacity-75"></div>
 							</div>
 
-							<!-- Matched address -->
 							<div class="mb-2">
 								<div class="small theme-text-muted text-uppercase fw-semibold mb-1 as-caps">ArcGIS Matched Address</div>
 								<div id="asMatchedAddress" class="fw-semibold"></div>
 							</div>
 
-							<!-- Fallback alert -->
 							<div id="asFallbackAlert" class="alert alert-info d-none py-2 px-3 small mb-2" role="alert">
 								<i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>
 								Full address could not be matched. Result is based on City, State, and ZIP only.
 							</div>
 
-							<!-- Unresolved alert -->
 							<div id="asUnresolvedAlert" class="alert alert-warning d-none py-2 px-3 small mb-2" role="alert">
 								<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>
 								Address could not be verified against ArcGIS. Check the parsed components for errors &mdash; the state abbreviation or ZIP may be invalid.
 							</div>
 
-							<!-- Score history sparkline -->
 							<div class="mt-auto pt-3 border-top">
 								<div class="d-flex align-items-center gap-2 mb-2">
 									<i class="fa-solid fa-chart-line text-accent" aria-hidden="true"></i>
