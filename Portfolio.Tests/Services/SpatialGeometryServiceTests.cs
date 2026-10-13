@@ -100,8 +100,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.TriangulateAsync(request));
         }
 
-        // ── Geometry Toolkit validation ─────────────────────────────────────
-
         [Fact]
         public async Task SpatialGeometryTriangulate_NullRequest_ThrowsArgumentNullException()
         {

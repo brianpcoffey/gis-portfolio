@@ -168,7 +168,7 @@ namespace Portfolio.Tests.Services
             Assert.False(results[0].Matched);
         }
 
-        // Characterization: a CSV at exactly the row cap is accepted (the cap itself changes in WP-36).
+        // A CSV at exactly the 1,000-row cap (D-10) is accepted.
         [Fact]
         public async Task GeocodeAsync_CsvAtRowCap_IsAccepted()
         {

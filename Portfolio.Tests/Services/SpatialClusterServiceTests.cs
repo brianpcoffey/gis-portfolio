@@ -6,8 +6,6 @@ namespace Portfolio.Tests.Services
 {
     public class SpatialClusterServiceTests
     {
-        // ── Hotspot Clusterer (DBSCAN) ──────────────────────────────────────────
-
         [Fact]
         public async Task Dbscan_TwoDenseBlobs_FindsTwoClustersNoNoise()
         {
@@ -115,8 +113,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.RunDbscanAsync(request));
         }
 
-        // ── DBSCAN seed de-duplication (WP-06) ──────────────────────────────────
-
         private static DbscanRequestDto IdenticalPoints(int count) => new()
         {
             Epsilon = 1, MinPoints = 1,
@@ -148,8 +144,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(1, result.ClusterCount);
             Assert.Equal([5000], result.ClusterSizes);
         }
-
-        // ── DBSCAN: managed labels versus the pre-dedup algorithm ───────────────
 
         private static int[] RunManagedDbscan(DbscanRequestDto request)
         {

@@ -6,7 +6,7 @@ using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Golden
 {
-    // Golden output for UserProfileSeedService before its single 1,169-line method is
+    // Golden output for UserProfileSeedService, captured before its single 1,169-line method was
     // split. The seed is fixed data, so the exact rows a fresh user receives can be
     // pinned: per-entity counts, an ordered text of every business field (no ids, no
     // timestamps), idempotency, and isolation between users.

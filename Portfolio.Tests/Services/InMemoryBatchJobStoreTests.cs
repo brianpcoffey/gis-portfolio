@@ -14,7 +14,6 @@ namespace Portfolio.Tests.Services
             FileName    = "test.csv"
         };
 
-        // CreateAsync followed by GetAsync returns the same object.
         [Fact]
         public async Task CreateAsync_ThenGetAsync_ReturnsSameJob()
         {
@@ -33,7 +32,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal("test.csv",           retrieved.FileName);
         }
 
-        // GetAsync for an unknown ID returns null without throwing.
         [Fact]
         public async Task GetAsync_UnknownJobId_ReturnsNull()
         {
@@ -47,7 +45,6 @@ namespace Portfolio.Tests.Services
             Assert.Null(result);
         }
 
-        // UpdateAsync replaces the stored record; the updated state is visible via GetAsync.
         [Fact]
         public async Task UpdateAsync_OverwritesExistingRecord()
         {
@@ -68,7 +65,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(5, retrieved.ProcessedRows);
         }
 
-        // UpdateAsync can upsert a job that was never explicitly created.
         [Fact]
         public async Task UpdateAsync_WithoutPriorCreate_StoresJob()
         {
@@ -85,7 +81,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal("job-upsert", retrieved.JobId);
         }
 
-        // Multiple distinct job IDs are stored and retrieved independently.
         [Fact]
         public async Task MultipleJobs_StoredAndRetrievedIndependently()
         {
@@ -162,7 +157,6 @@ namespace Portfolio.Tests.Services
             Assert.NotNull(await store.GetAsync("new"));
         }
 
-        // Results list is stored and retrievable after UpdateAsync.
         [Fact]
         public async Task UpdateAsync_WithResults_ResultsAreRetrievable()
         {

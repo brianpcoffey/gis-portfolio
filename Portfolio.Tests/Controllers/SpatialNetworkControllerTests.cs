@@ -70,8 +70,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<ArgumentException>(() => controller.ServiceArea(new ServiceAreaRequestDto(), CancellationToken.None));
         }
 
-        // ── Controller integration ───────────────────────────────────────────────
-
         [Fact]
         public async Task SpatialNetworkController_GetGraph_ReturnsOkWithRedlandsGraph()
         {

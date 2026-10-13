@@ -10,7 +10,8 @@ namespace Portfolio.Tests.Services
     // (an edge naming a node absent from the node array used to be reported as reachable
     // at zero cost by the native kernel, and threw in the managed path).
     //
-    // Runs against the managed fallback, since the suite executes with no native library.
+    // Runs against whichever implementation loaded: the managed fallback in a clean clone, the native
+    // kernel in CI's native-parity job.
     public class SpatialGraphExtensionsTests
     {
         private static SpatialGraphService NewService() =>
@@ -43,8 +44,6 @@ namespace Portfolio.Tests.Services
                 ]
             };
         }
-
-        // ── One-to-all distances ────────────────────────────────────────────────
 
         [Fact]
         public async Task ComputeDistances_SmallGraph_ReturnsCostsParallelToNodeList()
@@ -129,8 +128,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentNullException>(() => service.ComputeDistancesAsync(null!, 1));
         }
 
-        // ── Distance matrix ─────────────────────────────────────────────────────
-
         [Fact]
         public async Task ComputeDistanceMatrix_IsRowMajor()
         {
@@ -213,8 +210,6 @@ namespace Portfolio.Tests.Services
                 service.ComputeDistanceMatrixAsync(SmallGraph(), [], [1]));
         }
 
-        // ── Phantom-node regression ─────────────────────────────────────────────
-
         private static RoadGraphDto GraphWithDanglingEdge()
         {
             var graph = SmallGraph();
@@ -271,8 +266,6 @@ namespace Portfolio.Tests.Services
             Assert.True(route.Found);
             Assert.Equal(3, route.TotalCost, 6);
         }
-
-        // ── Nearest-node snapping ───────────────────────────────────────────────
 
         [Fact]
         public void SnapToNearestNode_ExactNodeCoordinate_ReturnsThatNode()

@@ -2,15 +2,15 @@ using System.Text.RegularExpressions;
 
 namespace Portfolio.Tests.Contracts;
 
-/// <summary>
-/// WP-46 (SEC-09): the ArcGIS API script and widget themes are pinned with Subresource Integrity.
+/// <summary>WP-46 (SEC-09): the ArcGIS API script and widget themes are pinned with Subresource Integrity.</summary>
+/// <remarks>
 /// The digests live in wwwroot/js/esri-theme.js (the loader three pages use) and, for the page that
 /// loads the API from markup, in the Plant Operations Dashboard's Index.cshtml. That page is
 /// [Authorize] and static JS is not otherwise covered, so these tests read the source files: the two
 /// copies of the init.js digest cannot drift apart and no ArcGIS script or stylesheet loses its
 /// integrity unnoticed. They cannot tell whether a digest matches Esri's current bytes; that is
 /// checked in a browser.
-/// </summary>
+/// </remarks>
 public class ArcGisSriTests
 {
     private static readonly string WebProject =

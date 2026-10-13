@@ -14,7 +14,7 @@ using Portfolio.Web.Filters;
 namespace Portfolio.Tests.Filters;
 
 /// <summary>
-/// WP-43 / D-17: <c>[BadRequestOnArgumentException]</c> unit tests. The filter is driven directly with an
+/// WP-43 / D-17: <c>[BadRequestOnArgumentException]</c> unit tests, driving the filter directly with an
 /// <see cref="ExceptionContext"/>; the same bodies are pinned through the real host in
 /// <c>ControllerErrorBodyTests</c>.
 /// </summary>

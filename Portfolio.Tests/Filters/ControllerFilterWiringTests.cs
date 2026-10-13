@@ -8,11 +8,14 @@ namespace Portfolio.Tests.Filters;
 
 /// <summary>
 /// WP-43 / D-17: the filters are applied at action level, exactly where a controller used to
-/// catch the exception itself. These sets are the 27 <c>catch (ArgumentException)</c> and 6
-/// <c>catch (BrokenCircuitException)</c> clauses the filters replaced; an action that is added
-/// to or dropped from them must be a deliberate edit here, because a missing attribute silently
-/// turns a 400 <c>{ error }</c> / 503 into the middleware's ProblemDetails.
+/// catch the exception itself.
 /// </summary>
+/// <remarks>
+/// These sets are the 27 <c>catch (ArgumentException)</c> and 6 <c>catch (BrokenCircuitException)</c>
+/// clauses the filters replaced; an action that is added to or dropped from them must be a
+/// deliberate edit here, because a missing attribute silently turns a 400 <c>{ error }</c> / 503
+/// into the middleware's ProblemDetails.
+/// </remarks>
 public class ControllerFilterWiringTests
 {
     private static IEnumerable<MethodInfo> Actions() =>

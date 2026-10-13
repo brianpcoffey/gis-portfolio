@@ -8,10 +8,12 @@ namespace Portfolio.Tests.Contracts;
 /// <summary>
 /// Guards the identity rule in agent-context section 6: every public controller action carries
 /// [Authorize(Policy = "Authenticated")] or [AllowAnonymous], at the action or the class level,
-/// and "Authenticated" is the only policy named. A class-level [AllowAnonymous] on a controller
-/// that also has authorized actions would short-circuit authorization, so mixed controllers must
-/// annotate each action instead.
+/// and "Authenticated" is the only policy named.
 /// </summary>
+/// <remarks>
+/// A class-level [AllowAnonymous] on a controller that also has authorized actions would
+/// short-circuit authorization, so mixed controllers must annotate each action instead.
+/// </remarks>
 public class AuthorizationMetadataTests
 {
     private static readonly Type[] Controllers = typeof(Program).Assembly.GetTypes()
@@ -107,10 +109,10 @@ public class AuthorizationMetadataTests
         Assert.Equal(policy, attr!.PolicyName);
     }
 
-    /// <summary>
-    /// Actions that take a body but deliberately rely on the 1 MB Kestrel default. Empty today:
-    /// every POST/PUT states its own limit. Adding an entry here is a conscious decision.
-    /// </summary>
+    /// <summary>Actions that take a body but deliberately rely on the 1 MB Kestrel default.</summary>
+    /// <remarks>
+    /// Empty today: every POST/PUT states its own limit. Adding an entry here is a conscious decision.
+    /// </remarks>
     private static readonly HashSet<string> RequestSizeLimitExemptions = [];
 
     [Fact]

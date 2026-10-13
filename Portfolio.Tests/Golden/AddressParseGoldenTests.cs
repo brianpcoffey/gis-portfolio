@@ -4,8 +4,8 @@ using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Golden
 {
-    // Golden output for the address parser before AddressStandardizationService.ParseAddress
-    // is refactored. Every field of AddressParsedDto is pinned for about thirty raw inputs.
+    // Golden output for the address parser, captured before AddressStandardizationService.ParseAddress
+    // was refactored. Every field of AddressParsedDto is pinned for about thirty raw inputs.
     //
     // The rows record what the parser does today, including its limits: "#4", "Hwy 99" and
     // "Floor 3" are not recognised as units or street names and fall into the neighbouring

@@ -112,8 +112,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<ArgumentException>(() => _controller.GeocodeAddresses(file, CancellationToken.None));
         }
 
-        // ── SubmitAsync ────────────────────────────────────────────────────────
-
         [Fact]
         public async Task SubmitAsync_NullFile_ReturnsBadRequest()
         {
@@ -229,8 +227,6 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal("CSV exceeds the maximum of 1000 data rows.", ex.Message);
         }
 
-        // ── GetStatusAsync ─────────────────────────────────────────────────────
-
         [Fact]
         public async Task GetStatusAsync_JobExists_ReturnsOkWithJob()
         {
@@ -272,8 +268,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // ── BrokenCircuitException on legacy sync action ───────────────────────
-
         [Fact]
         public async Task GeocodeAddresses_BrokenCircuit_Propagates()
         {
@@ -288,8 +282,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<Polly.CircuitBreaker.BrokenCircuitException>(
                 () => _controller.GeocodeAddresses(file, CancellationToken.None));
         }
-
-        // ── Exact error bodies ─────────────────────────────────────────────────
 
         private static IFormFile BuildNamedFile(string name, long length)
         {

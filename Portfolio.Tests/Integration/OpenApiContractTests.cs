@@ -10,11 +10,14 @@ namespace Portfolio.Tests.Integration;
 /// <summary>
 /// Characterizes the public OpenAPI document served at /openapi/v1.json (anonymous in every
 /// environment): the sorted operation list, the schema names and each operation's request-body
-/// description. The request-body descriptions come from the XML-doc param of the body parameter
-/// (the cancellation-token param docs were removed in WP-23, so they no longer leak into the
-/// body description). "-" means the operation has no requestBody; "(none)" means it has one
-/// without a description.
+/// description.
 /// </summary>
+/// <remarks>
+/// The request-body descriptions come from the XML-doc param of the body parameter (the
+/// cancellation-token param docs were removed in WP-23, so they no longer leak into the body
+/// description). "-" means the operation has no requestBody; "(none)" means it has one without a
+/// description.
+/// </remarks>
 public class OpenApiContractTests
 {
     private const string ExpectedOperations = """
