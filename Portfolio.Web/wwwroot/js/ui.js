@@ -13,12 +13,14 @@
   }
 
   // inlineAlert(element) -> { show(msg), hide() }. Text only, never markup; toggles d-none.
+  // show() returns true when the alert box exists and now holds the message, false when there is no box.
   function inlineAlert(element) {
     return {
       show: function (message) {
-        if (!element) { return; }
+        if (!element) { return false; }
         element.textContent = message;
         element.classList.remove("d-none");
+        return true;
       },
       hide: function () {
         if (!element) { return; }
@@ -59,6 +61,8 @@
 
   // runAction({ trigger, alert, region, request, render, summary }): hide alert -> busy -> await
   // request() -> render(result) -> announce(summary(result)); on error show alert; always done().
+  // A summary that returns "" announces nothing (a page uses that to drop a stale result). An error is
+  // announced only when there is no alert box to show it in: the box is role="alert", so it speaks itself.
   function runAction(opts) {
     var al = opts.alert;
     if (al && al.hide) { al.hide(); }
@@ -67,13 +71,15 @@
       .then(function () { return opts.request(); })
       .then(function (result) {
         if (opts.render) { opts.render(result); }
-        if (opts.summary) { announce(opts.summary(result)); }
+        if (opts.summary) {
+          var text = opts.summary(result);
+          if (text) { announce(text); }
+        }
         return result;
       })
       .catch(function (err) {
         var msg = (err && err.message) || "An unexpected error occurred.";
-        if (al && al.show) { al.show(msg); }
-        announce(msg);
+        if (!(al && al.show && al.show(msg))) { announce(msg); }
       })
       .then(function (r) { done(); return r; });
   }
