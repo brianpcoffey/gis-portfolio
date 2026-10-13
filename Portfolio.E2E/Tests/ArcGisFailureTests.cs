@@ -53,7 +53,7 @@ public sealed class ArcGisFailureTests(E2EHost host) : BrowserTestBase(host)
         await notice.WaitForAsync(new LocatorWaitForOptions { Timeout = NoticeTimeoutMs });
         // The page wires its other controls right after it has shown the notice (microtasks); two animation frames
         // are more than enough for that.
-        await Page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))");
+        await Loader.WaitForFramesAsync();
 
         // Assert
         Assert.Contains("The map could not be loaded", await notice.InnerTextAsync(), StringComparison.Ordinal);
@@ -153,7 +153,8 @@ public sealed class ArcGisFailureTests(E2EHost host) : BrowserTestBase(host)
                 await Assertions.Expect(Page.Locator("#rgLatInput")).ToHaveClassAsync(new Regex("is-invalid"));
                 break;
             case "/Projects/PlantOperationsDashboard":
-                await Assertions.Expect(Page.Locator("#plantOpsOrdersTable tbody tr").First).ToBeVisibleAsync();
+                // An order number in a cell: the table's "no data" row would also be a row, but not one with an order in it.
+                await Assertions.Expect(Page.Locator("#plantOpsOrdersTable tbody td", new PageLocatorOptions { HasTextRegex = new Regex("ORD-") }).First).ToBeVisibleAsync();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(path), path, "No non-map control is defined for this page.");

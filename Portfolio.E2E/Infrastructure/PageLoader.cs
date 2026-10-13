@@ -27,6 +27,9 @@ public sealed class PageLoader
     private const float PageReadyTimeoutMs = 15_000;
     private static readonly TimeSpan QuietTimeout = TimeSpan.FromSeconds(15);
 
+    // How long two animation frames may take before WaitForFramesAsync stops waiting for them (normally about 33 ms).
+    private const int FrameFallbackMs = 3_000;
+
     private readonly E2EHost _host;
     private readonly BrowserSession _session;
     private readonly ConcurrentDictionary<IRequest, string> _inFlight = new();
@@ -112,13 +115,27 @@ public sealed class PageLoader
     }
 
     /// <summary>
+    /// Waits two animation frames, which is long enough for a response handler to start the call that follows it. A page that is
+    /// not being rendered (hidden or throttled) fires no frames, so the wait also ends after <see cref="FrameFallbackMs"/> ms
+    /// instead of hanging until the test run's own limit.
+    /// </summary>
+    public Task WaitForFramesAsync() =>
+        _session.Page.EvaluateAsync(
+            """
+            ms => new Promise(resolve => {
+                const timer = setTimeout(() => resolve(false), ms);
+                requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(timer); resolve(true); }));
+            })
+            """,
+            FrameFallbackMs);
+
+    /// <summary>
     /// Waits until no app call is in flight and none started during one more animation-frame round trip (which is
     /// long enough for a response handler to start the call that follows it). Fails, listing the stuck calls, when
     /// that does not happen within the ceiling.
     /// </summary>
     public async Task WaitUntilQuietAsync()
     {
-        var page = _session.Page;
         var deadline = DateTime.UtcNow + QuietTimeout;
         var quietRounds = 0;
 
@@ -132,7 +149,7 @@ public sealed class PageLoader
             }
 
             var startedBefore = AppCallsStarted;
-            await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))");
+            await WaitForFramesAsync();
 
             if (_inFlight.IsEmpty && AppCallsStarted == startedBefore)
             {

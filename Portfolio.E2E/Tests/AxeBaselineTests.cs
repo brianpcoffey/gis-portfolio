@@ -142,6 +142,35 @@ public class AxeBaselineTests
     }
 
     [Fact]
+    public void Load_FileThatDoesNotExist_SortsPagesInOrdinalOrderLikeAFileThatDoes()
+    {
+        // Arrange: ordinal order puts "GeoStream" (capital S) before "Geometry"; a culture-aware order would not.
+        var baseline = AxeBaseline.Load(Path.Combine(AppContext.BaseDirectory, "no-such-baseline.json"));
+
+        // Act
+        baseline.Record("/Projects/Geometry", "1280-light", []);
+        baseline.Record("/Projects/GeoStream", "1280-light", []);
+
+        // Assert
+        Assert.Equal(["/Projects/GeoStream", "/Projects/Geometry"], baseline.Entries.Select(entry => entry.Page));
+    }
+
+    [Fact]
+    public void ToJson_Always_EndsEveryLineTheWayTheMachineDoes()
+    {
+        // Arrange
+        var baseline = AxeBaseline.Parse("{}");
+        baseline.Record("/a", "1280-light", [Contrast, Label]);
+
+        // Act
+        var json = baseline.ToJson();
+
+        // Assert: every line feed is part of the machine's own line ending (so no bare LF in a CRLF working tree, and no CR on Linux)
+        Assert.EndsWith(Environment.NewLine, json, StringComparison.Ordinal);
+        Assert.Equal(json.Count(c => c == '\n'), json.Split(Environment.NewLine).Length - 1);
+    }
+
+    [Fact]
     public void Record_CellNotInTheBaselineYet_TakesWhatWasObserved()
     {
         // Arrange

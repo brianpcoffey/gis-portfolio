@@ -26,17 +26,24 @@ public sealed class LayoutTests(E2EHost host) : BrowserTestBase(host)
     // Runs in the page. After the viewport changes it waits (in animation frames, not milliseconds) for the new width
     // to arrive and for the page's resize handlers and reflow to finish, then measures. A page that overflows only
     // until a deferred reflow has run therefore passes; one that keeps overflowing does not. The frame counts are
-    // ceilings for a slow machine: 20 frames always elapse, up to 120 more are used while the page still overflows.
+    // ceilings for a slow machine: 20 frames always elapse, up to 120 more are used while the page still overflows. A page that is
+    // not being rendered (hidden or throttled) fires no frames, so a frame also ends after 250 ms and all the waiting after 15 s:
+    // the script then measures what is there, instead of hanging until the test run's own limit.
     private const string MeasureScript =
         """
         async (expectedWidth) => {
-            const frame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
-            const frames = async n => { for (let i = 0; i < n; i++) await frame(); };
+            const deadline = Date.now() + 15000;
+            const waiting = () => Date.now() < deadline;
+            const frame = () => new Promise(resolve => {
+                const timer = setTimeout(resolve, 250);
+                requestAnimationFrame(() => { clearTimeout(timer); resolve(); });
+            });
+            const frames = async n => { for (let i = 0; i < n && waiting(); i++) await frame(); };
             const fits = () => document.documentElement.scrollWidth <= window.innerWidth && document.body.scrollWidth <= window.innerWidth;
 
-            for (let i = 0; i < 120 && window.innerWidth !== expectedWidth; i++) await frame();
+            for (let i = 0; i < 120 && window.innerWidth !== expectedWidth && waiting(); i++) await frame();
             await frames(20);
-            for (let i = 0; i < 120 && !fits(); i++) await frame();
+            for (let i = 0; i < 120 && !fits() && waiting(); i++) await frame();
 
             const describe = el => {
                 const classes = typeof el.className === 'string' ? el.className.trim().split(/\s+/).filter(Boolean).slice(0, 3) : [];

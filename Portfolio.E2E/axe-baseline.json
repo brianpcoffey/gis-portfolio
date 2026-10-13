@@ -188,22 +188,22 @@
         ]
       }
     },
-    "/Projects/Geometry": {
-      "1280-dark": {},
-      "1280-light": {},
-      "360-light": {}
-    },
-    "/Projects/Geometry/Details": {
-      "1280-dark": {},
-      "1280-light": {},
-      "360-light": {}
-    },
     "/Projects/GeoStream": {
       "1280-dark": {},
       "1280-light": {},
       "360-light": {}
     },
     "/Projects/GeoStream/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Geometry": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Geometry/Details": {
       "1280-dark": {},
       "1280-light": {},
       "360-light": {}

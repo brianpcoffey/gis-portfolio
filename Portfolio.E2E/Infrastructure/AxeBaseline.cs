@@ -34,7 +34,7 @@ public sealed class AxeBaseline
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
         WriteIndented = true,
-        NewLine = "\n",
+        NewLine = Environment.NewLine,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
@@ -66,7 +66,8 @@ public sealed class AxeBaseline
 
     /// <summary>Reads the baseline from <paramref name="path"/>; a missing file is an empty baseline.</summary>
     public static AxeBaseline Load(string? path) =>
-        path is not null && File.Exists(path) ? Parse(File.ReadAllText(path)) : new AxeBaseline([]);
+        // An empty baseline is parsed too, so its pages sort in the same (ordinal) order as a baseline read from the file.
+        Parse(path is not null && File.Exists(path) ? File.ReadAllText(path) : "{}");
 
     /// <summary>Parses the JSON text of a baseline file.</summary>
     public static AxeBaseline Parse(string json)
@@ -133,7 +134,10 @@ public sealed class AxeBaseline
             Add(_cells, page, configuration, finding);
     }
 
-    /// <summary>The file text: stable key order, one selector per line, so a change shows up as a small diff.</summary>
+    /// <summary>
+    /// The file text: stable key order, one selector per line, so a change shows up as a small diff. Lines end the way the
+    /// machine's own do (CRLF in a Windows working tree, LF elsewhere), so rewriting an unchanged file changes nothing in git.
+    /// </summary>
     public string ToJson()
     {
         // "about" sorts before "pages", and the nested sorted collections serialize as objects and arrays in key order.
@@ -145,7 +149,7 @@ public sealed class AxeBaseline
             ["pages"] = _cells
         };
 
-        return JsonSerializer.Serialize(root, WriteOptions) + "\n";
+        return JsonSerializer.Serialize(root, WriteOptions) + Environment.NewLine;
     }
 
     // The rules of one (page, configuration) cell, created empty when it does not exist yet.
