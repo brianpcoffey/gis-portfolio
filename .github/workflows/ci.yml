@@ -264,18 +264,39 @@ jobs:
 
       # A skipped test counts as passing, and a filter that matches nothing can still exit 0, so a misspelt
       # variable or filter would leave this job green without testing anything. Fail unless the tests ran.
+      # The minimum is the number of tests in PostgresMigrationTests today: a lower total means one was deleted
+      # (or the filter stopped matching it). Raise it when a test is added.
       - name: Require that every Postgres test ran and passed
         run: |
           python3 -I - <<'PY'
           import re
           import sys
-          text = open("TestResults/pg/pg-migrations.trx", encoding="utf-8-sig").read()
-          counters = {k: int(v) for k, v in re.findall(r'(\w+)="(\d+)"', re.search(r"<Counters [^>]*", text).group(0))}
+          minimum_total = 7
+          try:
+              text = open("TestResults/pg/pg-migrations.trx", encoding="utf-8-sig").read()
+          except OSError as error:
+              print(f"::error::trx not found: {error}")
+              sys.exit(1)
+          match = re.search(r"<Counters [^>]*", text)
+          if match is None:
+              print("::error::trx has no Counters element.")
+              sys.exit(1)
+          counters = {k: int(v) for k, v in re.findall(r'(\w+)="(\d+)"', match.group(0))}
           print(counters)
-          if counters["total"] == 0 or counters["executed"] != counters["total"] or counters["passed"] != counters["total"]:
-              print("::error::PostgresMigrationTests must all run and pass; skipped or missing tests do not count.")
+          if counters["total"] < minimum_total or counters["executed"] != counters["total"] or counters["passed"] != counters["total"]:
+              print(f"::error::PostgresMigrationTests must all run and pass, and at least {minimum_total} must exist; skipped or missing tests do not count.")
               sys.exit(1)
           PY
+
+      # The trx is the only record of which test failed or was skipped.
+      - name: Upload the Postgres test results
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pg-migrations-trx
+          path: TestResults/pg/*.trx
+          if-no-files-found: warn
+          retention-days: 7
 
   # ---------------------------------------------------------------------------
   # The production image. Adding Portfolio.Benchmarks to the solution once broke
