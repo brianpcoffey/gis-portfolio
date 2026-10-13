@@ -44,6 +44,11 @@
     var scenario = null;
     var lastResult = null;
     var pending = false;
+    // A preset change that arrives while a request is pending can't start a load (runExclusive refuses
+    // while pending), so it is queued and replayed when the request finishes. presetRequested is the
+    // preset behind the scenario on screen (or in flight); the replay is skipped if the select is back on it.
+    var reloadQueued = false;
+    var presetRequested = presetSelect.value;
 
     // PortfolioMap supplies the OSM tile layer, attribution and canvas rendering
     // (preferCanvas keeps a few thousand polyline vertices smooth).
@@ -53,7 +58,10 @@
 
     optimizeBtn.addEventListener("click", optimize);
     resetBtn.addEventListener("click", loadScenario);
-    presetSelect.addEventListener("change", loadScenario);
+    presetSelect.addEventListener("change", function () {
+        if (pending) { reloadQueued = true; return; }
+        loadScenario();
+    });
     iterationsInput.addEventListener("input", function () {
         iterationsValue.textContent = iterationsInput.value;
     });
@@ -74,14 +82,23 @@
         var release = ui.busy({ buttons: others });
         opts.trigger = trigger;
         opts.alert = alertBox;
-        return ui.runAction(opts).then(function (r) { release(); pending = false; return r; });
+        return ui.runAction(opts).then(function (r) {
+            release();
+            pending = false;
+            if (reloadQueued) {
+                reloadQueued = false;
+                if (presetSelect.value !== presetRequested) { loadScenario(); }
+            }
+            return r;
+        });
     }
 
     function loadScenario() {
         runExclusive(resetBtn, {
             request: function () {
+                presetRequested = presetSelect.value;
                 return apiGet(window.PortfolioApi.routes.spatialCompute.fleet.scenario + "?preset=" +
-                    encodeURIComponent(presetSelect.value));
+                    encodeURIComponent(presetRequested));
             },
             render: function (result) {
                 scenario = result;
