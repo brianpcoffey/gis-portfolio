@@ -22,7 +22,8 @@ namespace Portfolio.Web.HealthChecks
 
         // Static: the check is resolved per probe, so the cache has to outlive the instance.
         private static readonly SemaphoreSlim Gate = new(1, 1);
-        private static (HealthCheckResult Result, DateTimeOffset ExpiresAt)? _cached;
+        private sealed record Entry(HealthCheckResult Result, DateTimeOffset ExpiresAt);
+        private static Entry? _cached;
 
         private readonly PortfolioDbContext _db;
         private readonly TimeProvider _time;
@@ -34,7 +35,7 @@ namespace Portfolio.Web.HealthChecks
         }
 
         /// <summary>Drops the cached result. For tests, which share the static cache.</summary>
-        internal static void ResetCache() => _cached = null;
+        internal static void ResetCache() => Volatile.Write(ref _cached, null);
 
         public async Task<HealthCheckResult> CheckHealthAsync(
             HealthCheckContext context,
@@ -53,7 +54,7 @@ namespace Portfolio.Web.HealthChecks
 
                 var result = await QueryAsync(cancellationToken);
                 if (!cancellationToken.IsCancellationRequested)
-                    _cached = (result, _time.GetUtcNow() + CacheDuration);
+                    Volatile.Write(ref _cached, new Entry(result, _time.GetUtcNow() + CacheDuration));
                 return result;
             }
             finally
@@ -64,7 +65,7 @@ namespace Portfolio.Web.HealthChecks
 
         private bool TryGetFresh(out HealthCheckResult result)
         {
-            var snapshot = _cached;
+            var snapshot = Volatile.Read(ref _cached);
             if (snapshot is { } c && _time.GetUtcNow() < c.ExpiresAt)
             {
                 result = c.Result;
