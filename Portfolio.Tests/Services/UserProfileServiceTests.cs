@@ -412,6 +412,35 @@ namespace Portfolio.Tests.Services
         // ── UpdateCurrentProfileAsync ───────────────────────────────────
 
         [Fact]
+        public async Task UpdateCurrentProfileAsync_WithOverlongDisplayName_Throws_AndWritesNothing()
+        {
+            // Arrange
+            var dto = new UpdateProfileDto { DisplayName = new string('x', 1001) };
+
+            // Act
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.UpdateCurrentProfileAsync(dto));
+
+            // Assert
+            Assert.Contains("at most 1000", ex.Message);
+            _repoMock.Verify(r => r.SetClaimAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateCurrentProfileAsync_WithDisplayNameOfExactlyTheLimit_IsAccepted()
+        {
+            // Arrange
+            var name = new string('x', 1000);
+            _repoMock.Setup(r => r.GetProfileAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(new UserProfile { UserId = _testUserId });
+            _repoMock.Setup(r => r.GetClaimsAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<UserClaim>());
+
+            // Act
+            await _service.UpdateCurrentProfileAsync(new UpdateProfileDto { DisplayName = $"  {name}  " });
+
+            // Assert
+            _repoMock.Verify(r => r.SetClaimAsync(_testUserId, "display_name", name, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
         public async Task UpdateCurrentProfileAsync_WithDisplayName_SetsClaimAndReturnsDto()
         {
             // Arrange

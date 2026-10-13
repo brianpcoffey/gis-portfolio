@@ -138,7 +138,9 @@ namespace Portfolio.Services.Services
 
             if (!string.IsNullOrWhiteSpace(dto.DisplayName))
             {
-                await _repo.SetClaimAsync(userId, ProfileClaimTypes.DisplayName, dto.DisplayName.Trim(), cancellationToken);
+                var displayName = dto.DisplayName.Trim();
+                if (displayName.Length > MaxClaimValueLength) throw new ArgumentException($"Claim value must be at most {MaxClaimValueLength} characters", nameof(dto));
+                await _repo.SetClaimAsync(userId, ProfileClaimTypes.DisplayName, displayName, cancellationToken);
             }
             else
             {
