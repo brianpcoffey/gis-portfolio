@@ -4,6 +4,7 @@
 :root {
     --primary: #1a365d;
     --primary-light: #2c5282;
+    --primary-rgb: 26, 54, 93;
     --accent: #38a169;
     --accent-light: #48bb78;
     --background: #f7fafc;

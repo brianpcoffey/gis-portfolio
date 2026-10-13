@@ -6,6 +6,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     initSmoothScroll();
     initStickyNavbar();
+    initNavHeight();
     initMobileMenu();
 });
 
@@ -66,6 +67,23 @@ function initStickyNavbar() {
             navbar.classList.remove('navbar-scrolled');
         }
     });
+}
+
+/**
+ * Publish the navbar height as --nav-h for full-height pages (network.css). Updates are
+ * skipped while the mobile menu is open, so the page does not resize under it.
+ */
+function initNavHeight() {
+    const navbar = document.getElementById('mainNav');
+    if (!navbar || typeof ResizeObserver === 'undefined') return;
+
+    const menu = document.getElementById('navbarNav');
+    const update = () => {
+        if (menu && (menu.classList.contains('show') || menu.classList.contains('collapsing'))) return;
+        document.documentElement.style.setProperty('--nav-h', navbar.offsetHeight + 'px');
+    };
+    new ResizeObserver(update).observe(navbar);
+    if (menu) menu.addEventListener('hidden.bs.collapse', update);
 }
 
 /**

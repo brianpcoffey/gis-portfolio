@@ -156,20 +156,12 @@
     }
 
     function buildLegend(result) {
-        legend.replaceChildren();
-        result.clusterSizes.forEach(function (size, index) {
-            legend.appendChild(legendItem(colorFor(index), "Cluster " + (index + 1) + " · " + fmt.number(size)));
+        var items = result.clusterSizes.map(function (size, index) {
+            return { color: colorFor(index), label: "Cluster " + (index + 1) + " · " + fmt.number(size) };
         });
         if (result.noiseCount > 0) {
-            legend.appendChild(legendItem("var(--text-muted)", "Noise · " + fmt.number(result.noiseCount)));
+            items.push({ color: "var(--text-muted)", label: "Noise · " + fmt.number(result.noiseCount) });
         }
-    }
-
-    // <li><span class="legend__swatch"/> label</li> per components.css; the colour goes through
-    // --swatch via setProperty (CSP-safe).
-    function legendItem(color, label) {
-        var swatch = PortfolioDom.el("span", { "class": "legend__swatch", "aria-hidden": "true" });
-        swatch.style.setProperty("--swatch", color);
-        return PortfolioDom.el("li", null, swatch, label);
+        charts.legend(legend, items);
     }
 }());
