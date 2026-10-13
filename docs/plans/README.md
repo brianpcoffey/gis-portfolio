@@ -1,11 +1,18 @@
 # Industry Vertical Projects — Implementation Plans
 
+> **Historical design document — these plans shipped in July 2026.** All five verticals and the
+> graph-engine extensions are in the repository. The conventions below were written before they
+> shipped and have been corrected only where an agent following them would go wrong; for the
+> current facts and conventions read [`docs/agent-context.md`](../agent-context.md). Where this
+> file disagrees with agent-context.md or the source, they win. Corrections are marked
+> **Update:**.
+
 Five new projects that carry the existing spatial + native-compute stack into industries
 that hire heavily in .NET. Each is a full vertical slice following the established
 native-kernel MVP pattern.
 
-**Read this file first.** It carries every convention shared by all five plans. The
-per-project documents assume it and only describe what is project-specific.
+The conventions shared by all five plans are collected below. The per-project documents
+assume them and only describe what is project-specific.
 
 | # | Plan | Industry | New kernel | Depends on |
 |---|---|---|---|---|
@@ -85,8 +92,10 @@ Portfolio.Web/wwwroot/js/Overlay/app.js
   A function that returns a *count* returns `>= 0` on success and negative on error.
 - Preallocate everything managed-side. Native code never allocates across the boundary.
 - **Never use `std::map::operator[]` on a possibly-missing key.** It default-constructs to
-  `0.0`, which in a shortest-path context means "reachable at zero cost". This is a real
-  latent bug in `spatial_graph_engine.cpp` (see Plan 0). Use `.find()` and check.
+  `0.0`, which in a shortest-path context means "reachable at zero cost". **Update:** this
+  was a real latent bug in the first `spatial_graph_engine.cpp`; the CSR rewrite fixed it
+  (edges to undeclared nodes are dropped when the graph is built). The rule still stands for
+  new native code: use `.find()` and check.
 
 ### Managed interop conventions
 
@@ -102,11 +111,14 @@ internal static extern int DoThing([In] FooNative[] input, int inputCount, [Out]
 Classic `DllImport` — **not** `LibraryImport`/source-gen. Blittable managed arrays with
 explicit `[In]`/`[Out]`. No `MarshalAs`, no `IntPtr`, no `unsafe`.
 
-Bridge: static class, static constructor probes once with `NativeLibrary.TryLoad(...)`
-wrapped in a bare `catch`, exposes `IsAvailable` and `LogAvailability(ILogger)`, and a
+Bridge: static class. **Update:** availability is probed once per process by a
+`private static readonly bool _available = NativeKernelLoader.TryLoad("<library>");` field
+initializer (there is no static constructor); the shared `NativeKernelLoader` wraps
+`NativeLibrary.TryLoad(...)` in a bare `catch` and honours `PORTFOLIO_DISABLE_NATIVE`. The
+bridge exposes `IsAvailable` and `LogAvailability(ILogger)`, and a
 `TryXxx(request, logger, out T? result)` that sets the out param to `null` first, returns
 `false` when unavailable, throws `InvalidOperationException` on a negative status, and
-catches via `when (IsNativeInvocationException(ex))`.
+catches via `when (NativeKernelLoader.IsNativeInvocationException(ex))`.
 
 > **Known wart, do not fix silently:** `IsNativeInvocationException` includes
 > `InvalidOperationException`, which is exactly what the negative-status check throws.
@@ -122,7 +134,10 @@ catches via `when (IsNativeInvocationException(ex))`.
 - Limits are `private const int` at the top of the class.
 - Validation order: `ArgumentNullException.ThrowIfNull(request)` first, then every other
   failure is `throw new ArgumentException(message, nameof(request))`. **Always pass
-  `nameof(request)`** (ViewshedService omits it in three places — that is a bug, not a pattern).
+  `nameof(request)`** (ViewshedService's raster-limit checks omit it — that is a bug, not a pattern).
+  **Update:** user-facing messages must be explicit `ArgumentException`s: the BCL throw helpers
+  (`ThrowIfNull`, ...) are thrown from framework code, so the client only sees a generic
+  "The request was invalid."
 - `cancellationToken.ThrowIfCancellationRequested()` immediately before dispatch, and once
   per outer-loop iteration in managed fallbacks.
 - Both paths converge on a shared `private static BuildResult(...)` that takes
@@ -143,12 +158,15 @@ collections default to `= []`, strings to `= string.Empty`. Every member gets a 
 [ApiController]
 [ApiVersion("1.0")]
 [AllowAnonymous]
+[EnableRateLimiting("compute")]   // "expensive" for heavier endpoints; see the Update below
+[CpuBound]
 [Route("api/v{version:apiVersion}/<segment>")]
 public class XController : ControllerBase
 ```
 
 ```csharp
 [HttpPost("<verb>")]
+[BadRequestOnArgumentException]
 [ProducesResponseType(typeof(TResult), 200)]
 [ProducesResponseType(400)]
 [ProducesResponseType(413)]
@@ -156,16 +174,20 @@ public class XController : ControllerBase
 public async Task<ActionResult<TResult>> Verb([FromBody] TRequest request, CancellationToken cancellationToken)
 ```
 
-Bare `int` status codes, not `StatusCodes.Status200OK`. Catch **only** `ArgumentException`
-→ `BadRequest(new { error = ex.Message })`. `ArgumentNullException` derives from it, so
-`ThrowIfNull` is covered. Do not catch `OperationCanceledException`.
+Bare `int` status codes, not `StatusCodes.Status200OK`. **Update:** the controller no longer
+catches `ArgumentException` itself — the `[BadRequestOnArgumentException]` action filter turns
+it into `BadRequest(new { error = ex.Message })`. Add it to every action that validates input
+(the set is pinned by a test). Do not catch `OperationCanceledException`.
 
 The service's exact `ArgumentException` messages are the public API contract — write them
 as user-facing text.
 
-> Existing spatial controllers are missing `[EnableRateLimiting("expensive")]` even though
-> `Program.cs` defines that policy for native-compute endpoints. **Add it to all new
-> controllers** — these kernels are heavier than the existing ones.
+> **Update (rate limiting):** this paragraph originally said the spatial controllers lacked a
+> rate-limit policy. They now all have one. A native-compute controller carries
+> `[EnableRateLimiting("compute")]` (60/min/IP, sliding) **and** `[CpuBound]` (the shared
+> process-wide concurrency limiter); a heavier or paid-API endpoint uses `"expensive"`
+> (15/min/IP; add `[CpuBound]` only when the work is CPU-bound). The vertical controllers
+> from these plans use `"expensive"` + `[CpuBound]`. See agent-context section 6.
 
 ### Frontend conventions
 
@@ -180,16 +202,19 @@ PageModel is bare — `OnGet() => Page()`, no DI, no attributes.
 	ViewData["Title"] = "<Title>";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/spatialcompute.css" />
+@section Styles {
+	<link rel="stylesheet" href="~/css/gis.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/css/spatialcompute.css" asp-append-version="true" />
+}
 ```
 
-Stylesheets are `<link>`-ed inline in the body of the cshtml (there is no `Styles` section
-in `_Layout`). Script goes last:
+**Update:** `_Layout` now has a `Styles` section (rendered in `<head>` after the global
+stylesheets) — put page `<link>`s there, not in the body. Script goes in the `Scripts` section,
+which renders last:
 
 ```cshtml
 @section Scripts {
-	<script src="~/js/<Name>/app.js" asp-append-version="true"></script>
+	<script defer src="~/js/<Name>/app.js" asp-append-version="true"></script>
 }
 ```
 
@@ -206,25 +231,34 @@ graph-paper background), `.spatial-stage`, `.kpi-card`/`.kpi-value`/`.kpi-label`
 
 Element IDs are `<feature><Role>` camelCase: `catRunBtn`, `catSvg`, `catKpiAal`.
 
-JavaScript — `wwwroot/js/<Name>/app.js`, **ES5 only**:
+JavaScript — `wwwroot/js/<Name>/app.js`, a classic deferred script (no ES-module syntax),
+written in **ES5 style** on the spatial pages (older pages use `const`/arrow functions —
+match the neighbouring page). **Update:** a page is not always a single `app.js` any more;
+the larger pages are split into several scripts sharing one namespace (agent-context section 9).
 
 - `(function () { "use strict"; ... }());` — closing parens inside.
 - `var` only. No arrow functions, no `let`/`const`, no template literals, no classes.
-- **No `DOMContentLoaded` guard** — the script is emitted at the end of `<body>`.
-  Cache DOM nodes at module scope, wire listeners, then call the initial render directly.
-- Deterministic LCG for demo data: `seed = (seed * 48271) % 2147483647; return seed / 2147483647;`
-- Helpers every page repeats: `setBusy(busy)`, `showAlert(msg)`, `hideAlert()`, `escapeHtml(text)`.
+- **No `DOMContentLoaded` guard** — the script is `defer`red, so it runs after the document is
+  parsed. Cache DOM nodes at module scope, wire listeners, then call the initial render directly.
+- Deterministic LCG for demo data: `PortfolioCharts.rng(seed)` (the same recurrence,
+  `seed = (seed * 48271) % 2147483647; return seed / 2147483647;`).
+- **Update:** the helpers every page used to repeat (`setBusy`, `showAlert`, `hideAlert`,
+  `escapeHtml`) are shared now. Use `PortfolioUi.inlineAlert(el)` (`show`/`hide`),
+  `PortfolioUi.busy` / `runAction`, `PortfolioDom.escapeHtml` / `el`, `PortfolioFormat` for
+  numbers and `PortfolioCharts` for SVG helpers, scales and legends.
 - API calls use the bare global `apiPost` (not `window.apiPost`) and always read the route
   from `window.PortfolioApi.routes.spatialCompute.<group>.<endpoint>` — never a literal URL:
 
 ```js
 function run() {
-    hideAlert();
-    setBusy(true);
-    apiPost(window.PortfolioApi.routes.spatialCompute.catRisk.simulate, payload)
-        .then(function (result) { render(result); })
-        .catch(function (err) { showAlert(err.message || "Simulation failed."); })
-        .finally(function () { setBusy(false); });
+    ui.runAction({
+        trigger: runBtn,                 // ui = window.PortfolioUi
+        alert: alertBox,                 // ui.inlineAlert(document.getElementById("catAlert"))
+        region: resultsPanel,
+        request: function () { return apiPost(window.PortfolioApi.routes.spatialCompute.catRisk.simulate, payload); },
+        render: render,
+        summary: function () { return "Simulation complete."; }
+    });
 }
 ```
 
@@ -239,11 +273,14 @@ function run() {
 Prefer **self-contained SVG over map tiles** where the data allows it. OSM tiles cannot be
 verified in the Browser pane (screenshots hang). Plans 2 and 4 legitimately need Leaflet —
 verify those via `read_network_requests` + DOM assertions instead of screenshots.
+**Update:** build Leaflet maps with `PortfolioMap.create(id, { center, zoom, label })`
+(`leaflet-setup.js`, loaded after `leaflet.js`) rather than hand-rolling the tile layer.
 
 ### Test conventions
 
 `Portfolio.Tests/Services/<Name>ServiceTests.cs`, block-scoped namespace
 `Portfolio.Tests.Services`, **no `using Xunit;`** (it is a global using from the csproj).
+**Update:** one test class per service and one per controller; the old multi-SUT classes were split.
 
 ```csharp
 using Microsoft.Extensions.Logging.Abstractions;
@@ -253,17 +290,20 @@ using Portfolio.Services.Services;
 
 - `NullLogger<T>.Instance` for services, never Moq. Moq only for service *interfaces* in
   controller tests, with `NullLogger<TController>.Instance` for the logger.
-- Construct the SUT inline in each test body. No shared fields, no fixtures.
+- Construct the SUT inline in each test body of a pure compute service (no collaborators).
+  **Update:** controller tests, and services that have collaborators, use `Mock<IXxx>` fields
+  built in the test class constructor.
 - Method names are `Feature_Scenario_ExpectedOutcome`.
 - Null request → `Assert.ThrowsAsync<ArgumentNullException>`; every other validation
   failure → `Assert.ThrowsAsync<ArgumentException>`. Do not assert messages.
-- The happy-path test asserts `Assert.False(result.NativeAccelerated);` **first** — the
-  suite runs with no native libraries present.
+- **Update:** the happy-path test asserts the computed result and does **not** assert
+  `NativeAccelerated`. The original advice here — `Assert.False(result.NativeAccelerated)` first — is
+  withdrawn: it makes the test fail the moment the kernels are built, and the suite runs both with and
+  without them. Only the native-gated parity tests look at the flag.
 - Collection expressions for DTO literals: `Points = [new() { X = 0, Y = 0 }, ...]`.
 
-Every plan lists its required tests explicitly. The suite is currently **416 declared
-methods / ~494 executed cases**; update the README badge and the "Running Tests" count
-when the number changes.
+Every plan lists its required tests explicitly. Do not copy test counts into docs or badges:
+`dotnet test` prints the current number.
 
 ---
 
@@ -280,16 +320,16 @@ when the number changes.
 | 7 | `Portfolio.Services/Interfaces/I<X>Service.cs` | interface |
 | 8 | `Portfolio.Services/Services/<X>Service.cs` | validation + dispatch + managed fallback |
 | 9 | `Portfolio.Web/Controllers/Api/<X>Controller.cs` | endpoints |
-| 10 | **`Portfolio.Web/Program.cs` ~line 79** | `builder.Services.AddScoped<I<X>Service, <X>Service>();` |
-| 11 | **`Portfolio.Web/wwwroot/js/api-config.js` ~line 88** | new `spatialCompute.<group>` route object |
+| 10 | **`Portfolio.Web/Startup/DataRegistration.cs`** (`AddPortfolioServices`) | `services.AddScoped<I<X>Service, <X>Service>();` — **Update:** this used to be a block in `Program.cs`; also update `ServiceRegistrationSnapshotTests` |
+| 11 | **`Portfolio.Web/wwwroot/js/api-config.js`** | new `spatialCompute.<group>` route object; also the golden route list in `Portfolio.Tests/Contracts/RouteTableTests.cs` |
 | 12 | `Portfolio.Web/Pages/Projects/<Name>/` | `Index.cshtml` + `.cs`, `Details.cshtml` + `.cs` |
 | 13 | `Portfolio.Web/wwwroot/js/<Name>/app.js` | frontend |
-| 14 | **`Portfolio.Web/Pages/Projects/Index.cshtml`** before line 264 | grid card |
-| 15 | **`Portfolio.Web/Pages/Index.cshtml`** before line 385 **AND** before line 656 | marquee card **in both halves** — the seamless loop needs equal halves |
+| 14 | **`Portfolio.Web/Pages/Projects/Index.cshtml`** | grid card (hand-written markup) |
+| 15 | **`Portfolio.Web/Pages/Index.cshtml`** | **Update:** one entry in the `projects` list at the top of the file; `_ProjectCard` renders it twice (real card plus the inert copy that makes the seamless loop) |
 | 16 | `Portfolio.Tests/Services/<Name>ServiceTests.cs` | service tests |
-| 17 | `Portfolio.Tests/Controllers/SpatialComputeControllerTests.cs` | controller Ok + BadRequest cases |
-| 18 | `native/README.md` | kernel table row, swap list (~L56), Docker copy block (~L104), file-layout tree (~L138), the "eight directories" count (~L37) |
-| 19 | `README.md` | native-integrations table + count, project section, xUnit badge count, Native Performance stack row, Running Tests count |
+| 17 | `Portfolio.Tests/Controllers/<X>ControllerTests.cs` | controller Ok + BadRequest cases (**Update:** one class per controller); add the action to the filter-wiring set in `Portfolio.Tests/Filters/ControllerFilterWiringTests.cs` and check `OpenApiContractTests` |
+| 18 | `native/README.md` | kernel table row, benchmark table row, the Docker copy-block example, the file-layout tree and the "thirteen" kernel counts |
+| 19 | `README.md` | native-integrations table + count, project section, Native Performance stack row — no test-count badge or figure |
 
 Items 10, 11, 15, 18 and 19 are the ones historically missed.
 
@@ -298,9 +338,10 @@ Items 10, 11, 15, 18 and 19 are the ones historically missed.
 Every line number in this document was accurate at planning time. **Grep for the anchor
 text, do not trust the number.** Useful anchors:
 
-- `Program.cs` → `AddScoped<ISpatialOverlayService`
+- `Startup/DataRegistration.cs` → `AddScoped<ISpatialOverlayService` (**Update:** formerly `Program.cs`)
 - `api-config.js` → `overlay: {`
-- `Pages/Index.cshtml` → `<!-- Duplicates for seamless loop -->` (the boundary)
+- `Pages/Index.cshtml` → the `projects` list at the top (**Update:** formerly a
+  `<!-- Duplicates for seamless loop -->` comment between two hand-written halves)
 - `Pages/Projects/Index.cshtml` → the closing of `<div class="row g-4 projects-grid">`
 
 ---
@@ -315,7 +356,10 @@ cmake -S native/<kernel> -B build/native/<kernel> -DCMAKE_BUILD_TYPE=Release
 cmake --build build/native/<kernel> --config Release
 ```
 
-The `POST_BUILD` step copies the shared library into `Portfolio.Services/bin/Debug/net10.0`.
+The `POST_BUILD` step copies the shared library into **two** directories,
+`Portfolio.Services/bin/Debug/net10.0` and `Portfolio.Web/bin/Debug/net10.0` (the web host
+loads from its own output directory). It does not copy into `Portfolio.Tests`; CI stages the
+libraries there itself.
 
 ```bash
 dotnet test
@@ -326,16 +370,20 @@ build to a scratch directory and run on an alternate port — see the
 `verify-web-without-build-lock` note.
 
 > **The Dockerfile does not build any native kernel.** Production on Render runs the managed
-> fallback for all of them, and the UI correctly reports "Native: No". This is worth fixing
-> (see the benchmarks work item) but it is out of scope for these five plans. Do not claim
-> native acceleration in production copy.
+> fallback for all of them, and the UI correctly reports "Native: No". **Update:** this is a
+> deliberate decision taken on the measured speedups, not an omission to fix — see the "Docker"
+> section of `native/README.md`. Do not claim native acceleration in production copy.
 
 ---
 
 ## Writing the Details page
 
-Every project gets a `Details.cshtml` with exactly **six** `<section class="theme-surface shadow-sm rounded p-4 mb-4">`
-blocks, each an `<h2 class="h4 mb-3">` plus a `<ul>` of `<li><strong>Label:</strong> text</li>`:
+Every one of these vertical projects gets a `Details.cshtml` with exactly **six**
+`<section class="panel shadow-sm rounded p-4 mb-4">` blocks (**Update:** the class was
+`theme-surface` when this was written), each an `<h2 class="h4 mb-3">` plus a `<ul>` of
+`<li><strong>Label:</strong> text</li>`. This 6-section template is used by the eight newer
+spatial/vertical pages only (CatRisk, Change, Clustering, Fleet, Outage, Overlay, Response,
+Viewshed); the ten older pages use an 8-section template — see agent-context section 9.
 
 1. High-Level System Overview
 2. Algorithm

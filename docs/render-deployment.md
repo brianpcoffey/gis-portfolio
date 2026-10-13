@@ -46,7 +46,7 @@ Both formats are supported. The application automatically normalizes `rediss://`
 
 1. Log in to [Render Dashboard](https://dashboard.render.com)
 2. Click **New +** → **Web Service**
-3. Connect your GitHub repository (`brianpcoffey/portfolio_v2`)
+3. Connect your GitHub repository (`brianpcoffey/gis-portfolio`)
 4. Configure:
 
 | Setting | Value |
@@ -58,6 +58,8 @@ Both formats are supported. The application automatically normalizes `rediss://`
 | **Dockerfile Path** | `Dockerfile` |
 | **Docker Build Context Directory** | `.` (root) |
 | **Instance Type** | `Starter` (512 MB RAM, $7/month) or `Free` (limited hours) |
+| **Pre-Deploy Command** | `dotnet Portfolio.Web.dll --migrate` (see [Database migrations](#database-migrations-pre-deploy-step)) |
+| **Auto-Deploy** | See [How a push to `main` reaches production](#how-a-push-to-main-reaches-production) |
 
 ## Step 3: Configure Environment Variables
 
@@ -77,11 +79,24 @@ In the Render dashboard, go to **Environment** and add these variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Already set by Dockerfile |
-| `ASPNETCORE_HTTP_PORTS` | `10000` | Set by the Dockerfile (`${PORT:-10000}`, resolved at build time); Render routes to this port |
-| `BatchGeocoding__MaxConcurrency` | `4` | Max parallel geocoding requests |
+| `ASPNETCORE_HTTP_PORTS` | `10000` | Set to a fixed `10000` by the Dockerfile (Render's default port); Render routes to it |
+| `RunMigrationsOnStartup` | `true` | Set to `false` **only together with** the Pre-Deploy Command below |
+| `BatchGeocoding__MaxConcurrency` | `4` | Max parallel geocoding requests per job |
 | `BatchGeocoding__MinMatchScore` | `80` | Minimum score for geocode matches |
+| `ForwardedHeaders__KnownNetworks` | *(empty)* | Comma-separated CIDRs of Render's proxy. Empty trusts `X-Forwarded-*` from any proxy; set it only after verifying Render's range (the forward limit stays 1 while it is empty) |
 
 > **Note**: Use double underscores (`__`) in environment variable names. ASP.NET Core automatically maps `Redis__ConnectionString` to `Redis:ConnectionString` in `IConfiguration`.
+
+### Database migrations (pre-deploy step)
+
+By default the app applies EF Core migrations itself at startup (`db.Database.Migrate()`), which keeps a fresh clone working with no extra configuration. On an instance that spins down when idle that costs a round trip to the database on every cold start, and the first request after it is the one a visitor is waiting on. Two settings move the cost to deploy time; **set both or neither** (setting only `RunMigrationsOnStartup=false` means nothing migrates):
+
+| Setting | Value |
+|---------|-------|
+| **Pre-Deploy Command** (Render service settings) | `dotnet Portfolio.Web.dll --migrate` — migrates, then exits without starting the web host; a failure exits non-zero, which aborts the deploy |
+| `RunMigrationsOnStartup` (environment variable) | `false` — skips the startup pass |
+
+If your Render plan does not offer a Pre-Deploy Command, leave both at their defaults and the app migrates itself at startup. These settings live in the Render dashboard, not in the repository, so nothing in the repo proves what a given service is set to.
 
 ## Step 4: Deploy
 
@@ -99,6 +114,8 @@ Redis ENABLED - Connection: region-endpoint.upstash.io:6380,password=***,ssl=Tru
 Data Protection keys will be stored in Redis
 Database migration successful.
 ```
+
+With the pre-deploy step configured, `Database migration successful.` followed by `Migration-only run complete; exiting without starting the web host.` appears in the **pre-deploy** log, and the running service's log no longer shows the migration line.
 
 ## Step 5: Verify Redis Integration
 
@@ -120,20 +137,22 @@ Data Protection keys will be stored in filesystem: /app/DataProtection-Keys
 
 ### Test Batch Geocoding
 
-Batch geocoding jobs use Redis for state management:
+Batch geocoding jobs use Redis for state management. The CSV needs the columns `Id, Address, City, State, Zip`, is limited to 2 MB and 1,000 data rows, and the endpoint calls the paid ArcGIS geocoder (15 requests/minute/IP):
 
 ```bash
 curl -X POST https://your-app.onrender.com/api/v1/geocoding/batch \
   -F "file=@addresses.csv"
 ```
 
-Response:
+Response (`202 Accepted`):
 ```json
 {
   "jobId": "abc123",
-  "statusUrl": "/api/v1/geocoding/batch/abc123/status"
+  "statusUrl": "https://your-app.onrender.com/api/v1/geocoding/batch/abc123/status"
 }
 ```
+
+Jobs wait in a bounded in-process queue (capacity 8) drained by two workers; if it is full the API answers `503` with a `Retry-After` header. The queue is per process, but job state lives in Redis.
 
 Poll status:
 ```bash
@@ -214,10 +233,21 @@ Redis connection will be re-established automatically on cold start.
 
 **Total minimum cost**: $0-7/month depending on Render tier choice.
 
+## How a push to `main` reaches production
+
+The repository's CI is written around two ways of deploying `main`, which are alternatives:
+
+| Mode | What happens | Trade-off |
+|------|--------------|-----------|
+| **Render Auto-Deploy ON (on commit)** | Render builds every push to `main` as soon as GitHub reports it, without waiting for the GitHub Actions workflow. | Simplest, no secret needed. But a push deploys even if CI is red (the header comment in `ci.yml` says the same). |
+| **Render Auto-Deploy OFF + `RENDER_DEPLOY_HOOK`** | The `deploy` job in `.github/workflows/ci.yml` POSTs Render's deploy hook, and only after the `test`, `native-parity` and `docker` jobs are green. | Only a green build ships. The cost is a dependency on the secret (Render → service → **Settings** → **Deploy Hook**, stored as a GitHub repository secret) and on CI. If the secret is missing the job prints "skipping" and exits 0, so a green `deploy` job does **not** prove a deploy fired — only the live site changing does. |
+
+This project is meant to run in the second mode: the owner turned Auto-Deploy off and added the hook secret in July 2026, so CI's `deploy` job ships `main`. Those are dashboard and repository-secret settings, so the repo cannot confirm them. Either way, **treat a push to `main` as a production deploy.**
+
 ## Production Recommendations
 
 1. ✅ Use Render **Starter** tier ($7/month) for always-on service
-2. ✅ Enable **Auto-Deploy** from `main` branch
+2. ✅ Pick one deploy mode deliberately (see above); do not rely on Auto-Deploy if you want a red build to be unable to ship
 3. ✅ Use Upstash Redis with TLS (`rediss://`)
 4. ✅ Store secrets in Render environment variables (not in code)
 5. ✅ Monitor Upstash command usage in [Console](https://console.upstash.com)
