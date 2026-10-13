@@ -2,13 +2,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Portfolio.Common.Configuration;
 using Portfolio.Common.Models;
 using Portfolio.Services;
+using Portfolio.Services.Abstractions;
+using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
+using Portfolio.Web.BackgroundServices;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -20,10 +25,30 @@ namespace Portfolio.Tests.Services
     /// Each test that inspects background-task results polls the store until the job reaches a
     /// terminal status, capped at five seconds to prevent an infinite wait in CI.
     /// </summary>
-    public class BatchGeocodingEnqueueTests
+    public class BatchGeocodingEnqueueTests : IAsyncDisposable
     {
         private readonly Mock<ILogger<BatchGeocodingService>> _loggerMock = new();
         private readonly IDistributedCache _memoryCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+        private readonly BoundedBatchJobQueue _queue = new();
+        private readonly List<BatchGeocodingWorker> _workers = [];
+
+        public async ValueTask DisposeAsync()
+        {
+            foreach (var worker in _workers)
+                await worker.StopAsync(CancellationToken.None);
+        }
+
+        // Starts the real hosted worker over the service, as Program.cs does, so the queued job runs end to end.
+        private void StartWorker(BatchGeocodingService service)
+        {
+            var provider = new ServiceCollection()
+                .AddSingleton<IBatchGeocodingService>(service)
+                .BuildServiceProvider();
+            var worker = new BatchGeocodingWorker(
+                _queue, provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<BatchGeocodingWorker>.Instance);
+            _workers.Add(worker);
+            _ = worker.StartAsync(CancellationToken.None);
+        }
 
         private static IOptions<BatchGeocodingOptions> MakeOptions(int maxConcurrency = 2, double minScore = 80.0) =>
             Options.Create(new BatchGeocodingOptions
@@ -32,12 +57,19 @@ namespace Portfolio.Tests.Services
                 MinMatchScore = minScore
             });
 
-        private BatchGeocodingService CreateService(HttpMessageHandler handler, InMemoryBatchJobStore store) =>
-            new(httpClient: new HttpClient(handler),
+        private BatchGeocodingService CreateService(HttpMessageHandler handler, IBatchJobStore store, bool startWorker = true)
+        {
+            var service = new BatchGeocodingService(
+                httpClient: new HttpClient(handler),
                 cache:      _memoryCache,
                 logger:     _loggerMock.Object,
                 jobStore:   store,
+                queue:      _queue,
                 options:    MakeOptions());
+            if (startWorker)
+                StartWorker(service);
+            return service;
+        }
 
         private static IFormFile BuildCsvFile(string csvContent)
         {
@@ -225,7 +257,143 @@ namespace Portfolio.Tests.Services
             Assert.Equal(rowCount, job.Results.Count);
         }
 
+        // With no worker draining it, the queue accepts exactly its capacity (8) and then rejects.
+        [Fact]
+        public async Task EnqueueAsync_QueueFull_ThrowsBatchQueueFullException()
+        {
+            // Arrange
+            var store   = new InMemoryBatchJobStore();
+            var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson()), store, startWorker: false);
+            const string csv = "Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201";
+            for (var i = 0; i < BoundedBatchJobQueue.DefaultCapacity; i++)
+                await service.EnqueueAsync(BuildCsvFile(csv));
+
+            // Act & Assert
+            await Assert.ThrowsAsync<BatchQueueFullException>(() => service.EnqueueAsync(BuildCsvFile(csv)));
+        }
+
+        // 1,001 rows is one over the D-10 cap: rejected on the request thread, before any job exists.
+        [Fact]
+        public async Task EnqueueAsync_CsvOverRowCap_ThrowsArgumentExceptionAndCreatesNoJob()
+        {
+            // Arrange
+            var store   = new Mock<IBatchJobStore>();
+            var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson()), store.Object, startWorker: false);
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 1001; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Main St,Denver,CO,80201\n");
+
+            // Act
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.EnqueueAsync(BuildCsvFile(sb.ToString())));
+
+            // Assert
+            Assert.StartsWith("CSV exceeds the maximum of 1000 data rows.", ex.Message);
+            store.Verify(s => s.CreateAsync(It.IsAny<BatchJob>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        // The worker takes a queued job through Processing to Completed and logs one summary for it.
+        [Fact]
+        public async Task Worker_ProcessesQueuedJobEndToEnd_WithOneSummaryLog()
+        {
+            // Arrange
+            var store   = new InMemoryBatchJobStore();
+            var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson(95.0)), store);
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 30; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Private Rd,Denver,CO,80201\n");
+
+            // Act
+            var jobId = await service.EnqueueAsync(BuildCsvFile(sb.ToString()));
+            var job   = await WaitForTerminalStatusAsync(store, jobId);
+
+            // Assert
+            Assert.Equal(BatchJobStatus.Completed, job.Status);
+            Assert.Equal(30, job.Results.Count);
+            var messages = _loggerMock.Invocations
+                .Where(i => i.Method.Name == "Log")
+                .Select(i => i.Arguments[2]?.ToString() ?? string.Empty)
+                .ToList();
+            var summary = Assert.Single(messages, m => m.Contains("summary"));
+            Assert.Contains("30 rows", summary);
+            Assert.DoesNotContain(messages, m => m.Contains("Private"));
+        }
+
+        // Stopping the host mid-job still writes a terminal status (the final update is in finally).
+        [Fact]
+        public async Task Worker_StoppedMidJob_LeavesJobFailedNotProcessing()
+        {
+            // Arrange
+            var store   = new InMemoryBatchJobStore();
+            var service = CreateService(new BlockingHandler(), store);
+            var jobId   = await service.EnqueueAsync(BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201"));
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+            while ((await store.GetAsync(jobId))!.Status != BatchJobStatus.Processing && DateTimeOffset.UtcNow < deadline)
+                await Task.Delay(10);
+
+            // Act
+            await _workers[0].StopAsync(CancellationToken.None);
+
+            // Assert
+            var job = await store.GetAsync(jobId);
+            Assert.Equal(BatchJobStatus.Failed, job!.Status);
+            Assert.NotNull(job.CompletedAt);
+        }
+
+        // Two workers: with more queued jobs than workers, exactly two run at once.
+        [Fact]
+        public async Task Worker_RunsAtMostTwoJobsConcurrently()
+        {
+            // Arrange
+            var store   = new InMemoryBatchJobStore();
+            var handler = new ConcurrencyProbeHandler(BuildMatchJson());
+            var service = CreateService(handler, store);
+            var ids = new List<string>();
+            for (var i = 1; i <= 5; i++)
+                ids.Add(await service.EnqueueAsync(BuildCsvFile($"Id,Address,City,State,Zip\n1,{i} Main St,Denver,CO,80201")));
+
+            // Act
+            foreach (var id in ids)
+                await WaitForTerminalStatusAsync(store, id);
+
+            // Assert
+            Assert.Equal(BatchGeocodingWorker.WorkerCount, handler.MaxConcurrent);
+        }
+
         // ── Fake HTTP handlers ───────────────────────────────────────────────
+
+        private sealed class BlockingHandler : HttpMessageHandler
+        {
+            protected override async Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            }
+        }
+
+        // Each request holds for 150 ms and records the peak number in flight. Every job here has one
+        // row, so in-flight requests equal running jobs.
+        private sealed class ConcurrencyProbeHandler(string json) : HttpMessageHandler
+        {
+            private int _current;
+            private int _max;
+            public int MaxConcurrent => Volatile.Read(ref _max);
+
+            protected override async Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                var now = Interlocked.Increment(ref _current);
+                int seen;
+                while ((seen = Volatile.Read(ref _max)) < now &&
+                       Interlocked.CompareExchange(ref _max, now, seen) != seen) { }
+                await Task.Delay(150, cancellationToken);
+                Interlocked.Decrement(ref _current);
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+            }
+        }
 
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler
         {
