@@ -5,9 +5,11 @@ The **General SWE** variant in Google Drive has already been updated in place
 Four Project bullets and five Skills lines were replaced; bold labels and the one-page fit
 are intact.
 
-**Still to do:** File → Download → PDF, then overwrite
-`Portfolio.Web/wwwroot/files/Brian-Coffey-Resume.pdf`. The site currently serves the previous
-export, so the download link works but is one revision behind.
+**Published:** the updated export was committed to `Portfolio.Web/wwwroot/files/Brian-Coffey-Resume.pdf`
+on 2026-07-19 (commit `59cfd48`, "Publish the updated résumé PDF"). After any future edit to the
+Drive source: File → Download → PDF, then overwrite that file; the home page reads the file's real
+size, page count and date, so nothing else needs editing. The PDF can lag the Drive source until
+that is done, and this repo cannot show whether it currently does.
 
 ---
 
@@ -19,6 +21,23 @@ export, so the download link works but is one revision behind.
 | Engineered secure, production-grade RESTful APIs with policy-based authorization, cancellation tokens… | Developed 13 high-performance C++ modules integrated with C# through native interop, powering route optimization, geospatial clustering, terrain visibility analysis, risk simulation, and satellite image change detection |
 | Delivered a containerized, continuously deployed platform using Docker, GitHub Actions, and Render… | Created an automated performance benchmarking suite comparing each C++ module against its C# equivalent, publishing measured results and surfacing two defects that had previously gone undetected |
 | Modeled complex relational data structures using EF Core code-first migrations… | Implemented a CI/CD pipeline in GitHub Actions that runs 680 automated tests, validates the Docker production image, and gates deployment on every commit |
+
+> **Fact check against the repo (the wording above is quoted as written; the résumé text is the
+> owner's to change).** Four phrases do not match what the code and CI show today:
+> - *"high-performance C++ modules"* (bullet 2) — the benchmarks measured 0.37×–2.26× (9 wins /
+>   5 losses / 7 ties at ±15%, see `native/README.md`), and the rule further down in this document
+>   rules out "high-performance computing" claims.
+> - *"role-based authorization"* (bullet 1) — there are no roles; the one authorization policy is
+>   `"Authenticated"` (a signed-in Google user).
+> - *"runs 680 automated tests"* (bullet 4) — the figure is stale and drifts; `dotnet test` prints
+>   the current count, which is larger.
+> - *"gates deployment on every commit"* (bullet 4) — true only while Render's Auto-Deploy is off
+>   and the `RENDER_DEPLOY_HOOK` secret is set, so that CI's `deploy` job is what ships `main`
+>   (see `docs/render-deployment.md`); with Auto-Deploy on, a red build still ships.
+>
+> What does match: 18 interactive applications, 13 native C++ kernels each with a managed
+> fallback, a CI pipeline that compiles the C++ and runs the suite with and without it, and the
+> benchmark suite that caught two native defects.
 
 The originals described work that could apply to any competent CRUD application. The
 replacements lead with what is actually uncommon: native interop with verified fallbacks,
