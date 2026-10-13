@@ -2,12 +2,26 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace
 {
 	int sample_index(int x, int y, int width)
 	{
 		return y * width + x;
+	}
+
+	// Number of cells in a width x height grid, or -1 when the grid is unusable: a dimension that
+	// is not positive, or more cells than a 32-bit int can index. The product is formed in 64 bits
+	// (two positive ints always fit), so it can neither overflow nor wrap to a small value, and
+	// every `y * width + x` below stays under INT_MAX once this has accepted the grid.
+	long long grid_cell_count(int width, int height)
+	{
+		if (width <= 0 || height <= 0)
+			return -1;
+
+		const long long cells = static_cast<long long>(width) * height;
+		return cells > std::numeric_limits<int>::max() ? -1 : cells;
 	}
 
 	// Half-up rounding, stated explicitly rather than delegating to a language default.
@@ -24,6 +38,7 @@ namespace
 
 extern "C" VIEWSHED_API int Viewshed_Compute(
 	const double* elevation,
+	int elevationLength,
 	int width,
 	int height,
 	double cellSize,
@@ -35,7 +50,8 @@ extern "C" VIEWSHED_API int Viewshed_Compute(
 {
 	try
 	{
-		if (!elevation || !visibility || width <= 0 || height <= 0 || cellSize <= 0 || outputLength < width * height)
+		const long long cells = grid_cell_count(width, height);
+		if (!elevation || !visibility || cells < 0 || cellSize <= 0 || elevationLength != cells || outputLength < cells)
 			return -1;
 		if (observerX < 0 || observerX >= width || observerY < 0 || observerY >= height)
 			return -2;
@@ -93,4 +109,9 @@ extern "C" VIEWSHED_API int Viewshed_Compute(
 	{
 		return -99;
 	}
+}
+
+extern "C" VIEWSHED_API std::int32_t Viewshed_AbiVersion(void)
+{
+	return VIEWSHED_ABI_VERSION;
 }

@@ -37,16 +37,17 @@ high priority. Every workload folds its result into a deterministic checksum, an
 paths' checksums are compared; a row whose checksums disagree is a correctness defect and its
 speedup means nothing.
 
-Measured on 20 logical cores, .NET 10.0.9, Windows 11:
+Measured on 20 logical cores, .NET 10.0.9, Windows 11 (the two rows marked † were re-measured later, on
+.NET 10.0.12; see the notes):
 
 | Kernel | Workload | Native median | Managed median | Speedup | Native min–max | Managed min–max | Parity |
 |---|---|---:|---:|---:|---:|---:|---|
 | `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 108 ms | 107 ms | 0.99x | 98.4 ms–112 ms | 79.3 ms–117 ms | exact |
-| `geostream_processor` | parse + filter + grid aggregate, 40 x 10,000 events | 92.4 ms | 54.9 ms | 0.59x | 73.1 ms–153 ms | 32.0 ms–114 ms | exact |
+| `geostream_processor` † | parse + filter + grid aggregate, 40 x 10,000 events | 80.4 ms | 33.1 ms | 0.41x | 65.4 ms–103 ms | 31.2 ms–113 ms | exact |
 | `spatial_geometry_kernel` | fan triangulation, 400 x 5,000 vertices | 188 ms | 70.2 ms | 0.37x | 170 ms–192 ms | 66.0 ms–86.4 ms | exact |
 | `spatial_geometry_kernel` | bounding-box clip, 400 x 5,000-vertex polygon | 81.5 ms | 62.5 ms | 0.77x | 75.4 ms–93.3 ms | 61.1 ms–63.1 ms | exact |
 | `raster_terrain_kernel` | hillshade, 20 x 500x500 elevation grid | 196 ms | 164 ms | 0.83x | 183 ms–202 ms | 156 ms–185 ms | exact |
-| `raster_terrain_kernel` | Gaussian heatmap, 500x500 over 200 points | 215 ms | 263 ms | **1.22x** | 215 ms–217 ms | 263 ms–278 ms | exact |
+| `raster_terrain_kernel` † | Gaussian heatmap, 2 x 500x500 over 100 points | 218 ms | 278 ms | **1.28x** | 215 ms–230 ms | 275 ms–293 ms | exact |
 | `spatial_graph_engine` | one-to-all Dijkstra, 40 x (2,530 nodes / 3,187 edges) | 33.2 ms | 15.0 ms | 0.45x | 27.1 ms–48.2 ms | 12.2 ms–46.3 ms | exact |
 | `spatial_graph_engine` | 40x40 cost matrix over the same network, 10 builds | 63.1 ms | 82.9 ms | **1.31x** | 62.2 ms–71.7 ms | 82.4 ms–89.7 ms | exact |
 | `spatial_cluster_kernel` | DBSCAN, 8 x 5,000 points, eps 0.16 / minPts 6 | 186 ms | 175 ms | 0.94x | 183 ms–191 ms | 165 ms–182 ms | exact |
@@ -70,8 +71,31 @@ Reading notes:
   them is `spatial_graph_engine` work and would otherwise dominate the row.
 - Several workloads are a burst of full-size calls rather than one large call, because the
   services cap their inputs (10,000 telemetry events, 5,000 geometry points, 250,000 raster
-  cells). Those caps are production guardrails, so the per-call marshalling is counted — it
-  is part of what a caller actually pays.
+  cells, 25,000,000 heatmap cell-point evaluations). Those caps are production guardrails, so
+  the per-call marshalling is counted — it is part of what a caller actually pays.
+- The Gaussian heatmap row (†) was re-measured on 2026-10-13 (.NET 10.0.12, 20 logical cores,
+  Windows 11, the methodology above) after the service gained its 25,000,000 cell-point request
+  limit. The row it replaces (one call, 500x500 over 200 points, 215 ms vs 263 ms, 1.22x) is a
+  request the service now rejects, and the benchmark had stopped running to completion because
+  of it. The workload is now two calls of 500x500 over 100 points, each exactly at the limit:
+  the same 50,000,000 cell-point evaluations in total, so the kernel work is unchanged, but the
+  output is marshalled and normalized twice. A second full run measured native 217 ms but a
+  noisier managed path (274 ms–364 ms, 1.54x); the first run, with the tighter spread and the
+  lower speedup, is the one published. Every other row is unchanged from the earlier run, which
+  is why they were measured on .NET 10.0.9.
+- The geostream row (†) was re-measured on 2026-10-13 (.NET 10.0.12, 20 logical cores, Windows 11,
+  the methodology above) after the kernel stopped being built with `/fp:fast`. The fast-math build
+  compiled the cell-index division as a multiplication by `1 / grid`, which differs in the last bit,
+  so a coordinate on a cell boundary landed one cell from the managed path (longitude -128.4 at a
+  0.1 degree grid is cell 515 in managed code and was 516 natively). The old and the new build were
+  run alternately, three full harness runs each. The fast-math build measured 0.59x, 0.40x and
+  0.38x (native medians 80.3, 85.7 and 87.7 ms; managed 47.2, 34.5 and 33.1 ms). The precise build
+  measured 0.39x, 0.44x and 0.41x (native 90.1, 78.8 and 80.4 ms; managed 34.9, 34.4 and 33.1 ms).
+  The published row is the middle run of the three precise ones. The two builds' native times
+  overlap, so the change itself is not measurable here; what moved is the managed median. The
+  earlier 0.59x had a managed median of 54.9 ms, against 33.1 to 34.9 ms in five of these six
+  runs. The row is still a clear loss, and the 9 / 5 / 7 split and the 0.37x to 2.26x range are
+  unchanged. Only this row was replaced; every other row is as previously published.
 - `portfolio_scoring` is the only native-backed service whose public entry point reads from a
   repository. The harness supplies a fixed-seed in-memory one; every other kernel runs on an
   in-repo deterministic dataset reached through its public API.
@@ -185,9 +209,15 @@ batching to amortise the crossing — none of which any kernel does today.
 
 ### Two compilers' worth of flags
 
-Most kernels build with `/fp:fast` (`-ffast-math`). Two deliberately do not, and the reasons
+Most kernels build with `/fp:fast` (`-ffast-math`). Three deliberately do not, and the reasons
 are worth knowing before you "fix" them:
 
+- `geostream_processor` — the cell index is `floor((coordinate + offset) / grid)`, and fast
+  math turns that division into a multiplication by `1 / grid`. The two differ in the last bit, so
+  a coordinate that sits on a cell boundary landed in the neighbouring cell, one away from the
+  managed path. The parity tests pin four such coordinates and a sweep of every 0.001 degree
+  position at three grid sizes. Its finite-value tests read the IEEE-754 bit pattern, so they do
+  not depend on the flag.
 - `facility_location_kernel` — unreachable demand carries `+∞` through the search, and fast
   math permits assuming infinities do not occur.
 - `vrp_solver_kernel` — the local-search accept/reject test is an epsilon comparison, and
@@ -272,6 +302,28 @@ Repeat for each kernel directory you want to enable natively.
 
 ---
 
+## After pulling a change to a kernel's C ABI
+
+A kernel whose exported signatures change keeps its export names, so a library built before the
+change still loads and resolves every entry point. Called with the new argument list it would
+read whatever is left in the registers as pointers and lengths, and write through them.
+
+Every kernel whose ABI has changed therefore exports a version function, and its bridge calls it
+before anything else: `Viewshed_AbiVersion`, `Raster_AbiVersion` and `Scoring_AbiVersion`, all
+returning 2 (the `*_ABI_VERSION` macro in the kernel's header, which the bridge mirrors in
+`ExpectedAbiVersion` in `Portfolio.Services/Native/*NativeInterop.cs`). A library with another
+version, or with no such export, is treated as unavailable: the bridge logs a warning
+naming it, and the service runs its managed path. That makes a stale library harmless; it does
+not make it work.
+
+After pulling a change that touches a kernel's header, **rebuild all kernels**, or delete the
+copies under `Portfolio.Services/bin` and `Portfolio.Web/bin` (and wherever else you staged them,
+for example the test or benchmark output) so that no old build is left behind. When you change an
+exported signature or struct layout, bump the version in the header and in the interop file
+together, and give the kernel a version function if it has none yet.
+
+---
+
 ## Running with the .NET application
 
 Each bridge calls `NativeLibrary.TryLoad("<kernel_name>")` at startup. The runtime
@@ -282,7 +334,8 @@ resolves the library in this order:
 2. Standard OS library paths (`PATH` on Windows, `LD_LIBRARY_PATH` on Linux).
 
 If a library is not found the bridge logs a warning and the corresponding service
-falls back transparently to its managed C# implementation. Kernels are independent —
+falls back transparently to its managed C# implementation. The same happens to a library
+whose ABI version is not the one the bridge expects (see above). Kernels are independent —
 you can build and ship any subset; the rest simply run managed.
 
 ---

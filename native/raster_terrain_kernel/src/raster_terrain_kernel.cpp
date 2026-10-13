@@ -2,9 +2,23 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace
 {
+	// Number of cells in a width x height grid, or -1 when the grid is unusable: a dimension that
+	// is not positive, or more cells than a 32-bit int can index. The product is formed in 64 bits
+	// (two positive ints always fit), so it can neither overflow nor wrap to a small value, and
+	// every `y * width + x` below stays under INT_MAX once this has accepted the grid.
+	long long grid_cell_count(int width, int height)
+	{
+		if (width <= 0 || height <= 0)
+			return -1;
+
+		const long long cells = static_cast<long long>(width) * height;
+		return cells > std::numeric_limits<int>::max() ? -1 : cells;
+	}
+
 	double sample(const double* elevation, int width, int height, int x, int y)
 	{
 		const int clampedX = std::clamp(x, 0, width - 1);
@@ -20,6 +34,7 @@ namespace
 
 extern "C" RASTER_API int Raster_GenerateHillshade(
 	const double* elevation,
+	int elevationLength,
 	int width,
 	int height,
 	double cellSize,
@@ -30,7 +45,8 @@ extern "C" RASTER_API int Raster_GenerateHillshade(
 {
 	try
 	{
-		if (!elevation || !intensities || width <= 0 || height <= 0 || cellSize <= 0 || outputLength < width * height)
+		const long long cells = grid_cell_count(width, height);
+		if (!elevation || !intensities || cells < 0 || cellSize <= 0 || elevationLength != cells || outputLength < cells)
 			return -1;
 
 		const double azimuth = radians(360.0 - azimuthDegrees + 90.0);
@@ -70,7 +86,8 @@ extern "C" RASTER_API int Raster_GenerateHeatmap(
 {
 	try
 	{
-		if (!points || !extent || !values || pointCount < 0 || width <= 0 || height <= 0 || radius <= 0 || outputLength < width * height)
+		const long long cells = grid_cell_count(width, height);
+		if (!points || !extent || !values || pointCount < 0 || cells < 0 || radius <= 0 || outputLength < cells)
 			return -1;
 		if (extent->minX >= extent->maxX || extent->minY >= extent->maxY)
 			return -2;
@@ -101,7 +118,8 @@ extern "C" RASTER_API int Raster_GenerateHeatmap(
 
 		if (maxValue > 0.0)
 		{
-			for (int i = 0; i < width * height; ++i)
+			const int total = static_cast<int>(cells);
+			for (int i = 0; i < total; ++i)
 				values[i] /= maxValue;
 		}
 
@@ -111,4 +129,9 @@ extern "C" RASTER_API int Raster_GenerateHeatmap(
 	{
 		return -99;
 	}
+}
+
+extern "C" RASTER_API std::int32_t Raster_AbiVersion(void)
+{
+	return RASTER_ABI_VERSION;
 }

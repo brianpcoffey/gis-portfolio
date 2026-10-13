@@ -96,10 +96,31 @@ namespace Portfolio.Services.Native
             };
         }
 
-        private static void ThrowIfFailed(int status)
+        // A non-zero status is a failure of the call itself, never a property of the data: the service has
+        // already validated the request, and ProcessBatch sizes the aggregate buffer from the event count,
+        // so none of these can occur for a validated request. Each one is surfaced as an
+        // InvalidOperationException, which TryProcessBatch's IsNativeInvocationException filter turns
+        // into a logged fallback to the managed path (the status is never mapped to a validation error,
+        // because the managed service has already produced those).
+        //   -1  invalid argument (null pointer, negative count, grid size not finite and > 0)
+        //   -2  aggregate buffer too small
+        //  -99  C++ exception caught at the native boundary
+        // internal so the status mapping can be tested without provoking a real native failure.
+        internal static void ThrowIfFailed(int status)
         {
             if (status != 0)
-                throw new InvalidOperationException($"Native geostream processor failed with status {status}.");
+                throw new InvalidOperationException($"Native geostream processor failed with status {status} ({DescribeStatus(status)}).");
+        }
+
+        private static string DescribeStatus(int status)
+        {
+            return status switch
+            {
+                -1 => "invalid argument",
+                -2 => "aggregate buffer too small",
+                -99 => "native exception",
+                _ => "unknown"
+            };
         }
     }
 }
