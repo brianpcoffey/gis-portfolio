@@ -146,8 +146,11 @@ public sealed class ArcGisFailureTests(E2EHost host) : BrowserTestBase(host)
                 await Assertions.Expect(Page.Locator("#statTotal")).ToHaveTextAsync("3");
                 break;
             case "/Projects/ReverseGeocoding":
-                // The recent lookups are listed even though the map is not.
-                await Assertions.Expect(Page.Locator("#rgHistoryEmpty")).ToBeVisibleAsync();
+                // The manual lookup checks its inputs in the page, with no request: a latitude out of range is flagged. (Unlike a
+                // check on text that is in the markup from the start, this can only pass once the page has wired the button.)
+                await Page.Locator("#rgLatInput").FillAsync("999");
+                await Page.Locator("#rgLookupBtn").ClickAsync();
+                await Assertions.Expect(Page.Locator("#rgLatInput")).ToHaveClassAsync(new Regex("is-invalid"));
                 break;
             case "/Projects/PlantOperationsDashboard":
                 await Assertions.Expect(Page.Locator("#plantOpsOrdersTable tbody tr").First).ToBeVisibleAsync();
