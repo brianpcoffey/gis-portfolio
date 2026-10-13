@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
@@ -21,29 +20,7 @@ namespace Portfolio.Services.Native
 
     internal static class ChangeDetectionNativeBridge
     {
-        private static readonly bool _available;
-
-        static ChangeDetectionNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "change_detection_kernel",
-                    typeof(ChangeDetectionNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("change_detection_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -80,7 +57,7 @@ namespace Portfolio.Services.Native
                 magnitude = output;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native CVA magnitude failed; falling back to managed implementation.");
                 return false;
@@ -114,7 +91,7 @@ namespace Portfolio.Services.Native
                 histogram = histogramOutput;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native Otsu threshold failed; falling back to managed implementation.");
                 return false;
@@ -146,7 +123,7 @@ namespace Portfolio.Services.Native
                 opened = output;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native morphological open failed; falling back to managed implementation.");
                 return false;
@@ -202,20 +179,11 @@ namespace Portfolio.Services.Native
                 };
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native connected-component labelling failed; falling back to managed implementation.");
                 return false;
             }
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }

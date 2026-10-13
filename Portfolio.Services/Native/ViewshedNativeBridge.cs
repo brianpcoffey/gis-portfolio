@@ -1,34 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class ViewshedNativeBridge
     {
-        private static readonly bool _available;
-
-        static ViewshedNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "viewshed_kernel",
-                    typeof(ViewshedNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("viewshed_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -78,20 +55,11 @@ namespace Portfolio.Services.Native
                 };
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native viewshed computation failed; falling back to managed implementation.");
                 return false;
             }
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }

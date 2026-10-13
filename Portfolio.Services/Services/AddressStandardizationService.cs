@@ -184,6 +184,38 @@ namespace Portfolio.Services.Services
             }
         }
 
+        // Mutable cursor over the token array. Pos advances from the head as the house number,
+        // street, directional and unit are consumed; End (inclusive) shrinks from the tail as the
+        // ZIP and state are consumed, so everything between Pos and End is city (and street/unit).
+        private sealed class TokenCursor
+        {
+            public TokenCursor(string[] tokens)
+            {
+                Tokens = tokens;
+                End = tokens.Length - 1;
+            }
+
+            public string[] Tokens { get; }
+            public int Pos { get; set; }
+            public int End { get; set; }
+
+            public bool HasRemaining => Pos <= End;
+            public string Current => Tokens[Pos];
+        }
+
+        // Components extracted during parsing.
+        private sealed class ParsedParts
+        {
+            public string HouseNumber = string.Empty;
+            public string StreetName = string.Empty;
+            public string StreetSuffix = string.Empty;
+            public string Directional = string.Empty;
+            public string Unit = string.Empty;
+            public string City = string.Empty;
+            public string State = string.Empty;
+            public string PostalCode = string.Empty;
+        }
+
         // Core parsing logic: token-based pipeline.
         // Commas are treated as whitespace; all parsing is driven by a single flat token array
         // so that comma-delimited and comma-free address formats are handled identically.
@@ -191,61 +223,76 @@ namespace Portfolio.Services.Services
         {
             // Normalise: collapse whitespace, replace commas with spaces, then re-split into tokens.
             var normalised = NormalizeSpaces.Replace(rawAddress.Replace(',', ' ').Trim(), " ");
-            var tokens = normalised.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var cursor = new TokenCursor(normalised.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            var parts = new ParsedParts();
 
-            var houseNumber  = string.Empty;
-            var streetName   = string.Empty;
-            var streetSuffix = string.Empty;
-            var directional  = string.Empty;
-            var unit         = string.Empty;
-            var city         = string.Empty;
-            var state        = string.Empty;
-            var postalCode   = string.Empty;
+            ConsumeTail(cursor, parts);
+            ConsumeHouseNumber(cursor, parts);
+            var suffixFound = ConsumeStreet(cursor, parts);
+            ConsumeDirectional(cursor, parts, suffixFound);
+            ConsumeUnit(cursor, parts);
 
-            var cursor = 0;
-            var end    = tokens.Length - 1; // exclusive upper bound (shrinks as tail tokens are consumed)
-
-            // ── Step 5 & 6: consume PostalCode and State from the tail first ──
-            // This anchors the tail so everything in between is city/street.
-            if (end >= 0 && ZipTokenPattern.IsMatch(tokens[end]))
+            // ── Step 7: City ──
+            // All tokens remaining between cursor and end (inclusive) form the city.
+            if (cursor.HasRemaining)
             {
-                postalCode = tokens[end];
-                end--;
+                parts.City = ToTitleCase(string.Join(" ", cursor.Tokens[cursor.Pos..(cursor.End + 1)]));
             }
 
-            if (end >= 0 && tokens[end].Length == 2 && UsStateAbbreviations.Contains(tokens[end]))
+            return BuildStandardized(parts, ComputeConfidence(parts));
+        }
+
+        // ── Step 5 & 6: consume PostalCode and State from the tail first ──
+        // This anchors the tail so everything in between is city/street.
+        private static void ConsumeTail(TokenCursor cursor, ParsedParts parts)
+        {
+            var tokens = cursor.Tokens;
+            if (cursor.End >= 0 && ZipTokenPattern.IsMatch(tokens[cursor.End]))
             {
-                state = tokens[end].ToUpperInvariant();
-                end--;
+                parts.PostalCode = tokens[cursor.End];
+                cursor.End--;
             }
 
-            // ── Step 2: HouseNumber ──
-            // Matches a leading numeric token (digits only, or digits + single letter suffix like "123A").
-            if (cursor <= end && tokens[cursor].Length > 0
-                && char.IsDigit(tokens[cursor][0])
-                && tokens[cursor].All(c => char.IsDigit(c) || char.IsLetter(c)))
+            if (cursor.End >= 0 && tokens[cursor.End].Length == 2 && UsStateAbbreviations.Contains(tokens[cursor.End]))
             {
-                houseNumber = tokens[cursor];
-                cursor++;
+                parts.State = tokens[cursor.End].ToUpperInvariant();
+                cursor.End--;
             }
+        }
 
-            // ── Step 3: StreetName + StreetSuffix ──
-            // Walk tokens forward until we find one that is a known suffix abbreviation.
+        // ── Step 2: HouseNumber ──
+        // Matches a leading numeric token (digits only, or digits + single letter suffix like "123A").
+        private static void ConsumeHouseNumber(TokenCursor cursor, ParsedParts parts)
+        {
+            if (cursor.HasRemaining && cursor.Current.Length > 0
+                && char.IsDigit(cursor.Current[0])
+                && cursor.Current.All(c => char.IsDigit(c) || char.IsLetter(c)))
+            {
+                parts.HouseNumber = cursor.Current;
+                cursor.Pos++;
+            }
+        }
+
+        // ── Step 3: StreetName + StreetSuffix ──
+        // Walk tokens forward until we find one that is a known suffix abbreviation.
+        // Returns whether a suffix was found.
+        private static bool ConsumeStreet(TokenCursor cursor, ParsedParts parts)
+        {
             var streetNameTokens = new List<string>();
             var suffixFound = false;
 
-            while (cursor <= end)
+            while (cursor.HasRemaining)
             {
-                var tok = tokens[cursor];
+                var tok = cursor.Current;
                 if (SuffixMap.TryGetValue(tok, out var expandedSuffix))
                 {
-                    streetSuffix = expandedSuffix;
-                    cursor++;
+                    parts.StreetSuffix = expandedSuffix;
+                    cursor.Pos++;
                     suffixFound = true;
                     break;
                 }
                 streetNameTokens.Add(tok);
-                cursor++;
+                cursor.Pos++;
             }
 
             // Fallback: with no recognised suffix the forward walk consumed every remaining
@@ -253,82 +300,79 @@ namespace Portfolio.Services.Services
             // city so "600 Broadway, Redlands" yields street "Broadway", city "Redlands".
             if (!suffixFound && streetNameTokens.Count >= 2)
             {
-                city = ToTitleCase(streetNameTokens[^1]);
+                parts.City = ToTitleCase(streetNameTokens[^1]);
                 streetNameTokens.RemoveAt(streetNameTokens.Count - 1);
             }
 
-            streetName = ToTitleCase(string.Join(" ", streetNameTokens));
+            parts.StreetName = ToTitleCase(string.Join(" ", streetNameTokens));
+            return suffixFound;
+        }
 
-            // ── Step 8: Directional qualifier after suffix ──
-            // A directional token immediately after the suffix (e.g. "NW" in "Ave NW") is stored
-            // separately so it can be placed after the expanded suffix in the standardized address
-            // ("Pennsylvania Avenue NW"), not before it. The state and ZIP have already been
-            // consumed from the tail, so a directional that doubles as a state code (e.g. "NE")
-            // here is unambiguously the directional and must NOT be excluded.
-            if (suffixFound && cursor <= end)
+        // ── Step 8: Directional qualifier after suffix ──
+        // A directional token immediately after the suffix (e.g. "NW" in "Ave NW") is stored
+        // separately so it can be placed after the expanded suffix in the standardized address
+        // ("Pennsylvania Avenue NW"), not before it. The state and ZIP have already been
+        // consumed from the tail, so a directional that doubles as a state code (e.g. "NE")
+        // here is unambiguously the directional and must NOT be excluded.
+        private static void ConsumeDirectional(TokenCursor cursor, ParsedParts parts, bool suffixFound)
+        {
+            if (suffixFound && cursor.HasRemaining && Directionals.Contains(cursor.Current))
             {
-                var tok = tokens[cursor];
-                if (Directionals.Contains(tok))
-                {
-                    directional = tok.ToUpperInvariant();
-                    cursor++;
-                }
+                parts.Directional = cursor.Current.ToUpperInvariant();
+                cursor.Pos++;
             }
+        }
 
-            // ── Step 4: Unit designator ──
-            // Check whether the token at cursor is a unit keyword; if so, consume keyword + value.
-            if (cursor <= end && UnitKeywords.Contains(tokens[cursor]))
+        // ── Step 4: Unit designator ──
+        // Check whether the token at cursor is a unit keyword; if so, consume keyword + value.
+        private static void ConsumeUnit(TokenCursor cursor, ParsedParts parts)
+        {
+            if (!cursor.HasRemaining || !UnitKeywords.Contains(cursor.Current))
+                return;
+
+            var keyword = cursor.Current;
+            cursor.Pos++;
+            if (cursor.HasRemaining)
             {
-                var keyword = tokens[cursor];
-                cursor++;
-                if (cursor <= end)
-                {
-                    unit = $"{ToTitleCase(keyword)} {tokens[cursor].ToUpperInvariant()}";
-                    cursor++;
-                }
-                else
-                {
-                    unit = ToTitleCase(keyword);
-                }
-            }
-
-            // ── Step 7: City ──
-            // All tokens remaining between cursor and end (inclusive) form the city.
-            if (cursor <= end)
-            {
-                city = ToTitleCase(string.Join(" ", tokens[cursor..(end + 1)]));
-            }
-
-            // ── Step 9: ParseConfidence ──
-            // Denominator is 6 when no unit is present (unit is optional and not penalised),
-            // 7 when a unit was extracted (all 7 components are in play).
-            var found = 0;
-            if (!string.IsNullOrEmpty(houseNumber))  found++;
-            if (!string.IsNullOrEmpty(streetName))   found++;
-            if (!string.IsNullOrEmpty(streetSuffix)) found++;
-            if (!string.IsNullOrEmpty(city))         found++;
-            if (!string.IsNullOrEmpty(state))        found++;
-            if (!string.IsNullOrEmpty(postalCode))   found++;
-
-            double parseConfidence;
-            if (!string.IsNullOrEmpty(unit))
-            {
-                found++;
-                parseConfidence = found / 7.0;
+                parts.Unit = $"{ToTitleCase(keyword)} {cursor.Current.ToUpperInvariant()}";
+                cursor.Pos++;
             }
             else
             {
-                parseConfidence = found / 6.0;
+                parts.Unit = ToTitleCase(keyword);
             }
+        }
 
-            // ── Step 10: StandardizedAddress ──
-            // directional goes after the expanded suffix: "Pennsylvania Avenue NW".
+        // ── Step 9: ParseConfidence ──
+        // Denominator is 6 when no unit is present (unit is optional and not penalised),
+        // 7 when a unit was extracted (all 7 components are in play).
+        private static double ComputeConfidence(ParsedParts parts)
+        {
+            var found = 0;
+            if (!string.IsNullOrEmpty(parts.HouseNumber))  found++;
+            if (!string.IsNullOrEmpty(parts.StreetName))   found++;
+            if (!string.IsNullOrEmpty(parts.StreetSuffix)) found++;
+            if (!string.IsNullOrEmpty(parts.City))         found++;
+            if (!string.IsNullOrEmpty(parts.State))        found++;
+            if (!string.IsNullOrEmpty(parts.PostalCode))   found++;
+
+            if (string.IsNullOrEmpty(parts.Unit))
+                return found / 6.0;
+
+            return (found + 1) / 7.0;
+        }
+
+        // ── Step 10: StandardizedAddress ──
+        // directional goes after the expanded suffix: "Pennsylvania Avenue NW".
+        private static AddressParsedDto BuildStandardized(ParsedParts parts, double parseConfidence)
+        {
             var streetPart = string.Join(" ",
-                new[] { houseNumber, streetName, streetSuffix, directional }.Where(s => !string.IsNullOrEmpty(s)));
+                new[] { parts.HouseNumber, parts.StreetName, parts.StreetSuffix, parts.Directional }
+                    .Where(s => !string.IsNullOrEmpty(s)));
 
-            var unitPart   = string.IsNullOrEmpty(unit) ? string.Empty : $" {unit}";
+            var unitPart   = string.IsNullOrEmpty(parts.Unit) ? string.Empty : $" {parts.Unit}";
             var localePart = string.Join(", ",
-                new[] { city, $"{state} {postalCode}".Trim() }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                new[] { parts.City, $"{parts.State} {parts.PostalCode}".Trim() }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
             var standardized = string.IsNullOrWhiteSpace(localePart)
                 ? $"{streetPart}{unitPart}".Trim()
@@ -336,13 +380,13 @@ namespace Portfolio.Services.Services
 
             return new AddressParsedDto
             {
-                HouseNumber         = houseNumber,
-                StreetName          = streetName,
-                StreetSuffix        = streetSuffix,
-                Unit                = unit,
-                City                = city,
-                State               = state,
-                PostalCode          = postalCode,
+                HouseNumber         = parts.HouseNumber,
+                StreetName          = parts.StreetName,
+                StreetSuffix        = parts.StreetSuffix,
+                Unit                = parts.Unit,
+                City                = parts.City,
+                State               = parts.State,
+                PostalCode          = parts.PostalCode,
                 StandardizedAddress = standardized,
                 ParseConfidence     = parseConfidence
             };

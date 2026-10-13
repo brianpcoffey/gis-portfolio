@@ -1,34 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class SpatialGraphNativeBridge
     {
-        private static readonly bool _available;
-
-        static SpatialGraphNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "spatial_graph_engine",
-                    typeof(SpatialGraphNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("spatial_graph_engine");
 
         internal static bool IsAvailable => _available;
 
@@ -53,7 +30,7 @@ namespace Portfolio.Services.Native
                 result = FindShortestPath(request);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native spatial graph routing failed; falling back to managed graph implementation.");
                 return false;
@@ -74,7 +51,7 @@ namespace Portfolio.Services.Native
                 result = ComputeServiceArea(request);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native spatial graph service-area computation failed; falling back to managed graph implementation.");
                 return false;
@@ -111,7 +88,7 @@ namespace Portfolio.Services.Native
                 distances = output;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native one-to-all distance computation failed; falling back to managed graph implementation.");
                 return false;
@@ -150,7 +127,7 @@ namespace Portfolio.Services.Native
                 matrix = output;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native distance-matrix computation failed; falling back to managed graph implementation.");
                 return false;
@@ -215,15 +192,6 @@ namespace Portfolio.Services.Native
         {
             if (status != 0)
                 throw new InvalidOperationException($"Native spatial graph engine failed with status {status}.");
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }
