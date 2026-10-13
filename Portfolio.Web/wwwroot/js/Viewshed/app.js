@@ -60,13 +60,16 @@
         observerYInput.value = y;
     }
 
-    // Typed column/row: clamp into the grid and move the marker; the next Compute uses it.
+    // Typed column/row: clamp into the grid and move the marker; the next Compute uses it. The grid is
+    // redrawn (shading cleared) only when the observer actually moved, so pressing Compute with the
+    // observer where it already is does not blank the last result, nor leave it blank if the run fails.
     function onObserverInput() {
         if (running) { return; }
         var x = Math.max(0, Math.min(width - 1, Math.round(Number(observerXInput.value) || 0)));
         var y = Math.max(0, Math.min(height - 1, Math.round(Number(observerYInput.value) || 0)));
+        var moved = x !== observerX || y !== observerY;
         setObserver(x, y);
-        drawGrid(null);
+        if (moved) { drawGrid(null); }
     }
 
     function clampSize(value) {
