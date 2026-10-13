@@ -60,9 +60,9 @@
 			<li><strong>Managed fallback:</strong> <code>NetworkTraceNativeBridge.IsAvailable</code> gates the native path, and the managed implementation mirrors the kernel's traversal order element for element, so the two produce byte-identical id lists. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries, so what runs in production today is the managed path.</li>
 			<li>
 				<strong>Measured speedup — and the honest answer:</strong> On the shipped 267-element circuit native is level on the sweep and 1.48× on trace + restoration, though the timing ranges overlap (20.0–42.8 ms vs 12.1–48.0 ms). Median of 9 timed runs after 3 warmups, with byte-identical result checksums, from the harness described in <a href="https://github.com/brianpcoffey/gis-portfolio#measured-speedup" target="_blank" rel="noopener">the README</a>:
-				<div class="table-responsive mt-2 mb-2">
+				<div class="table-responsive mt-2 mb-2" tabindex="0" role="region" aria-labelledby="benchmarkCaption">
 					<table class="table table-sm w-auto mb-0">
-						<caption class="visually-hidden">Native versus managed benchmark results for the network trace kernel, by workload.</caption>
+						<caption id="benchmarkCaption" class="visually-hidden">Native versus managed benchmark results for the network trace kernel, by workload.</caption>
 						<thead>
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>

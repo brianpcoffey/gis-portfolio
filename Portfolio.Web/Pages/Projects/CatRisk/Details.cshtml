@@ -58,9 +58,9 @@
 			<li><strong>Optimisation worth naming:</strong> Both paths bounding-box reject a pair before computing haversine. On a spatially clustered book most locations lie outside most event footprints, so the reject eliminates the majority of the trigonometry — the difference between a naive loop and one that understands its data.</li>
 			<li>
 				<strong>Measured speedup — and the honest answer:</strong> Native is no faster than the managed fallback — <strong>0.92×</strong> on ring accumulation and <strong>1.02×</strong> on the Monte Carlo simulation — with numerically identical results. Median of 9 timed runs after 3 warmups, from the benchmark harness described in <a href="https://github.com/brianpcoffey/gis-portfolio#measured-speedup" target="_blank" rel="noopener">the README</a>:
-				<div class="table-responsive mt-2 mb-2">
+				<div class="table-responsive mt-2 mb-2" tabindex="0" role="region" aria-labelledby="benchmarkCaption">
 					<table class="table table-sm w-auto mb-0">
-						<caption class="visually-hidden">Native versus managed benchmark results for the catastrophe risk kernel, by workload.</caption>
+						<caption id="benchmarkCaption" class="visually-hidden">Native versus managed benchmark results for the catastrophe risk kernel, by workload.</caption>
 						<thead>
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>

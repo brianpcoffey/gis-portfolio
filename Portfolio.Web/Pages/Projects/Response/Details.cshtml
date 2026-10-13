@@ -63,9 +63,9 @@
 			<li><strong>Tie-breaking is part of the contract:</strong> Sorting demand points by response time alone is not a total order, and two sort implementations may order equal values differently — which changes the weighted percentile. Both paths sort on (response time, index), which is total, so the percentile is reproducible across the boundary.</li>
 			<li>
 				<strong>Measured speedup:</strong> Native runs between <strong>1.5×</strong> and <strong>1.7×</strong> the managed fallback depending on the objective, with identical results. Median of 9 timed runs after 3 warmups, solver stage only, from the harness described in <a href="https://github.com/brianpcoffey/gis-portfolio#measured-speedup" target="_blank" rel="noopener">the README</a>:
-				<div class="table-responsive mt-2 mb-2">
+				<div class="table-responsive mt-2 mb-2" tabindex="0" role="region" aria-labelledby="benchmarkCaption">
 					<table class="table table-sm w-auto mb-0">
-						<caption class="visually-hidden">Native versus managed benchmark results for the facility location kernel, by workload.</caption>
+						<caption id="benchmarkCaption" class="visually-hidden">Native versus managed benchmark results for the facility location kernel, by workload.</caption>
 						<thead>
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>
