@@ -5,33 +5,25 @@
 	ViewData["Title"] = "Outage Manager & Network Trace";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/spatialcompute.css" />
+@using Portfolio.Common.Models
+
+@section Styles {
+	<link rel="stylesheet" href="~/css/gis.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/css/spatialcompute.css" asp-append-version="true" />
+}
 
 <div class="spatial-compute-page theme-root">
-	<div class="project-hero py-4 mb-4">
-		<div class="container">
-			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-				<div>
-					<h1 class="mb-1"><i class="fa-solid fa-bolt me-2"></i>Outage Manager &amp; Network Trace</h1>
-					<p class="text-muted theme-text-muted mb-0">Distribution outage management over a two-feeder circuit &mdash; click a conductor to fault it, trace who is de-energized, find the devices that isolate it, and let the restoration search pick the tie switch that backfeeds the healthy sections.</p>
-				</div>
-				<div class="d-flex align-items-center gap-2">
-					<span class="badge badge-gis fs-6"><i class="fa-solid fa-diagram-project me-1"></i>C++ Trace Kernel</span>
-					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Outage/Details" aria-label="View technical details for Outage Manager" title="Technical Details">
-						<i class="fa-solid fa-circle-info"></i>
-					</a>
-				</div>
-			</div>
-		</div>
-	</div>
+	<partial name="_ProjectHero" model='new ProjectHero("Outage Manager & Network Trace", "fa-solid fa-bolt",
+		"Distribution outage management over a two-feeder circuit — click a conductor to fault it, trace who is de-energized, find the devices that isolate it, and let the restoration search pick the tie switch that backfeeds the healthy sections.",
+		new[] { new ProjectHeroBadge("fa-solid fa-diagram-project", "C++ Trace Kernel") },
+		"/Projects/Outage/Details")' />
 
 	<div class="container pb-5">
 		<div id="outageAlert" class="alert alert-danger d-none" role="alert"></div>
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Outage Controls</strong></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><h2 class="h6 mb-0">Outage Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
 							<label for="outageFeeder" class="form-label small">Feeder filter</label>
@@ -41,6 +33,14 @@
 								<option value="Feeder B">Feeder B</option>
 							</select>
 						</div>
+						<div>
+							<label for="outageFault" class="form-label small">Fault location</label>
+							<select id="outageFault" class="form-select">
+								<option value="" selected>Select a conductor&hellip;</option>
+							</select>
+							<div class="form-text">The keyboard equivalent of clicking a conductor on the diagram.</div>
+						</div>
+						<button id="outagePlaceBtn" class="btn btn-accent" disabled><i class="fa-solid fa-bolt me-1"></i>Place Fault</button>
 						<div>
 							<label for="outageRepair" class="form-label small">Assumed repair time (minutes)</label>
 							<input id="outageRepair" class="form-control" type="number" min="0" max="1440" step="15" value="180" />
@@ -56,7 +56,9 @@
 
 						<div>
 							<div class="small text-muted theme-text-muted mb-2">Switching plan</div>
-							<ol id="outagePlan" class="result-list ps-3 mb-0"></ol>
+							<div class="result-list" tabindex="0" role="region" aria-label="Switching plan">
+								<ol id="outagePlan" class="ps-3 mb-0"></ol>
+							</div>
 						</div>
 
 						<pre id="outageSummary" class="sample-json mt-auto mb-0"></pre>
@@ -65,7 +67,7 @@
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-bolt-lightning text-accent"></i><strong>Single-Line Diagram</strong></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-bolt-lightning text-accent"></i><h2 class="h6 mb-0">Single-Line Diagram</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="outageKpiAffected" class="kpi-value">&ndash;</div><div class="kpi-label">Customers Affected</div></div></div>
@@ -78,9 +80,9 @@
 							<i class="fa-solid fa-hand-pointer me-1"></i>Click any conductor to place a fault. De-energized sections turn red, the upstream path to the substation turns blue, isolation devices get an amber halo, and restored sections turn green.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3" style="position: relative;">
-							@* role="group", not "img": the JS injects focusable role="button" conductors
-   into this diagram, and role="img" would prune them from the accessibility
-   tree — hiding the only controls that place a fault. *@
+							@* role="group", not "img": role="img" would prune the diagram's children from the
+   accessibility tree. The conductor hit lines are now pointer-only (tabindex -1,
+   aria-hidden); the keyboard path is the "Fault location" list in the controls. *@
 							<svg id="outageSvg" role="group" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px; aspect-ratio: 1;" aria-label="Single-line diagram of the Redlands distribution network"></svg>
 							<div id="outageTooltip" class="d-none theme-surface small shadow-sm rounded px-2 py-1" style="position: absolute; pointer-events: none; z-index: 5; max-width: 15rem;"></div>
 						</div>
