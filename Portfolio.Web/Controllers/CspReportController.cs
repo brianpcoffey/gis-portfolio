@@ -23,6 +23,7 @@ namespace Portfolio.Web.Controllers
     {
         private const int MaxBodyBytes = 8192;
         private const int MaxFieldLength = 200;
+        private const int MaxReportsPerRequest = 10;
 
         private readonly ILogger<CspReportController> _logger;
 
@@ -65,7 +66,7 @@ namespace Portfolio.Web.Controllers
             try
             {
                 using var doc = JsonDocument.Parse(body);
-                foreach (var report in Extract(doc.RootElement))
+                foreach (var report in Extract(doc.RootElement).Take(MaxReportsPerRequest))
                 {
                     if (IsKnownArcGisEval(report))
                     {
@@ -120,6 +121,7 @@ namespace Portfolio.Web.Controllers
                 foreach (var item in root.EnumerateArray())
                 {
                     if (item.ValueKind != JsonValueKind.Object
+                        || !string.Equals(Str(item, "type"), "csp-violation", StringComparison.Ordinal)
                         || !item.TryGetProperty("body", out var b) || b.ValueKind != JsonValueKind.Object)
                     {
                         continue;

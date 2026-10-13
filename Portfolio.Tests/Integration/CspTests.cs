@@ -184,6 +184,60 @@ public class CspTests
     }
 
     [Fact]
+    public async Task CspReport_ReportsJson_IgnoresEntriesThatAreNotCspViolations()
+    {
+        // Arrange
+        var logs = new CapturingProvider();
+        await using var f = new PortfolioAppFactory();
+        using var client = f.WithWebHostBuilder(b => b.ConfigureLogging(l => l.AddProvider(logs))).CreateClient();
+        var body = """[{"type":"deprecation","body":{"effectiveDirective":"img-src"}},{"body":{"effectiveDirective":"img-src"}},{"type":"csp-violation","body":{"effectiveDirective":"font-src"}}]""";
+
+        // Act
+        var r = await PostReport(client, "application/reports+json", body);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
+        var line = Assert.Single(logs.Lines);
+        Assert.Contains("directive=font-src", line);
+    }
+
+    [Fact]
+    public async Task CspReport_ReportsJson_LogsAtMostTenEntriesPerRequest()
+    {
+        // Arrange
+        var logs = new CapturingProvider();
+        await using var f = new PortfolioAppFactory();
+        using var client = f.WithWebHostBuilder(b => b.ConfigureLogging(l => l.AddProvider(logs))).CreateClient();
+        var entry = """{"type":"csp-violation","body":{"effectiveDirective":"img-src"}}""";
+        var body = "[" + string.Join(",", Enumerable.Repeat(entry, 50)) + "]";
+
+        // Act
+        var r = await PostReport(client, "application/reports+json", body);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
+        Assert.Equal(10, logs.Lines.Count);
+    }
+
+    [Fact]
+    public async Task CspReport_ChunkedBodyOver8Kb_Returns413()
+    {
+        // Arrange: no Content-Length, so the size limit is enforced while reading the body.
+        await using var f = new PortfolioAppFactory();
+        var bytes = Encoding.UTF8.GetBytes("{\"csp-report\":{\"blocked-uri\":\"" + new string('a', 9000) + "\"}}");
+        using var content = new StreamContent(new MemoryStream(bytes));
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/csp-report");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/csp-report") { Content = content };
+        request.Headers.TransferEncodingChunked = true;
+
+        // Act
+        var r = await f.Client().SendAsync(request, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, r.StatusCode);
+    }
+
+    [Fact]
     public async Task CspReport_BodyOver8Kb_Returns413()
     {
         // Arrange
