@@ -46,14 +46,39 @@ namespace Portfolio.Services.Native
             return outputs;
         }
 
+        // Runs the native batch call (score, ScorePropertyBatch in production) and reports a
+        // native failure as false instead of throwing, logging a warning each time, so HomeScoringService can
+        // fall back to its managed scoring like the other bridges' Try... wrappers. Only exceptions
+        // NativeKernelLoader.IsNativeInvocationException classifies as native failures are absorbed.
+        // The caller MUST check IsAvailable first; the delegate is a parameter so the fall-back can be
+        // tested without a failing native library.
+        internal static bool TryScorePropertyBatch(
+            IReadOnlyList<Property> properties,
+            HomeSearchPreferencesDto prefs,
+            ILogger logger,
+            Func<IReadOnlyList<Property>, HomeSearchPreferencesDto, ScoreOutputNative[]> score,
+            out ScoreOutputNative[]? outputs)
+        {
+            try
+            {
+                outputs = score(properties, prefs);
+                return true;
+            }
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
+            {
+                logger.LogWarning(ex, "Native scoring failed; falling back to managed scoring.");
+                outputs = null;
+                return false;
+            }
+        }
+
         // Native status codes (portfolio_scoring.h): -1 invalid argument, -3 output buffer too small,
         // -99 C++ exception caught at the native boundary. The arrays are sized from the property count
         // here, so none of them can occur for well-formed input; they mean a bug, and are surfaced as an
         // InvalidOperationException rather than a value. That is the exception type
-        // NativeKernelLoader.IsNativeInvocationException classifies as a native failure, so a caller
-        // with a managed fallback can catch it and fall back, as the other bridges' Try... wrappers do.
-        // HomeScoringService, the only production caller, has no such wrapper today (the managed
-        // scoring path sits inline in GetTopPropertiesAsync), so a native failure there propagates.
+        // NativeKernelLoader.IsNativeInvocationException classifies as a native failure, so
+        // TryScorePropertyBatch catches it and HomeScoringService falls back to managed scoring, as the
+        // other bridges' Try... wrappers do.
         // internal so the status mapping can be tested without provoking a real native failure.
         internal static void ThrowIfFailed(int status)
         {

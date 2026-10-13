@@ -1,8 +1,10 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
+using Portfolio.Services.Native;
 using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Services
@@ -346,6 +348,145 @@ namespace Portfolio.Tests.Services
             Assert.Equal(34.05, dto.Latitude);
             Assert.Equal(-117.18, dto.Longitude);
         }
+
+        // ---------------------------------------------------------------------------------------
+        // Native batch call and its managed fallback. These go through the internal constructor, which
+        // stands in for the native library, so they run without it and on every platform.
+        // ---------------------------------------------------------------------------------------
+
+        // The kinds NativeKernelLoader.IsNativeInvocationException classifies as a native failure
+        // (the SEHException case is covered by NativeKernelLoaderTests).
+        private static Exception NativeFailure(string kind) => kind switch
+        {
+            "status" => new InvalidOperationException("Native scoring kernel failed with status -99 (native exception)."),
+            "missing library" => new DllNotFoundException("portfolio_scoring"),
+            "missing entry point" => new EntryPointNotFoundException("ScorePropertyBatch"),
+            "wrong architecture" => new BadImageFormatException("wrong architecture"),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+        };
+
+        [Theory]
+        [InlineData("status")]
+        [InlineData("missing library")]
+        [InlineData("missing entry point")]
+        [InlineData("wrong architecture")]
+        public async Task GetTopPropertiesAsync_WhenTheNativeBatchFails_FallsBackToIdenticalManagedResults(string kind)
+        {
+            var failure = NativeFailure(kind);
+            var prefs = MakePrefs();
+            var properties = SomeProperties();
+            SetupRepository(properties);
+            var logger = new Repositories.CapturingLogger<HomeScoringService>();
+            var nativeCalls = 0;
+            var failing = new HomeScoringService(_propertyRepoMock.Object, logger, TimeProvider.System, true,
+                (_, _) => { nativeCalls++; throw failure; });
+            var managed = ManagedOnlyService();
+
+            var result = await failing.GetTopPropertiesAsync(prefs, top: 4);
+            var expected = await managed.GetTopPropertiesAsync(prefs, top: 4);
+
+            Assert.Equal(1, nativeCalls);
+            Assert.Equal(4, result.Count);
+            Assert.Equal(Serialize(expected), Serialize(result));
+            var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+            Assert.Contains("falling back to managed scoring", warning.Message);
+        }
+
+        [Fact]
+        public async Task GetTopPropertiesAsync_EveryFailedNativeCallLogsAndFallsBack()
+        {
+            var prefs = MakePrefs();
+            SetupRepository(SomeProperties());
+            var logger = new Repositories.CapturingLogger<HomeScoringService>();
+            var service = new HomeScoringService(_propertyRepoMock.Object, logger, TimeProvider.System, true,
+                (_, _) => throw new InvalidOperationException("status -3"));
+
+            var first = await service.GetTopPropertiesAsync(prefs, top: 3);
+            var second = await service.GetTopPropertiesAsync(prefs, top: 3);
+
+            Assert.Equal(Serialize(first), Serialize(second));
+            Assert.Equal(2, logger.Entries.Count(e => e.Level == LogLevel.Warning));
+        }
+
+        [Fact]
+        public async Task GetTopPropertiesAsync_WhenTheNativeFailureIsNotANativeOne_DoesNotFallBack()
+        {
+            SetupRepository(SomeProperties());
+            var service = new HomeScoringService(_propertyRepoMock.Object, _loggerMock.Object, TimeProvider.System, true,
+                (_, _) => throw new ArgumentException("a bug in the caller, not a native failure"));
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.GetTopPropertiesAsync(MakePrefs()));
+        }
+
+        [Fact]
+        public async Task GetTopPropertiesAsync_WhenNativeIsUnavailable_NeverCallsTheNativeBatch()
+        {
+            SetupRepository(SomeProperties());
+            var service = ManagedOnlyService();
+
+            var result = await service.GetTopPropertiesAsync(MakePrefs(), top: 2);
+
+            Assert.Equal(2, result.Count);
+        }
+
+        [Fact]
+        public async Task GetTopPropertiesAsync_WhenTheNativeBatchSucceeds_UsesItsScoresRankedByComposite()
+        {
+            var properties = new List<Property>
+            {
+                MakeProperty(id: 1), MakeProperty(id: 2), MakeProperty(id: 3)
+            };
+            SetupRepository(properties);
+            var composites = new[] { 41.126, 88.004, 63.5 };
+            var logger = new Repositories.CapturingLogger<HomeScoringService>();
+            var service = new HomeScoringService(_propertyRepoMock.Object, logger, TimeProvider.System, true,
+                (batch, _) => batch.Select((_, i) => new ScoreOutputNative
+                {
+                    Affordability = 10 + i,
+                    Neighborhood = 20 + i,
+                    Size = 30 + i,
+                    Appreciation = 40 + i,
+                    Condition = 50 + i,
+                    Commute = 60 + i,
+                    Amenities = 70 + i,
+                    TaxUtilities = 80 + i,
+                    Resale = 90 + i,
+                    Environment = 95 + i,
+                    Composite = composites[i],
+                    EstimatedMonthlyCost = 2_345.678 + i
+                }).ToArray());
+
+            var result = await service.GetTopPropertiesAsync(MakePrefs(), top: 2);
+
+            Assert.Equal(new[] { 2, 3 }, result.Select(r => r.PropertyId));
+            Assert.Equal(new[] { 1, 2 }, result.Select(r => r.Rank));
+            Assert.Equal(new[] { 88.0, 63.5 }, result.Select(r => r.CompositeScore));
+            Assert.Equal(2_346.68m, result[0].EstimatedMonthlyCost);
+            Assert.Equal(11, result[0].AffordabilityScore);
+            Assert.Equal(96, result[0].EnvironmentScore);
+            Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Warning);
+        }
+
+        private HomeScoringService ManagedOnlyService() =>
+            new(_propertyRepoMock.Object, new Repositories.CapturingLogger<HomeScoringService>(), TimeProvider.System, false,
+                (_, _) => throw new InvalidOperationException("the native batch must not be called when native is unavailable"));
+
+        private void SetupRepository(List<Property> properties) =>
+            _propertyRepoMock
+                .Setup(r => r.GetFilteredAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>(),
+                    It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(properties);
+
+        private static List<Property> SomeProperties() =>
+        [
+            MakeProperty(id: 1, price: 400_000m, commute: 10),
+            MakeProperty(id: 2, price: 750_000m, commute: 44, schoolRating: 40, crimeScore: 60),
+            MakeProperty(id: 3, price: 550_000m, commute: 25, roof: 55, floodRisk: 40),
+            MakeProperty(id: 4, price: 610_000m, commute: 31, walkability: 90, noiseLevel: 70),
+            MakeProperty(id: 5, price: 300_000m, commute: 58, ac: 30)
+        ];
+
+        private static string Serialize(IEnumerable<ScoredPropertyDto> dtos) => JsonSerializer.Serialize(dtos);
 
         private static HomeSearchPreferencesDto MakePrefs() => new()
         {

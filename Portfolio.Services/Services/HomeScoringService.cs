@@ -12,6 +12,8 @@ public class HomeScoringService : IHomeScoringService
     private readonly IPropertyRepository _propertyRepo;
     private readonly ILogger<HomeScoringService> _logger;
     private readonly TimeProvider _timeProvider;
+    private readonly bool _nativeAvailable;
+    private readonly Func<IReadOnlyList<Property>, HomeSearchPreferencesDto, ScoreOutputNative[]> _scoreNativeBatch;
     private const decimal AnnualInterestRate = 0.065m;
     private const int LoanTermMonths = 360; // 30 years
 
@@ -19,10 +21,25 @@ public class HomeScoringService : IHomeScoringService
         IPropertyRepository propertyRepo,
         ILogger<HomeScoringService> logger,
         TimeProvider timeProvider)
+        : this(propertyRepo, logger, timeProvider, NativeScoringBridge.IsAvailable, NativeScoringBridge.ScorePropertyBatch)
+    {
+    }
+
+    // Test seam: lets a test stand in for the native batch call (and for the library being present), so the
+    // native success path and the fall-back to managed scoring can both run without the native library.
+    // Not registered with DI, which only considers public constructors.
+    internal HomeScoringService(
+        IPropertyRepository propertyRepo,
+        ILogger<HomeScoringService> logger,
+        TimeProvider timeProvider,
+        bool nativeAvailable,
+        Func<IReadOnlyList<Property>, HomeSearchPreferencesDto, ScoreOutputNative[]> scoreNativeBatch)
     {
         _propertyRepo = propertyRepo;
         _logger = logger;
         _timeProvider = timeProvider;
+        _nativeAvailable = nativeAvailable;
+        _scoreNativeBatch = scoreNativeBatch;
         NativeScoringBridge.LogAvailability(_logger);
     }
 
@@ -42,8 +59,11 @@ public class HomeScoringService : IHomeScoringService
         if (properties.Count == 0)
             return [];
 
-        if (NativeScoringBridge.IsAvailable)
-            return ScoreWithNativeKernel(properties, prefs, top);
+        // A native failure (logged by the bridge) falls through to the managed scoring below, which
+        // produces the same result the managed path always has.
+        if (_nativeAvailable
+            && NativeScoringBridge.TryScorePropertyBatch(properties, prefs, _logger, _scoreNativeBatch, out var outputs))
+            return ScoreWithNativeKernel(properties, outputs!, top);
 
         var totalWeight = prefs.WeightAffordability + prefs.WeightNeighborhood
             + prefs.WeightSize + prefs.WeightAppreciation + prefs.WeightCondition
@@ -128,11 +148,9 @@ public class HomeScoringService : IHomeScoringService
 
     private static List<ScoredPropertyDto> ScoreWithNativeKernel(
         IReadOnlyList<Property> properties,
-        HomeSearchPreferencesDto prefs,
+        ScoreOutputNative[] outputs,
         int top)
     {
-        var outputs = NativeScoringBridge.ScorePropertyBatch(properties, prefs);
-
         var scored = new List<ScoredPropertyDto>(properties.Count);
         for (var i = 0; i < properties.Count; i++)
         {
