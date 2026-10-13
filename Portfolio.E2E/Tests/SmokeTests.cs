@@ -12,11 +12,12 @@ public sealed class SmokeTests(E2EHost host) : IAsyncLifetime
     // A cold CDN fetch plus software-rendered WebGL on a small runner is slow; this is a ceiling, not a wait.
     private const float MapReadyTimeoutMs = 45_000;
 
+    // Null when InitializeAsync failed before assigning it; DisposeAsync tolerates that so the original failure shows.
     private BrowserSession _session = null!;
 
     public async ValueTask InitializeAsync() => _session = await host.NewSessionAsync();
 
-    public async ValueTask DisposeAsync() => await _session.DisposeAsync();
+    public ValueTask DisposeAsync() => _session?.DisposeAsync() ?? ValueTask.CompletedTask;
 
     [E2EFact]
     public async Task HomePage_LoadedSignedOut_RendersWithoutBrowserErrors()
@@ -44,11 +45,17 @@ public sealed class SmokeTests(E2EHost host) : IAsyncLifetime
 
         // Act
         var response = await page.GotoAsync("/Projects/HomeFinder");
-        // Either the map surface or the page's own failure notice ends the wait, so a blocked script (a changed
-        // file fails its SRI pin) fails in seconds and says why, instead of timing out on a selector.
-        await page.Locator("#homeFinderMap .esri-view-surface, #homeFinderMap .esri-load-error").First.WaitForAsync(
-            new LocatorWaitForOptions { State = WaitForSelectorState.Attached, Timeout = MapReadyTimeoutMs });
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Either a map that is ready (its view surface is in the DOM and ArcGIS has set the view's ready flag) or
+        // the page's own failure notice ends the wait, so a blocked script (a changed file fails its SRI pin) fails
+        // in seconds and says why, instead of timing out. No NetworkIdle: the live basemap keeps the network busy.
+        await page.WaitForFunctionAsync(
+            """
+            () => document.querySelector('#homeFinderMap .esri-load-error') !== null ||
+                (document.querySelector('#homeFinderMap .esri-view-surface') !== null &&
+                 window.HomeFinder?.state?.mapView?.ready === true)
+            """,
+            null,
+            new PageWaitForFunctionOptions { Timeout = MapReadyTimeoutMs });
 
         // Assert
         Assert.NotNull(response);

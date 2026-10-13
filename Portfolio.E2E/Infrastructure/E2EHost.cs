@@ -82,10 +82,10 @@ public sealed class E2EHost : IAsyncLifetime
         _host.UseKestrel(0);
         _host.StartServer();
         BaseUrl = _host.ClientOptions.BaseAddress.GetLeftPart(UriPartial.Authority);
-        if (BaseUri.Port is 5000 or 80)
+        if (BaseUri.Host != "127.0.0.1" || BaseUri.Port == 0)
         {
             throw new InvalidOperationException(
-                $"The E2E host bound {BaseUrl} instead of a free loopback port; it would collide with the dev server.");
+                $"The E2E host bound {BaseUrl} instead of a free port on 127.0.0.1; it could collide with the dev server.");
         }
 
         await E2ESeed.RunAsync(_host.Services);
@@ -97,13 +97,25 @@ public sealed class E2EHost : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (_browser is not null)
-            await _browser.CloseAsync();
-
-        _playwright?.Dispose();
-
-        if (_root is not null)
-            await _root.DisposeAsync();
+        // Each step runs even if an earlier one throws, so a browser that fails to close cannot leave Kestrel
+        // (and its port) running.
+        try
+        {
+            if (_browser is not null)
+                await _browser.CloseAsync();
+        }
+        finally
+        {
+            try
+            {
+                _playwright?.Dispose();
+            }
+            finally
+            {
+                if (_root is not null)
+                    await _root.DisposeAsync();
+            }
+        }
     }
 
     /// <summary>Opens a new isolated browser context (and page) for one test.</summary>

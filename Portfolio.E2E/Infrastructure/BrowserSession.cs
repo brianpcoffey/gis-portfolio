@@ -80,13 +80,17 @@ public sealed class BrowserSession : IAsyncDisposable
     /// Fails when the page logged a console error or threw, when any request went to a host the policy does not
     /// allow, or when anything tried to reach ArcGIS geocoding. The message lists every offender.
     /// </summary>
+    /// <remarks>
+    /// Disposing the session repeats the two network checks (not the console and page ones, which a test may
+    /// legitimately expect) for a test that otherwise passed, so a test that forgets this call cannot reach a
+    /// forbidden host unnoticed.
+    /// </remarks>
     public void AssertClean()
     {
         var problems = new List<string>();
         AddSection(problems, "Console errors", ConsoleErrors);
         AddSection(problems, "Page errors", PageErrors);
-        AddSection(problems, "Requests to unexpected hosts (aborted)", Network.UnexpectedRequests);
-        AddSection(problems, "Requests to ArcGIS geocoding (aborted; no test may reach it)", Network.GeocodingRequests);
+        AddNetworkSections(problems);
 
         if (problems.Count > 0)
             Assert.Fail(string.Join(Environment.NewLine, problems));
@@ -94,9 +98,10 @@ public sealed class BrowserSession : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        var failed = TestContext.Current.TestState?.Result == TestResult.Failed;
         try
         {
-            if (TestContext.Current.TestState?.Result == TestResult.Failed)
+            if (failed)
                 await KeepFailureArtifactsAsync();
             else
                 await Context.Tracing.StopAsync();
@@ -105,6 +110,22 @@ public sealed class BrowserSession : IAsyncDisposable
         {
             await Context.CloseAsync();
         }
+
+        // Backstop for a test that never called AssertClean. Skipped for a failed test: its own failure is the one
+        // to report (the artifacts above already list these requests), and this must not replace it.
+        if (!failed)
+        {
+            var problems = new List<string>();
+            AddNetworkSections(problems);
+            if (problems.Count > 0)
+                Assert.Fail("Checked on dispose; call AssertClean() in the test to assert it where it happens." + Environment.NewLine + string.Join(Environment.NewLine, problems));
+        }
+    }
+
+    private void AddNetworkSections(List<string> into)
+    {
+        AddSection(into, "Requests to unexpected hosts (aborted)", Network.UnexpectedRequests);
+        AddSection(into, "Requests to ArcGIS geocoding (aborted; no test may reach it)", Network.GeocodingRequests);
     }
 
     // A failed test leaves artifacts/<test>.zip (open with `playwright show-trace`) and a full-page PNG, and prints
