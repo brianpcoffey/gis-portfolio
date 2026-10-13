@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -59,6 +60,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="dto">Collection data.</param>
         /// <returns>The created collection.</returns>
         [HttpPost]
+        [BadRequestOnArgumentException]
         [RequestSizeLimit(4_096)]
         [ProducesResponseType(typeof(CollectionDto), 201)]
         [ProducesResponseType(400)]
@@ -70,10 +72,6 @@ namespace Portfolio.Web.Controllers.Api
             {
                 var created = await _service.CreateAsync(dto, cancellationToken);
                 return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
             }
             catch (InvalidOperationException ex)
             {

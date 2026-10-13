@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -43,6 +44,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="dto">Feature data.</param>
         /// <returns>The created feature.</returns>
         [HttpPost]
+        [BadRequestOnArgumentException]
         [RequestSizeLimit(1_065_536)]  // WP-08 GeometryJson cap + 64 KB
         [ProducesResponseType(typeof(SavedFeatureDto), 200)]
         [ProducesResponseType(400)]
@@ -57,11 +59,6 @@ namespace Portfolio.Web.Controllers.Api
             {
                 var created = await _service.CreateAsync(dto, cancellationToken);
                 return Ok(created);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning("Invalid saved-feature request: {Message}", ex.Message);
-                return BadRequest(new { error = ex.Message });
             }
             catch (InvalidOperationException)
             {

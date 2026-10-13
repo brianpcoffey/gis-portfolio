@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -21,14 +22,10 @@ namespace Portfolio.Web.Controllers.Api
     public class SpatialNetworkController : ControllerBase
     {
         private readonly ISpatialGraphService _spatialGraphService;
-        private readonly ILogger<SpatialNetworkController> _logger;
 
-        public SpatialNetworkController(
-            ISpatialGraphService spatialGraphService,
-            ILogger<SpatialNetworkController> logger)
+        public SpatialNetworkController(ISpatialGraphService spatialGraphService)
         {
             _spatialGraphService = spatialGraphService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -49,6 +46,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Spatial graph and route endpoints.</param>
         /// <returns>Route path and total cost.</returns>
         [HttpPost("route")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(RouteResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -57,16 +55,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] RouteRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _spatialGraphService.FindShortestPathAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid spatial network route request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _spatialGraphService.FindShortestPathAsync(request, cancellationToken));
         }
 
         /// <summary>
@@ -75,6 +64,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Spatial graph, origin, and maximum cost.</param>
         /// <returns>Reachable node ids.</returns>
         [HttpPost("service-area")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(ServiceAreaResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -83,16 +73,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] ServiceAreaRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _spatialGraphService.ComputeServiceAreaAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid spatial network service-area request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _spatialGraphService.ComputeServiceAreaAsync(request, cancellationToken));
         }
     }
 }

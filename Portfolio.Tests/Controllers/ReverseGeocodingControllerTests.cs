@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -16,9 +14,7 @@ namespace Portfolio.Tests.Controllers
         public ReverseGeocodingControllerTests()
         {
             _serviceMock = new Mock<IReverseGeocodingService>();
-            _controller = new ReverseGeocodingController(
-                _serviceMock.Object,
-                new Mock<ILogger<ReverseGeocodingController>>().Object);
+            _controller = new ReverseGeocodingController(_serviceMock.Object);
         }
 
         [Fact]
@@ -54,19 +50,19 @@ namespace Portfolio.Tests.Controllers
         [InlineData(-91.0, 0.0, "Latitude must be between -90 and 90", "latitude")]
         [InlineData(0.0, 181.0, "Longitude must be between -180 and 180", "longitude")]
         [InlineData(0.0, -181.0, "Longitude must be between -180 and 180", "longitude")]
-        public async Task GetPlaceData_OutOfRangeCoordinates_ReturnsBadRequest(double lat, double lng, string message, string paramName)
+        public async Task GetPlaceData_OutOfRangeCoordinates_Propagates(double lat, double lng, string message, string paramName)
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             _serviceMock
                 .Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException(message, paramName));
 
             // Act
-            var result = await _controller.GetPlaceData(lat, lng, CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _controller.GetPlaceData(lat, lng, CancellationToken.None));
 
-            // Assert
-            var bad = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.NotNull(bad.Value);
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
+            Assert.Equal($"{message} (Parameter '{paramName}')", ex.Message);
         }
 
         [Fact]
@@ -85,39 +81,19 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetPlaceData_BrokenCircuit_Returns503WithProblemDetails()
+        public async Task GetPlaceData_BrokenCircuit_Propagates()
         {
-            // Arrange
+            // Arrange: [ArcGisUnavailable] turns it into the 503 body (see the filter tests).
             _serviceMock
                 .Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
 
-            // Act
-            var result = await _controller.GetPlaceData(39.7, -104.9, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(503, problem.Status);
-            Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
+            // Act & Assert
+            await Assert.ThrowsAsync<Polly.CircuitBreaker.BrokenCircuitException>(
+                () => _controller.GetPlaceData(39.7, -104.9, CancellationToken.None));
         }
 
         // ── Exact error bodies ─────────────────────────────────────────────────
-
-        [Fact]
-        public async Task GetPlaceData_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Latitude out of range.", "latitude"));
-
-            // Act
-            var result = await _controller.GetPlaceData(95, 0, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result, 400, "Latitude out of range. (Parameter 'latitude')");
-        }
 
         [Fact]
         public async Task GetPlaceData_KeyNotFound_ReturnsBareNotFound()
@@ -132,20 +108,6 @@ namespace Portfolio.Tests.Controllers
             // Assert
             var notFound = Assert.IsType<NotFoundResult>(result);
             Assert.Equal(404, notFound.StatusCode);
-        }
-
-        [Fact]
-        public async Task GetPlaceData_BrokenCircuit_PinsExact503Body()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.ReverseGeocodeAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
-
-            // Act
-            var result = await _controller.GetPlaceData(1, 1, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.GeocodingUnavailable(result);
         }
     }
 }

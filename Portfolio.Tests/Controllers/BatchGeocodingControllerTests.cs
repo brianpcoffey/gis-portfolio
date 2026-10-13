@@ -99,21 +99,17 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task GeocodeAddresses_ServiceThrowsArgumentException_ReturnsBadRequest()
+        public async Task GeocodeAddresses_ServiceThrowsArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var file = BuildFile(64);
 
             _serviceMock
                 .Setup(s => s.GeocodeAsync(file, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("The CSV file contains no data rows.", "file"));
 
-            // Act
-            var result = await _controller.GeocodeAddresses(file, CancellationToken.None);
-
-            // Assert
-            var bad = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.NotNull(bad.Value);
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => _controller.GeocodeAddresses(file, CancellationToken.None));
         }
 
         // ── SubmitAsync ────────────────────────────────────────────────────────
@@ -166,42 +162,32 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task SubmitAsync_ServiceThrowsArgumentException_ReturnsBadRequest()
+        public async Task SubmitAsync_ServiceThrowsArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var file = BuildFile(64);
 
             _serviceMock
                 .Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("The CSV file contains no data rows.", "file"));
 
-            // Act
-            var result = await _controller.SubmitAsync(file, CancellationToken.None);
-
-            // Assert
-            var bad = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.NotNull(bad.Value);
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => _controller.SubmitAsync(file, CancellationToken.None));
         }
 
         [Fact]
-        public async Task SubmitAsync_BrokenCircuit_Returns503WithProblemDetails()
+        public async Task SubmitAsync_BrokenCircuit_Propagates()
         {
-            // Arrange
+            // Arrange: [ArcGisUnavailable] turns it into the 503 body (see the filter tests).
             var file = BuildFile(128);
 
             _serviceMock
                 .Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
 
-            // Act
-            var result = await _controller.SubmitAsync(file, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(503, problem.Status);
-            Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
+            // Act & Assert
+            await Assert.ThrowsAsync<Polly.CircuitBreaker.BrokenCircuitException>(
+                () => _controller.SubmitAsync(file, CancellationToken.None));
         }
 
         [Fact]
@@ -226,20 +212,21 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task SubmitAsync_CsvOverRowCap_ReturnsBadRequestWithServiceMessage()
+        public async Task SubmitAsync_CsvOverRowCap_PropagatesTheServiceMessage()
         {
-            // Arrange
+            // Arrange: the exception propagates from the action unchanged. The filter shows its message
+            // only when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET,
+            // so it gets the generic text.
             var file = BuildFile(128);
             _serviceMock
                 .Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("CSV exceeds the maximum of 1000 data rows."));
 
             // Act
-            var result = await _controller.SubmitAsync(file, CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _controller.SubmitAsync(file, CancellationToken.None));
 
             // Assert
-            var bad = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal("{ error = CSV exceeds the maximum of 1000 data rows. }", bad.Value!.ToString());
+            Assert.Equal("CSV exceeds the maximum of 1000 data rows.", ex.Message);
         }
 
         // ── GetStatusAsync ─────────────────────────────────────────────────────
@@ -288,23 +275,18 @@ namespace Portfolio.Tests.Controllers
         // ── BrokenCircuitException on legacy sync action ───────────────────────
 
         [Fact]
-        public async Task GeocodeAddresses_BrokenCircuit_Returns503WithProblemDetails()
+        public async Task GeocodeAddresses_BrokenCircuit_Propagates()
         {
-            // Arrange
+            // Arrange: [ArcGisUnavailable] turns it into the 503 body (see the filter tests).
             var file = BuildFile(128);
 
             _serviceMock
                 .Setup(s => s.GeocodeAsync(file, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
 
-            // Act
-            var result = await _controller.GeocodeAddresses(file, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(503, problem.Status);
+            // Act & Assert
+            await Assert.ThrowsAsync<Polly.CircuitBreaker.BrokenCircuitException>(
+                () => _controller.GeocodeAddresses(file, CancellationToken.None));
         }
 
         // ── Exact error bodies ─────────────────────────────────────────────────
@@ -356,36 +338,6 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task SubmitAsync_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var file = BuildNamedFile("a.csv", 10);
-            _serviceMock.Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Too many rows."));
-
-            // Act
-            var result = await _controller.SubmitAsync(file, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result, 400, "Too many rows.");
-        }
-
-        [Fact]
-        public async Task SubmitAsync_BrokenCircuit_PinsExact503Body()
-        {
-            // Arrange
-            var file = BuildNamedFile("a.csv", 10);
-            _serviceMock.Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
-
-            // Act
-            var result = await _controller.SubmitAsync(file, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.GeocodingUnavailable(result);
-        }
-
-        [Fact]
         public async Task GeocodeAddresses_NoFile_PinsExactErrorBody()
         {
             // Act
@@ -403,36 +355,6 @@ namespace Portfolio.Tests.Controllers
 
             // Assert
             ControllerBodyAssert.ErrorBody(result, 400, "A .csv file is required.");
-        }
-
-        [Fact]
-        public async Task GeocodeAddresses_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var file = BuildNamedFile("a.csv", 10);
-            _serviceMock.Setup(s => s.GeocodeAsync(file, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Too many rows."));
-
-            // Act
-            var result = await _controller.GeocodeAddresses(file, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result, 400, "Too many rows.");
-        }
-
-        [Fact]
-        public async Task GeocodeAddresses_BrokenCircuit_PinsExact503Body()
-        {
-            // Arrange
-            var file = BuildNamedFile("a.csv", 10);
-            _serviceMock.Setup(s => s.GeocodeAsync(file, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
-
-            // Act
-            var result = await _controller.GeocodeAddresses(file, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.GeocodingUnavailable(result);
         }
     }
 }

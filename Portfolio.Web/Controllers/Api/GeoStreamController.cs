@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -21,14 +22,10 @@ namespace Portfolio.Web.Controllers.Api
     public class GeoStreamController : ControllerBase
     {
         private readonly IGeoStreamProcessorService _geoStreamProcessorService;
-        private readonly ILogger<GeoStreamController> _logger;
 
-        public GeoStreamController(
-            IGeoStreamProcessorService geoStreamProcessorService,
-            ILogger<GeoStreamController> logger)
+        public GeoStreamController(IGeoStreamProcessorService geoStreamProcessorService)
         {
             _geoStreamProcessorService = geoStreamProcessorService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -37,6 +34,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Telemetry batch and processing options.</param>
         /// <returns>Aggregated telemetry processing result.</returns>
         [HttpPost("events")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(GeoStreamBatchResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -45,16 +43,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] GeoStreamBatchRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _geoStreamProcessorService.ProcessBatchAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid geostream telemetry batch request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _geoStreamProcessorService.ProcessBatchAsync(request, cancellationToken));
         }
     }
 }
