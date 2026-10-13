@@ -6,8 +6,8 @@ namespace Portfolio.Services.Native
     /// </summary>
     /// <remarks>
     /// Bridges probe once, at type initialisation, so the fallback could otherwise be exercised only by moving the
-    /// libraries. It lets the benchmarks measure both paths and the fallback (production behaviour today) be verified
-    /// without a redeploy. Read once per process: set it before the process starts.
+    /// libraries. The switch lets the benchmarks measure both paths, and lets the fallback (production behaviour
+    /// today) be verified without a redeploy. Read once per process: set it before the process starts.
     /// </remarks>
     internal static class NativeToggle
     {
