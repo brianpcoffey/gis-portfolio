@@ -64,8 +64,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetAllAsync());
         }
 
-        // ── CreateAsync ─────────────────────────────────────────────────
-
         [Fact]
         public async Task CreateAsync_WithValidDto_ReturnsCreatedDto()
         {
@@ -119,8 +117,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 service.CreateAsync(new CreateFiberOrderDto()));
         }
-
-        // ── UpdateAsync ─────────────────────────────────────────────────
 
         [Fact]
         public async Task UpdateAsync_WhenOrderExists_AppliesChangesAndReturnsDto()
@@ -204,8 +200,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal("OriginalProduct",  result.ProductName);
             Assert.Equal(3,                  result.Quantity);
         }
-
-        // ── DeleteAsync ─────────────────────────────────────────────────
 
         [Fact]
         public async Task DeleteAsync_WhenOrderExists_ReturnsTrue()

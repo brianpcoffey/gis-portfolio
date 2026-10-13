@@ -50,8 +50,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.ProcessBatchAsync(request));
         }
 
-        // ── GeoStream validation ────────────────────────────────────────────
-
         [Fact]
         public async Task GeoStreamProcessBatch_NullRequest_ThrowsArgumentNullException()
         {
@@ -138,8 +136,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(3, result.Aggregates[0].Count);
             Assert.InRange(result.Aggregates[0].AverageSpeedMetersPerSecond, 19.9, 20.1);
         }
-
-        // ── Compute work caps and finite validation (WP-06) ─────────────────────
 
         [Theory]
         [InlineData(0.0000009)]

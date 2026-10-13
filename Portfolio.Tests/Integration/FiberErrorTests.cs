@@ -18,10 +18,13 @@ namespace Portfolio.Tests.Integration;
 
 /// <summary>
 /// WP-34 (D-04a): the Fiber controllers no longer catch everything, so ApiExceptionMiddleware maps
-/// the service exceptions. Drives the real host; the "Test" authentication scheme exists only here
-/// so the Authenticated policy passes without Google. The user identity itself comes from the
-/// anonymous-cookie path (an unlinked profile), exactly as the app resolves it.
+/// the service exceptions.
 /// </summary>
+/// <remarks>
+/// Drives the real host; the "Test" authentication scheme exists only here so the Authenticated policy
+/// passes without Google. The user identity itself comes from the anonymous-cookie path (an unlinked
+/// profile), exactly as the app resolves it.
+/// </remarks>
 public class FiberErrorTests
 {
     private const string CookieName = "AnonUserId";

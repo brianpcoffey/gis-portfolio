@@ -12,8 +12,6 @@ namespace Portfolio.Tests.Controllers
     /// </summary>
     public class ApiVersioningAttributeTests
     {
-        // ── [ApiVersion("1.0")] present on all versioned controllers ──────────
-
         [Theory]
         [InlineData(typeof(BatchGeocodingController))]
         [InlineData(typeof(ReverseGeocodingController))]
@@ -42,8 +40,6 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(new ApiVersion(1, 0), attr.Versions[0]);
         }
 
-        // ── [Route] versioned URL template ────────────────────────────────────
-
         [Theory]
         [InlineData(typeof(BatchGeocodingController), "api/v{version:apiVersion}/geocoding/batch")]
         [InlineData(typeof(ReverseGeocodingController), "api/v{version:apiVersion}/geocoding/reverse")]
@@ -71,8 +67,6 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(expectedTemplate, attr.Template);
         }
 
-        // ── [AllowAnonymous] on anonymous-identity controllers ────────────────
-
         [Theory]
         [InlineData(typeof(BatchGeocodingController))]
         [InlineData(typeof(ReverseGeocodingController))]
@@ -90,8 +84,6 @@ namespace Portfolio.Tests.Controllers
             Assert.True(hasAttr, $"{controllerType.Name} is missing [AllowAnonymous].");
         }
 
-        // ── HomeFinder: mixed anonymous/authenticated on one controller ────────
-        //
         // HomeFinderController deliberately has NO class-level [AllowAnonymous].
         // It used to, and that silently disabled the [Authorize] on all four
         // saved-search actions: ASP.NET Core skips authorization when
@@ -142,8 +134,6 @@ namespace Portfolio.Tests.Controllers
                 Assert.False(authorize, $"{actionName} is public and should not carry [Authorize].");
             }
         }
-
-        // ── [Authorize(Policy = "Authenticated")] on authenticated controllers ─
 
         [Theory]
         [InlineData(typeof(CollectionsController))]

@@ -10,8 +10,8 @@ namespace Portfolio.Tests.Services
     // These tests assert computation, not which path produced it: they pass whether or
     // not the native shared libraries have been built. Native/managed equivalence is
     // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
-    // native/network_trace_kernel/src/network_trace_kernel.cpp, so these also pin the
-    // traversal semantics the native kernel must reproduce.
+    // The managed path mirrors native/network_trace_kernel/src/network_trace_kernel.cpp, so these
+    // also pin the traversal semantics the native kernel must reproduce.
     public class OutageTraceServiceTests
     {
         private const int SourceNode = 1;
@@ -80,8 +80,6 @@ namespace Portfolio.Tests.Services
             SourceNodeId = SourceNode,
             FaultElementId = faultElementId
         };
-
-        // ── Fault tracing ───────────────────────────────────────────────────────
 
         [Fact]
         public async Task Trace_FaultOnLateral_AffectsOnlyThatLateral()
@@ -243,8 +241,6 @@ namespace Portfolio.Tests.Services
                 service.TraceAsync(TraceOf(elements, faultElementId: 2)));
         }
 
-        // ── Restoration ─────────────────────────────────────────────────────────
-
         [Fact]
         public async Task Restore_ClosingTie_RestoresHealthySections()
         {
@@ -400,8 +396,6 @@ namespace Portfolio.Tests.Services
                     AssumedRepairMinutes = -5
                 }));
         }
-
-        // ── The shipped demo network ────────────────────────────────────────────
 
         [Fact]
         public async Task Network_IsDeterministic()

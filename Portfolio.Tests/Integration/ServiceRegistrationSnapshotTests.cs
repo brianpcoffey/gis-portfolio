@@ -3,12 +3,15 @@ using Portfolio.Tests.Helpers;
 namespace Portfolio.Tests.Integration;
 
 /// <summary>
-/// Golden list of the DI registrations Program.cs makes for application types: sorted
+/// Golden list of the DI registrations Program.cs makes through the Startup/* extensions for application types: sorted
 /// "ServiceType | Lifetime | ImplementationType" for Portfolio.* plus IBatchJobStore, Portfolio.* IHostedService,
-/// IDistributedCache, TimeProvider and IMemoryCache. "(factory)" is a registration made through a
-/// factory delegate (the typed HttpClient registrations); each geocoding interface has exactly that one.
-/// IMemoryCache is registered by the framework, not by Program.cs.
+/// IDistributedCache, TimeProvider and IMemoryCache.
 /// </summary>
+/// <remarks>
+/// "(factory)" is a registration made through a factory delegate (the typed HttpClient registrations);
+/// each geocoding interface has exactly that one. IMemoryCache is registered by the framework, not by
+/// the Startup/* registrations.
+/// </remarks>
 public class ServiceRegistrationSnapshotTests
 {
     private const string Expected = """

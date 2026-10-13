@@ -228,8 +228,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetAllAsync());
         }
 
-        // ── Persistence limits: values exactly at the boundary are accepted ──
-
         [Theory]
         [InlineData("#000000")]
         [InlineData("#aBc123")]
@@ -258,8 +256,6 @@ namespace Portfolio.Tests.Services
 
             Assert.Equal("#0A1b2C", result.Color);
         }
-
-        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
 
         [Theory]
         [InlineData("#fff")]

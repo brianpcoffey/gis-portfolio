@@ -4,7 +4,7 @@ using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Golden
 {
-    // Golden output for ResponseCoverageService before it is split. The shipped scenario
+    // Golden output for ResponseCoverageService, captured before it was split. The shipped scenario
     // (450 demand points, 24 candidate sites, stations 1 and 2 in service) is solved for
     // four new stations with the page's own parameters: 40 km/h, thresholds of 4 and
     // 8 minutes, 50 iterations. The three objective modes pick different sites.
@@ -159,8 +159,6 @@ namespace Portfolio.Tests.Golden
             Assert.True(p90.Optimized.P90Minutes < p90.Baseline.P90Minutes);
             Assert.True(p90.Optimized.PercentWithinFirstThreshold > p90.Baseline.PercentWithinFirstThreshold);
         }
-
-        // ── Validation ──────────────────────────────────────────────────────────
 
         private static OptimizeCoverageRequestDto ValidRequest() =>
             new()

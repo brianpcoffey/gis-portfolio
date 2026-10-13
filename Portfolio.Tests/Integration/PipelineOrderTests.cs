@@ -8,8 +8,9 @@ namespace Portfolio.Tests.Integration;
 /// <summary>
 /// Characterizes the middleware order documented in docs/agent-context.md section 4 by observing
 /// it from outside: forwarded headers, security headers, static files, rate limiter, exception
-/// middleware, anonymous identity, authentication. Every assertion holds on today's Program.cs.
+/// middleware, anonymous identity, authentication.
 /// </summary>
+/// <remarks>Every assertion holds on the pipeline built by UsePortfolioPipeline (Startup/Pipeline.cs).</remarks>
 public class PipelineOrderTests
 {
     private const string CookieName = "AnonUserId";

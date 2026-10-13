@@ -89,8 +89,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.FindShortestPathAsync(request));
         }
 
-        // ── Route Planner validation ────────────────────────────────────────
-
         [Fact]
         public async Task SpatialGraphRoute_NullRequest_ThrowsArgumentNullException()
         {
@@ -189,8 +187,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal([1], result.NodeIds);
         }
 
-        // ── Redlands graph end-to-end pipeline ──────────────────────────────────
-
         [Fact]
         public async Task SpatialGraphService_GetRedlandsGraph_ReturnsDenseNetworkWithEsriHqDestination()
         {
@@ -223,8 +219,8 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task SpatialGraphService_DijkstraOnRedlandsGraph_ReachesEsriHqFromRowA()
         {
-            // Full round-trip: fetch the Redlands graph, route from node 1 (Row A,
-            // far-west corner) to Esri HQ (105) with Dijkstra.
+            // Full round-trip: fetch the Redlands graph and route from node 1 to node 105 with Dijkstra.
+            // Node 105 is an ordinary intersection; Esri HQ is node 2530 in the OSM-generated network.
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var graph   = await service.GetRedlandsGraphAsync();
 
@@ -276,7 +272,7 @@ namespace Portfolio.Tests.Services
         public async Task SpatialGraphService_AStarExploresFewerNodesThanDijkstraOnRedlandsGraph()
         {
             // A* uses a spatial heuristic — it should settle fewer nodes than
-            // Dijkstra when routing across the full 109-node grid.
+            // Dijkstra when routing across the Redlands graph.
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var graph   = await service.GetRedlandsGraphAsync();
 
@@ -319,11 +315,8 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task SpatialGraphService_AStarOnRedlandsGraph_FindsValidRouteFromNode1To105()
         {
-            // The edge costs in the Redlands graph include a ×1.3 detour factor
-            // while the A* heuristic uses raw haversine — this makes the heuristic
-            // inadmissible, so A* may not always find the globally optimal cost.
-            // What we can assert: A* finds a connected, non-empty path that
-            // starts at the correct origin and ends at Esri HQ.
+            // Only the shape of the result is asserted: a connected, non-empty path that
+            // starts at the requested origin and ends at node 105. Optimal cost is not checked here.
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var graph   = await service.GetRedlandsGraphAsync();
 
@@ -380,7 +373,7 @@ namespace Portfolio.Tests.Services
 
             var result = await service.ComputeServiceAreaAsync(new ServiceAreaRequestDto
             {
-                OriginNodeId = 50, // Colton Ave & State St — directly connected to HQ
+                OriginNodeId = 50,
                 MaxCost = 1.5,
                 Nodes = graph.Nodes,
                 Edges = graph.Edges
@@ -405,8 +398,6 @@ namespace Portfolio.Tests.Services
 
             Assert.Equal(result.ReachableNodeIds.OrderBy(id => id).ToList(), result.ReachableNodeIds);
         }
-
-        // ── Directed-edge correctness ────────────────────────────────────────────
 
         [Fact]
         public async Task SpatialGraphRoute_DirectedEdge_CannotTraverseInReverseDirection()
@@ -451,8 +442,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(fwd.TotalCost, rev.TotalCost, precision: 2);
         }
 
-        // ── Algorithm case-insensitivity ────────────────────────────────────────
-
         [Theory]
         [InlineData("DIJKSTRA")]
         [InlineData("Dijkstra")]
@@ -483,8 +472,6 @@ namespace Portfolio.Tests.Services
             Assert.True(result.Found);
         }
 
-        // ── Cancellation token ───────────────────────────────────────────────────
-
         [Fact]
         public async Task SpatialGraphService_GetRedlandsGraph_CancelledToken_ThrowsOperationCanceled()
         {
@@ -495,8 +482,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => service.GetRedlandsGraphAsync(cts.Token));
         }
-
-        // ── Edges to undeclared nodes (managed Dijkstra / A*) ───────────────────
 
         private static RouteRequestDto UndeclaredEdgeRoute(string algorithm) => new()
         {

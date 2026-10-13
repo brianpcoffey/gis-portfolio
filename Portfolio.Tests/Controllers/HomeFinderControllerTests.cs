@@ -26,8 +26,6 @@ namespace Portfolio.Tests.Controllers
                 _savedSearchMock.Object);
         }
 
-        // ── Search ──────────────────────────────────────────────────────
-
         [Fact]
         public async Task Search_WithValidPrefs_ReturnsOkWithResults()
         {
@@ -45,8 +43,6 @@ namespace Portfolio.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.Equal(scored, ok.Value);
         }
-
-        // ── GetProperty ─────────────────────────────────────────────────
 
         [Fact]
         public async Task GetProperty_WhenFound_ReturnsOk()
@@ -79,8 +75,6 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
-
-        // ── SaveSearch ──────────────────────────────────────────────────
 
         [Fact]
         public async Task SaveSearch_WithValidRequest_ReturnsCreated()
@@ -133,8 +127,6 @@ namespace Portfolio.Tests.Controllers
             Assert.NotNull(conflict.Value);
         }
 
-        // ── GetSearches ─────────────────────────────────────────────────
-
         [Fact]
         public async Task GetSearches_WithAuthenticatedUser_ReturnsOkWithList()
         {
@@ -171,8 +163,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<UnauthorizedResult>(result);
         }
 
-        // ── GetSearch ───────────────────────────────────────────────────
-
         [Fact]
         public async Task GetSearch_WhenFound_ReturnsOk()
         {
@@ -206,8 +196,6 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
-
-        // ── DeleteSearch ────────────────────────────────────────────────
 
         [Fact]
         public async Task DeleteSearch_WhenExists_ReturnsNoContent()
@@ -254,8 +242,6 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<UnauthorizedResult>(result);
         }
-
-        // ── Exact error bodies ─────────────────────────────────────────────────
 
         [Fact]
         public async Task SaveSearch_InvalidOperation_PinsExactConflictBody()

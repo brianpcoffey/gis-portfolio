@@ -21,8 +21,6 @@ namespace Portfolio.Tests.Controllers
                 _serviceMock.Object);
         }
 
-        // ── GetStats ────────────────────────────────────────────────────
-
         [Fact]
         public async Task GetStats_ReturnsOkWithDashboardDto()
         {

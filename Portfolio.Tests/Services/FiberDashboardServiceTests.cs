@@ -54,8 +54,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetDashboardAsync());
         }
 
-        // ── Active shipments ────────────────────────────────────────────
-
         [Fact]
         public async Task GetDashboardAsync_CountsActiveShipmentsCorrectly()
         {
@@ -79,8 +77,6 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.Equal(2, result.ActiveShipments);
         }
-
-        // ── Open orders ────────────────────────────────────────────────
 
         [Fact]
         public async Task GetDashboardAsync_CountsOpenOrdersExcludingDeliveredAndShipped()
@@ -106,8 +102,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(2, result.OpenOrders);
         }
 
-        // ── Low stock alerts ───────────────────────────────────────────
-
         [Fact]
         public async Task GetDashboardAsync_CountsLowStockAlertsCorrectly()
         {
@@ -131,8 +125,6 @@ namespace Portfolio.Tests.Services
             // Assert - QtyOnHand <= ReorderPoint: items A (1<=5) and C (5<=5)
             Assert.Equal(2, result.LowStockAlerts);
         }
-
-        // ── MTD revenue ────────────────────────────────────────────────
 
         [Fact]
         public async Task GetDashboardAsync_CalculatesMtdRevenueFromCurrentMonthOrdersOnly()
@@ -164,8 +156,6 @@ namespace Portfolio.Tests.Services
             // Assert — only the current-month order (100 * 3 = 300) counts
             Assert.Equal(300m, result.MtdRevenue);
         }
-
-        // ── Orders by status ───────────────────────────────────────────
 
         [Fact]
         public async Task GetDashboardAsync_ReturnsAllKnownStatusesInOrdersByStatus()
@@ -214,8 +204,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(2, result.OrdersByStatus.First(s => s.Status == "Draft").Count);
             Assert.Equal(1, result.OrdersByStatus.First(s => s.Status == "Confirmed").Count);
         }
-
-        // ── Top clients ────────────────────────────────────────────────
 
         [Fact]
         public async Task GetDashboardAsync_ReturnsTopFiveClientsByRevenue()

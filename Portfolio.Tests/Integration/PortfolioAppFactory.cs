@@ -8,22 +8,25 @@ using Portfolio.Repositories;
 
 namespace Portfolio.Tests.Integration;
 
-/// <summary>
-/// Boots the real <c>Program.cs</c> in-process (TestServer) with no network and no database.
-/// The Npgsql DbContext registration is replaced by EF InMemory, migrations are skipped, and every
+/// <summary>Boots the real app in-process (TestServer) with no network and no database.</summary>
+/// <remarks>
+/// This runs <c>Program.cs</c> and the Startup/* registrations it calls. The Npgsql DbContext
+/// registration is replaced by EF InMemory, migrations are skipped, and every
 /// ArcGIS typed client gets a fake primary handler that returns 503 and counts attempts (so no test
 /// can ever reach arcgis.com). Use ONE factory per test whenever rate-limit state matters.
-/// </summary>
+/// </remarks>
 public sealed class PortfolioAppFactory : WebApplicationFactory<Program>
 {
-    /// <summary>The typed ArcGIS clients registered in Program.cs (name = typed-client service interface).</summary>
+    /// <summary>
+    /// The typed ArcGIS clients registered by ArcGisClientRegistration.cs (name = typed-client service interface).
+    /// </summary>
     public static readonly string[] ArcGisClientNames =
         ["IArcGisService", "IBatchGeocodingService", "IReverseGeocodingService", "IAddressStandardizationService"];
 
     private readonly string _db = "pipeline-" + Guid.NewGuid();
     private readonly ConcurrentDictionary<string, int> _arcGisAttempts = new();
 
-    /// <summary>Every service descriptor visible at the end of Program.cs registration (before test overrides).</summary>
+    /// <summary>Every service descriptor visible at the end of service registration (before test overrides).</summary>
     public List<(Type Service, ServiceLifetime Lifetime, string Impl)> Registrations { get; } = [];
 
     /// <summary>Requests that reached the fake primary handler of the named ArcGIS client.</summary>
@@ -35,7 +38,8 @@ public sealed class PortfolioAppFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:DefaultConnection", "Host=localhost;Database=unused;Username=u;Password=p");
         builder.UseSetting("RunMigrationsOnStartup", "false");
-        // Empty value disables Redis (Program.cs uses IsNullOrWhiteSpace) even if a dev env var/appsettings enables it.
+        // An empty value disables Redis (InfrastructureRegistration checks IsNullOrWhiteSpace) even if a
+        // dev env var or appsettings enables it.
         builder.UseSetting("Redis__ConnectionString", "");
         builder.UseSetting("Redis:ConnectionString", "");
         builder.UseSetting("Authentication:Google:ClientId", "test-client-id");

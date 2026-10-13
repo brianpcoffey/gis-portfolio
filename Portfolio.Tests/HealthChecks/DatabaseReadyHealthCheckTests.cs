@@ -5,12 +5,12 @@ using Portfolio.Web.HealthChecks;
 
 namespace Portfolio.Tests.HealthChecks;
 
-/// <summary>
-/// The readiness check asks the database at most once per 10 seconds (SEC-32). A live context
-/// answers Healthy; a disposed one throws, so it is Unhealthy only if the database is actually
-/// asked. That makes "was the database hit" observable without a mock. The cache is static, so
+/// <summary>The readiness check asks the database at most once per 10 seconds (SEC-32).</summary>
+/// <remarks>
+/// A live context answers Healthy; a disposed one throws, so it is Unhealthy only if the database is
+/// actually asked. That makes "was the database hit" observable without a mock. The cache is static, so
 /// every test resets it first (tests in one class run sequentially).
-/// </summary>
+/// </remarks>
 public class DatabaseReadyHealthCheckTests
 {
     private static readonly DateTimeOffset Start = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);

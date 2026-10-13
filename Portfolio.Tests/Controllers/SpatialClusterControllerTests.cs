@@ -10,8 +10,8 @@ using Portfolio.Web.Controllers.Api;
 namespace Portfolio.Tests.Controllers
 {
     /// <summary>
-    /// Shared assertions that pin the exact response body of controller error branches,
-    /// not just the status code. Used by the controller test classes in this folder.
+    /// Shared assertions that pin the exact response body of controller error branches, not just the
+    /// status code, for the controller test classes in this folder.
     /// </summary>
     internal static class ControllerBodyAssert
     {

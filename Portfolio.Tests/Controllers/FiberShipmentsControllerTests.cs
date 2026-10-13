@@ -20,8 +20,6 @@ namespace Portfolio.Tests.Controllers
                 _serviceMock.Object);
         }
 
-        // ── GetAll ──────────────────────────────────────────────────────
-
         [Fact]
         public async Task GetAll_ReturnsOkWithList()
         {
@@ -36,8 +34,6 @@ namespace Portfolio.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.Equal(shipments, ok.Value);
         }
-
-        // ── Get ─────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Get_WhenFound_ReturnsOk()
@@ -67,8 +63,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // ── Create ──────────────────────────────────────────────────────
-
         [Fact]
         public async Task Create_WithValidDto_ReturnsOkWithCreated()
         {
@@ -84,8 +78,6 @@ namespace Portfolio.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.Equal(created, ok.Value);
         }
-
-        // ── Update ──────────────────────────────────────────────────────
 
         [Fact]
         public async Task Update_WhenSuccessful_ReturnsOkWithUpdated()
@@ -103,8 +95,6 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(updated, ok.Value);
         }
 
-        // ── UpdateStatus ────────────────────────────────────────────────
-
         [Fact]
         public async Task UpdateStatus_WhenSuccessful_ReturnsOkWithUpdated()
         {
@@ -120,8 +110,6 @@ namespace Portfolio.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.Equal(updated, ok.Value);
         }
-
-        // ── Delete ──────────────────────────────────────────────────────
 
         [Fact]
         public async Task Delete_WhenDeleted_ReturnsNoContent()
@@ -149,8 +137,8 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // ── Error paths: FiberShipmentsController has no catch clauses, so invalid model
-        //    state returns a 400 validation problem and a service exception propagates. ──
+        // FiberShipmentsController has no catch clauses, so invalid model state returns a 400
+        // validation problem and a service exception propagates.
 
         private static void AssertValidationProblem(IActionResult result)
         {

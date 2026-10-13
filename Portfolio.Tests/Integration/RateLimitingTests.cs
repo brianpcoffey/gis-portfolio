@@ -13,13 +13,15 @@ using System.Threading.RateLimiting;
 namespace Portfolio.Tests.Integration;
 
 /// <summary>
-/// Pins the "expensive" policy (15 requests per minute per client key) on a cheap, anonymous,
-/// DB-free endpoint, and today's X-Forwarded-For partitioning semantics (findings-security 4.2).
+/// Pins the "expensive" policy (15 requests per minute per client key) on a cheap, anonymous, DB-free
+/// endpoint, and today's X-Forwarded-For partitioning semantics (findings-security 4.2).
+/// </summary>
+/// <remarks>
 /// ForwardedHeaders is configured with the defaults (ForwardLimit 1) and no trusted-proxy list, so
 /// the right-most X-Forwarded-For entry becomes the partition key. Cases (b) and (d) are a known
 /// bypass; they are pinned as today's behaviour, not endorsed. One factory per test, because the
 /// limiter state lives in the host.
-/// </summary>
+/// </remarks>
 public class RateLimitingTests
 {
     private const string Path = "/api/v1/catrisk/book";

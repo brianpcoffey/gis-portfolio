@@ -7,10 +7,11 @@ namespace Portfolio.Tests.Services
     // Fleet route optimization: capacitated vehicle routing with time windows over the
     // Redlands road network.
     //
-    // The suite runs with no native shared library present, so every test exercises the
-    // managed solver and asserts the computed result. The managed path mirrors
-    // native/vrp_solver_kernel/src/vrp_solver_kernel.cpp move for move, so these also pin
-    // the behaviour the native kernel must reproduce.
+    // These tests assert computation, not which path produced it: they pass whether or
+    // not the native shared libraries have been built. Native/managed equivalence is
+    // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
+    // The managed path mirrors native/vrp_solver_kernel/src/vrp_solver_kernel.cpp move for move,
+    // so these also pin the behaviour the native kernel must reproduce.
     //
     // Distances come from the real road graph rather than a hand-built matrix. The graph is
     // a compile-time constant, so the results are just as deterministic, and the tests cover
@@ -76,8 +77,6 @@ namespace Portfolio.Tests.Services
             };
         }
 
-        // ── Construction and coverage ───────────────────────────────────────────
-
         [Fact]
         public async Task Optimize_SingleStop_ProducesOneRoute()
         {
@@ -131,8 +130,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(route.Path[0].Y, route.Path[^1].Y, 9);
             Assert.True(route.ReturnMinutes > route.ArrivalMinutes[^1]);
         }
-
-        // ── Constraints ─────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Optimize_LoadNeverExceedsCapacity()
@@ -216,8 +213,6 @@ namespace Portfolio.Tests.Services
             Assert.Empty(result.Routes);
         }
 
-        // ── Search behaviour ────────────────────────────────────────────────────
-
         [Fact]
         public async Task Optimize_FinalObjectiveNotWorseThanInitial()
         {
@@ -272,8 +267,6 @@ namespace Portfolio.Tests.Services
 
             Assert.True(expensiveResult.VehiclesUsed <= cheapResult.VehiclesUsed);
         }
-
-        // ── Validation ──────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Optimize_NullRequest_ThrowsArgumentNullException()
@@ -349,8 +342,6 @@ namespace Portfolio.Tests.Services
 
             await Assert.ThrowsAsync<ArgumentException>(() => service.OptimizeAsync(request));
         }
-
-        // ── Scenarios ───────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Scenario_UnknownPreset_ThrowsArgumentException()

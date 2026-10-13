@@ -170,8 +170,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // ── Exact error bodies ─────────────────────────────────────────────────
-
         [Fact]
         public async Task Create_InvalidOperation_PinsExactConflictBody()
         {

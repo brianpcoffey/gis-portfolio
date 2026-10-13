@@ -26,7 +26,6 @@ namespace Portfolio.Tests.Services
             _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
             _timeProvider = new FakeTimeProvider(new DateTimeOffset(2026, 3, 6, 12, 0, 0, TimeSpan.Zero));
 
-            // Use a real in-memory DbContext + real SeedService.
             // SeedForUserAsync is never invoked by these unit tests — all repo calls are mocked.
             var dbOptions = new DbContextOptionsBuilder<PortfolioDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -304,8 +303,6 @@ namespace Portfolio.Tests.Services
             Assert.False(result);
         }
 
-        // ── GetProfileByIdAsync ─────────────────────────────────────────
-
         [Fact]
         public async Task GetProfileByIdAsync_WhenFound_ReturnsDtoWithClaims()
         {
@@ -339,8 +336,6 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.Null(result);
         }
-
-        // ── GetProfileByGoogleIdAsync ───────────────────────────────────
 
         [Fact]
         public async Task GetProfileByGoogleIdAsync_WhenFound_ReturnsDto()
@@ -381,8 +376,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => _service.GetProfileByGoogleIdAsync(googleId!));
         }
 
-        // ── GetCurrentProfileAsync ──────────────────────────────────────
-
         [Fact]
         public async Task GetCurrentProfileAsync_WhenFound_ReturnsDto()
         {
@@ -408,8 +401,6 @@ namespace Portfolio.Tests.Services
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => _service.GetCurrentProfileAsync());
         }
-
-        // ── UpdateCurrentProfileAsync ───────────────────────────────────
 
         [Fact]
         public async Task UpdateCurrentProfileAsync_WithOverlongDisplayName_Throws_AndWritesNothing()
@@ -477,8 +468,6 @@ namespace Portfolio.Tests.Services
             _repoMock.Verify(r => r.RemoveClaimAsync(_testUserId, "display_name", It.IsAny<CancellationToken>()), Times.Once);
         }
 
-        // ── DeleteProfileAsync ──────────────────────────────────────────
-
         [Fact]
         public async Task DeleteProfileAsync_WhenExists_ReturnsTrue()
         {
@@ -504,8 +493,6 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.False(result);
         }
-
-        // ── IsGoogleLinkedAsync ─────────────────────────────────────────
 
         [Fact]
         public async Task IsGoogleLinkedAsync_WhenGoogleClaimExists_ReturnsTrue()
@@ -552,8 +539,6 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.False(result);
         }
-
-        // ── CreateOrUpdateFromGoogleAsync ───────────────────────────────
 
         [Fact]
         public async Task CreateOrUpdateFromGoogleAsync_WhenExistingGoogleProfile_UpdatesLastActiveDate()

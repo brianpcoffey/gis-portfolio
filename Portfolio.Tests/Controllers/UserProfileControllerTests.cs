@@ -20,8 +20,6 @@ namespace Portfolio.Tests.Controllers
             _controller  = new UserProfileController(_serviceMock.Object);
         }
 
-        // ── GetCurrentProfile ───────────────────────────────────────────
-
         [Fact]
         public async Task GetCurrentProfile_WhenFound_ReturnsOkWithProfile()
         {
@@ -54,8 +52,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundObjectResult>(result);
         }
 
-        // ── UpdateCurrentProfile ────────────────────────────────────────
-
         [Fact]
         public async Task UpdateCurrentProfile_ReturnsOkWithUpdatedProfile()
         {
@@ -73,8 +69,6 @@ namespace Portfolio.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.Equal(updated, ok.Value);
         }
-
-        // ── GetById ─────────────────────────────────────────────────────
 
         [Fact]
         public async Task GetById_WhenSelf_ReturnsOk()
@@ -126,8 +120,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // ── GetByGoogleId ───────────────────────────────────────────────
-
         [Fact]
         public async Task GetByGoogleId_WhenSelf_ReturnsOk()
         {
@@ -178,8 +170,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // ── GetClaims ───────────────────────────────────────────────────
-
         [Fact]
         public async Task GetClaims_ReturnsOkWithClaimList()
         {
@@ -201,8 +191,6 @@ namespace Portfolio.Tests.Controllers
             var returned = Assert.IsAssignableFrom<List<ClaimDto>>(ok.Value);
             Assert.Equal(2, returned.Count);
         }
-
-        // ── SetClaim ────────────────────────────────────────────────────
 
         [Fact]
         public async Task SetClaim_WithValidNonProtectedType_ReturnsNoContent()
@@ -267,8 +255,6 @@ namespace Portfolio.Tests.Controllers
             Assert.NotNull(bad.Value);
         }
 
-        // ── RemoveClaim ─────────────────────────────────────────────────
-
         [Fact]
         public async Task RemoveClaim_WhenRemoved_ReturnsNoContent()
         {
@@ -316,8 +302,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // ── Delete ──────────────────────────────────────────────────────
-
         [Fact]
         public async Task Delete_WhenSelfDelete_ReturnsNoContent()
         {
@@ -362,8 +346,6 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
-
-        // ── Exact error bodies ─────────────────────────────────────────────────
 
         [Fact]
         public async Task GetCurrentProfile_InvalidOperation_PinsExactNotFoundBody()

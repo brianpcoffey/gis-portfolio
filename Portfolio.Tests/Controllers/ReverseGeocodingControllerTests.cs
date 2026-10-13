@@ -93,8 +93,6 @@ namespace Portfolio.Tests.Controllers
                 () => _controller.GetPlaceData(39.7, -104.9, CancellationToken.None));
         }
 
-        // ── Exact error bodies ─────────────────────────────────────────────────
-
         [Fact]
         public async Task GetPlaceData_KeyNotFound_ReturnsBareNotFound()
         {

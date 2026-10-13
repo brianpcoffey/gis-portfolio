@@ -121,8 +121,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<BadRequestObjectResult>(result);
         }
 
-        // ── Exact error bodies ─────────────────────────────────────────────────
-
         [Fact]
         public async Task Get_WhenNoIdentity_PinsExactErrorBody()
         {
@@ -182,8 +180,6 @@ namespace Portfolio.Tests.Controllers
             // Assert
             ControllerBodyAssert.ErrorBody(result, 400, $"Claim type '{type}' cannot be removed anonymously.");
         }
-
-        // ── SetAuthenticatedClaim (PUT me/claims) ──────────────────────────────
 
         [Fact]
         public async Task SetAuthenticatedClaim_ValidClaim_StoresClaimAndEchoesRequest()

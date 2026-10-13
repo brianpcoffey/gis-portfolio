@@ -3,12 +3,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Portfolio.Tests.Integration;
 
-/// <summary>
-/// Locks the retry budget of each ArcGIS typed client. The factory replaces the transport with a
-/// fake that always answers 503 and counts requests, so the resilience pipeline from Program.cs is
-/// exercised unchanged (retry + exponential backoff, about 1.5 s for features and 2.1 s for the
-/// others) and nothing leaves the machine. Attempts = 1 + MaxRetryAttempts.
-/// </summary>
+/// <summary>Locks the retry budget of each ArcGIS typed client.</summary>
+/// <remarks>
+/// The factory replaces the transport with a fake that always answers 503 and counts requests, so the
+/// resilience pipeline built by AddArcGisResilience (Startup/ArcGisClientRegistration.cs) is exercised
+/// unchanged (retry + exponential backoff, about 1.5 s for features and 2.1 s for the others) and
+/// nothing leaves the machine. Attempts = 1 + MaxRetryAttempts.
+/// </remarks>
 public class ArcGisResilienceTests
 {
     [Theory]

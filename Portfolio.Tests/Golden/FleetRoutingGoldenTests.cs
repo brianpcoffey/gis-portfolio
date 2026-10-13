@@ -4,7 +4,7 @@ using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Golden
 {
-    // Golden output for FleetRoutingService before it is split. The three shipped presets
+    // Golden output for FleetRoutingService, captured before it was split. The three shipped presets
     // are solved with the page's own fleet parameters and 1,000 iterations, and the
     // result is pinned: fleet size, distance, objective, every route's stop sequence and
     // the full improvement trace.
@@ -147,8 +147,6 @@ namespace Portfolio.Tests.Golden
             Assert.Equal(golden.FinalObjective, result.IterationCosts[^1], 1e-3);
         }
 
-        // ── Validation ──────────────────────────────────────────────────────────
-
         private static readonly (double Lat, double Lon)[] Sites =
         [
             (34.0565, -117.1850),
@@ -262,8 +260,6 @@ namespace Portfolio.Tests.Golden
             Assert.Contains("fullday", ex.Message);
             Assert.Contains("tight", ex.Message);
         }
-
-        // ── TruncateToFleet ─────────────────────────────────────────────────────
 
         // Every stop weighs 400 against a capacity of 500, so no two stops can share a
         // truck: eight stops need eight routes. With two trucks, six stops must be

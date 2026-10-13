@@ -19,9 +19,12 @@ namespace Portfolio.Tests.Middleware
 {
     /// <summary>
     /// Characterisation tests for <see cref="AnonymousUserMiddleware"/>: what it reads, writes and
-    /// sets for each request shape. They pin today's behaviour, including the 5-minute
-    /// LastActiveDate throttle and the cookie attributes.
+    /// sets for each request shape.
     /// </summary>
+    /// <remarks>
+    /// They pin today's behaviour, including the 5-minute LastActiveDate throttle and the cookie
+    /// attributes.
+    /// </remarks>
     public class AnonymousUserMiddlewareTests : IDisposable
     {
         private const string ItemKey = "PortfolioIdentity";
@@ -87,8 +90,6 @@ namespace Portfolio.Tests.Middleware
             return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
         }
 
-        // ── Items already set ───────────────────────────────────────────────────
-
         [Fact]
         public async Task ItemsAlreadySet_PassesThroughWithoutAuthenticatingOrTouchingTheDatabase()
         {
@@ -109,8 +110,6 @@ namespace Portfolio.Tests.Middleware
             Assert.Empty(fresh.UserProfiles);
             Assert.False(context.Response.Headers.ContainsKey(HeaderNames.SetCookie));
         }
-
-        // ── Authenticated users ─────────────────────────────────────────────────
 
         [Fact]
         public async Task Authenticated_WithMatchingGoogleClaim_SetsItemsToClaimUserId()
@@ -205,8 +204,6 @@ namespace Portfolio.Tests.Middleware
             // Assert
             Assert.False(context.Items.ContainsKey(ItemKey));
         }
-
-        // ── Valid anonymous cookie ──────────────────────────────────────────────
 
         [Fact]
         public async Task Cookie_WithStaleProfile_TouchesLastActiveDate()
@@ -305,8 +302,6 @@ namespace Portfolio.Tests.Middleware
             Assert.False(context.Response.Headers.ContainsKey(HeaderNames.SetCookie));
         }
 
-        // ── No cookie ───────────────────────────────────────────────────────────
-
         [Theory]
         [InlineData("text/html")]
         [InlineData("TEXT/HTML,application/xhtml+xml;q=0.9,*/*;q=0.8")]
@@ -380,8 +375,6 @@ namespace Portfolio.Tests.Middleware
             Assert.False(context.Response.Headers.ContainsKey(HeaderNames.SetCookie));
         }
 
-        // ── Invalid GUID cookie behaves like no cookie ──────────────────────────
-
         [Fact]
         public async Task InvalidGuidCookie_HtmlAccept_CreatesNewUnseededProfileAndCookie()
         {
@@ -418,8 +411,6 @@ namespace Portfolio.Tests.Middleware
             Assert.Empty(fresh.UserProfiles);
             Assert.False(context.Response.Headers.ContainsKey(HeaderNames.SetCookie));
         }
-
-        // ── Identity separation and throttling (WP-15) ──
 
         [Fact]
         public async Task Cookie_ForProfileLinkedToGoogle_GivesNoIdentity_AndDeletesTheCookie()

@@ -51,8 +51,6 @@ public class PortfolioCookieEventsTests
         return (Http("/Login", provider), service);
     }
 
-    // ── Redirects ────────────────────────────────────────────────────────────
-
     [Fact]
     public async Task RedirectToLogin_ForApiPath_Returns401WithoutLocation()
     {
@@ -121,8 +119,6 @@ public class PortfolioCookieEventsTests
         // Assert
         Assert.Equal(StatusCodes.Status302Found, http.Response.StatusCode);
     }
-
-    // ── SignedIn ─────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task SignedIn_WithAnonymousCookie_MergesDeletesCookieAndSetsIdentity()

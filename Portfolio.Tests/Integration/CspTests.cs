@@ -8,9 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Portfolio.Tests.Integration;
 
-/// <summary>
-/// WP-20: Report-Only CSP, nonce stamping, API no-store and the public /csp-report sink.
-/// </summary>
+/// <summary>WP-20: Report-Only CSP, nonce stamping, API no-store and the public /csp-report sink.</summary>
 public class CspTests
 {
     private const string EnforcedCsp = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'";
