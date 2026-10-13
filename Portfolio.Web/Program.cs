@@ -50,40 +50,11 @@ builder.Services.AddPortfolioCore();
 
 // Repositories
 
-builder.Services.AddScoped<IFiberOrderRepository, FiberOrderRepository>();
-builder.Services.AddScoped<IFiberShipmentRepository, FiberShipmentRepository>();
-builder.Services.AddScoped<IFiberMaterialRepository, FiberMaterialRepository>();
-builder.Services.AddScoped<IFiberInventoryTransactionRepository, FiberInventoryTransactionRepository>();
-builder.Services.AddScoped<ICollectionRepository, CollectionRepository>();
-builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
-builder.Services.AddScoped<ISavedFeatureRepository, SavedFeatureRepository>();
-builder.Services.AddScoped<ISavedSearchRepository, SavedSearchRepository>();
-builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+builder.Services.AddPortfolioRepositories();
 
 // Services
 
-builder.Services.AddScoped<IFiberOrderService, FiberOrderService>();
-builder.Services.AddScoped<IFiberShipmentService, FiberShipmentService>();
-builder.Services.AddScoped<IFiberMaterialService, FiberMaterialService>();
-builder.Services.AddScoped<IFiberDashboardService, FiberDashboardService>();
-builder.Services.AddScoped<ICollectionService, CollectionService>();
-builder.Services.AddScoped<IHomeScoringService, HomeScoringService>();
-builder.Services.AddScoped<IGeoStreamProcessorService, GeoStreamProcessorService>();
-builder.Services.AddScoped<ISpatialGeometryService, SpatialGeometryService>();
-builder.Services.AddScoped<IRasterTerrainService, RasterTerrainService>();
-builder.Services.AddScoped<ISpatialGraphService, SpatialGraphService>();
-builder.Services.AddScoped<ISpatialClusterService, SpatialClusterService>();
-builder.Services.AddScoped<IViewshedService, ViewshedService>();
-builder.Services.AddScoped<ISpatialOverlayService, SpatialOverlayService>();
-builder.Services.AddScoped<ICatRiskService, CatRiskService>();
-builder.Services.AddScoped<IChangeDetectionService, ChangeDetectionService>();
-builder.Services.AddScoped<IOutageTraceService, OutageTraceService>();
-builder.Services.AddScoped<IResponseCoverageService, ResponseCoverageService>();
-builder.Services.AddScoped<IFleetRoutingService, FleetRoutingService>();
-builder.Services.AddScoped<ISavedFeatureService, SavedFeatureService>();
-builder.Services.AddScoped<UserProfileSeedService>();
-builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
+builder.Services.AddPortfolioServices();
 builder.Services.AddHttpClient<IArcGisService, ArcGisService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
@@ -515,17 +486,7 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-// --------------------------
-// Database Context (PostgreSQL via Render / Supabase)
-// --------------------------
-var databaseUrl = Portfolio.Web.Infrastructure.ConnectionStrings.ResolveDatabaseUrl(
-    builder.Configuration, Environment.GetEnvironmentVariable);
-
-var npgsqlBuilder = Portfolio.Web.Infrastructure.ConnectionStrings.ParsePostgres(databaseUrl);
-
-// Use the parsed/normalized connection string (handles postgres:// URI format)
-builder.Services.AddDbContext<PortfolioDbContext>(options =>
-    options.UseNpgsql(npgsqlBuilder.ConnectionString));
+builder.Services.AddPortfolioDatabase(builder.Configuration);
 
 // --------------------------
 // Data Protection Key Persistence
