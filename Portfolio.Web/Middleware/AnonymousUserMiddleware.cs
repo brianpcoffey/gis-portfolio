@@ -95,7 +95,7 @@ namespace Portfolio.Web.Middleware
                 _logger.LogInformation(
                     "Created anon profile and cookie for {UserId} (Scheme={Scheme})",
                     LogRedaction.UserId(userId),
-                    context.Request.Scheme);
+                    LogRedaction.SingleLine(context.Request.Scheme));
             }
 
             context.Items[HttpContextItemKey] = userId;

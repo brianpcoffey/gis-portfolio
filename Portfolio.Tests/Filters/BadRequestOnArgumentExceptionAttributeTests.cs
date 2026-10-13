@@ -172,6 +172,21 @@ public class BadRequestOnArgumentExceptionAttributeTests
     }
 
     [Fact]
+    public void LineBreaksInThePath_CannotStartAForgedLogLine()
+    {
+        // Arrange
+        var (context, log) = NewContext(Thrown(new ArgumentException("Bad epsilon.", "request")), typeof(SpatialClusterController));
+        context.HttpContext.Request.Path = "/api/v1/clustering/dbscan\r\nwarn: forged entry";
+
+        // Act
+        new BadRequestOnArgumentExceptionAttribute().OnException(context);
+
+        // Assert
+        var entry = Assert.Single(log.Entries);
+        Assert.Equal("Invalid request on POST /api/v1/clustering/dbscan  warn: forged entry", entry.Message);
+    }
+
+    [Fact]
     public void ForAnActionThatIsNotOnAController_LogsUnderTheAttributesOwnCategory()
     {
         // Arrange

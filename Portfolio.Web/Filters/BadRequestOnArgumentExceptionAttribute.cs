@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Web.Middleware;
 
 namespace Portfolio.Web.Filters;
@@ -31,7 +32,8 @@ public sealed class BadRequestOnArgumentExceptionAttribute : ExceptionFilterAttr
             return;
 
         var request = context.HttpContext.Request;
-        FilterLogging.LoggerFor(context, GetType()).LogWarning(ex, "Invalid request on {Method} {Path}", request.Method, request.Path);
+        FilterLogging.LoggerFor(context, GetType()).LogWarning(ex, "Invalid request on {Method} {Path}",
+            LogRedaction.SingleLine(request.Method), LogRedaction.SingleLine(request.Path.Value));
 
         context.Result = new BadRequestObjectResult(new { error = ApiExceptionMiddleware.IsOwn(ex) ? ex.Message : GenericMessage });
         context.ExceptionHandled = true;

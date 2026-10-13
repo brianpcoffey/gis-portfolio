@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Portfolio.Repositories.Diagnostics;
 
 namespace Portfolio.Web.Middleware
 {
@@ -31,15 +32,17 @@ namespace Portfolio.Web.Middleware
             }
             catch (Exception ex)
             {
+                var method = LogRedaction.SingleLine(context.Request.Method);
+                var path = LogRedaction.SingleLine(context.Request.Path.Value);
                 // A client that disconnects mid-request surfaces as OperationCanceledException;
                 // that is not a server fault, so log it at Debug rather than Error to avoid noise.
                 if (ex is OperationCanceledException && context.RequestAborted.IsCancellationRequested)
-                    _logger.LogDebug("Request aborted by client on {Method} {Path}", context.Request.Method, context.Request.Path);
+                    _logger.LogDebug("Request aborted by client on {Method} {Path}", method, path);
                 else if (ex is BadHttpRequestException bad)
                     // Kestrel rejections (oversized body, malformed request) are client faults: no stack trace.
-                    _logger.LogInformation("Request rejected with {StatusCode} on {Method} {Path}: {Reason}", bad.StatusCode, context.Request.Method, context.Request.Path, bad.Message);
+                    _logger.LogInformation("Request rejected with {StatusCode} on {Method} {Path}: {Reason}", bad.StatusCode, method, path, LogRedaction.SingleLine(bad.Message));
                 else
-                    _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+                    _logger.LogError(ex, "Unhandled exception on {Method} {Path}", method, path);
 
                 // Once the response has started a ProblemDetails body can no longer be written;
                 // let the server abort the connection rather than corrupt the partial response.

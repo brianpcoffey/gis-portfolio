@@ -94,14 +94,15 @@ namespace Portfolio.Services.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP error during reverse geocode for ({Lat}, {Lng})", latitude, longitude);
+                // The coordinates stay out of the log (they are a visitor's map click); the exception carries them to the caller.
+                _logger.LogError(ex, "HTTP error during reverse geocode");
                 throw new InvalidOperationException(
                     $"Upstream geocoding service failed for coordinates ({latitude}, {longitude}).", ex);
             }
 
             if (parsed?.Address is null)
             {
-                _logger.LogWarning("No reverse geocode result from ArcGIS for ({Lat}, {Lng})", latitude, longitude);
+                _logger.LogWarning("No reverse geocode result from ArcGIS");
                 throw new KeyNotFoundException($"No result found for coordinates ({latitude}, {longitude}).");
             }
 

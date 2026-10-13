@@ -81,7 +81,7 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException($"A profile can hold at most {MaxClaimsPerUser} claims", nameof(type));
 
             await _repo.SetClaimAsync(userId, type, value, cancellationToken);
-            _logger.LogInformation("Claim '{ClaimType}' set for user {UserId}", type, LogRedaction.UserId(userId));
+            _logger.LogInformation("Claim '{ClaimType}' set for user {UserId}", LogRedaction.SingleLine(type), LogRedaction.UserId(userId));
         }
 
         public async Task<bool> RemoveClaimAsync(string type, CancellationToken cancellationToken = default)
@@ -89,7 +89,7 @@ namespace Portfolio.Services.Services
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
             var removed = await _repo.RemoveClaimAsync(userId, type, cancellationToken);
             if (!removed)
-                _logger.LogWarning("Claim '{ClaimType}' not found for user {UserId} during remove", type, LogRedaction.UserId(userId));
+                _logger.LogWarning("Claim '{ClaimType}' not found for user {UserId} during remove", LogRedaction.SingleLine(type), LogRedaction.UserId(userId));
             return removed;
         }
 
