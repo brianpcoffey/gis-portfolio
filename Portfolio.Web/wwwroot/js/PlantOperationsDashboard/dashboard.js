@@ -81,6 +81,10 @@ if (typeof loadPlantOpsMap !== 'function') {
                 const timeout = setTimeout(() => reject(new Error('Map timed out')), 15000);
                 plantOpsMapView.when(() => {
                     clearTimeout(timeout);
+                    // ArcGIS nests its own role="application" surface in the container; name that one.
+                    const surface = plantOpsMapView.container.querySelector('.esri-view-surface');
+                    const label = mapContainer.dataset.mapLabel;
+                    if (surface && label) surface.setAttribute('aria-label', label);
                     resolve();
                 }, err => {
                     clearTimeout(timeout);
