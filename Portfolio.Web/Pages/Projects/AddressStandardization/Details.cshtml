@@ -77,7 +77,7 @@
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Hosting:</strong> Runs as part of the same Render-hosted ASP.NET Core application as the other portfolio APIs.</li>
-			<li><strong>Configuration:</strong> ArcGIS timeout, retry, and circuit breaker behavior is configured through the typed <code>HttpClient</code> registration in <code>Program.cs</code>.</li>
+			<li><strong>Configuration:</strong> ArcGIS timeout, retry, and circuit breaker behavior is configured through the typed <code>HttpClient</code> registration in <code>Startup/ArcGisClientRegistration.cs</code>.</li>
 			<li><strong>Shared Redis infrastructure:</strong> This stateless parser does not store results in Redis, but the hosting application uses Redis for batch geocoding job state, geocoding caches, and production Data Protection keys when configured.</li>
 			<li><strong>Observability:</strong> Controller logging records upstream circuit-breaker failures; unexpected exceptions flow through centralized middleware.</li>
 			<li><strong>Container/cloud readiness:</strong> Because the workflow is stateless, it works well in Docker, Kubernetes, Azure Container Apps, AKS, or any horizontally scaled container platform.</li>
