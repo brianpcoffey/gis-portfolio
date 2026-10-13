@@ -6,10 +6,6 @@
     const state = HF.state;
     const HOME_FINDER_ROUTES = HF.routes;
 
-    // ============================================================
-    // Save / Load Searches
-    // ============================================================
-
     async function saveSearch() {
         const prefs = HF.getPreferences();
         const name = prompt("Name this search:", `Search ${new Date().toLocaleDateString()}`);

@@ -1,4 +1,3 @@
-// selectionHandlers.js
 // App-side handlers for the ui:* events about what is selected: choosing a collection, the
 // comparison panel's zoom / toggle / close, and the debounced state search.
 // registerSelectionHandlers() attaches them to document (called from app.js).
@@ -21,7 +20,6 @@ function onSelectCollection(e) {
 }
 
 
-// New UI -> App event handlers (compare panel)
 function onZoomCompare(e) {
     MapManager.zoomToFeature(e.detail.featureId);
 }
@@ -39,7 +37,6 @@ function onToggleCompare(e) {
 }
 
 function onCloseComparison() {
-    // Clear compare mode and set compare set empty
     clearSelectionAndCompare();
 }
 

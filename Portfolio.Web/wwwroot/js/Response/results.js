@@ -20,8 +20,6 @@
     var kpiSecond = R.dom.kpiSecond;
     var kpiNfpa = R.dom.kpiNfpa;
 
-    // ── Rendering ───────────────────────────────────────────────────────────
-
     function render(result) {
         updateKpis(result.optimized, result.meetsNfpa1710);
         R.drawDemand(result.assignments);
@@ -75,7 +73,6 @@
         kpiNfpa.style.color = meetsNfpa ? "var(--status-success-text)" : "var(--status-danger-text)";
     }
 
-    // ── Station list ────────────────────────────────────────────────────────
     // Each station is a real <button>: activating it paints that station's drive-time bands,
     // the keyboard equivalent of clicking its marker on the map (which stays mouse-only).
 

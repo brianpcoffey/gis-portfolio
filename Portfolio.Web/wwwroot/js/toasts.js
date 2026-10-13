@@ -65,7 +65,6 @@
         toast.appendChild(flex);
         container.appendChild(toast);
 
-        // Animate in
         requestAnimationFrame(() => toast.classList.add("toast-slide-in"));
 
         function dismiss() {
@@ -106,7 +105,6 @@
         }
     }
 
-    // Expose globally
     window.showToast = showToast;
 
     // Themed confirm dialog — returns a Promise<boolean>. Replaces window.confirm so

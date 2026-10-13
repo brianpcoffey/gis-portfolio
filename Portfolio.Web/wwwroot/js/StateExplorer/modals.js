@@ -1,4 +1,3 @@
-// modals.js
 // The three Bootstrap dialogs: new/edit collection, save a state, and view a saved state.
 // Each opener builds on a single Modal instance; the confirm buttons dispatch ui:* events (see uiManager.js).
 
@@ -82,11 +81,9 @@ export function openCollectionModal({ title = "New Collection", name = "", color
     });
 }
 
-// Modal helpers
 export function openSaveModal(featureId, featureName = "") {
     const modalEl = query("saveFeatureModal");
     if (!modalEl) return;
-    // Use single Modal instance
     saveModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
     query("modalFeatureId").value = String(featureId || "");
     query("modalFeatureName").value = featureName || "";
@@ -99,7 +96,6 @@ export function closeSaveModal() {
     saveModalInstance.hide();
 }
 
-// New: view saved modal helpers
 export function openViewModal(detail = {}) {
     const modalEl = query("viewSavedModal");
     if (!modalEl) return;
@@ -123,7 +119,6 @@ export function openViewModal(detail = {}) {
         const desc = (saved.Description || saved.description || "").toString();
         query("viewSavedTitle").textContent = title;
 
-        // metadata
         const metaPairs = extractMetadataPairs(saved);
         if (metaPairs.length) {
             const html = metaPairs.map(p => `<div><strong>${PortfolioDom.escapeHtml(p[0])}:</strong> ${PortfolioDom.escapeHtml(String(p[1]))}</div>`).join("");
@@ -132,13 +127,11 @@ export function openViewModal(detail = {}) {
             query("viewSavedMeta").innerHTML = "";
         }
 
-        // attach zoom data attributes
         const zoomBtn = query("btnViewZoom");
         if (zoomBtn) {
             zoomBtn.dataset.featureId = String(saved.FeatureId || saved.featureId || "");
         }
 
-        // attach remove/unsave
         const removeBtn = query("btnViewRemove");
         if (removeBtn) {
             removeBtn.dataset.savedId = String(saved.id || saved.Id || "");
@@ -161,7 +154,6 @@ export function openViewModal(detail = {}) {
             const featureId = removeBtn.dataset.featureId || "";
             if (!await confirmDialog("Remove saved state?", { confirmText: "Remove" })) return;
             document.dispatchEvent(new CustomEvent("ui:removeSaved", { detail: { savedId, featureId } }));
-            // close modal after action
             if (viewModalInstance) viewModalInstance.hide();
         };
     }

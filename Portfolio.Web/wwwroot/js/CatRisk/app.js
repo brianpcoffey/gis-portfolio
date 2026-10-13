@@ -9,7 +9,6 @@
     var fmt = window.PortfolioFormat;
     var ui = window.PortfolioUi;
 
-    // Cache DOM nodes up front.
     var alertBox = ui.inlineAlert(document.getElementById("catAlert"));
     var radiusInput = document.getElementById("catRadius");
     var limitInput = document.getElementById("catLimit");
@@ -28,7 +27,6 @@
     var kpiPml = document.getElementById("catKpiPml");
     var kpiBreaches = document.getElementById("catKpiBreaches");
 
-    // Module state.
     var book = null;
     var projection = null;
     var lastAccumulation = null;
@@ -47,8 +45,6 @@
     });
 
     loadBook(true);
-
-    // ── Data ────────────────────────────────────────────────────────────────
 
     // Runs a request with `primary` as the busy trigger and `other` also held busy.
     function runExclusive(primary, other, opts) {
@@ -187,8 +183,6 @@
         }, null, 2);
     }
 
-    // ── Projection ──────────────────────────────────────────────────────────
-
     // Equirectangular projection with longitude scaled by cos(mid-latitude), fitted
     // uniformly so the map keeps its aspect ratio and a kilometre radius maps to a
     // circle rather than an ellipse.
@@ -232,8 +226,6 @@
     function kmToSvg(km) {
         return (km / KM_PER_LAT_DEGREE) * projection.scale;
     }
-
-    // ── Exposure map ────────────────────────────────────────────────────────
 
     function drawExposure(accumulation, simulation) {
         charts.svg.clear(exposureSvg);
@@ -310,8 +302,6 @@
         return charts.mix(ramp.mid, ramp.high, (h - 0.5) / 0.5);
     }
 
-    // ── Exceedance probability curve ────────────────────────────────────────
-
     function drawCurve(simulation) {
         charts.svg.clear(curveSvg);
 
@@ -357,7 +347,6 @@
             svg.text(curveSvg, tx, bottom + 4.2, String(rp), { size: 2.3, anchor: "middle" });
         });
 
-        // Average annual loss reference line.
         if (simulation.averageAnnualLoss > 0 && simulation.averageAnnualLoss <= maxLoss) {
             var aalY = yFor(simulation.averageAnnualLoss);
             var aalLine = svg.line(curveSvg, left, aalY, right, aalY, { stroke: "var(--accent-text)", width: 0.28 });
@@ -366,7 +355,6 @@
                 { size: 2.2, anchor: "end", fill: "var(--accent-text)" });
         }
 
-        // The curve itself.
         var points = curve.map(function (p) {
             return xFor(p.returnPeriod).toFixed(2) + "," + yFor(p.loss).toFixed(2);
         }).join(" ");
@@ -400,8 +388,6 @@
             "Average annual loss " + fmt.money(simulation.averageAnnualLoss, { compact: true }) +
             (quoted.length ? "; " + quoted.join("; ") : "") + ".");
     }
-
-    // ── Community table ─────────────────────────────────────────────────────
 
     function buildCommunityTable(communities) {
         var el = window.PortfolioDom.el;

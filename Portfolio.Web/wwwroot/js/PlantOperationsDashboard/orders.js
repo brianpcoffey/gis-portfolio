@@ -84,7 +84,6 @@ window.showOrderModal = function (orderId) {
     $modals.empty();
     let order = null;
     if (isEdit) {
-        // Fetch order details
         window.apiFetch(`${window.PortfolioApi.routes.fiber.orders}/${orderId}`)
             .then(plantOpsJson)
             .then(data => {
@@ -185,7 +184,6 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
     });
 }
 
-// Delete order
 window.deleteOrder = async function (orderId) {
     if (!await confirmDialog('Delete this order?')) return;
     window.apiFetch(`${window.PortfolioApi.routes.fiber.orders}/${orderId}`, { method: 'DELETE' })

@@ -24,7 +24,7 @@
 
   var VERSION = "4.29";
   var BASE = "https://js.arcgis.com/" + VERSION + "/";   // the version folder (assets, themes)
-  var SCRIPT_URL = BASE + "init.js";                      // the API loader itself
+  var SCRIPT_URL = BASE + "init.js";
   var integrity = {};
   var themeLink = null;
 

@@ -1,4 +1,3 @@
-// metadata.js
 // Pure helper: turns a feature (or saved-feature) object into display-ready [label, value] pairs.
 // No DOM access and no state, so it can be unit-tested on its own.
 
@@ -15,11 +14,9 @@ export function extractMetadataPairs(feature) {
         }
     };
 
-    // Friendly primary fields
     pushIf("Name", feature.displayName || feature.Name || feature.name);
     pushIf("Feature ID", feature.featureId || feature.FeatureId);
 
-    // Common sources to search
     const sources = [feature || {}, feature.properties || {}, feature.attributes || {}];
 
     const lookup = (keys) => {
@@ -36,7 +33,6 @@ export function extractMetadataPairs(feature) {
         return undefined;
     };
 
-    // Mapping of known property keys to friendly labels
     const keyLabelMap = {
         "sub_region": "Region",
         "region": "Region",
@@ -71,7 +67,6 @@ export function extractMetadataPairs(feature) {
         pushIf(label || group[0], val);
     }
 
-    // Short description if present
     pushIf("Short Description", feature.shortDescription || feature.description || feature.Description);
 
     // Fallback: include a few additional primitive properties (max 6),

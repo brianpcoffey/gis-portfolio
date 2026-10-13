@@ -34,7 +34,6 @@
     var COLOR_ISOLATE = "var(--chart-7)";
     var COLOR_RESTORED = "var(--status-success-fill)";
 
-    // Cache DOM nodes up front.
     var alertBox = ui.inlineAlert(document.getElementById("outageAlert"));
     var feederSelect = document.getElementById("outageFeeder");
     var faultSelect = document.getElementById("outageFault");
@@ -54,7 +53,6 @@
     var kpiIsolation = document.getElementById("outageKpiIsolation");
     var kpiRestored = document.getElementById("outageKpiRestored");
 
-    // Module state.
     var network = null;
     var projection = null;
     var elementsById = {};
@@ -79,8 +77,6 @@
 
     buildLegend();
     loadNetwork();
-
-    // ── Data ────────────────────────────────────────────────────────────────
 
     // Runs `opts` through PortfolioUi.runAction on `trigger`, holding the other buttons busy too.
     // Diagram clicks are not buttons, so a pending flag stops a second request starting mid-flight.
@@ -198,8 +194,6 @@
         placeBtn.disabled = faultSelect.value === "";
     }
 
-    // ── Rendering ───────────────────────────────────────────────────────────
-
     function render() {
         draw();
         renderKpis();
@@ -279,8 +273,6 @@
         }));
     }
 
-    // ── Projection ──────────────────────────────────────────────────────────
-
     // Equirectangular projection with longitude scaled by cos(mid-latitude), fitted
     // uniformly so the circuit keeps its true geographic shape.
     function buildProjection(elements) {
@@ -325,8 +317,6 @@
         // Latitude increases north, SVG y increases downward.
         return projection.offsetY + projection.ySpanScaled - (latitude - projection.minLat) * projection.scale;
     }
-
-    // ── Single-line diagram ─────────────────────────────────────────────────
 
     function draw() {
         charts.svg.clear(svg);
@@ -491,8 +481,6 @@
         charts.svg.text(svg, cx, cy + 4.4, "SUB", { size: 2.4, anchor: "middle" });
     }
 
-    // ── Tooltip ─────────────────────────────────────────────────────────────
-
     function showTooltip(evt, element) {
         var bounds = panel.getBoundingClientRect();
         var state = element.isOpen ? "open" : "closed";
@@ -513,8 +501,6 @@
     function hideTooltip() {
         tooltip.classList.add("d-none");
     }
-
-    // ── Helpers ─────────────────────────────────────────────────────────────
 
     function toSet(ids) {
         var set = {};
