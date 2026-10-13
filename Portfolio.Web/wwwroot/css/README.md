@@ -21,7 +21,7 @@ as DataTables, in their `Styles` section, which renders after the global ones:
 
 | Stylesheet | Pages |
 |---|---|
-| `gis.css` | Shared base for every `/Projects/*` page except Network |
+| `gis.css` | Shared base for the `/Projects/<Name>` demo pages (all except Network) |
 | `spatialcompute.css` | The native-kernel demos: CatRisk, Change, Clustering, Fleet, Geometry, GeoStream, Outage, Overlay, Response, Terrain, Viewshed |
 | `change.css` | Change |
 | `addressstandardization.css` | AddressStandardization |
