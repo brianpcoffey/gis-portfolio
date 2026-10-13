@@ -74,7 +74,7 @@ namespace Portfolio.Tests.Controllers
         public async Task SpatialNetworkController_GetGraph_ReturnsOkWithRedlandsGraph()
         {
             // Arrange — use real service so the static cache path is exercised.
-            var service    = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
+            var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var controller = new Portfolio.Web.Controllers.Api.SpatialNetworkController(service);
 
             // Act

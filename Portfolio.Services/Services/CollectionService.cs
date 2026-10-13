@@ -1,10 +1,10 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
-using System.Text.RegularExpressions;
 
 namespace Portfolio.Services.Services
 {
@@ -84,8 +84,8 @@ namespace Portfolio.Services.Services
                 CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
             };
 
-var created = await _repository.AddAsync(entity, cancellationToken);
-_logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", created.Id, LogRedaction.UserId(ownerId));
+            var created = await _repository.AddAsync(entity, cancellationToken);
+            _logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", created.Id, LogRedaction.UserId(ownerId));
             return MapToDto(created);
         }
 
@@ -118,9 +118,9 @@ _logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", 
                 entity.Color = color;
             }
 
-entity.LastModified = _timeProvider.GetUtcNow().UtcDateTime;
-var updated = await _repository.UpdateAsync(entity, cancellationToken);
-_logger.LogInformation("Collection {CollectionId} updated for owner {OwnerId}", id, LogRedaction.UserId(ownerId));
+            entity.LastModified = _timeProvider.GetUtcNow().UtcDateTime;
+            var updated = await _repository.UpdateAsync(entity, cancellationToken);
+            _logger.LogInformation("Collection {CollectionId} updated for owner {OwnerId}", id, LogRedaction.UserId(ownerId));
             return MapToDto(updated);
         }
 
@@ -128,13 +128,13 @@ _logger.LogInformation("Collection {CollectionId} updated for owner {OwnerId}", 
             int id,
             CancellationToken cancellationToken = default)
         {
-var ownerId = CurrentUserId;
-var deleted = await _repository.DeleteAsync(id, ownerId, cancellationToken);
-if (deleted)
-    _logger.LogInformation("Collection {CollectionId} deleted for owner {OwnerId}", id, LogRedaction.UserId(ownerId));
-else
-    _logger.LogWarning("Collection {CollectionId} not found for owner {OwnerId} during delete", id, LogRedaction.UserId(ownerId));
-return deleted;
+            var ownerId = CurrentUserId;
+            var deleted = await _repository.DeleteAsync(id, ownerId, cancellationToken);
+            if (deleted)
+                _logger.LogInformation("Collection {CollectionId} deleted for owner {OwnerId}", id, LogRedaction.UserId(ownerId));
+            else
+                _logger.LogWarning("Collection {CollectionId} not found for owner {OwnerId} during delete", id, LogRedaction.UserId(ownerId));
+            return deleted;
         }
 
         private static CollectionDto MapToDto(Collection c) => new()

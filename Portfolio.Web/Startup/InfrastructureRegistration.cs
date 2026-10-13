@@ -16,15 +16,15 @@ internal static class InfrastructureRegistration
     internal static RedisSettings AddPortfolioRedis(this IServiceCollection services, IConfiguration configuration, ILogger logger)
     {
         var redisConnectionString = Portfolio.Web.Infrastructure.ConnectionStrings.NormalizeRedis(
-            configuration["Redis__ConnectionString"] 
-            ?? configuration["Redis:ConnectionString"] 
+            configuration["Redis__ConnectionString"]
+            ?? configuration["Redis:ConnectionString"]
             ?? string.Empty);
 
         var isRedisEnabled = !string.IsNullOrWhiteSpace(redisConnectionString);
 
         if (isRedisEnabled)
         {
-            logger.LogInformation("Redis ENABLED - Connection: {RedisConnection}", 
+            logger.LogInformation("Redis ENABLED - Connection: {RedisConnection}",
                 Portfolio.Web.Infrastructure.ConnectionStrings.MaskRedisPassword(redisConnectionString));
             services.AddSingleton<IBatchJobStore, RedisBatchJobStore>();
         }
@@ -74,7 +74,7 @@ internal static class InfrastructureRegistration
             services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = redisConnectionString;
-                options.InstanceName  = "portfolio:";
+                options.InstanceName = "portfolio:";
             });
         }
         else
@@ -133,7 +133,7 @@ internal static class InfrastructureRegistration
         else
         {
             // No Redis: persist keys to the filesystem
-            var keysPath = environment.IsDevelopment() 
+            var keysPath = environment.IsDevelopment()
                 ? Path.Combine(Directory.GetCurrentDirectory(), "DataProtection-Keys")
                 : "/app/DataProtection-Keys";
 

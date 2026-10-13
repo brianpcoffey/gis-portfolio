@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Portfolio.Web.Middleware
 {

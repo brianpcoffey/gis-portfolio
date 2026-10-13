@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
@@ -136,41 +136,41 @@ public class HomeScoringService : IHomeScoringService
         var scored = new List<ScoredPropertyDto>(properties.Count);
         for (var i = 0; i < properties.Count; i++)
         {
-            var p   = properties[i];
+            var p = properties[i];
             var out_ = outputs[i];
             scored.Add(new ScoredPropertyDto
             {
-                PropertyId           = p.Id,
-                Street               = p.Street,
-                City                 = p.City,
-                ZipCode              = p.ZipCode,
-                Price                = p.Price,
-                Bedrooms             = p.Bedrooms,
-                Bathrooms            = p.Bathrooms,
-                LotSqft              = p.LotSqft,
-                Latitude             = p.Latitude,
-                Longitude            = p.Longitude,
-                PropertyType         = p.PropertyType,
-                GarageSpaces         = p.GarageSpaces,
-                HasPool              = p.HasPool,
-                Stories              = p.Stories,
-                YearBuilt            = p.YearBuilt,
-                HoaFee               = p.HoaFee,
-                SchoolRating         = p.SchoolRating,
-                DaysOnMarket         = p.DaysOnMarket,
-                BrokeredBy           = p.BrokeredBy,
+                PropertyId = p.Id,
+                Street = p.Street,
+                City = p.City,
+                ZipCode = p.ZipCode,
+                Price = p.Price,
+                Bedrooms = p.Bedrooms,
+                Bathrooms = p.Bathrooms,
+                LotSqft = p.LotSqft,
+                Latitude = p.Latitude,
+                Longitude = p.Longitude,
+                PropertyType = p.PropertyType,
+                GarageSpaces = p.GarageSpaces,
+                HasPool = p.HasPool,
+                Stories = p.Stories,
+                YearBuilt = p.YearBuilt,
+                HoaFee = p.HoaFee,
+                SchoolRating = p.SchoolRating,
+                DaysOnMarket = p.DaysOnMarket,
+                BrokeredBy = p.BrokeredBy,
                 EstimatedMonthlyCost = (decimal)Math.Round(out_.EstimatedMonthlyCost, 2),
-                AffordabilityScore   = out_.Affordability,
-                NeighborhoodScore    = out_.Neighborhood,
-                SizeScore            = out_.Size,
-                AppreciationScore    = out_.Appreciation,
-                ConditionScore       = out_.Condition,
-                CommuteScore         = out_.Commute,
-                AmenitiesScore       = out_.Amenities,
-                TaxUtilitiesScore    = out_.TaxUtilities,
-                ResaleScore          = out_.Resale,
-                EnvironmentScore     = out_.Environment,
-                CompositeScore       = Math.Round(out_.Composite, 2)
+                AffordabilityScore = out_.Affordability,
+                NeighborhoodScore = out_.Neighborhood,
+                SizeScore = out_.Size,
+                AppreciationScore = out_.Appreciation,
+                ConditionScore = out_.Condition,
+                CommuteScore = out_.Commute,
+                AmenitiesScore = out_.Amenities,
+                TaxUtilitiesScore = out_.TaxUtilities,
+                ResaleScore = out_.Resale,
+                EnvironmentScore = out_.Environment,
+                CompositeScore = Math.Round(out_.Composite, 2)
             });
         }
 

@@ -70,25 +70,25 @@ namespace Portfolio.Tests.Services
             // Arrange
             var dto = new CreateFiberOrderDto
             {
-                ClientName  = "Acme",
+                ClientName = "Acme",
                 ProductName = "Cable",
-                Quantity    = 10,
-                UnitPrice   = 5.00m,
-                Status      = "Draft",
-                OrderDate   = DateTime.UtcNow,
-                ShipDate    = DateTime.UtcNow.AddDays(7)
+                Quantity = 10,
+                UnitPrice = 5.00m,
+                Status = "Draft",
+                OrderDate = DateTime.UtcNow,
+                ShipDate = DateTime.UtcNow.AddDays(7)
             };
             var created = new FiberOrder
             {
-                Id          = 42,
-                UserId      = _testUserId,
-                ClientName  = dto.ClientName,
+                Id = 42,
+                UserId = _testUserId,
+                ClientName = dto.ClientName,
                 ProductName = dto.ProductName,
-                Quantity    = dto.Quantity,
-                UnitPrice   = dto.UnitPrice,
-                Status      = dto.Status,
-                OrderDate   = dto.OrderDate,
-                ShipDate    = dto.ShipDate
+                Quantity = dto.Quantity,
+                UnitPrice = dto.UnitPrice,
+                Status = dto.Status,
+                OrderDate = dto.OrderDate,
+                ShipDate = dto.ShipDate
             };
             _orderRepoMock
                 .Setup(r => r.AddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
@@ -124,15 +124,15 @@ namespace Portfolio.Tests.Services
             // Arrange
             var existing = new FiberOrder
             {
-                Id          = 1,
-                UserId      = _testUserId,
-                ClientName  = "Old Client",
+                Id = 1,
+                UserId = _testUserId,
+                ClientName = "Old Client",
                 ProductName = "Old Product",
-                Quantity    = 1,
-                UnitPrice   = 10m,
-                Status      = "Draft",
-                OrderDate   = DateTime.UtcNow,
-                ShipDate    = DateTime.UtcNow.AddDays(5)
+                Quantity = 1,
+                UnitPrice = 10m,
+                Status = "Draft",
+                OrderDate = DateTime.UtcNow,
+                ShipDate = DateTime.UtcNow.AddDays(5)
             };
             var dto = new UpdateFiberOrderDto { ClientName = "New Client", Quantity = 5 };
             _orderRepoMock
@@ -172,15 +172,15 @@ namespace Portfolio.Tests.Services
             // Arrange
             var existing = new FiberOrder
             {
-                Id          = 2,
-                UserId      = _testUserId,
-                ClientName  = "OriginalClient",
+                Id = 2,
+                UserId = _testUserId,
+                ClientName = "OriginalClient",
                 ProductName = "OriginalProduct",
-                Quantity    = 3,
-                UnitPrice   = 20m,
-                Status      = "Confirmed",
-                OrderDate   = DateTime.UtcNow,
-                ShipDate    = DateTime.UtcNow.AddDays(3)
+                Quantity = 3,
+                UnitPrice = 20m,
+                Status = "Confirmed",
+                OrderDate = DateTime.UtcNow,
+                ShipDate = DateTime.UtcNow.AddDays(3)
             };
             // Only update Status; everything else must remain unchanged
             var dto = new UpdateFiberOrderDto { Status = "Shipped" };
@@ -195,10 +195,10 @@ namespace Portfolio.Tests.Services
             var result = await _service.UpdateAsync(2, dto);
 
             // Assert
-            Assert.Equal("Shipped",          result.Status);
-            Assert.Equal("OriginalClient",   result.ClientName);
-            Assert.Equal("OriginalProduct",  result.ProductName);
-            Assert.Equal(3,                  result.Quantity);
+            Assert.Equal("Shipped", result.Status);
+            Assert.Equal("OriginalClient", result.ClientName);
+            Assert.Equal("OriginalProduct", result.ProductName);
+            Assert.Equal(3, result.Quantity);
         }
 
         [Fact]

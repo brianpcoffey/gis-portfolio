@@ -115,7 +115,8 @@ namespace Portfolio.Tests.Services
 
         private static DbscanRequestDto IdenticalPoints(int count) => new()
         {
-            Epsilon = 1, MinPoints = 1,
+            Epsilon = 1,
+            MinPoints = 1,
             Points = Enumerable.Range(0, count).Select(_ => new ClusterPointDto { X = 3, Y = 4 }).ToList()
         };
 

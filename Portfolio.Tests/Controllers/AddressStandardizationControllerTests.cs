@@ -25,11 +25,11 @@ namespace Portfolio.Tests.Controllers
             var dto = new AddressParsedDto
             {
                 HouseNumber = "123",
-                StreetName  = "Main",
+                StreetName = "Main",
                 StreetSuffix = "Street",
-                City        = "Springfield",
-                State       = "IL",
-                PostalCode  = "62701",
+                City = "Springfield",
+                State = "IL",
+                PostalCode = "62701",
                 StandardizedAddress = "123 Main Street, Springfield, IL 62701",
                 ParseConfidence = 1.0
             };

@@ -15,22 +15,22 @@ namespace Portfolio.Web.Controllers.Api
     [Route("api/v{version:apiVersion}/fiber/dashboard")]
     public class FiberDashboardController : ControllerBase
     {
-    private readonly IFiberDashboardService _dashboardService;
+        private readonly IFiberDashboardService _dashboardService;
 
-    public FiberDashboardController(IFiberDashboardService dashboardService)
-    {
-        _dashboardService = dashboardService;
+        public FiberDashboardController(IFiberDashboardService dashboardService)
+        {
+            _dashboardService = dashboardService;
+        }
+
+        /// <summary>Retrieves fiber dashboard statistics.</summary>
+        [HttpGet("stats")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
+        {
+            var result = await _dashboardService.GetDashboardAsync(cancellationToken);
+            return Ok(result);
+        }
+
     }
-
-    /// <summary>Retrieves fiber dashboard statistics.</summary>
-    [HttpGet("stats")]
-    [ProducesResponseType(200)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
-    {
-        var result = await _dashboardService.GetDashboardAsync(cancellationToken);
-        return Ok(result);
-    }
-
-}
 }

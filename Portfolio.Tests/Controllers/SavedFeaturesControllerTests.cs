@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
-using Portfolio.Web.Controllers.Api;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Controllers.Api;
 using Xunit;
 
 namespace Portfolio.Tests.Controllers

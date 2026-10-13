@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -6,8 +8,6 @@ using Portfolio.Common.Constants;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
 using Portfolio.Repositories.Diagnostics;
-using System.Security.Claims;
-using System.Threading.RateLimiting;
 
 namespace Portfolio.Web.Middleware
 {

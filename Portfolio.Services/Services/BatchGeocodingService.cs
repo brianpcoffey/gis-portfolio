@@ -1,3 +1,6 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Threading.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
@@ -9,9 +12,6 @@ using Portfolio.Common.Models;
 using Portfolio.Common.Serialization;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Threading.Channels;
 
 namespace Portfolio.Services.Services
 {
@@ -83,9 +83,9 @@ namespace Portfolio.Services.Services
             // producer step cannot block: nothing here can wait on a consumer that has died.
             var channel = Channel.CreateBounded<CsvRow>(new BoundedChannelOptions(rows.Count)
             {
-                FullMode                      = BoundedChannelFullMode.Wait,
-                SingleWriter                  = true,
-                SingleReader                  = false,
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleWriter = true,
+                SingleReader = false,
                 AllowSynchronousContinuations = false
             });
 
@@ -171,10 +171,10 @@ namespace Portfolio.Services.Services
             var jobId = Guid.NewGuid().ToString("N");
             var job = new BatchJob
             {
-                JobId       = jobId,
-                Status      = BatchJobStatus.Queued,
+                JobId = jobId,
+                Status = BatchJobStatus.Queued,
                 SubmittedAt = DateTimeOffset.UtcNow,
-                FileName    = file.FileName
+                FileName = file.FileName
             };
 
             await _jobStore.CreateAsync(job, ct);
@@ -182,7 +182,7 @@ namespace Portfolio.Services.Services
             if (!_queue.TryEnqueue(new BatchWorkItem(job, fileBytes)))
             {
                 // The caller never learns this id; mark the record so it is not left Queued until TTL.
-                job.Status      = BatchJobStatus.Failed;
+                job.Status = BatchJobStatus.Failed;
                 job.CompletedAt = DateTimeOffset.UtcNow;
                 await _jobStore.UpdateAsync(job, CancellationToken.None);
                 throw new BatchQueueFullException();
@@ -222,22 +222,22 @@ namespace Portfolio.Services.Services
 
                 var matchedScores = results.Where(r => r.Matched).Select(r => r.Score).ToList();
 
-                job.Results             = results;
-                job.ProcessedRows       = results.Count;
-                job.FailedRows          = results.Count(r => !r.Matched);
-                job.CacheHits           = cacheHits;
+                job.Results = results;
+                job.ProcessedRows = results.Count;
+                job.FailedRows = results.Count(r => !r.Matched);
+                job.CacheHits = cacheHits;
                 // Mean match score across matched results only: unmatched rows (score 0)
                 // must not dilute the reported quality.
-                job.AverageScore        = matchedScores.Count > 0 ? matchedScores.Average() : 0;
-                job.CompletedAt         = DateTimeOffset.UtcNow;
+                job.AverageScore = matchedScores.Count > 0 ? matchedScores.Average() : 0;
+                job.CompletedAt = DateTimeOffset.UtcNow;
                 job.ThroughputPerSecond = results.Count /
                     Math.Max((job.CompletedAt.Value - started).TotalSeconds, 0.001);
-                job.Status              = BatchJobStatus.Completed;
+                job.Status = BatchJobStatus.Completed;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Batch job {JobId} failed.", job.JobId);
-                job.Status      = BatchJobStatus.Failed;
+                job.Status = BatchJobStatus.Failed;
                 job.CompletedAt = DateTimeOffset.UtcNow;
             }
             finally

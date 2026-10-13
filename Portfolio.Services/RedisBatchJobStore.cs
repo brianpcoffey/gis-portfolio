@@ -1,9 +1,9 @@
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
 using Portfolio.Common.Serialization;
 using Portfolio.Services.Abstractions;
-using System.Text.Json;
 
 namespace Portfolio.Services;
 

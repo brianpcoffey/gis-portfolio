@@ -37,8 +37,8 @@ internal static class RateLimitingRegistration
                 RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 300,
-                    Window      = TimeSpan.FromMinutes(1),
-                    QueueLimit  = 0
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
                 }));
 
             options.OnRejected = RateLimitRejection.Apply;
@@ -52,8 +52,8 @@ internal static class RateLimitingRegistration
                 RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 30,
-                    Window      = TimeSpan.FromMinutes(1),
-                    QueueLimit  = 0
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
                 }));
         });
         return services;

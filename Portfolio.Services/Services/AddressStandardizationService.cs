@@ -1,10 +1,10 @@
+using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.ArcGis;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Enums;
 using Portfolio.Services.Interfaces;
-using System.Net.Http.Json;
-using System.Text.RegularExpressions;
 
 namespace Portfolio.Services.Services
 {
@@ -21,41 +21,72 @@ namespace Portfolio.Services.Services
         // the street/city boundary; full words map to themselves.
         private static readonly Dictionary<string, string> SuffixMap = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["St"] = "Street",       ["Street"] = "Street",
-            ["Ave"] = "Avenue",      ["Av"] = "Avenue",        ["Avenue"] = "Avenue",
-            ["Blvd"] = "Boulevard",  ["Blvd."] = "Boulevard",  ["Boulevard"] = "Boulevard",
-            ["Dr"] = "Drive",        ["Drive"] = "Drive",
-            ["Rd"] = "Road",         ["Road"] = "Road",
-            ["Ln"] = "Lane",         ["Lane"] = "Lane",
-            ["Ct"] = "Court",        ["Court"] = "Court",
-            ["Pl"] = "Place",        ["Place"] = "Place",
-            ["Hwy"] = "Highway",     ["Highway"] = "Highway",
+            ["St"] = "Street",
+            ["Street"] = "Street",
+            ["Ave"] = "Avenue",
+            ["Av"] = "Avenue",
+            ["Avenue"] = "Avenue",
+            ["Blvd"] = "Boulevard",
+            ["Blvd."] = "Boulevard",
+            ["Boulevard"] = "Boulevard",
+            ["Dr"] = "Drive",
+            ["Drive"] = "Drive",
+            ["Rd"] = "Road",
+            ["Road"] = "Road",
+            ["Ln"] = "Lane",
+            ["Lane"] = "Lane",
+            ["Ct"] = "Court",
+            ["Court"] = "Court",
+            ["Pl"] = "Place",
+            ["Place"] = "Place",
+            ["Hwy"] = "Highway",
+            ["Highway"] = "Highway",
             ["Way"] = "Way",
-            ["Cir"] = "Circle",      ["Circle"] = "Circle",
-            ["Pkwy"] = "Parkway",    ["Parkway"] = "Parkway",
-            ["Ter"] = "Terrace",     ["Terr"] = "Terrace",     ["Terrace"] = "Terrace",
-            ["Trl"] = "Trail",       ["Trail"] = "Trail",
+            ["Cir"] = "Circle",
+            ["Circle"] = "Circle",
+            ["Pkwy"] = "Parkway",
+            ["Parkway"] = "Parkway",
+            ["Ter"] = "Terrace",
+            ["Terr"] = "Terrace",
+            ["Terrace"] = "Terrace",
+            ["Trl"] = "Trail",
+            ["Trail"] = "Trail",
             ["Loop"] = "Loop",
-            ["Sq"] = "Square",       ["Square"] = "Square",
+            ["Sq"] = "Square",
+            ["Square"] = "Square",
             ["Pike"] = "Pike",
             ["Row"] = "Row",
             ["Run"] = "Run",
             ["Pass"] = "Pass",
             ["Path"] = "Path",
-            ["Plz"] = "Plaza",       ["Plaza"] = "Plaza",
-            ["Cres"] = "Crescent",   ["Crescent"] = "Crescent",
-            ["Aly"] = "Alley",       ["Alley"] = "Alley",
-            ["Xing"] = "Crossing",   ["Crossing"] = "Crossing",
-            ["Ctr"] = "Center",      ["Center"] = "Center",
-            ["Cv"] = "Cove",         ["Cove"] = "Cove",
-            ["Mnr"] = "Manor",       ["Manor"] = "Manor",
-            ["Pt"] = "Point",        ["Point"] = "Point",
-            ["Rdg"] = "Ridge",       ["Ridge"] = "Ridge",
-            ["Vly"] = "Valley",      ["Valley"] = "Valley",
-            ["Vw"] = "View",         ["View"] = "View",
-            ["Grv"] = "Grove",       ["Grove"] = "Grove",
-            ["Gdns"] = "Gardens",    ["Gardens"] = "Gardens",
-            ["Blf"] = "Bluff",       ["Bluff"] = "Bluff"
+            ["Plz"] = "Plaza",
+            ["Plaza"] = "Plaza",
+            ["Cres"] = "Crescent",
+            ["Crescent"] = "Crescent",
+            ["Aly"] = "Alley",
+            ["Alley"] = "Alley",
+            ["Xing"] = "Crossing",
+            ["Crossing"] = "Crossing",
+            ["Ctr"] = "Center",
+            ["Center"] = "Center",
+            ["Cv"] = "Cove",
+            ["Cove"] = "Cove",
+            ["Mnr"] = "Manor",
+            ["Manor"] = "Manor",
+            ["Pt"] = "Point",
+            ["Point"] = "Point",
+            ["Rdg"] = "Ridge",
+            ["Ridge"] = "Ridge",
+            ["Vly"] = "Valley",
+            ["Valley"] = "Valley",
+            ["Vw"] = "View",
+            ["View"] = "View",
+            ["Grv"] = "Grove",
+            ["Grove"] = "Grove",
+            ["Gdns"] = "Gardens",
+            ["Gardens"] = "Gardens",
+            ["Blf"] = "Bluff",
+            ["Bluff"] = "Bluff"
         };
 
         private static readonly HashSet<string> UsStateAbbreviations = new(StringComparer.OrdinalIgnoreCase)
@@ -68,8 +99,8 @@ namespace Portfolio.Services.Services
             "DC","PR","VI","GU","MP","AS"
         };
 
-        private static readonly Regex ZipTokenPattern    = new(@"^\d{5}(-\d{4})?$", RegexOptions.Compiled);
-        private static readonly Regex NormalizeSpaces    = new(@"\s+", RegexOptions.Compiled);
+        private static readonly Regex ZipTokenPattern = new(@"^\d{5}(-\d{4})?$", RegexOptions.Compiled);
+        private static readonly Regex NormalizeSpaces = new(@"\s+", RegexOptions.Compiled);
 
         private static readonly HashSet<string> UnitKeywords = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -328,12 +359,12 @@ namespace Portfolio.Services.Services
         private static double ComputeConfidence(ParsedParts parts)
         {
             var found = 0;
-            if (!string.IsNullOrEmpty(parts.HouseNumber))  found++;
-            if (!string.IsNullOrEmpty(parts.StreetName))   found++;
+            if (!string.IsNullOrEmpty(parts.HouseNumber)) found++;
+            if (!string.IsNullOrEmpty(parts.StreetName)) found++;
             if (!string.IsNullOrEmpty(parts.StreetSuffix)) found++;
-            if (!string.IsNullOrEmpty(parts.City))         found++;
-            if (!string.IsNullOrEmpty(parts.State))        found++;
-            if (!string.IsNullOrEmpty(parts.PostalCode))   found++;
+            if (!string.IsNullOrEmpty(parts.City)) found++;
+            if (!string.IsNullOrEmpty(parts.State)) found++;
+            if (!string.IsNullOrEmpty(parts.PostalCode)) found++;
 
             if (string.IsNullOrEmpty(parts.Unit))
                 return found / 6.0;
@@ -348,7 +379,7 @@ namespace Portfolio.Services.Services
                 new[] { parts.HouseNumber, parts.StreetName, parts.StreetSuffix, parts.Directional }
                     .Where(s => !string.IsNullOrEmpty(s)));
 
-            var unitPart   = string.IsNullOrEmpty(parts.Unit) ? string.Empty : $" {parts.Unit}";
+            var unitPart = string.IsNullOrEmpty(parts.Unit) ? string.Empty : $" {parts.Unit}";
             var localePart = string.Join(", ",
                 new[] { parts.City, $"{parts.State} {parts.PostalCode}".Trim() }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
@@ -358,15 +389,15 @@ namespace Portfolio.Services.Services
 
             return new AddressParsedDto
             {
-                HouseNumber         = parts.HouseNumber,
-                StreetName          = parts.StreetName,
-                StreetSuffix        = parts.StreetSuffix,
-                Unit                = parts.Unit,
-                City                = parts.City,
-                State               = parts.State,
-                PostalCode          = parts.PostalCode,
+                HouseNumber = parts.HouseNumber,
+                StreetName = parts.StreetName,
+                StreetSuffix = parts.StreetSuffix,
+                Unit = parts.Unit,
+                City = parts.City,
+                State = parts.State,
+                PostalCode = parts.PostalCode,
                 StandardizedAddress = standardized,
-                ParseConfidence     = parseConfidence
+                ParseConfidence = parseConfidence
             };
         }
 

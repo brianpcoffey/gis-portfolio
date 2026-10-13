@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -6,8 +8,6 @@ using Portfolio.Common.Configuration;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Serialization;
 using Portfolio.Services.Interfaces;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {

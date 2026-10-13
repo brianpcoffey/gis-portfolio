@@ -17,8 +17,8 @@ namespace Portfolio.Tests.Controllers
 
         public HomeFinderControllerTests()
         {
-            _scoringMock     = new Mock<IHomeScoringService>();
-            _profileMock     = new Mock<IUserProfileService>();
+            _scoringMock = new Mock<IHomeScoringService>();
+            _profileMock = new Mock<IUserProfileService>();
             _savedSearchMock = new Mock<ISavedSearchService>();
             _controller = new HomeFinderController(
                 _scoringMock.Object,

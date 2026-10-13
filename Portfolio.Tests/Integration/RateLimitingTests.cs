@@ -1,5 +1,7 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
@@ -7,8 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Portfolio.Web.Controllers.Api;
 using Portfolio.Web.RateLimiting;
-using System.Reflection;
-using System.Threading.RateLimiting;
 
 namespace Portfolio.Tests.Integration;
 

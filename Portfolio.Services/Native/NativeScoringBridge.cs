@@ -20,7 +20,7 @@ namespace Portfolio.Services.Native
             Property p,
             HomeSearchPreferencesDto prefs)
         {
-            var propNative  = MapProperty(p);
+            var propNative = MapProperty(p);
             var prefsNative = MapPreferences(prefs);
             NativeScoringInterop.ScoreProperty(in propNative, in prefsNative, out var result);
             return result;
@@ -32,9 +32,9 @@ namespace Portfolio.Services.Native
             IReadOnlyList<Property> properties,
             HomeSearchPreferencesDto prefs)
         {
-            var count       = properties.Count;
-            var inputs      = new PropertyInputNative[count];
-            var outputs     = new ScoreOutputNative[count];
+            var count = properties.Count;
+            var inputs = new PropertyInputNative[count];
+            var outputs = new ScoreOutputNative[count];
             var prefsNative = MapPreferences(prefs);
 
             for (var i = 0; i < count; i++)
@@ -58,31 +58,31 @@ namespace Portfolio.Services.Native
         {
             return new PropertyInputNative
             {
-                Price                = (double)p.Price,
-                PropertyTax          = (double)p.PropertyTax,
-                HoaFee               = (double)p.HoaFee,
-                Utilities            = (double)p.Utilities,
-                LotSqft              = p.LotSqft,
-                Bedrooms             = p.Bedrooms,
-                Bathrooms            = p.Bathrooms,
-                CommuteMin           = p.CommuteMin,
-                SchoolRating         = p.SchoolRating,
-                Walkability          = p.Walkability,
-                TransitAccess        = p.TransitAccess,
-                CrimeScore           = p.CrimeScore,
-                FutureAppreciation   = p.FutureAppreciation,
-                ResalePotential      = p.ResalePotential,
-                RoofCondition        = p.RoofCondition,
-                AcCondition          = p.AcCondition,
-                PlumbingCondition    = p.PlumbingCondition,
-                ElectricalCondition  = p.ElectricalCondition,
+                Price = (double)p.Price,
+                PropertyTax = (double)p.PropertyTax,
+                HoaFee = (double)p.HoaFee,
+                Utilities = (double)p.Utilities,
+                LotSqft = p.LotSqft,
+                Bedrooms = p.Bedrooms,
+                Bathrooms = p.Bathrooms,
+                CommuteMin = p.CommuteMin,
+                SchoolRating = p.SchoolRating,
+                Walkability = p.Walkability,
+                TransitAccess = p.TransitAccess,
+                CrimeScore = p.CrimeScore,
+                FutureAppreciation = p.FutureAppreciation,
+                ResalePotential = p.ResalePotential,
+                RoofCondition = p.RoofCondition,
+                AcCondition = p.AcCondition,
+                PlumbingCondition = p.PlumbingCondition,
+                ElectricalCondition = p.ElectricalCondition,
                 // 0 is the sentinel for "unknown / never renovated" on the C++ side
-                LastRenovationYear   = p.LastRenovation ?? 0,
-                AmenitiesScore       = p.AmenitiesScore,
-                FloodRisk            = p.FloodRisk,
-                NoiseLevel           = p.NoiseLevel,
-                Latitude             = p.Latitude,
-                Longitude            = p.Longitude
+                LastRenovationYear = p.LastRenovation ?? 0,
+                AmenitiesScore = p.AmenitiesScore,
+                FloodRisk = p.FloodRisk,
+                NoiseLevel = p.NoiseLevel,
+                Latitude = p.Latitude,
+                Longitude = p.Longitude
             };
         }
 
@@ -90,23 +90,23 @@ namespace Portfolio.Services.Native
         {
             return new PreferencesInputNative
             {
-                MaxPrice          = (double)prefs.MaxPrice,
-                MaxMonthlyBudget  = (double)prefs.MaxMonthlyBudget,
-                MinBedrooms       = prefs.MinBedrooms,
-                MinSqft           = prefs.MinSqft,
-                MaxCommuteMin     = prefs.MaxCommuteMin,
-                WAffordability    = prefs.WeightAffordability,
-                WNeighborhood     = prefs.WeightNeighborhood,
-                WSize             = prefs.WeightSize,
-                WAppreciation     = prefs.WeightAppreciation,
-                WCondition        = prefs.WeightCondition,
-                WCommute          = prefs.WeightCommute,
-                WAmenities        = prefs.WeightAmenities,
-                WTaxUtilities     = prefs.WeightTaxUtilities,
-                WResale           = prefs.WeightResale,
-                WEnvironment      = prefs.WeightEnvironment,
+                MaxPrice = (double)prefs.MaxPrice,
+                MaxMonthlyBudget = (double)prefs.MaxMonthlyBudget,
+                MinBedrooms = prefs.MinBedrooms,
+                MinSqft = prefs.MinSqft,
+                MaxCommuteMin = prefs.MaxCommuteMin,
+                WAffordability = prefs.WeightAffordability,
+                WNeighborhood = prefs.WeightNeighborhood,
+                WSize = prefs.WeightSize,
+                WAppreciation = prefs.WeightAppreciation,
+                WCondition = prefs.WeightCondition,
+                WCommute = prefs.WeightCommute,
+                WAmenities = prefs.WeightAmenities,
+                WTaxUtilities = prefs.WeightTaxUtilities,
+                WResale = prefs.WeightResale,
+                WEnvironment = prefs.WeightEnvironment,
                 // Pass the current UTC year so the kernel is deterministic in tests.
-                CurrentYear       = DateTime.UtcNow.Year
+                CurrentYear = DateTime.UtcNow.Year
             };
         }
     }

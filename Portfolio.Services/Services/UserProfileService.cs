@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.Constants;
@@ -6,7 +7,6 @@ using Portfolio.Common.Models;
 using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
-using System.Security.Claims;
 
 namespace Portfolio.Services.Services
 {

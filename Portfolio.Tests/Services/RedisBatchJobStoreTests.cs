@@ -31,11 +31,11 @@ namespace Portfolio.Tests.Services
             // Arrange
             var job = new BatchJob
             {
-                JobId       = Guid.NewGuid().ToString("N"),
-                Status      = BatchJobStatus.Queued,
+                JobId = Guid.NewGuid().ToString("N"),
+                Status = BatchJobStatus.Queued,
                 SubmittedAt = DateTimeOffset.UtcNow,
-                FileName    = "test.csv",
-                TotalRows   = 10
+                FileName = "test.csv",
+                TotalRows = 10
             };
 
             // Act
@@ -67,10 +67,10 @@ namespace Portfolio.Tests.Services
             var jobId = Guid.NewGuid().ToString("N");
             var job = new BatchJob
             {
-                JobId       = jobId,
-                Status      = BatchJobStatus.Queued,
+                JobId = jobId,
+                Status = BatchJobStatus.Queued,
                 SubmittedAt = DateTimeOffset.UtcNow,
-                FileName    = "update-test.csv"
+                FileName = "update-test.csv"
             };
             await _store.CreateAsync(job);
 
@@ -80,11 +80,11 @@ namespace Portfolio.Tests.Services
             var afterProcessing = await _store.GetAsync(jobId);
 
             // Act — update to Completed with results
-            job.Status        = BatchJobStatus.Completed;
-            job.CompletedAt   = DateTimeOffset.UtcNow;
+            job.Status = BatchJobStatus.Completed;
+            job.CompletedAt = DateTimeOffset.UtcNow;
             job.ProcessedRows = 5;
-            job.AverageScore  = 92.5;
-            job.Results       = [new BatchGeocodingResultDto { OriginalAddress = "123 Main St", Matched = true, Score = 92.5 }];
+            job.AverageScore = 92.5;
+            job.Results = [new BatchGeocodingResultDto { OriginalAddress = "123 Main St", Matched = true, Score = 92.5 }];
             await _store.UpdateAsync(job);
             var afterComplete = await _store.GetAsync(jobId);
 
@@ -109,10 +109,10 @@ namespace Portfolio.Tests.Services
                 var jobId = Guid.NewGuid().ToString("N");
                 var job = new BatchJob
                 {
-                    JobId       = jobId,
-                    Status      = status,
+                    JobId = jobId,
+                    Status = status,
                     SubmittedAt = DateTimeOffset.UtcNow,
-                    FileName    = $"{status}.csv"
+                    FileName = $"{status}.csv"
                 };
 
                 // Act

@@ -12,8 +12,8 @@ public static class PortfolioJsonOptions
     /// <summary>Default options: camelCase property names, null values omitted, enums serialized as strings.</summary>
     public static readonly JsonSerializerOptions Default = new()
     {
-        PropertyNamingPolicy       = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition     = JsonIgnoreCondition.WhenWritingNull,
-        Converters                 = { new JsonStringEnumConverter() }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new JsonStringEnumConverter() }
     };
 }

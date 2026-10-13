@@ -203,17 +203,17 @@ namespace Portfolio.Tests.Services
             var dto = result[0];
 
             // Assert
-            Assert.InRange(dto.AffordabilityScore,  0, 100);
-            Assert.InRange(dto.NeighborhoodScore,   0, 100);
-            Assert.InRange(dto.SizeScore,           0, 100);
-            Assert.InRange(dto.AppreciationScore,   0, 100);
-            Assert.InRange(dto.ConditionScore,      0, 100);
-            Assert.InRange(dto.CommuteScore,        0, 100);
-            Assert.InRange(dto.AmenitiesScore,      0, 100);
-            Assert.InRange(dto.TaxUtilitiesScore,   0, 100);
-            Assert.InRange(dto.ResaleScore,         0, 100);
-            Assert.InRange(dto.EnvironmentScore,    0, 100);
-            Assert.InRange(dto.CompositeScore,      0, 100);
+            Assert.InRange(dto.AffordabilityScore, 0, 100);
+            Assert.InRange(dto.NeighborhoodScore, 0, 100);
+            Assert.InRange(dto.SizeScore, 0, 100);
+            Assert.InRange(dto.AppreciationScore, 0, 100);
+            Assert.InRange(dto.ConditionScore, 0, 100);
+            Assert.InRange(dto.CommuteScore, 0, 100);
+            Assert.InRange(dto.AmenitiesScore, 0, 100);
+            Assert.InRange(dto.TaxUtilitiesScore, 0, 100);
+            Assert.InRange(dto.ResaleScore, 0, 100);
+            Assert.InRange(dto.EnvironmentScore, 0, 100);
+            Assert.InRange(dto.CompositeScore, 0, 100);
         }
 
         [Fact]
@@ -263,10 +263,19 @@ namespace Portfolio.Tests.Services
             {
                 MaxPrice = 1_000_000m,
                 MaxMonthlyBudget = 5_000m,
-                MinBedrooms = 2, MinBathrooms = 1, MinSqft = 800, MaxCommuteMin = 60,
-                WeightAffordability = 0, WeightNeighborhood = 0, WeightSize = 0,
-                WeightAppreciation = 0, WeightCondition = 0, WeightCommute = 0,
-                WeightAmenities = 0, WeightTaxUtilities = 0, WeightResale = 0,
+                MinBedrooms = 2,
+                MinBathrooms = 1,
+                MinSqft = 800,
+                MaxCommuteMin = 60,
+                WeightAffordability = 0,
+                WeightNeighborhood = 0,
+                WeightSize = 0,
+                WeightAppreciation = 0,
+                WeightCondition = 0,
+                WeightCommute = 0,
+                WeightAmenities = 0,
+                WeightTaxUtilities = 0,
+                WeightResale = 0,
                 WeightEnvironment = 0
             };
             _propertyRepoMock
@@ -289,14 +298,33 @@ namespace Portfolio.Tests.Services
             var prefs = MakePrefs();
             var property = new Property
             {
-                Id = 99, Street = "456 Oak Ave", City = "Redlands", ZipCode = "92373",
-                Price = 500_000m, Bedrooms = 3, Bathrooms = 2, LotSqft = 1_800,
-                Latitude = 34.05, Longitude = -117.18,
-                PropertyTax = 6_000m, HoaFee = 100m, Utilities = 120m,
-                SchoolRating = 75, CrimeScore = 25, Walkability = 60, TransitAccess = 50,
-                AmenitiesScore = 65, FutureAppreciation = 60, ResalePotential = 55,
-                RoofCondition = 80, AcCondition = 75, PlumbingCondition = 85,
-                ElectricalCondition = 82, FloodRisk = 15, NoiseLevel = 25, CommuteMin = 20
+                Id = 99,
+                Street = "456 Oak Ave",
+                City = "Redlands",
+                ZipCode = "92373",
+                Price = 500_000m,
+                Bedrooms = 3,
+                Bathrooms = 2,
+                LotSqft = 1_800,
+                Latitude = 34.05,
+                Longitude = -117.18,
+                PropertyTax = 6_000m,
+                HoaFee = 100m,
+                Utilities = 120m,
+                SchoolRating = 75,
+                CrimeScore = 25,
+                Walkability = 60,
+                TransitAccess = 50,
+                AmenitiesScore = 65,
+                FutureAppreciation = 60,
+                ResalePotential = 55,
+                RoofCondition = 80,
+                AcCondition = 75,
+                PlumbingCondition = 85,
+                ElectricalCondition = 82,
+                FloodRisk = 15,
+                NoiseLevel = 25,
+                CommuteMin = 20
             };
             _propertyRepoMock
                 .Setup(r => r.GetFilteredAsync(It.IsAny<decimal>(), It.IsAny<int>(), It.IsAny<int>(),
@@ -322,61 +350,61 @@ namespace Portfolio.Tests.Services
 
         private static HomeSearchPreferencesDto MakePrefs() => new()
         {
-            MaxPrice            = 800_000m,
-            MaxMonthlyBudget    = 4_500m,
-            MinBedrooms         = 2,
-            MinBathrooms        = 1,
-            MinSqft             = 1_000,
-            MaxCommuteMin       = 45,
+            MaxPrice = 800_000m,
+            MaxMonthlyBudget = 4_500m,
+            MinBedrooms = 2,
+            MinBathrooms = 1,
+            MinSqft = 1_000,
+            MaxCommuteMin = 45,
             WeightAffordability = 0.20,
-            WeightNeighborhood  = 0.15,
-            WeightSize          = 0.10,
-            WeightAppreciation  = 0.10,
-            WeightCondition     = 0.10,
-            WeightCommute       = 0.10,
-            WeightAmenities     = 0.10,
-            WeightTaxUtilities  = 0.05,
-            WeightResale        = 0.05,
-            WeightEnvironment   = 0.05
+            WeightNeighborhood = 0.15,
+            WeightSize = 0.10,
+            WeightAppreciation = 0.10,
+            WeightCondition = 0.10,
+            WeightCommute = 0.10,
+            WeightAmenities = 0.10,
+            WeightTaxUtilities = 0.05,
+            WeightResale = 0.05,
+            WeightEnvironment = 0.05
         };
 
         private static Property MakeProperty(
-            int     id            = 1,
-            decimal price         = 500_000m,
-            int     commute       = 20,
-            int     schoolRating  = 75,
-            int     crimeScore    = 25,
-            int     walkability   = 60,
-            int     transitAccess = 50,
-            int     roof          = 80,
-            int     ac            = 75,
-            int     plumbing      = 85,
-            int     electrical    = 82,
-            int     floodRisk     = 15,
-            int     noiseLevel    = 25) => new()
-        {
-            Id                  = id,
-            Price               = price,
-            PropertyTax         = 6_000m,
-            HoaFee              = 100m,
-            Utilities           = 120m,
-            LotSqft             = 1_800,
-            Bedrooms            = 3,
-            Bathrooms           = 2,
-            CommuteMin          = commute,
-            SchoolRating        = schoolRating,
-            CrimeScore          = crimeScore,
-            Walkability         = walkability,
-            TransitAccess       = transitAccess,
-            AmenitiesScore      = 65,
-            FutureAppreciation  = 60,
-            ResalePotential     = 55,
-            RoofCondition       = roof,
-            AcCondition         = ac,
-            PlumbingCondition   = plumbing,
-            ElectricalCondition = electrical,
-            FloodRisk           = floodRisk,
-            NoiseLevel          = noiseLevel
-        };
+            int id = 1,
+            decimal price = 500_000m,
+            int commute = 20,
+            int schoolRating = 75,
+            int crimeScore = 25,
+            int walkability = 60,
+            int transitAccess = 50,
+            int roof = 80,
+            int ac = 75,
+            int plumbing = 85,
+            int electrical = 82,
+            int floodRisk = 15,
+            int noiseLevel = 25) => new()
+            {
+                Id = id,
+                Price = price,
+                PropertyTax = 6_000m,
+                HoaFee = 100m,
+                Utilities = 120m,
+                LotSqft = 1_800,
+                Bedrooms = 3,
+                Bathrooms = 2,
+                CommuteMin = commute,
+                SchoolRating = schoolRating,
+                CrimeScore = crimeScore,
+                Walkability = walkability,
+                TransitAccess = transitAccess,
+                AmenitiesScore = 65,
+                FutureAppreciation = 60,
+                ResalePotential = 55,
+                RoofCondition = roof,
+                AcCondition = ac,
+                PlumbingCondition = plumbing,
+                ElectricalCondition = electrical,
+                FloodRisk = floodRisk,
+                NoiseLevel = noiseLevel
+            };
     }
 }

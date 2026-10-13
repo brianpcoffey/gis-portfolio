@@ -1,3 +1,6 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,9 +11,6 @@ using Moq;
 using Portfolio.Common.Configuration;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 namespace Portfolio.Tests.Services
 {
@@ -243,7 +243,9 @@ namespace Portfolio.Tests.Services
                 Options.Create(new BatchGeocodingOptions { MaxConcurrency = 4, MinMatchScore = 80.0 }));
             var job = new Portfolio.Common.Models.BatchJob
             {
-                JobId = "faulty", Status = Portfolio.Common.Models.BatchJobStatus.Queued, FileName = "faulty.csv"
+                JobId = "faulty",
+                Status = Portfolio.Common.Models.BatchJobStatus.Queued,
+                FileName = "faulty.csv"
             };
 
             var run = service.ProcessJobAsync(

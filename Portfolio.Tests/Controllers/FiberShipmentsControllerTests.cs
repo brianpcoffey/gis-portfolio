@@ -16,7 +16,7 @@ namespace Portfolio.Tests.Controllers
         public FiberShipmentsControllerTests()
         {
             _serviceMock = new Mock<IFiberShipmentService>();
-            _controller  = new FiberShipmentsController(
+            _controller = new FiberShipmentsController(
                 _serviceMock.Object);
         }
 
@@ -67,7 +67,7 @@ namespace Portfolio.Tests.Controllers
         public async Task Create_WithValidDto_ReturnsOkWithCreated()
         {
             // Arrange
-            var dto     = new FiberShipmentDto { TrackingNumber = "NEW001", CarrierName = "FedEx", Status = "Pending" };
+            var dto = new FiberShipmentDto { TrackingNumber = "NEW001", CarrierName = "FedEx", Status = "Pending" };
             var created = new FiberShipmentDto { Id = 9, TrackingNumber = "NEW001" };
             _serviceMock.Setup(s => s.CreateAsync(dto, It.IsAny<CancellationToken>())).ReturnsAsync(created);
 
@@ -83,7 +83,7 @@ namespace Portfolio.Tests.Controllers
         public async Task Update_WhenSuccessful_ReturnsOkWithUpdated()
         {
             // Arrange
-            var dto     = new FiberShipmentDto { TrackingNumber = "UPD001", Status = "InTransit" };
+            var dto = new FiberShipmentDto { TrackingNumber = "UPD001", Status = "InTransit" };
             var updated = new FiberShipmentDto { Id = 2, TrackingNumber = "UPD001", Status = "InTransit" };
             _serviceMock.Setup(s => s.UpdateAsync(2, dto, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
 
@@ -100,7 +100,7 @@ namespace Portfolio.Tests.Controllers
         {
             // Arrange
             var statusDto = new UpdateShipmentStatusDto { Status = "Delivered" };
-            var updated   = new FiberShipmentDto { Id = 5, Status = "Delivered" };
+            var updated = new FiberShipmentDto { Id = 5, Status = "Delivered" };
             _serviceMock.Setup(s => s.UpdateStatusAsync(5, statusDto, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
 
             // Act

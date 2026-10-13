@@ -17,7 +17,7 @@ namespace Portfolio.Tests.Controllers
         public FiberDashboardControllerTests()
         {
             _serviceMock = new Mock<IFiberDashboardService>();
-            _controller  = new FiberDashboardController(
+            _controller = new FiberDashboardController(
                 _serviceMock.Object);
         }
 
@@ -27,13 +27,13 @@ namespace Portfolio.Tests.Controllers
             // Arrange
             var dto = new FiberDashboardDto
             {
-                ActiveShipments  = 5,
-                OpenOrders       = 12,
-                LowStockAlerts   = 3,
-                MtdRevenue       = 45000m,
-                RevenueByMonth   = [new() { Month = "Jan", Revenue = 15000m }],
-                OrdersByStatus   = [new() { Status = "Open", Count = 12 }],
-                TopClients       = [new() { Name = "Acme", Revenue = 20000m }],
+                ActiveShipments = 5,
+                OpenOrders = 12,
+                LowStockAlerts = 3,
+                MtdRevenue = 45000m,
+                RevenueByMonth = [new() { Month = "Jan", Revenue = 15000m }],
+                OrdersByStatus = [new() { Status = "Open", Count = 12 }],
+                TopClients = [new() { Name = "Acme", Revenue = 20000m }],
                 InventoryByCategory = [new() { Category = "Cable", Count = 200 }]
             };
             _serviceMock.Setup(s => s.GetDashboardAsync(It.IsAny<CancellationToken>())).ReturnsAsync(dto);

@@ -1,9 +1,9 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {

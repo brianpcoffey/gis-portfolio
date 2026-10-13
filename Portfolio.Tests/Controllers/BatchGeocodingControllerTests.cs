@@ -18,9 +18,9 @@ namespace Portfolio.Tests.Controllers
 
         public BatchGeocodingControllerTests()
         {
-            _serviceMock  = new Mock<IBatchGeocodingService>();
+            _serviceMock = new Mock<IBatchGeocodingService>();
             _jobStoreMock = new Mock<IBatchJobStore>();
-            _controller   = new BatchGeocodingController(
+            _controller = new BatchGeocodingController(
                 _serviceMock.Object,
                 _jobStoreMock.Object,
                 new Mock<ILogger<BatchGeocodingController>>().Object);
@@ -28,7 +28,7 @@ namespace Portfolio.Tests.Controllers
             // Wire up an HttpContext so SubmitAsync can read Request.Scheme / Request.Host.
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Scheme = "https";
-            httpContext.Request.Host   = new HostString("api.example.com");
+            httpContext.Request.Host = new HostString("api.example.com");
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = httpContext
@@ -141,7 +141,7 @@ namespace Portfolio.Tests.Controllers
         public async Task SubmitAsync_ValidFile_Returns202AcceptedWithJobIdAndStatusUrl()
         {
             // Arrange
-            var file  = BuildFile(256);
+            var file = BuildFile(256);
             var jobId = "abc123def456abc123def456abc12345";
 
             _serviceMock
@@ -233,11 +233,11 @@ namespace Portfolio.Tests.Controllers
             // Arrange
             var job = new BatchJob
             {
-                JobId       = "job999",
-                Status      = BatchJobStatus.Completed,
+                JobId = "job999",
+                Status = BatchJobStatus.Completed,
                 SubmittedAt = DateTimeOffset.UtcNow,
-                FileName    = "results.csv",
-                TotalRows   = 3,
+                FileName = "results.csv",
+                TotalRows = 3,
                 ProcessedRows = 3
             };
 

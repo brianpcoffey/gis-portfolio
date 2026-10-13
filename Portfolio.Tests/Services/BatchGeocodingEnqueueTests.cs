@@ -1,3 +1,6 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -14,9 +17,6 @@ using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 using Portfolio.Web.BackgroundServices;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 namespace Portfolio.Tests.Services
 {
@@ -64,11 +64,11 @@ namespace Portfolio.Tests.Services
         {
             var service = new BatchGeocodingService(
                 httpClient: new HttpClient(handler),
-                cache:      _memoryCache,
-                logger:     _loggerMock.Object,
-                jobStore:   store,
-                queue:      _queue,
-                options:    MakeOptions());
+                cache: _memoryCache,
+                logger: _loggerMock.Object,
+                jobStore: store,
+                queue: _queue,
+                options: MakeOptions());
             if (startWorker)
                 StartWorker(service);
             return service;
@@ -76,9 +76,9 @@ namespace Portfolio.Tests.Services
 
         private static IFormFile BuildCsvFile(string csvContent)
         {
-            var bytes  = Encoding.UTF8.GetBytes(csvContent);
+            var bytes = Encoding.UTF8.GetBytes(csvContent);
             var stream = new MemoryStream(bytes);
-            var mock   = new Mock<IFormFile>();
+            var mock = new Mock<IFormFile>();
             mock.Setup(f => f.OpenReadStream()).Returns(stream);
             mock.Setup(f => f.Length).Returns(bytes.Length);
             mock.Setup(f => f.FileName).Returns("test.csv");
@@ -114,9 +114,9 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_ReturnsNonEmptyHexJobId()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson()), store);
-            var file    = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
+            var file = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
 
             // Act
             var jobId = await service.EnqueueAsync(file);
@@ -131,13 +131,13 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_JobIsInStoreWithQueuedOrProcessingStatus()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new SlowHttpMessageHandler(delayMs: 500, BuildMatchJson()), store);
-            var file    = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
+            var file = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
 
             // Act
             var jobId = await service.EnqueueAsync(file);
-            var job   = await store.GetAsync(jobId);
+            var job = await store.GetAsync(jobId);
 
             // Assert — must exist immediately; status may advance before we read it
             Assert.NotNull(job);
@@ -148,9 +148,9 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_StoresCorrectFileName()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson()), store);
-            var file    = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
+            var file = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
 
             // Act
             var jobId = await service.EnqueueAsync(file);
@@ -166,14 +166,14 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_BackgroundTask_SetsCompletedStatusAndMetrics()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson(95.0)), store);
-            var csv     = "Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201\n2,456 Oak Ave,Boulder,CO,80302";
-            var file    = BuildCsvFile(csv);
+            var csv = "Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201\n2,456 Oak Ave,Boulder,CO,80302";
+            var file = BuildCsvFile(csv);
 
             // Act
             var jobId = await service.EnqueueAsync(file);
-            var job   = await WaitForTerminalStatusAsync(store, jobId);
+            var job = await WaitForTerminalStatusAsync(store, jobId);
 
             // Assert
             Assert.Equal(BatchJobStatus.Completed, job.Status);
@@ -190,10 +190,10 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_BackgroundTask_SetsFailedStatusOnException()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new ErrorHttpMessageHandler(), store);
             // CSV has one valid row — the HTTP error will surface during geocoding
-            var file    = BuildCsvFile("Id,Address,City,State,Zip\n1,Bad Address,Nowhere,XX,00000");
+            var file = BuildCsvFile("Id,Address,City,State,Zip\n1,Bad Address,Nowhere,XX,00000");
 
             // Act — EnqueueAsync itself must not throw; failure is async
             var jobId = await service.EnqueueAsync(file);
@@ -216,10 +216,10 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_CalledTwice_ReturnsDifferentJobIds()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson()), store);
-            var file1   = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
-            var file2   = BuildCsvFile("Id,Address,City,State,Zip\n2,456 Oak Ave,Boulder,CO,80302");
+            var file1 = BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201");
+            var file2 = BuildCsvFile("Id,Address,City,State,Zip\n2,456 Oak Ave,Boulder,CO,80302");
 
             // Act
             var id1 = await service.EnqueueAsync(file1);
@@ -240,13 +240,13 @@ namespace Portfolio.Tests.Services
             for (int i = 1; i <= rowCount; i++)
                 sb.AppendLine($"{i},{i} Main St,Denver,CO,8020{i % 10}");
 
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson(90.0)), store);
-            var file    = BuildCsvFile(sb.ToString());
+            var file = BuildCsvFile(sb.ToString());
 
             // Act
             var jobId = await service.EnqueueAsync(file);
-            var job   = await WaitForTerminalStatusAsync(store, jobId);
+            var job = await WaitForTerminalStatusAsync(store, jobId);
 
             // Assert — no rows lost despite 600 > channel capacity of 500
             Assert.Equal(BatchJobStatus.Completed, job.Status);
@@ -259,7 +259,7 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_QueueFull_ThrowsBatchQueueFullException()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson()), store, startWorker: false);
             const string csv = "Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201";
             for (var i = 0; i < BoundedBatchJobQueue.DefaultCapacity; i++)
@@ -274,7 +274,7 @@ namespace Portfolio.Tests.Services
         public async Task EnqueueAsync_CsvOverRowCap_ThrowsArgumentExceptionAndCreatesNoJob()
         {
             // Arrange
-            var store   = new Mock<IBatchJobStore>();
+            var store = new Mock<IBatchJobStore>();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson()), store.Object, startWorker: false);
             var sb = new StringBuilder("Id,Address,City,State,Zip\n");
             for (var i = 1; i <= 1001; i++)
@@ -292,7 +292,7 @@ namespace Portfolio.Tests.Services
         public async Task Worker_ProcessesQueuedJobEndToEnd_WithOneSummaryLog()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new FakeHttpMessageHandler(BuildMatchJson(95.0)), store);
             var sb = new StringBuilder("Id,Address,City,State,Zip\n");
             for (var i = 1; i <= 30; i++)
@@ -300,7 +300,7 @@ namespace Portfolio.Tests.Services
 
             // Act
             var jobId = await service.EnqueueAsync(BuildCsvFile(sb.ToString()));
-            var job   = await WaitForTerminalStatusAsync(store, jobId);
+            var job = await WaitForTerminalStatusAsync(store, jobId);
 
             // Assert
             Assert.Equal(BatchJobStatus.Completed, job.Status);
@@ -319,9 +319,9 @@ namespace Portfolio.Tests.Services
         public async Task Worker_StoppedMidJob_LeavesJobFailedNotProcessing()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var service = CreateService(new BlockingHandler(), store);
-            var jobId   = await service.EnqueueAsync(BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201"));
+            var jobId = await service.EnqueueAsync(BuildCsvFile("Id,Address,City,State,Zip\n1,123 Main St,Denver,CO,80201"));
             var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
             while ((await store.GetAsync(jobId))!.Status != BatchJobStatus.Processing && DateTimeOffset.UtcNow < deadline)
                 await Task.Delay(10);
@@ -340,7 +340,7 @@ namespace Portfolio.Tests.Services
         public async Task Worker_RunsAtMostTwoJobsConcurrently()
         {
             // Arrange
-            var store   = new InMemoryBatchJobStore();
+            var store = new InMemoryBatchJobStore();
             var handler = new ConcurrencyProbeHandler(BuildMatchJson());
             var service = CreateService(handler, store);
             var ids = new List<string>();
@@ -361,7 +361,7 @@ namespace Portfolio.Tests.Services
         private (BatchGeocodingWorker Worker, Mock<IBatchGeocodingService> Service, Mock<IBatchJobStore> Store) BuildWorker()
         {
             var service = new Mock<IBatchGeocodingService>();
-            var store   = new Mock<IBatchJobStore>();
+            var store = new Mock<IBatchJobStore>();
             var provider = new ServiceCollection()
                 .AddSingleton(service.Object)
                 .AddSingleton(store.Object)

@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
