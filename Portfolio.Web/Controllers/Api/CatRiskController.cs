@@ -29,9 +29,7 @@ namespace Portfolio.Web.Controllers.Api
             _catRiskService = catRiskService;
         }
 
-        /// <summary>
-        /// Returns the demo policy book and its paired stochastic wildfire event catalog.
-        /// </summary>
+        /// <summary>Returns the demo policy book and its paired stochastic wildfire event catalog.</summary>
         /// <returns>Insured locations, event catalog, and per-community exposure rollups.</returns>
         [HttpGet("book")]
         [ProducesResponseType(typeof(PolicyBookDto), 200)]
@@ -42,10 +40,8 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(result);
         }
 
-        /// <summary>
-        /// Computes ring accumulation across a book and flags locations whose concentrated
-        /// TIV exceeds the supplied limit.
-        /// </summary>
+        /// <summary>Computes ring accumulation across a book and flags concentration breaches.</summary>
+        /// <remarks>A location is flagged when its concentrated TIV exceeds the supplied limit.</remarks>
         /// <param name="request">Policy locations, ring radius, and concentration limit.</param>
         /// <returns>Per-location ring totals plus a breach tally and the worst offender.</returns>
         [HttpPost("accumulation")]
@@ -61,10 +57,10 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _catRiskService.ComputeAccumulationAsync(request, cancellationToken));
         }
 
-        /// <summary>
-        /// Simulates a stochastic event catalog against a book, returning the average annual
-        /// loss, the probable maximum loss, and the occurrence exceedance probability curve.
-        /// </summary>
+        /// <summary>Simulates a stochastic event catalog against a book.</summary>
+        /// <remarks>
+        /// Returns the average annual loss, the probable maximum loss, and the occurrence exceedance probability curve.
+        /// </remarks>
         /// <param name="request">Policy locations, event catalog, and vulnerability curve shape.</param>
         /// <returns>AAL, PML, benchmark return-period losses, and the OEP curve.</returns>
         [HttpPost("simulate")]

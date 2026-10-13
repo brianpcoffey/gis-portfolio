@@ -28,9 +28,7 @@ namespace Portfolio.Web.Controllers.Api
             _geoStreamProcessorService = geoStreamProcessorService;
         }
 
-        /// <summary>
-        /// Processes a batch of telemetry events into grid aggregates and anomaly counts.
-        /// </summary>
+        /// <summary>Processes a batch of telemetry events into grid aggregates and anomaly counts.</summary>
         /// <param name="request">Telemetry batch and processing options.</param>
         /// <returns>Aggregated telemetry processing result.</returns>
         [HttpPost("events")]

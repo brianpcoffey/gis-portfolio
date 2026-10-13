@@ -28,9 +28,7 @@ namespace Portfolio.Web.Controllers.Api
             _spatialGraphService = spatialGraphService;
         }
 
-        /// <summary>
-        /// Returns the pre-built Redlands, CA road graph centered on Esri HQ.
-        /// </summary>
+        /// <summary>Returns the pre-built Redlands, CA road graph centered on Esri HQ.</summary>
         /// <returns>Graph nodes, edges, and destination node id.</returns>
         [HttpGet("graph")]
         [ProducesResponseType(typeof(RoadGraphDto), 200)]
@@ -40,9 +38,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(graph);
         }
 
-        /// <summary>
-        /// Computes the least-cost route between two graph nodes.
-        /// </summary>
+        /// <summary>Computes the least-cost route between two graph nodes.</summary>
         /// <param name="request">Spatial graph and route endpoints.</param>
         /// <returns>Route path and total cost.</returns>
         [HttpPost("route")]
@@ -58,9 +54,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _spatialGraphService.FindShortestPathAsync(request, cancellationToken));
         }
 
-        /// <summary>
-        /// Computes graph nodes reachable from an origin within a cost budget.
-        /// </summary>
+        /// <summary>Computes graph nodes reachable from an origin within a cost budget.</summary>
         /// <param name="request">Spatial graph, origin, and maximum cost.</param>
         /// <returns>Reachable node ids.</returns>
         [HttpPost("service-area")]

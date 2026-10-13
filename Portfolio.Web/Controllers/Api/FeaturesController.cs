@@ -9,9 +9,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for querying ArcGIS features.
-    /// </summary>
+    /// <summary>API endpoints for querying ArcGIS features.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/features")]
@@ -26,12 +24,8 @@ namespace Portfolio.Web.Controllers.Api
             _arcGisService = arcGisService;
         }
 
-        /// <summary>
-        /// Gets features from a layer, optionally filtered by bounding box.
-        /// </summary>
-        /// <param name="layerId">Layer identifier.</param>
+        /// <summary>Gets features from a layer, optionally filtered by bounding box.</summary>
         /// <param name="bbox">Bounding box filter (optional).</param>
-        /// <returns>List of features.</returns>
         [HttpGet]
         [ArcGisUnavailable(ArcGisUpstream.Features)]
         [ProducesResponseType(typeof(List<FeatureDto>), 200)]

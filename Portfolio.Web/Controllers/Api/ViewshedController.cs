@@ -9,9 +9,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for line-of-sight viewshed analysis over dense elevation grids.
-    /// </summary>
+    /// <summary>API endpoints for line-of-sight viewshed analysis over dense elevation grids.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]
@@ -27,9 +25,7 @@ namespace Portfolio.Web.Controllers.Api
             _viewshedService = viewshedService;
         }
 
-        /// <summary>
-        /// Computes the set of cells visible from an observer position over an elevation grid.
-        /// </summary>
+        /// <summary>Computes the set of cells visible from an observer position over an elevation grid.</summary>
         /// <param name="request">Elevation grid, observer position, and observer height.</param>
         /// <returns>Per-cell visibility flags plus a visible-cell count.</returns>
         [HttpPost("compute")]

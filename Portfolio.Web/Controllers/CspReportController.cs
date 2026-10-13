@@ -7,11 +7,11 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Portfolio.Web.Controllers
 {
-    /// <summary>
-    /// Public sink for Content-Security-Policy violation reports (report-uri / report-to). Accepts
-    /// <c>application/csp-report</c> and <c>application/reports+json</c>, logs one sanitised
-    /// Warning line per violation and answers 204. Hidden from OpenAPI.
-    /// </summary>
+    /// <summary>Public sink for Content-Security-Policy violation reports (report-uri / report-to).</summary>
+    /// <remarks>
+    /// Accepts <c>application/csp-report</c> and <c>application/reports+json</c>, logs one sanitised Warning line per
+    /// violation and answers 204. Hidden from OpenAPI.
+    /// </remarks>
     [ApiController]
     [ApiVersionNeutral]
     [AllowAnonymous]

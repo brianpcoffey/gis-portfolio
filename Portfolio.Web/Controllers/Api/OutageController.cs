@@ -28,10 +28,10 @@ namespace Portfolio.Web.Controllers.Api
             _outageTraceService = outageTraceService;
         }
 
-        /// <summary>
-        /// Returns the demo distribution network: one substation, two radial feeders, and
-        /// the normally-open tie switch between them.
-        /// </summary>
+        /// <summary>Returns the demo distribution network.</summary>
+        /// <remarks>
+        /// The network has one substation, two radial feeders, and the normally-open tie switch between them.
+        /// </remarks>
         /// <returns>Every network element with its device type, state, and geometry.</returns>
         [HttpGet("network")]
         [ProducesResponseType(typeof(DistributionNetworkDto), 200)]
@@ -42,10 +42,11 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(result);
         }
 
-        /// <summary>
-        /// Traces a fault on the supplied network: the de-energized downstream section,
-        /// the upstream path back to the source, and the devices that isolate it.
-        /// </summary>
+        /// <summary>Traces a fault on the supplied network.</summary>
+        /// <remarks>
+        /// The trace covers the de-energized downstream section, the upstream path back to the source, and the devices
+        /// that isolate it.
+        /// </remarks>
         /// <param name="request">Network elements, source node, and faulted element.</param>
         /// <returns>Downstream, upstream, and isolation element ids plus the customer impact.</returns>
         [HttpPost("trace")]
@@ -61,10 +62,8 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _outageTraceService.TraceAsync(request, cancellationToken));
         }
 
-        /// <summary>
-        /// Proposes the switching plan that restores the most customers around an isolated
-        /// fault by closing one normally-open tie.
-        /// </summary>
+        /// <summary>Proposes the switching plan that restores the most customers around an isolated fault.</summary>
+        /// <remarks>The plan closes one normally-open tie.</remarks>
         /// <param name="request">Network elements, faulted element, and the isolation devices to open.</param>
         /// <returns>An ordered switching plan with the customers it restores.</returns>
         [HttpPost("restore")]
