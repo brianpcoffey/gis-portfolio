@@ -13,12 +13,14 @@ namespace Portfolio.Web.Middleware
 {
     /// <summary>
     /// Ensures browser visitors have a UserProfile identity stored in HttpContext.Items["PortfolioIdentity"].
-    /// For Google-authenticated users the OnSignedIn event has already set the Items key.
-    /// For anonymous users this validates/reuses the AnonUserId cookie, or creates a new profile
-    /// (throttled per client address, and never for /api paths). A cookie that names a
-    /// Google-linked profile is deleted and gives no identity. Seed data is created at sign-in,
-    /// not here.
     /// </summary>
+    /// <remarks>
+    /// This middleware runs before UseAuthentication, so it authenticates the cookie scheme itself: a
+    /// signed-in Google user is resolved to their profile through the GoogleId claim. For anonymous
+    /// users it validates/reuses the AnonUserId cookie, or creates a new profile (throttled per client
+    /// address, and never for /api paths). A cookie that names a Google-linked profile is deleted and
+    /// gives no identity. Seed data is created at sign-in, not here.
+    /// </remarks>
     public class AnonymousUserMiddleware
     {
         private readonly RequestDelegate _next;
@@ -51,7 +53,7 @@ namespace Portfolio.Web.Middleware
 
         public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider)
         {
-            // Only set anonymous identity if not already set by authentication
+            // Nothing to do when an identity is already stored for this request.
             if (context.Items.ContainsKey(HttpContextItemKey))
             {
                 await _next(context);
@@ -67,10 +69,9 @@ namespace Portfolio.Web.Middleware
                 return;
             }
 
-            // Health probes and non-browser API clients cannot persist cookies, so creating a
-            // new profile + seeding for them is wasteful. Only create a new user identity for
-            // requests that can actually receive and store a cookie (i.e. browser requests that
-            // declare an Accept header containing text/html).
+            // Health probes and non-browser API clients cannot persist cookies, so a profile created
+            // for them would be orphaned and every probe request would create a new anonymous user.
+            // Only browser requests (an Accept header containing text/html) get a new identity.
             var acceptsHtml = context.Request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase);
 
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
@@ -83,9 +84,6 @@ namespace Portfolio.Web.Middleware
             }
             else
             {
-                // No cookie present. Only create a new profile for browser requests — probes
-                // and API clients cannot store the cookie, so creating a profile for them
-                // would generate a new anonymous user on every probe request.
                 if (!acceptsHtml || !TryAcquireNewIdentity(context))
                 {
                     await _next(context);

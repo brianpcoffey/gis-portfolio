@@ -9,10 +9,11 @@ using Portfolio.Web.BackgroundServices;
 
 namespace Portfolio.Web.Startup;
 
-/// <summary>
-/// Timeout, retry and circuit-breaker numbers for one ArcGIS resilience pipeline. The four ArcGIS
-/// pipelines share one retry predicate and differ only in these numbers, so there are two presets.
-/// </summary>
+/// <summary>Timeout, retry and circuit-breaker numbers for one ArcGIS resilience pipeline.</summary>
+/// <remarks>
+/// The four ArcGIS pipelines share one retry predicate and differ only in these numbers, so there are
+/// two presets.
+/// </remarks>
 internal sealed record ArcGisResilienceProfile(
     TimeSpan Timeout,
     int MaxRetryAttempts,
@@ -57,7 +58,6 @@ internal static class ArcGisClientRegistration
         })
         .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
         .AddArcGisResilience("arcgis-features", ArcGisResilienceProfile.Features);
-        // Strongly-typed, validated geocoding configuration.
         services.AddOptions<BatchGeocodingOptions>()
             .Bind(configuration.GetSection(BatchGeocodingOptions.SectionName))
             .ValidateDataAnnotations();
@@ -77,10 +77,11 @@ internal static class ArcGisClientRegistration
         return services;
     }
 
-    /// <summary>
-    /// Adds the timeout, retry and circuit-breaker pipeline. The retry predicate is narrower than the
-    /// library default (it leaves out 408, 429 and timeouts), so it is spelled out here.
-    /// </summary>
+    /// <summary>Adds the timeout, retry and circuit-breaker pipeline.</summary>
+    /// <remarks>
+    /// The retry predicate is narrower than the library default (it leaves out 408, 429 and timeouts),
+    /// so it is spelled out here.
+    /// </remarks>
     internal static IHttpResiliencePipelineBuilder AddArcGisResilience(
         this IHttpClientBuilder builder, string pipelineName, ArcGisResilienceProfile profile)
     {

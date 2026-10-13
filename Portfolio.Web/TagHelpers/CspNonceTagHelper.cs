@@ -7,9 +7,11 @@ namespace Portfolio.Web.TagHelpers
 {
     /// <summary>
     /// Stamps the per-request CSP nonce (see <see cref="SecurityHeadersMiddleware"/>) onto every
-    /// <c>&lt;script&gt;</c> and <c>&lt;style&gt;</c> element. Runs after the other tag helpers on
-    /// the same element (for example <c>asp-append-version</c>).
+    /// <c>&lt;script&gt;</c> and <c>&lt;style&gt;</c> element.
     /// </summary>
+    /// <remarks>
+    /// Runs after the other tag helpers on the same element (for example <c>asp-append-version</c>).
+    /// </remarks>
     [HtmlTargetElement("script")]
     [HtmlTargetElement("style")]
     public class CspNonceTagHelper : TagHelper

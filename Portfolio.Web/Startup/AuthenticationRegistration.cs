@@ -7,9 +7,6 @@ namespace Portfolio.Web.Startup;
 
 internal static class AuthenticationRegistration
 {
-    // --------------------------
-    // Authentication & Authorization
-    // --------------------------
     internal static IServiceCollection AddPortfolioAuthentication(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         services.AddAuthentication(options =>

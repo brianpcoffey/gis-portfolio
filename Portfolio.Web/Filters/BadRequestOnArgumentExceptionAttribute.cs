@@ -6,10 +6,11 @@ namespace Portfolio.Web.Filters;
 
 /// <summary>
 /// Turns an <see cref="ArgumentException"/> thrown by the action (a service's input validation) into
-/// a 400 <c>{ "error": "..." }</c> body. The public JS clients read only <c>body.error</c>, so this
-/// shape stays instead of falling through to <see cref="ApiExceptionMiddleware"/>'s RFC 7807 body.
+/// a 400 <c>{ "error": "..." }</c> body.
 /// </summary>
 /// <remarks>
+/// The public JS clients read only <c>body.error</c>, so this shape stays instead of falling through
+/// to <see cref="ApiExceptionMiddleware"/>'s RFC 7807 body.
 /// Apply it to an action, never a controller: a class-level attribute would also reshape the
 /// <see cref="ArgumentException"/>s of actions that deliberately let the middleware answer. The
 /// message is surfaced only for exceptions thrown from Portfolio code
