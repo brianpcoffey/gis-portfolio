@@ -27,6 +27,8 @@ services.AddPortfolioHealthChecks();
 services.AddPortfolioApiVersioning();
 services.AddPortfolioDatabase(builder.Configuration);
 services.AddPortfolioDataProtection(redis, builder.Environment, logger);
+// Last, so the order above is unchanged. Registers nothing unless OTEL_EXPORTER_OTLP_ENDPOINT is set.
+services.AddPortfolioObservability(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 app.UsePortfolioPipeline();
