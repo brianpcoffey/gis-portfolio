@@ -1,6 +1,25 @@
 using Microsoft.AspNetCore.HttpOverrides;
 
 /// <summary>Applies the configurable forwarded-header trust (internal static so tests can call it).</summary>
+/// <remarks>
+/// Production (appsettings.Production.json) sets ForwardLimit 3 and KnownNetworks for this hop chain,
+/// measured with a temporary probe on 2026-10-13:
+/// <code>
+/// client -> Cloudflare edge -> Render load balancer (10.x) -> local proxy on loopback -> the app
+/// X-Forwarded-For: "client, cloudflare-edge, render-10.x"        (connecting peer: loopback)
+/// </code>
+/// The middleware walks X-Forwarded-For from the right, taking one entry per trusted hop, up to ForwardLimit.
+/// Loopback (a framework default that is kept whenever networks are configured), 10.0.0.0/8 (Render)
+/// and Cloudflare's published ranges are trusted, so three entries are consumed and RemoteIpAddress ends
+/// up as the client. Entries a caller prepends sit to the left of the client and are never reached.
+/// ForwardLimit is 3 because that is the number of entries the two proxies and the client contribute.
+/// The Cloudflare ranges come from https://www.cloudflare.com/ips-v4 and /ips-v6 (fetched 2026-10-13).
+/// To refresh them, copy both lists into ForwardedHeaders:KnownNetworks in appsettings.Production.json
+/// (keep 10.0.0.0/8) and into CloudflareRanges in ProductionForwardedHeadersTests. An edge address
+/// missing from the list stops the walk at that edge, so the rate-limit key degrades to the edge
+/// address for that request. It is never a value the client controls. Development and tests configure
+/// no networks and keep the clamped single-hop behaviour.
+/// </remarks>
 internal static class ForwardedHeadersSetup
 {
     internal static void Apply(ForwardedHeadersOptions options, IConfiguration configuration, ILogger? logger = null)
