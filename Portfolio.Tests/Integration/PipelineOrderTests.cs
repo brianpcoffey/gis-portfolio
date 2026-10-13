@@ -1,7 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
-using Microsoft.Extensions.DependencyInjection;
-using Portfolio.Repositories;
 
 namespace Portfolio.Tests.Integration;
 

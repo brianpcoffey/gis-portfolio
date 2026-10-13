@@ -1,7 +1,6 @@
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Services.Native;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {

@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Portfolio.Repositories;
 using Portfolio.Web.HealthChecks;

@@ -1,8 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
-using Portfolio.Repositories;
 using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;

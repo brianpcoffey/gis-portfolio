@@ -5,7 +5,6 @@ using Portfolio.Repositories;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {

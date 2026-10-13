@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.Middleware;
 using Scalar.AspNetCore;
 

@@ -4,7 +4,6 @@ using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Services;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {

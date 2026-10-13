@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;

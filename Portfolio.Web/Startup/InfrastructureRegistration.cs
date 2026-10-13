@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Portfolio.Services;
 using Portfolio.Services.Abstractions;
 using Portfolio.Web.HealthChecks;

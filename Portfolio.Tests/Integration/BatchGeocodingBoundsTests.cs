@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using Portfolio.Tests.Helpers;
 
 namespace Portfolio.Tests.Integration;
 

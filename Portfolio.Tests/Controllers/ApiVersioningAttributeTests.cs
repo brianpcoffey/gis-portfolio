@@ -2,7 +2,6 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Web.Controllers.Api;
-using Xunit;
 
 namespace Portfolio.Tests.Controllers
 {

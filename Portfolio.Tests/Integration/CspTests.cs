@@ -3,7 +3,6 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Portfolio.Tests.Integration;

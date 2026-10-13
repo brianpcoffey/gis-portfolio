@@ -1,4 +1,3 @@
-using System.Threading;
 using Portfolio.Common.Models;
 
 namespace Portfolio.Repositories.Interfaces

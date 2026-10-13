@@ -3,7 +3,6 @@ using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
-using Xunit;
 
 namespace Portfolio.Tests.Controllers
 {
