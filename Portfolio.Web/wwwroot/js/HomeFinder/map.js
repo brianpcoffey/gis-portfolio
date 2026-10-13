@@ -59,6 +59,14 @@
             return true;
         } catch (err) {
             console.error("Map failed to load:", err);
+            // The view may be half-built (its ready promise rejected, or it timed out): release it, and the
+            // WebGL context and listeners it holds, before the notice replaces its container. initMap never
+            // rejects, so a failing destroy is logged rather than thrown.
+            try {
+                state.mapView?.destroy();
+            } catch (destroyErr) {
+                console.warn("Map view cleanup failed:", destroyErr);
+            }
             state.mapView = null;
             state.mapInstance = null;
             state.graphicsLayer = null;
