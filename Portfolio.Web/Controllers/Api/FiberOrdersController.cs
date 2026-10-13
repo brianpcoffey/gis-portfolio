@@ -16,12 +16,10 @@ namespace Portfolio.Web.Controllers.Api
     public class FiberOrdersController : ControllerBase
     {
     private readonly IFiberOrderService _orderService;
-    private readonly ILogger<FiberOrdersController> _logger;
 
-    public FiberOrdersController(IFiberOrderService orderService, ILogger<FiberOrdersController> logger)
+    public FiberOrdersController(IFiberOrderService orderService)
     {
         _orderService = orderService;
-        _logger = logger;
     }
 
     /// <summary>Retrieves all fiber orders.</summary>
@@ -31,22 +29,8 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(500)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _orderService.GetAllAsync(cancellationToken);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberOrdersController), nameof(GetAll));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _orderService.GetAllAsync(cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>Retrieves a fiber order by ID.</summary>
@@ -56,23 +40,9 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(500)]
     public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _orderService.GetByIdAsync(id, cancellationToken);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberOrdersController), nameof(Get));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _orderService.GetByIdAsync(id, cancellationToken);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 
     /// <summary>Creates a new fiber order.</summary>
@@ -85,22 +55,8 @@ namespace Portfolio.Web.Controllers.Api
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        try
-        {
-            var result = await _orderService.CreateAsync(dto, cancellationToken);
-            return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberOrdersController), nameof(Create));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _orderService.CreateAsync(dto, cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
 
     /// <summary>Updates an existing fiber order.</summary>
@@ -114,22 +70,8 @@ namespace Portfolio.Web.Controllers.Api
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        try
-        {
-            var result = await _orderService.UpdateAsync(id, dto, cancellationToken);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberOrdersController), nameof(Update));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _orderService.UpdateAsync(id, dto, cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>Deletes a fiber order by ID.</summary>
@@ -139,23 +81,9 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(500)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var deleted = await _orderService.DeleteAsync(id, cancellationToken);
-            if (!deleted) return NotFound();
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberOrdersController), nameof(Delete));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var deleted = await _orderService.DeleteAsync(id, cancellationToken);
+        if (!deleted) return NotFound();
+        return NoContent();
     }
 
     }

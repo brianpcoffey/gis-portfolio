@@ -18,8 +18,7 @@ namespace Portfolio.Tests.Controllers
         {
             _serviceMock = new Mock<IFiberDashboardService>();
             _controller  = new FiberDashboardController(
-                _serviceMock.Object,
-                new Mock<ILogger<FiberDashboardController>>().Object);
+                _serviceMock.Object);
         }
 
         // ── GetStats ────────────────────────────────────────────────────
@@ -50,35 +49,15 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetStats_WhenServiceThrows_Returns500ProblemDetails()
+        public async Task GetStats_WhenServiceThrows_PropagatesTheException()
         {
             // Arrange
             _serviceMock.Setup(s => s.GetDashboardAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("db error"));
 
-            // Act
-            var result = await _controller.GetStats(CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(500, problem.Status);
-            Assert.Equal("An unexpected error occurred.", problem.Title);
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(() => _controller.GetStats(CancellationToken.None));
         }
 
-        [Fact]
-        public async Task GetStats_ServiceThrows_PinsExact500BodyWithoutLeakingMessage()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.GetDashboardAsync(It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("connection string leaked here"));
-
-            // Act
-            var result = await _controller.GetStats(CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.Unexpected(result);
-        }
     }
 }
