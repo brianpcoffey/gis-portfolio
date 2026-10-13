@@ -8,10 +8,10 @@
  *   window.apiGet(url)                     — GET, returns parsed JSON or throws
  *   window.apiPost(url, body)              — POST JSON body, returns parsed JSON or throws
  *   window.apiPut(url, body)               — PUT JSON body, returns parsed JSON or throws
- *   window.apiDelete(url)                  — DELETE, returns true on 204 or throws
+ *   window.apiDelete(url)                  — DELETE, returns true on success or 404, otherwise throws
  *   window.apiPostForm(url, formData)      — POST multipart/form-data, returns parsed JSON or throws
  *   window.getApiError(response)           — extracts error message string from an error Response
- *   window.fetchWithAuth(url, options)     — alias of apiFetch (keeps PlantOperationsDashboard compat)
+ *   window.fetchWithAuth(url, options)     — alias of apiFetch; no current callers
  */
 (function (global) {
     "use strict";

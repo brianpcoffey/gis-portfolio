@@ -1,5 +1,6 @@
 ﻿// All DOM rendering and UI behaviors. Uses delegation and single-time event wiring.
-// UI methods do not perform network requests or mutate global variables directly.
+// UI methods do not mutate global variables directly; only the collection edit/delete handlers
+// call the API (through CollectionService).
 //
 // This file assembles the public `UI` object. The pieces live beside it:
 //   metadata.js    extractMetadataPairs (pure)
