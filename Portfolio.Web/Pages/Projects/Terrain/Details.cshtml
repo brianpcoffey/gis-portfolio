@@ -54,7 +54,7 @@
 			<li><strong>Heatmap fallback:</strong> Applies a Gaussian-style kernel from weighted points over a target raster extent, then normalizes output values.</li>
 			<li><strong>Native bridge:</strong> <code>RasterTerrainNativeBridge</code> passes dense arrays and preallocated output buffers into C++ and maps the returned buffers to DTOs.</li>
 			<li><strong>C++ library:</strong> <code>native/raster_terrain_kernel</code> exposes <code>Raster_GenerateHillshade</code> and <code>Raster_GenerateHeatmap</code>.</li>
-			<li><strong>Why C++ here:</strong> Raster analysis is dense numeric grid processing, a natural candidate for native code. Measured against the managed path, hillshade runs 0.83× and the Gaussian heatmap 1.22× (see <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>).</li>
+			<li><strong>Why C++ here:</strong> Raster analysis is dense numeric grid processing, a natural candidate for native code. Measured against the managed path, hillshade runs 0.83× and the Gaussian heatmap 1.22× (see <a href="https://github.com/brianpcoffey/gis-portfolio#measured-speedup" target="_blank" rel="noopener">the README</a>).</li>
 		</ul>
 	</section>
 

@@ -50,7 +50,7 @@
 			<li><strong>Service:</strong> <code>SpatialOverlayService</code> validates input, dispatches to <code>SpatialOverlayNativeBridge</code>, and assembles per-zone rollups shared by both paths.</li>
 			<li><strong>Native bridge:</strong> <code>SpatialOverlayNativeBridge</code> flattens zone rings into a single vertex buffer plus a ring-size array and reads back one zone index per point.</li>
 			<li><strong>C++ library:</strong> <code>native/spatial_overlay_kernel</code> exposes <code>Overlay_AssignPointsToZones</code>, returning the number of assigned points.</li>
-			<li><strong>Why C++ here:</strong> The crossing-number test is a branch-light arithmetic loop over contiguous vertex memory — measured at 1.90× against the managed path (30 × 10,000 points × 48 zones; see <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>), with no explicit SIMD.</li>
+			<li><strong>Why C++ here:</strong> The crossing-number test is a branch-light arithmetic loop over contiguous vertex memory — measured at 1.90× against the managed path (30 × 10,000 points × 48 zones; see <a href="https://github.com/brianpcoffey/gis-portfolio#measured-speedup" target="_blank" rel="noopener">the README</a>), with no explicit SIMD.</li>
 			<li><strong>Managed fallback:</strong> <code>SpatialOverlayService</code> reproduces the identical even-odd test in C#, so the join is correct with no native library present.</li>
 		</ul>
 	</section>
