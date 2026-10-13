@@ -16,12 +16,10 @@ namespace Portfolio.Web.Controllers.Api
     public class FiberDashboardController : ControllerBase
     {
     private readonly IFiberDashboardService _dashboardService;
-    private readonly ILogger<FiberDashboardController> _logger;
 
-    public FiberDashboardController(IFiberDashboardService dashboardService, ILogger<FiberDashboardController> logger)
+    public FiberDashboardController(IFiberDashboardService dashboardService)
     {
         _dashboardService = dashboardService;
-        _logger = logger;
     }
 
     /// <summary>Retrieves fiber dashboard statistics.</summary>
@@ -30,22 +28,8 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(500)]
     public async Task<IActionResult> GetStats(CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _dashboardService.GetDashboardAsync(cancellationToken);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberDashboardController), nameof(GetStats));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-    }
+        var result = await _dashboardService.GetDashboardAsync(cancellationToken);
+        return Ok(result);
     }
 
 }

@@ -17,12 +17,10 @@ namespace Portfolio.Web.Controllers.Api
     public class FiberMaterialsController : ControllerBase
     {
     private readonly IFiberMaterialService _materialService;
-    private readonly ILogger<FiberMaterialsController> _logger;
 
-    public FiberMaterialsController(IFiberMaterialService materialService, ILogger<FiberMaterialsController> logger)
+    public FiberMaterialsController(IFiberMaterialService materialService)
     {
         _materialService = materialService;
-        _logger = logger;
     }
 
     // Maps a create/update request DTO to the internal material DTO (server-computed fields default).
@@ -44,22 +42,8 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(500)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _materialService.GetAllAsync(cancellationToken);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberMaterialsController), nameof(GetAll));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _materialService.GetAllAsync(cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>Retrieves a fiber material by ID.</summary>
@@ -69,23 +53,9 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(500)]
     public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _materialService.GetByIdAsync(id, cancellationToken);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberMaterialsController), nameof(Get));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _materialService.GetByIdAsync(id, cancellationToken);
+        if (result == null) return NotFound();
+        return Ok(result);
     }
 
     /// <summary>Creates a new fiber material.</summary>
@@ -98,22 +68,8 @@ namespace Portfolio.Web.Controllers.Api
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        try
-        {
-            var result = await _materialService.CreateAsync(ToDto(dto), cancellationToken);
-            return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberMaterialsController), nameof(Create));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _materialService.CreateAsync(ToDto(dto), cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
 
     /// <summary>Updates an existing fiber material.</summary>
@@ -127,22 +83,8 @@ namespace Portfolio.Web.Controllers.Api
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        try
-        {
-            var result = await _materialService.UpdateAsync(id, ToDto(dto), cancellationToken);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberMaterialsController), nameof(Update));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _materialService.UpdateAsync(id, ToDto(dto), cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>Deletes a fiber material by ID.</summary>
@@ -152,23 +94,9 @@ namespace Portfolio.Web.Controllers.Api
     [ProducesResponseType(500)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var deleted = await _materialService.DeleteAsync(id, cancellationToken);
-            if (!deleted) return NotFound();
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberMaterialsController), nameof(Delete));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var deleted = await _materialService.DeleteAsync(id, cancellationToken);
+        if (!deleted) return NotFound();
+        return NoContent();
     }
 
     /// <summary>Records a stock receipt for a fiber material.</summary>
@@ -181,22 +109,8 @@ namespace Portfolio.Web.Controllers.Api
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        try
-        {
-            var result = await _materialService.ReceiveStockAsync(id, dto, cancellationToken);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled error in {Controller}.{Action}.",
-                nameof(FiberMaterialsController), nameof(ReceiveStock));
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
-            {
-                Status = 500,
-                Title  = "An unexpected error occurred.",
-                Detail = "See server logs for details."
-            });
-        }
+        var result = await _materialService.ReceiveStockAsync(id, dto, cancellationToken);
+        return Ok(result);
     }
 
     }
