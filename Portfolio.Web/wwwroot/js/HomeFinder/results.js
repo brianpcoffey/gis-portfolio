@@ -72,15 +72,15 @@
                     const [Point] = await window.$arcgis.import(["@arcgis/core/geometry/Point.js"]);
                     const point = new Point({ longitude: match.longitude, latitude: match.latitude });
                     state.mapView.goTo({ target: point, zoom: 16 });
-                    state.mapView.openPopup({ title: `#${match.rank} \u2014 ${PortfolioDom.escapeHtml(match.street)}`, location: point });
+                    await state.mapView.openPopup({ title: `#${match.rank} \u2014 ${PortfolioDom.escapeHtml(match.street)}`, location: point });
                 }
             };
 
-            card.addEventListener("click", handler);
+            card.addEventListener("click", () => handler().catch(console.error));
             card.addEventListener("keydown", (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    handler();
+                    handler().catch(console.error);
                 }
             });
         });

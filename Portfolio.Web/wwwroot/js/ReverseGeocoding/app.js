@@ -208,7 +208,7 @@
         };
         // view.popup is lazy (since 4.27), so open the popup through the view rather than through view.popup.
         if (mapView) {
-            mapView.openPopup({ features: [markerGraphic], location: markerGraphic.geometry });
+            mapView.openPopup({ features: [markerGraphic], location: markerGraphic.geometry }).catch(console.error);
         }
     }
 
