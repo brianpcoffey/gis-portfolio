@@ -7,8 +7,6 @@
 <!-- Custom CSS -->
 <link rel="stylesheet" href="~/css/gis.css" />
 
-<!-- Typeahead CSS (local) -->
-<link rel="stylesheet" href="~/lib/typeahead/typeahead.css" />
 
 <div class="project-hero py-4 mb-4">
     <div class="container">
@@ -38,7 +36,7 @@
             <div class="theme-toolbar p-3 rounded d-flex align-items-center">
                 <div class="input-group flex-nowrap w-100" style="max-width: 100%;">
                     <span class="input-group-text d-flex align-items-center justify-content-center"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
-                    <input id="searchInput" type="text" class="form-control typeahead" placeholder="Search states..." autocomplete="off" aria-label="Search states">
+                    <input id="searchInput" type="text" class="form-control" placeholder="Search states..." autocomplete="off" aria-label="Search states">
                 </div>
             </div>
         </div>
@@ -215,7 +213,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/lib/typeahead/typeahead.bundle.min.js"></script>
     <script src="https://js.arcgis.com/4.29/"></script>
     <script type="module" src="~/js/StateExplorer/stateStore.js" asp-append-version="true"></script>
     <script type="module" src="~/js/StateExplorer/featureService.js" asp-append-version="true"></script>
