@@ -2,11 +2,11 @@ using Portfolio.Common.Models;
 
 namespace Portfolio.Services.Data
 {
-    /// <summary>
-    /// The fixed Fiber demo dataset that <c>UserProfileSeedService</c> gives every new
-    /// user. Pure data: each method builds fresh, untracked entities for one user, in the
-    /// order they are inserted. The seeder owns the existence checks and the saves.
-    /// </summary>
+    /// <summary>The fixed Fiber demo dataset that <c>UserProfileSeedService</c> gives every new user.</summary>
+    /// <remarks>
+    /// Pure data: each method builds fresh, untracked entities for one user, in the order they are inserted. The seeder
+    /// owns the existence checks and the saves.
+    /// </remarks>
     internal static class FiberDemoSeedData
     {
         private static DateTime Utc(string iso) => DateTime.Parse(iso).ToUniversalTime();

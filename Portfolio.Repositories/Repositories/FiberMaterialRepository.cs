@@ -47,7 +47,7 @@ public class FiberMaterialRepository : IFiberMaterialRepository
         material.QtyOnHand = dto.QtyOnHand;
         material.UnitCost = dto.UnitCost;
         material.ReorderPoint = dto.ReorderPoint;
-        material.LastUpdated = _timeProvider.GetUtcNow().UtcDateTime; // stamp on every edit
+        material.LastUpdated = _timeProvider.GetUtcNow().UtcDateTime;
         await _db.SaveChangesAsync(cancellationToken);
         return material;
     }

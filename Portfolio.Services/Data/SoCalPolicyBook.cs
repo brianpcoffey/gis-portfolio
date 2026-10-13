@@ -3,14 +3,13 @@ using Portfolio.Common.DTOs;
 namespace Portfolio.Services.Data
 {
     /// <summary>
-    /// A deterministic synthetic property-insurance book across the San Bernardino and
-    /// Riverside county foothills — genuine wildland-urban interface territory — paired
-    /// with a stochastic wildfire event catalog.
-    ///
-    /// Generated from a fixed-seed LCG so the book is byte-identical on every run. No
-    /// database, no persistence: this is a stateless demo dataset in the same shape as
-    /// <c>RedlandsRoadNetwork</c>.
+    /// A deterministic synthetic property-insurance book across the San Bernardino and Riverside county foothills
+    /// (genuine wildland-urban interface territory), paired with a stochastic wildfire event catalog.
     /// </summary>
+    /// <remarks>
+    /// Generated from a fixed-seed LCG, so the book is byte-identical on every run; stateless, like
+    /// <c>RedlandsRoadNetwork</c>.
+    /// </remarks>
     internal static class SoCalPolicyBook
     {
         public const string BookName = "San Bernardino / Riverside Foothills — Wildfire Book";

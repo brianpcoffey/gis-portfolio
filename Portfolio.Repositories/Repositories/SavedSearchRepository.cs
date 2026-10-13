@@ -22,9 +22,7 @@ namespace Portfolio.Repositories.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        /// <summary>
-        /// Checks if the user already has a saved search with the given name (case-insensitive).
-        /// </summary>
+        /// <summary>Checks if the user already has a saved search with the given name (case-insensitive).</summary>
         public async Task<bool> ExistsByNameAsync(Guid userId, string name, CancellationToken cancellationToken = default)
         {
             return await _db.SavedSearches

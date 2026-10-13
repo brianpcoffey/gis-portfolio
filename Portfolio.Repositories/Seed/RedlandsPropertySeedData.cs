@@ -2,14 +2,13 @@ using Portfolio.Common.Models;
 
 namespace Portfolio.Repositories.Seed
 {
-    /// <summary>
-    /// Canonical, curated Redlands, CA home dataset for the Smart Home Finder.
-    /// The records are synthetic ("mock Kaggle"-style) but modelled on real Redlands
-    /// neighborhoods, streets, and Redfin/Zillow-style listing attributes so the demo
-    /// looks and scores realistically. Generation is fully deterministic (fixed seed,
-    /// no time or randomness from the environment) so the same dataset is produced on
-    /// every build and can be shipped through a migration.
-    /// </summary>
+    /// <summary>Canonical, curated Redlands, CA home dataset for the Smart Home Finder.</summary>
+    /// <remarks>
+    /// The records are synthetic ("mock Kaggle"-style) but modelled on real Redlands neighborhoods, streets, and
+    /// Redfin/Zillow-style listing attributes so the demo looks and scores realistically. Generation is fully
+    /// deterministic (fixed seed, no time or randomness from the environment), so the same dataset is produced on every
+    /// build and can be shipped through a migration.
+    /// </remarks>
     public static class RedlandsPropertySeedData
     {
         private static readonly string[] Brokerages =
