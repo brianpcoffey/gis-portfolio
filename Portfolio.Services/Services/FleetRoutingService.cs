@@ -202,6 +202,5 @@ namespace Portfolio.Services.Services
 
             return expanded;
         }
-
     }
 }
