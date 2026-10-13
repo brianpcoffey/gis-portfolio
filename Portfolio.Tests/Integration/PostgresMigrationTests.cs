@@ -197,18 +197,28 @@ public class PostgresMigrationTests
         var users = new Mock<IUserProfileService>();
         users.Setup(u => u.GetCurrentUserId()).Returns(user);
         var clock = new FakeTimeProvider(new DateTimeOffset(2026, 10, 13, 12, 0, 0, TimeSpan.Zero));
-        var barrier = new Barrier(2);
+        using var barrier = new Barrier(2);
         var inserts = new InsertCounter();
 
         async Task<FiberOrderDto> CreateOneAsync()
         {
-            await using var db = NewDb(scratch.ConnectionString);
-            var repository = new RendezvousRepository(new FiberOrderRepository(db), barrier, inserts);
-            return await new FiberOrderService(repository, users.Object, clock).CreateAsync(NewOrderDto());
+            try
+            {
+                await using var db = NewDb(scratch.ConnectionString);
+                var repository = new RendezvousRepository(new FiberOrderRepository(db), barrier, inserts);
+                return await new FiberOrderService(repository, users.Object, clock).CreateAsync(NewOrderDto());
+            }
+            catch
+            {
+                // A caller that fails before the rendezvous must not leave the other waiting out the timeout, which
+                // would end the test with a TimeoutException in place of the real error.
+                barrier.RemoveParticipant();
+                throw;
+            }
         }
 
         // Act
-        var created = await Task.WhenAll(Task.Run(CreateOneAsync), Task.Run(CreateOneAsync));
+        var created = await AwaitAllReportingEveryFailureAsync(Task.Run(CreateOneAsync), Task.Run(CreateOneAsync));
 
         // Assert: one insert lost to the unique index and succeeded on its retry with the next number.
         Assert.Equal(["ORD-20261013-0001", "ORD-20261013-0002"], created.Select(o => o.OrderNumber).Order(StringComparer.Ordinal).ToList());
@@ -336,6 +346,22 @@ public class PostgresMigrationTests
             new NpgsqlParameter("name", FiberOrderMapping.OrderNumberIndexName));
 
     // ---- helpers ----
+
+    // Task.WhenAll rethrows only the first failure; when the callers fail for different reasons the first is not
+    // always the cause, so this throws an AggregateException that carries the exceptions of every faulted task.
+    private static async Task<T[]> AwaitAllReportingEveryFailureAsync<T>(params Task<T>[] tasks)
+    {
+        try
+        {
+            return await Task.WhenAll(tasks);
+        }
+        catch
+        {
+            var failures = tasks.Where(t => t.IsFaulted).SelectMany(t => t.Exception!.InnerExceptions).ToList();
+            if (failures.Count == 0) throw;
+            throw new AggregateException("Not every concurrent call succeeded.", failures);
+        }
+    }
 
     // A database made for one test and dropped with it. Pooling is off so no connection outlives the drop.
     private sealed class ScratchDatabase : IAsyncDisposable
