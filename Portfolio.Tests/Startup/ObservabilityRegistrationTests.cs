@@ -567,5 +567,9 @@ public class ObservabilityRegistrationTests
         Assert.DoesNotContain(plain.Registrations, r => r.Impl.StartsWith("OpenTelemetry.", StringComparison.Ordinal));
         Assert.Contains(withEndpoint.Registrations, r =>
             r.Service == typeof(IHostedService) && r.Impl.StartsWith("OpenTelemetry.", StringComparison.Ordinal));
+        // No OTLP logs (D-13): the console stays the only log sink, so no logger provider is added.
+        Assert.Equal(
+            plain.Registrations.Count(r => r.Service == typeof(ILoggerProvider)),
+            withEndpoint.Registrations.Count(r => r.Service == typeof(ILoggerProvider)));
     }
 }
