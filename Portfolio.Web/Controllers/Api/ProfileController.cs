@@ -18,15 +18,6 @@ namespace Portfolio.Web.Controllers.Api
         private readonly IUserProfileService _profileService;
         private readonly ILogger<ProfileController> _logger;
 
-        // Claim types that cannot be set or removed by anonymous users or manually by authenticated users
-        private static readonly HashSet<string> ProtectedClaimTypes = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ProfileClaimTypes.GoogleId,
-            ProfileClaimTypes.Email,
-            ProfileClaimTypes.Name,
-            ProfileClaimTypes.Picture
-        };
-
         public ProfileController(IUserProfileService profileService, ILogger<ProfileController> logger)
         {
             _profileService = profileService;
@@ -60,6 +51,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Sets or updates a claim for the anonymous user.
         /// </summary>
         [HttpPost("claims")]
+        [RequestSizeLimit(8_192)]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ClaimDto), 200)]
         [ProducesResponseType(400)]
@@ -69,7 +61,7 @@ namespace Portfolio.Web.Controllers.Api
             if (IsInvalidClaim(claim))
                 return BadRequest(new { error = "Type and value required." });
 
-            if (ProtectedClaimTypes.Contains(claim.Type))
+            if (ProfileClaimTypes.Protected.Contains(claim.Type))
             {
                 // log attempt here if needed
                 return BadRequest(new { error = $"Claim type '{claim.Type}' cannot be set anonymously." });
@@ -93,7 +85,7 @@ namespace Portfolio.Web.Controllers.Api
             if (string.IsNullOrWhiteSpace(type))
                 return BadRequest(new { error = "Type required." });
 
-            if (ProtectedClaimTypes.Contains(type))
+            if (ProfileClaimTypes.Protected.Contains(type))
             {
                 // log attempt here if needed
                 return BadRequest(new { error = $"Claim type '{type}' cannot be removed anonymously." });
@@ -107,6 +99,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Sets or updates a claim for the authenticated user.
         /// </summary>
         [HttpPut("me/claims")]
+        [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ClaimDto), 200)]
         [ProducesResponseType(400)]
@@ -116,7 +109,7 @@ namespace Portfolio.Web.Controllers.Api
             if (IsInvalidClaim(claim))
                 return BadRequest(new { error = "Type and value required." });
 
-            if (ProtectedClaimTypes.Contains(claim.Type))
+            if (ProfileClaimTypes.Protected.Contains(claim.Type))
             {
                 // log attempt here if needed
                 return BadRequest(new { error = $"Claim type '{claim.Type}' is managed by Google OAuth and cannot be set manually." });

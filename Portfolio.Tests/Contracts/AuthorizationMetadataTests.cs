@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Portfolio.Tests.Contracts;
 
@@ -82,5 +83,75 @@ public class AuthorizationMetadataTests
         // Assert
         Assert.Equal(["HomeFinderController", "ProfileController", "UserProfileController"], mixed.Select(c => c.Name));
         Assert.All(mixed, c => Assert.Null(c.GetCustomAttribute<AllowAnonymousAttribute>()));
+    }
+
+    [Theory]
+    [InlineData("GeoStreamController", "compute")]
+    [InlineData("SpatialGeometryController", "compute")]
+    [InlineData("RasterTerrainController", "compute")]
+    [InlineData("SpatialNetworkController", "compute")]
+    [InlineData("SpatialClusterController", "compute")]
+    [InlineData("ViewshedController", "compute")]
+    [InlineData("SpatialOverlayController", "compute")]
+    [InlineData("FeaturesController", "expensive")]
+    public void ComputeAndProxyControllers_CarryTheirRateLimitPolicy(string controller, string policy)
+    {
+        // Arrange
+        var type = Controllers.Single(c => c.Name == controller);
+
+        // Act
+        var attr = type.GetCustomAttribute<EnableRateLimitingAttribute>();
+
+        // Assert
+        Assert.NotNull(attr);
+        Assert.Equal(policy, attr!.PolicyName);
+    }
+
+    /// <summary>
+    /// Actions that take a body but deliberately rely on the 1 MB Kestrel default. Empty today:
+    /// every POST/PUT states its own limit. Adding an entry here is a conscious decision.
+    /// </summary>
+    private static readonly HashSet<string> RequestSizeLimitExemptions = [];
+
+    [Fact]
+    public void EveryPostAndPutAction_DeclaresARequestSizeLimit()
+    {
+        // Act
+        var missing = new List<string>();
+        foreach (var c in Controllers)
+            foreach (var m in Actions(c))
+            {
+                var writes = m.GetCustomAttributes().OfType<HttpPostAttribute>().Any() ||
+                             m.GetCustomAttributes().OfType<HttpPutAttribute>().Any();
+                if (writes && m.GetCustomAttribute<RequestSizeLimitAttribute>() is null &&
+                    !RequestSizeLimitExemptions.Contains($"{c.Name}.{m.Name}"))
+                    missing.Add($"{c.Name}.{m.Name}");
+            }
+
+        // Assert
+        Assert.Empty(missing);
+    }
+
+    [Theory]
+    [InlineData("AddressStandardizationController", "Parse", 16_384)]
+    [InlineData("AddressStandardizationController", "Validate", 16_384)]
+    [InlineData("ProfileController", "SetClaim", 8_192)]
+    [InlineData("UserProfileController", "SetClaim", 8_192)]
+    [InlineData("SavedFeaturesController", "Create", 1_065_536)] // GeometryJson cap 1,000,000 + 64 KB
+    [InlineData("CollectionsController", "Create", 4_096)]
+    [InlineData("FiberOrdersController", "Create", 65_536)]
+    [InlineData("HomeFinderController", "SaveSearch", 16_384)]
+    public void KeyEndpoints_HaveTheDecidedLimit(string controller, string action, long expected)
+    {
+        // Arrange
+        var method = Controllers.Single(c => c.Name == controller).GetMethod(action)!;
+
+        // Act
+        var limit = method.GetCustomAttribute<RequestSizeLimitAttribute>();
+
+        // Assert
+        Assert.NotNull(limit);
+        var metadata = Assert.IsAssignableFrom<Microsoft.AspNetCore.Http.Metadata.IRequestSizeLimitMetadata>(limit);
+        Assert.Equal(expected, metadata.MaxRequestBodySize);
     }
 }

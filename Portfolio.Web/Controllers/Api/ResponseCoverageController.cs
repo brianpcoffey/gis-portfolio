@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
@@ -15,6 +16,7 @@ namespace Portfolio.Web.Controllers.Api
     [ApiVersion("1.0")]
     [AllowAnonymous]
     [EnableRateLimiting("expensive")]
+    [CpuBound]
     [Route("api/v{version:apiVersion}/response")]
     public class ResponseCoverageController : ControllerBase
     {

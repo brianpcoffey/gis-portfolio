@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
@@ -18,6 +19,7 @@ namespace Portfolio.Web.Controllers.Api
     // one silently neutered the [Authorize] on every saved-search action below (ASP0026).
     // The four genuinely public actions opt out individually instead.
     [EnableRateLimiting("expensive")] // scoring re-runs a DB query + native compute per call
+    [CpuBound]
     public class HomeFinderController : ControllerBase
     {
     private readonly IHomeScoringService _scoring;
@@ -34,6 +36,7 @@ namespace Portfolio.Web.Controllers.Api
     /// <summary>Compute and return top 10 properties matching user preferences.</summary>
     [AllowAnonymous]
     [HttpPost("search")]
+    [RequestSizeLimit(16_384)]
     [ProducesResponseType(typeof(List<ScoredPropertyDto>), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -47,6 +50,7 @@ namespace Portfolio.Web.Controllers.Api
     /// <summary>Backward-compatible alias for computing matching properties.</summary>
     [AllowAnonymous]
     [HttpPost("score")]
+    [RequestSizeLimit(16_384)]
     [ApiExplorerSettings(IgnoreApi = true)]
     [Obsolete("Use POST /api/v1/homefinder/search.")]
     [ProducesResponseType(typeof(List<ScoredPropertyDto>), 200)]
@@ -84,6 +88,7 @@ namespace Portfolio.Web.Controllers.Api
 
     /// <summary>Save a new search to the user's profile.</summary>
     [HttpPost("searches")]
+    [RequestSizeLimit(16_384)]
     [Authorize(Policy = "Authenticated")]
     [ProducesResponseType(typeof(SavedSearchDto), 201)]
     [ProducesResponseType(400)]

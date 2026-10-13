@@ -45,6 +45,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The created feature.</returns>
         [HttpPost]
+        [RequestSizeLimit(1_065_536)]  // WP-08 GeometryJson cap + 64 KB
         [ProducesResponseType(typeof(SavedFeatureDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(409)]

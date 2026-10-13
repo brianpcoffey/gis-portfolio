@@ -15,7 +15,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
-    <!-- Pinned to 2.7.5: patches GHSA-v5pm-xwqc-g5wc while staying on the 2.x API that
+    <!-- Pinned on 2.x (Microsoft.AspNetCore.OpenApi 10.0.12 requires [2.12.0, 3.0.0)): patches GHSA-v5pm-xwqc-g5wc while staying on the 2.x API that
          Microsoft.AspNetCore.OpenApi 10.0.x compiles against (3.x makes IOpenApiMediaType.Example read-only). -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
@@ -26,7 +26,6 @@
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="Moq" Version="4.21.0" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
     <!-- Held on xunit.v3 3.x: 4.x runs on Microsoft.Testing.Platform 2, which drops the VSTest
          `dotnet test` mode this repo's coverage pipeline (coverlet.collector + coverlet.runsettings)
          depends on. Moving to 4.x is a planned migration, not a patch bump. -->

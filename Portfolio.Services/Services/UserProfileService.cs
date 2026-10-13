@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
 using System.Security.Claims;
@@ -11,7 +12,7 @@ namespace Portfolio.Services.Services
 {
     /// <summary>
     /// Manages user profiles and claims.
-    /// Resolves the current user from HttpContext.Items["AnonUserId"] (set by middleware).
+    /// Resolves the current user from HttpContext.Items["PortfolioIdentity"] (set by the anonymous-identity middleware or the Google sign-in event).
     /// </summary>
     public class UserProfileService : IUserProfileService
     {
@@ -21,6 +22,9 @@ namespace Portfolio.Services.Services
         private readonly TimeProvider _timeProvider;
         private readonly UserProfileSeedService _seedService;
         private const string HttpContextItemKey = "PortfolioIdentity";
+        private const int MaxClaimTypeLength = 200;
+        private const int MaxClaimValueLength = 1000;
+        private const int MaxClaimsPerUser = 50;
 
         public UserProfileService(
             IHttpContextAccessor httpContextAccessor,
@@ -36,7 +40,7 @@ namespace Portfolio.Services.Services
             _logger = logger;
         }
 
-        // Reads the anonymous user's GUID from HttpContext.Items, set by AnonymousUserMiddleware.
+        // Reads the current user's GUID from HttpContext.Items["PortfolioIdentity"], set by AnonymousUserMiddleware or the sign-in event.
         // Returns null if called outside a valid HTTP request context.
         public Guid? GetCurrentUserId()
         {
@@ -67,15 +71,23 @@ namespace Portfolio.Services.Services
         }
 
         // Creates or overwrites the claim of the given type for the current user.
-        // Throws if the claim type is blank or the value is null.
+        // Throws if the claim type is blank or the value is null, if the type exceeds
+        // MaxClaimTypeLength or the value MaxClaimValueLength, or if adding a new claim type
+        // would take the user past MaxClaimsPerUser.
         public async Task SetClaimAsync(string type, string value, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(type)) throw new ArgumentException("Claim type required", nameof(type));
             if (value is null) throw new ArgumentNullException(nameof(value));
+            if (type.Length > MaxClaimTypeLength) throw new ArgumentException($"Claim type must be at most {MaxClaimTypeLength} characters", nameof(type));
+            if (value.Length > MaxClaimValueLength) throw new ArgumentException($"Claim value must be at most {MaxClaimValueLength} characters", nameof(value));
 
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
+            if (!await _repo.HasClaimAsync(userId, type, cancellationToken) &&
+                await _repo.CountClaimsAsync(userId, cancellationToken) >= MaxClaimsPerUser)
+                throw new ArgumentException($"A profile can hold at most {MaxClaimsPerUser} claims", nameof(type));
+
             await _repo.SetClaimAsync(userId, type, value, cancellationToken);
-            _logger.LogInformation("Claim '{ClaimType}' set for user {UserId}", type, userId);
+            _logger.LogInformation("Claim '{ClaimType}' set for user {UserId}", type, LogRedaction.UserId(userId));
         }
 
         // Removes the claim of the given type for the current user.
@@ -85,7 +97,7 @@ namespace Portfolio.Services.Services
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
             var removed = await _repo.RemoveClaimAsync(userId, type, cancellationToken);
             if (!removed)
-                _logger.LogWarning("Claim '{ClaimType}' not found for user {UserId} during remove", type, userId);
+                _logger.LogWarning("Claim '{ClaimType}' not found for user {UserId} during remove", type, LogRedaction.UserId(userId));
             return removed;
         }
 
@@ -126,7 +138,9 @@ namespace Portfolio.Services.Services
 
             if (!string.IsNullOrWhiteSpace(dto.DisplayName))
             {
-                await _repo.SetClaimAsync(userId, ProfileClaimTypes.DisplayName, dto.DisplayName.Trim(), cancellationToken);
+                var displayName = dto.DisplayName.Trim();
+                if (displayName.Length > MaxClaimValueLength) throw new ArgumentException($"Claim value must be at most {MaxClaimValueLength} characters", nameof(dto));
+                await _repo.SetClaimAsync(userId, ProfileClaimTypes.DisplayName, displayName, cancellationToken);
             }
             else
             {
@@ -153,7 +167,7 @@ namespace Portfolio.Services.Services
             var now = _timeProvider.GetUtcNow().UtcDateTime;
             Guid userId = Guid.Empty;
 
-            // Atomic: the profile upsert, per-user seed, and claim writes commit together, so a
+            // Atomic: the profile upsert and claim writes commit together, so a
             // mid-sequence failure never leaves a half-provisioned account.
             await _repo.RunInTransactionAsync(async ct =>
             {
@@ -174,8 +188,10 @@ namespace Portfolio.Services.Services
                         ctx.Request.Cookies.TryGetValue("AnonUserId", out var cookieVal) &&
                         Guid.TryParse(cookieVal, out var parsed))
                     {
+                        // Only an anonymous (never Google-linked) profile may be adopted; a cookie
+                        // naming a linked profile must not let this sign-in take it over.
                         var anonProfile = await _repo.GetProfileAsync(parsed, ct);
-                        if (anonProfile != null)
+                        if (anonProfile != null && !await _repo.HasClaimAsync(anonProfile.UserId, ProfileClaimTypes.GoogleId, ct))
                             anonId = anonProfile.UserId;
                     }
 
@@ -195,7 +211,6 @@ namespace Portfolio.Services.Services
                             CreatedDate = now,
                             LastActiveDate = now
                         }, ct);
-                        await _seedService.SeedForUserAsync(userId, ct);
                     }
 
                     await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, ct);
@@ -207,7 +222,25 @@ namespace Portfolio.Services.Services
                     await _repo.SetClaimAsync(userId, ProfileClaimTypes.Picture, google.Picture, ct);
             }, cancellationToken);
 
+            // Visitors are seeded at sign-in, not first visit. SeedForUserAsync is idempotent and
+            // opens its own transaction on relational providers, so it runs after ours commits,
+            // for new, adopted and returning profiles alike (a returning one may have missed an
+            // earlier seed). A seed failure must not block the sign-in.
+            await TrySeedAsync(userId, cancellationToken);
+
             return userId;
+        }
+
+        private async Task TrySeedAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _seedService.SeedForUserAsync(userId, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Seeding sample data failed for user {UserId}; sign-in continues", LogRedaction.UserId(userId));
+            }
         }
 
         public async Task<bool> IsGoogleLinkedAsync(CancellationToken cancellationToken = default)

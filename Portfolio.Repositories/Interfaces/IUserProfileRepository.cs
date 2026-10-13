@@ -10,6 +10,8 @@ namespace Portfolio.Repositories.Interfaces
         Task<bool> DeleteProfileAsync(Guid userId, CancellationToken cancellationToken = default);
         Task<List<UserClaim>> GetClaimsAsync(Guid userId, CancellationToken cancellationToken = default);
         Task<UserClaim?> GetClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default);
+        Task<bool> HasClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default);
+        Task<int> CountClaimsAsync(Guid userId, CancellationToken cancellationToken = default);
         Task SetClaimAsync(Guid userId, string type, string value, CancellationToken cancellationToken = default);
         Task<bool> RemoveClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default);
 
