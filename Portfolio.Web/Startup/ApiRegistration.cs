@@ -38,7 +38,7 @@ internal static class ApiRegistration
         });
 
         // --------------------------
-        // OpenAPI / API Explorer (the document is served by Scalar)
+        // OpenAPI / API Explorer (MapOpenApi serves /openapi/v1.json; Scalar renders it at /scalar)
         // --------------------------
         services.AddEndpointsApiExplorer();
         services.AddOpenApi();
