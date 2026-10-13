@@ -75,30 +75,10 @@ namespace Portfolio.Web.Middleware
 
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
-                var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
-                if (profile != null &&
-                    await db.UserClaims.AsNoTracking().AnyAsync(c => c.UserId == userId && c.ClaimType == ProfileClaimTypes.GoogleId))
+                if (!await ResolveFromCookieAsync(context, db, userId, now))
                 {
-                    // The anonymous cookie must never act as a Google-linked account: drop it and
-                    // continue with no identity (the next browser request gets a fresh one).
-                    context.Response.Cookies.Delete(CookieName);
                     await _next(context);
                     return;
-                }
-
-                if (profile == null)
-                {
-                    if (!TryAcquireNewIdentity(context))
-                    {
-                        await _next(context);
-                        return;
-                    }
-
-                    await CreateAnonymousAsync(db, userId, now);
-                }
-                else
-                {
-                    await TouchProfileAsync(db, profile, now);
                 }
             }
             else
@@ -124,6 +104,35 @@ namespace Portfolio.Web.Middleware
             context.Items[HttpContextItemKey] = userId;
 
             await _next(context);
+        }
+
+        // Handles a well-formed anonymous cookie. Returns true when the request should continue
+        // with this userId as its identity; false when it must continue with no identity (the
+        // cookie names a Google-linked profile and is dropped, or an unknown id is throttled).
+        private async Task<bool> ResolveFromCookieAsync(HttpContext context, PortfolioDbContext db, Guid userId, DateTime now)
+        {
+            var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
+            if (profile != null &&
+                await db.UserClaims.AsNoTracking().AnyAsync(c => c.UserId == userId && c.ClaimType == ProfileClaimTypes.GoogleId))
+            {
+                // The anonymous cookie must never act as a Google-linked account: drop it and
+                // continue with no identity (the next browser request gets a fresh one).
+                context.Response.Cookies.Delete(CookieName);
+                return false;
+            }
+
+            if (profile == null)
+            {
+                if (!TryAcquireNewIdentity(context))
+                    return false;
+
+                await CreateAnonymousAsync(db, userId, now);
+            }
+            else
+            {
+                await TouchProfileAsync(db, profile, now);
+            }
+            return true;
         }
 
         // Returns true when the request is authenticated (the caller then just continues the
