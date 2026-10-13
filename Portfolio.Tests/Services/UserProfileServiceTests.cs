@@ -169,6 +169,116 @@ namespace Portfolio.Tests.Services
         }
 
         [Fact]
+        public async Task SetClaimAsync_AtTheLengthLimits_IsAccepted()
+        {
+            // Arrange
+            // Flipped from the WP-15 characterisation that accepted 500/5000 characters.
+            var type = new string('t', 200);
+            var value = new string('v', 1000);
+            _repoMock.Setup(r => r.SetClaimAsync(_testUserId, type, value, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+            // Act
+            await _service.SetClaimAsync(type, value);
+
+            // Assert
+            _repoMock.Verify(r => r.SetClaimAsync(_testUserId, type, value, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(201, 5)]
+        [InlineData(5, 1001)]
+        public async Task SetClaimAsync_OverTheLengthLimits_ThrowsArgumentExceptionWithoutWriting(int typeLength, int valueLength)
+        {
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.SetClaimAsync(new string('t', typeLength), new string('v', valueLength)));
+            _repoMock.Verify(r => r.SetClaimAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SetClaimAsync_NewTypeWhenUserHolds50Claims_ThrowsArgumentException()
+        {
+            // Arrange
+            _repoMock.Setup(r => r.HasClaimAsync(_testUserId, "extra", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _repoMock.Setup(r => r.CountClaimsAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(50);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.SetClaimAsync("extra", "v"));
+            _repoMock.Verify(r => r.SetClaimAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SetClaimAsync_ExistingTypeWhenUserHolds50Claims_UpdatesIt()
+        {
+            // Arrange
+            _repoMock.Setup(r => r.HasClaimAsync(_testUserId, "role", It.IsAny<CancellationToken>())).ReturnsAsync(true);
+            _repoMock.Setup(r => r.CountClaimsAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(50);
+            _repoMock.Setup(r => r.SetClaimAsync(_testUserId, "role", "v", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+            // Act
+            await _service.SetClaimAsync("role", "v");
+
+            // Assert
+            _repoMock.Verify(r => r.SetClaimAsync(_testUserId, "role", "v", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SetClaimAsync_NewTypeWhenUserHolds49Claims_IsAccepted()
+        {
+            // Arrange
+            _repoMock.Setup(r => r.CountClaimsAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(49);
+            _repoMock.Setup(r => r.SetClaimAsync(_testUserId, "extra", "v", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+            // Act
+            await _service.SetClaimAsync("extra", "v");
+
+            // Assert
+            _repoMock.Verify(r => r.SetClaimAsync(_testUserId, "extra", "v", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SetClaimAsync_LogsOnlyTheRedactedUserId()
+        {
+            // Arrange
+            var logger = new CapturingLogger<UserProfileService>();
+            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedService, logger);
+            _repoMock.Setup(r => r.SetClaimAsync(_testUserId, "role", "v", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+            // Act
+            await service.SetClaimAsync("role", "v");
+
+            // Assert
+            var line = Assert.Single(logger.Lines);
+            Assert.DoesNotContain(_testUserId.ToString(), line, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(Portfolio.Repositories.Diagnostics.LogRedaction.UserId(_testUserId), line, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task RemoveClaimAsync_WhenMissing_LogsOnlyTheRedactedUserId()
+        {
+            // Arrange
+            var logger = new CapturingLogger<UserProfileService>();
+            var service = new UserProfileService(_httpContextAccessorMock.Object, _repoMock.Object, _timeProvider, _seedService, logger);
+            _repoMock.Setup(r => r.RemoveClaimAsync(_testUserId, "role", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+            // Act
+            await service.RemoveClaimAsync("role");
+
+            // Assert
+            var line = Assert.Single(logger.Lines);
+            Assert.DoesNotContain(_testUserId.ToString(), line, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private sealed class CapturingLogger<T> : ILogger<T>
+        {
+            public List<string> Lines { get; } = [];
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            public bool IsEnabled(LogLevel logLevel) => true;
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+                Lines.Add(formatter(state, exception));
+        }
+
+        [Fact]
         public async Task RemoveClaimAsync_WithExistingClaim_ReturnsTrue()
         {
             // Arrange
