@@ -1,19 +1,27 @@
 // Fleet Route Optimizer — CVRPTW over the Redlands street network.
 // Self-contained IIFE, no ES module syntax.
+// Depends on the deferred shared modules: PortfolioUi, PortfolioFormat, PortfolioCharts, PortfolioDom,
+// PortfolioMap (leaflet-setup.js, loaded after leaflet.js).
 (function () {
     "use strict";
 
-    var SVGNS = "http://www.w3.org/2000/svg";
+    var charts = window.PortfolioCharts;
+    var fmt = window.PortfolioFormat;
+    var ui = window.PortfolioUi;
+    var el = window.PortfolioDom.el;
 
-    // One colour per vehicle; routes, markers and schedule bars all key off this.
-    var VEHICLE_COLORS = [
-        "#2563eb", "#e8590c", "#2f9e44", "#ae3ec9",
-        "#0d9488", "#c2255c", "#f59f00", "#4263eb",
-        "#7048e8", "#1098ad"
-    ];
+    // One colour per vehicle; routes, markers and schedule bars all key off this. The theme's
+    // eight categorical series (--chart-1..8) are reused for vehicles 9 and 10, which the map
+    // tells apart with a dashed route line.
+    var VEHICLE_SERIES = 8;
+
+    // Colours for map symbols that sit over the always-light OpenStreetMap raster tiles in
+    // both themes (the depot and unserved stops), so they are fixed rather than tokens.
+    var MAP_UNSERVED = "#94a3b8";
+    var MAP_DEPOT = "#111827";
 
     // Cache DOM nodes up front.
-    var alertBox = document.getElementById("fleetAlert");
+    var alertBox = ui.inlineAlert(document.getElementById("fleetAlert"));
     var presetSelect = document.getElementById("fleetPreset");
     var presetHint = document.getElementById("fleetPresetHint");
     var vehiclesInput = document.getElementById("fleetVehicles");
@@ -35,19 +43,11 @@
     // Module state.
     var scenario = null;
     var lastResult = null;
+    var pending = false;
 
-    // preferCanvas keeps a few thousand polyline vertices smooth.
-    var map = L.map("fleetMap", {
-        center: [34.0565, -117.1850],
-        zoom: 13,
-        zoomControl: true,
-        preferCanvas: true
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(map);
+    // PortfolioMap supplies the OSM tile layer, attribution and canvas rendering
+    // (preferCanvas keeps a few thousand polyline vertices smooth).
+    var map = window.PortfolioMap.create("fleetMap", { label: "Fleet route map" });
 
     var overlay = L.layerGroup().addTo(map);
 
@@ -57,18 +57,33 @@
     iterationsInput.addEventListener("input", function () {
         iterationsValue.textContent = iterationsInput.value;
     });
+    // Canvas route and marker colours are resolved tokens, so repaint the map when the theme flips.
+    charts.onThemeChange(function () {
+        if (scenario) { drawMap(lastResult, true); }
+    });
 
     loadScenario();
 
     // ── Data ────────────────────────────────────────────────────────────────
 
-    function loadScenario() {
-        hideAlert();
-        setBusy(true);
+    // Runs `opts` through PortfolioUi.runAction on `trigger`, holding the other controls busy.
+    function runExclusive(trigger, opts) {
+        if (pending) { return Promise.resolve(); }
+        pending = true;
+        var others = [optimizeBtn, resetBtn, presetSelect].filter(function (c) { return c !== trigger; });
+        var release = ui.busy({ buttons: others });
+        opts.trigger = trigger;
+        opts.alert = alertBox;
+        return ui.runAction(opts).then(function (r) { release(); pending = false; return r; });
+    }
 
-        apiGet(window.PortfolioApi.routes.spatialCompute.fleet.scenario + "?preset=" +
-            encodeURIComponent(presetSelect.value))
-            .then(function (result) {
+    function loadScenario() {
+        runExclusive(resetBtn, {
+            request: function () {
+                return apiGet(window.PortfolioApi.routes.spatialCompute.fleet.scenario + "?preset=" +
+                    encodeURIComponent(presetSelect.value));
+            },
+            render: function (result) {
                 scenario = result;
                 lastResult = null;
                 presetHint.textContent = scenario.description;
@@ -77,7 +92,7 @@
                 fixedCostInput.value = scenario.vehicleFixedCost;
 
                 resetKpis();
-                routeList.innerHTML = "";
+                routeList.replaceChildren();
                 drawMap(null);
                 drawConvergence(null);
                 drawSchedule(null);
@@ -86,39 +101,48 @@
                     scenario: scenario.name,
                     stops: scenario.stops.length,
                     totalDemand: totalDemand(),
-                    shift: formatClock(scenario.shiftStartMinutes) + "–" + formatClock(scenario.shiftEndMinutes)
+                    shift: fmt.clock(scenario.shiftStartMinutes) + "–" + fmt.clock(scenario.shiftEndMinutes)
                 }, null, 2);
-            })
-            .catch(function (err) { showAlert(err.message || "Failed to load the scenario."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: function (result) {
+                return "Scenario loaded: " + result.name + ", " + result.stops.length + " stops.";
+            }
+        });
     }
 
     function optimize() {
         if (!scenario) {
-            showAlert("The scenario has not loaded yet.");
+            alertBox.show("The scenario has not loaded yet.");
             return;
         }
 
-        hideAlert();
-        setBusy(true);
-
-        apiPost(window.PortfolioApi.routes.spatialCompute.fleet.optimize, {
-            depotLatitude: scenario.depotLatitude,
-            depotLongitude: scenario.depotLongitude,
-            stops: scenario.stops,
-            vehicleCount: parseInt(vehiclesInput.value, 10),
-            vehicleCapacity: parseFloat(capacityInput.value),
-            shiftStartMinutes: scenario.shiftStartMinutes,
-            shiftEndMinutes: scenario.shiftEndMinutes,
-            vehicleFixedCost: parseFloat(fixedCostInput.value),
-            maxIterations: parseInt(iterationsInput.value, 10)
-        })
-            .then(function (result) {
+        runExclusive(optimizeBtn, {
+            request: function () {
+                return apiPost(window.PortfolioApi.routes.spatialCompute.fleet.optimize, {
+                    depotLatitude: scenario.depotLatitude,
+                    depotLongitude: scenario.depotLongitude,
+                    stops: scenario.stops,
+                    vehicleCount: parseInt(vehiclesInput.value, 10),
+                    vehicleCapacity: parseFloat(capacityInput.value),
+                    shiftStartMinutes: scenario.shiftStartMinutes,
+                    shiftEndMinutes: scenario.shiftEndMinutes,
+                    vehicleFixedCost: parseFloat(fixedCostInput.value),
+                    maxIterations: parseInt(iterationsInput.value, 10)
+                });
+            },
+            render: function (result) {
                 lastResult = result;
                 render(result);
-            })
-            .catch(function (err) { showAlert(err.message || "Optimization failed."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: function (result) {
+                var routeCount = result.routes.length;
+                return routeCount + (routeCount === 1 ? " route planned" : " routes planned") +
+                    (result.unservedStopIds.length > 0
+                        ? ", " + result.unservedStopIds.length + " stops unserved"
+                        : ", all stops served") +
+                    ". Total distance " + fmt.unit(result.totalDistanceKm, "km") + ".";
+            }
+        });
     }
 
     function totalDemand() {
@@ -134,9 +158,9 @@
         });
 
         kpiVehicles.textContent = result.vehiclesUsed + " / " + vehiclesInput.value;
-        kpiDistance.textContent = result.totalDistanceKm.toFixed(1) + " km";
-        kpiLongest.textContent = longest.toFixed(1) + " km";
-        kpiImprovement.textContent = result.improvementPercent.toFixed(1) + "%";
+        kpiDistance.textContent = fmt.unit(result.totalDistanceKm, "km");
+        kpiLongest.textContent = fmt.unit(longest, "km");
+        kpiImprovement.textContent = fmt.percent(result.improvementPercent);
 
         buildRouteList(result);
         drawMap(result);
@@ -164,45 +188,43 @@
     function buildRouteList(result) {
         var capacity = parseFloat(capacityInput.value);
         var rows = result.routes.map(function (route) {
-            var color = colorFor(route.vehicleIndex);
-            var cls = route.feasible ? "geo-cell-item" : "geo-cell-item geo-cell-anomaly";
-            return '<div class="' + cls + '">' +
-                '<div class="d-flex align-items-center justify-content-between">' +
-                '<span class="d-inline-flex align-items-center gap-2">' +
-                '<span style="width:0.7rem;height:0.7rem;border-radius:2px;background:' + color +
-                ';display:inline-block;"></span>Vehicle ' + (route.vehicleIndex + 1) + '</span>' +
-                '<strong>' + route.distanceKm.toFixed(1) + ' km</strong></div>' +
-                '<div class="geo-cell-meta">' + route.stopIds.length + ' stops · ' +
-                Math.round(route.load) + '/' + Math.round(capacity) + ' kg · back ' +
-                formatClock(route.returnMinutes) + '</div></div>';
+            var swatch = el("span", { class: "legend__swatch", "aria-hidden": "true" });
+            swatch.style.setProperty("--swatch", seriesVar(route.vehicleIndex));
+            return el("div", { class: route.feasible ? "geo-cell-item" : "geo-cell-item geo-cell-anomaly" },
+                el("div", { class: "d-flex align-items-center justify-content-between" },
+                    el("span", { class: "d-inline-flex align-items-center gap-2" },
+                        swatch, "Vehicle " + (route.vehicleIndex + 1)),
+                    el("strong", { text: fmt.unit(route.distanceKm, "km") })),
+                el("div", { class: "geo-cell-meta",
+                    text: route.stopIds.length + " stops · " + Math.round(route.load) + "/" + Math.round(capacity) +
+                        " kg · back " + fmt.clock(route.returnMinutes) }));
         });
 
         if (result.unservedStopIds.length > 0) {
-            rows.push('<div class="geo-cell-item geo-cell-anomaly">' +
-                '<div class="d-flex align-items-center justify-content-between">' +
-                '<span>Unserved</span><strong>' + result.unservedStopIds.length + '</strong></div>' +
-                '<div class="geo-cell-meta">Stops ' + escapeHtml(result.unservedStopIds.join(", ")) +
-                ' could not be served within capacity and their time windows.</div></div>');
+            rows.push(el("div", { class: "geo-cell-item geo-cell-anomaly" },
+                el("div", { class: "d-flex align-items-center justify-content-between" },
+                    el("span", { text: "Unserved" }),
+                    el("strong", { text: String(result.unservedStopIds.length) })),
+                el("div", { class: "geo-cell-meta",
+                    text: "Stops " + result.unservedStopIds.join(", ") +
+                        " could not be served within capacity and their time windows." })));
         }
 
-        routeList.innerHTML = rows.join("");
-
-        var routeCount = result.routes.length;
-        announce(routeCount + (routeCount === 1 ? " route planned" : " routes planned") +
-            (result.unservedStopIds.length > 0
-                ? ", " + result.unservedStopIds.length + " stops unserved"
-                : ", all stops served"));
+        routeList.replaceChildren.apply(routeList, rows);
     }
 
     // ── Map ─────────────────────────────────────────────────────────────────
 
-    function drawMap(result) {
+    // `keepView` repaints without re-fitting the map (used when only the theme changed).
+    function drawMap(result, keepView) {
         overlay.clearLayers();
         if (!scenario) {
             return;
         }
 
         var bounds = [];
+        var series = charts.palette(VEHICLE_SERIES);
+        var onDark = charts.token("on-dark");
 
         // Routes first so the markers sit on top of the polylines.
         if (result) {
@@ -210,11 +232,12 @@
                 if (!route.path || route.path.length < 2) { return; }
                 var latlngs = route.path.map(function (c) { return [c.y, c.x]; });
                 L.polyline(latlngs, {
-                    color: colorFor(route.vehicleIndex),
+                    color: series[route.vehicleIndex % VEHICLE_SERIES],
                     weight: 4,
                     opacity: 0.85,
                     lineJoin: "round",
-                    lineCap: "round"
+                    lineCap: "round",
+                    dashArray: route.vehicleIndex >= VEHICLE_SERIES ? "10 6" : null
                 }).addTo(overlay);
             });
         }
@@ -237,21 +260,20 @@
             var served = assigned !== undefined;
             var marker = L.circleMarker([stop.latitude, stop.longitude], {
                 radius: served ? 7 : 5,
-                fillColor: served ? colorFor(assigned) : "#94a3b8",
-                color: "#fff",
+                fillColor: served ? series[assigned % VEHICLE_SERIES] : MAP_UNSERVED,
+                color: onDark,
                 weight: served ? 1.6 : 1,
                 fillOpacity: served ? 0.95 : 0.5,
                 dashArray: served ? null : "2 2"
             }).addTo(overlay);
 
-            var tip = "<strong>" + escapeHtml(stop.label) + "</strong><br/>" +
-                Math.round(stop.demand) + " kg · window " +
-                formatClock(stop.readyMinutes) + "–" + formatClock(stop.dueMinutes);
+            var tip = el("span", {}, el("strong", { text: stop.label }), document.createElement("br"),
+                Math.round(stop.demand) + " kg · window " + fmt.clock(stop.readyMinutes) + "–" + fmt.clock(stop.dueMinutes));
             if (served) {
-                tip += "<br/>Vehicle " + (assigned + 1) + ", stop #" + sequence[stop.id] +
-                    " · ETA " + formatClock(arrival[stop.id]);
+                tip.append(document.createElement("br"), "Vehicle " + (assigned + 1) + ", stop #" + sequence[stop.id] +
+                    " · ETA " + fmt.clock(arrival[stop.id]));
             } else {
-                tip += "<br/><em>Unserved</em>";
+                tip.append(document.createElement("br"), el("em", { text: "Unserved" }));
             }
             marker.bindTooltip(tip, { direction: "top" });
 
@@ -260,15 +282,15 @@
 
         var depot = L.circleMarker([scenario.depotLatitude, scenario.depotLongitude], {
             radius: 10,
-            fillColor: "#111827",
-            color: "#fff",
+            fillColor: MAP_DEPOT,
+            color: onDark,
             weight: 2.5,
             fillOpacity: 0.95
         }).addTo(overlay);
-        depot.bindTooltip("<strong>" + escapeHtml(scenario.depotLabel) + "</strong>", { direction: "top" });
+        depot.bindTooltip(el("strong", { text: scenario.depotLabel }), { direction: "top" });
         bounds.push([scenario.depotLatitude, scenario.depotLongitude]);
 
-        if (bounds.length > 0) {
+        if (bounds.length > 0 && !keepView) {
             map.fitBounds(bounds, { padding: [30, 30] });
         }
     }
@@ -276,18 +298,20 @@
     // ── Convergence chart ───────────────────────────────────────────────────
 
     function drawConvergence(result) {
-        convergenceSvg.innerHTML = "";
+        charts.svg.clear(convergenceSvg);
+        var svg = charts.svg;
 
         var left = 13, right = 97, top = 5, bottom = 36;
 
-        appendLine(convergenceSvg, left, top, left, bottom, "var(--text-muted)", 0.3);
-        appendLine(convergenceSvg, left, bottom, right, bottom, "var(--text-muted)", 0.3);
-        appendText(convergenceSvg, (left + right) / 2, 44, "Local-search pass", 2.6, "middle", "var(--text-muted)");
-        appendText(convergenceSvg, 3.2, (top + bottom) / 2, "Objective", 2.6, "middle", "var(--text-muted)", -90);
+        svg.line(convergenceSvg, left, top, left, bottom, { width: 0.3 });
+        svg.line(convergenceSvg, left, bottom, right, bottom, { width: 0.3 });
+        svg.text(convergenceSvg, (left + right) / 2, 44, "Local-search pass", { size: 2.6, anchor: "middle" });
+        svg.text(convergenceSvg, 3.2, (top + bottom) / 2, "Objective", { size: 2.6, anchor: "middle", rotate: -90 });
 
         if (!result || !result.iterationCosts || result.iterationCosts.length < 2) {
-            appendText(convergenceSvg, (left + right) / 2, (top + bottom) / 2,
-                "Run the optimizer to trace convergence", 3, "middle", "var(--text-muted)");
+            svg.text(convergenceSvg, (left + right) / 2, (top + bottom) / 2,
+                "Run the optimizer to trace convergence", { size: 3, anchor: "middle" });
+            charts.describe(convergenceSvg, "Objective convergence chart. The optimizer has not been run yet.");
             return;
         }
 
@@ -305,63 +329,61 @@
         var lo = minCost - span * 0.25;
         var hi = maxCost + span * 0.15;
 
-        function xFor(index) {
-            return left + (costs.length === 1 ? 0 : index / (costs.length - 1)) * (right - left);
-        }
-
-        function yFor(cost) {
-            return bottom - (cost - lo) / (hi - lo) * (bottom - top);
-        }
+        var xAt = charts.scale.linear([0, Math.max(costs.length - 1, 1)], [left, right]);
+        var yFor = charts.scale.linear([lo, hi], [bottom, top]);
 
         var q;
         for (q = 0; q <= 3; q++) {
             var value = lo + (hi - lo) * q / 3;
             var gy = yFor(value);
-            appendLine(convergenceSvg, left, gy, right, gy, "var(--border)", 0.18);
-            appendText(convergenceSvg, left - 1.2, gy + 0.9, value.toFixed(0), 2.2, "end", "var(--text-muted)");
+            svg.line(convergenceSvg, left, gy, right, gy, { stroke: "var(--border)", width: 0.18 });
+            svg.text(convergenceSvg, left - 1.2, gy + 0.9, fmt.number(value), { size: 2.2, anchor: "end" });
         }
 
         var points = costs.map(function (cost, index) {
-            return xFor(index).toFixed(2) + "," + yFor(cost).toFixed(2);
+            return xAt(index).toFixed(2) + "," + yFor(cost).toFixed(2);
         }).join(" ");
 
-        var polyline = document.createElementNS(SVGNS, "polyline");
-        polyline.setAttribute("points", points);
-        polyline.setAttribute("fill", "none");
-        polyline.setAttribute("stroke", "var(--primary-light)");
-        polyline.setAttribute("stroke-width", "0.7");
-        polyline.setAttribute("stroke-linejoin", "round");
-        convergenceSvg.appendChild(polyline);
+        convergenceSvg.appendChild(svg.el("polyline", {
+            points: points,
+            fill: "none",
+            stroke: "var(--chart-series)",
+            "stroke-width": "0.7",
+            "stroke-linejoin": "round"
+        }));
 
-        markPoint(xFor(0), yFor(costs[0]), "Clarke-Wright " + costs[0].toFixed(0), "start");
-        markPoint(xFor(costs.length - 1), yFor(costs[costs.length - 1]),
-            "Final " + costs[costs.length - 1].toFixed(0), "end");
+        markPoint(xAt(0), yFor(costs[0]), "Clarke-Wright " + fmt.number(costs[0]), "start");
+        markPoint(xAt(costs.length - 1), yFor(costs[costs.length - 1]),
+            "Final " + fmt.number(costs[costs.length - 1]), "end");
 
-        appendText(convergenceSvg, (left + right) / 2, top + 2,
-            result.improvementPercent.toFixed(1) + "% lower after " + (costs.length - 1) + " passes",
-            2.6, "middle", "var(--accent)");
+        svg.text(convergenceSvg, (left + right) / 2, top + 2,
+            fmt.percent(result.improvementPercent) + " lower after " + (costs.length - 1) + " passes",
+            { size: 2.6, anchor: "middle", fill: "var(--accent-text)" });
+
+        charts.describe(convergenceSvg, "Objective convergence chart: " + fmt.number(costs[0]) + " after construction, " +
+            fmt.number(costs[costs.length - 1]) + " after " + (costs.length - 1) + " local-search passes, " +
+            fmt.percent(result.improvementPercent) + " lower.");
 
         function markPoint(cx, cy, label, anchor) {
-            var dot = document.createElementNS(SVGNS, "circle");
-            dot.setAttribute("cx", cx.toFixed(2));
-            dot.setAttribute("cy", cy.toFixed(2));
-            dot.setAttribute("r", "0.9");
-            dot.setAttribute("fill", "#e03131");
-            convergenceSvg.appendChild(dot);
-            appendText(convergenceSvg, cx, cy - 2, label, 2.3, anchor, "var(--text)");
+            convergenceSvg.appendChild(svg.el("circle", {
+                cx: cx.toFixed(2), cy: cy.toFixed(2), r: "0.9", fill: "var(--status-danger-fill)"
+            }));
+            svg.text(convergenceSvg, cx, cy - 2, label, { size: 2.3, anchor: anchor, fill: "var(--text)" });
         }
     }
 
     // ── Schedule timeline ───────────────────────────────────────────────────
 
     function drawSchedule(result) {
-        scheduleSvg.innerHTML = "";
+        charts.svg.clear(scheduleSvg);
+        var svg = charts.svg;
 
         var left = 12, right = 98, top = 6;
 
         if (!result || result.routes.length === 0 || !scenario) {
-            appendText(scheduleSvg, (left + right) / 2, 28,
-                "Run the optimizer to build the dispatch schedule", 3, "middle", "var(--text-muted)");
+            svg.text(scheduleSvg, (left + right) / 2, 28,
+                "Run the optimizer to build the dispatch schedule", { size: 3, anchor: "middle" });
+            charts.describe(scheduleSvg, "Vehicle schedule timeline. The optimizer has not been run yet.");
             return;
         }
 
@@ -370,18 +392,15 @@
         var rowHeight = Math.min(8, (54 - top) / result.routes.length);
         var barHeight = rowHeight * 0.55;
 
-        function xFor(minutes) {
-            var t = (minutes - shiftStart) / (shiftEnd - shiftStart);
-            return left + Math.max(0, Math.min(1, t)) * (right - left);
-        }
+        var xFor = charts.scale.linear([shiftStart, shiftEnd], [left, right]);
 
         // Hour gridlines across the shift.
         var hour;
         for (hour = Math.ceil(shiftStart / 60) * 60; hour <= shiftEnd; hour += 60) {
             var gx = xFor(hour);
-            appendLine(scheduleSvg, gx, top - 2, gx, top + rowHeight * result.routes.length,
-                "var(--border)", 0.18);
-            appendText(scheduleSvg, gx, top - 3, formatClock(hour), 2.2, "middle", "var(--text-muted)");
+            svg.line(scheduleSvg, gx, top - 2, gx, top + rowHeight * result.routes.length,
+                { stroke: "var(--border)", width: 0.18 });
+            svg.text(scheduleSvg, gx, top - 3, fmt.clock(hour), { size: 2.2, anchor: "middle" });
         }
 
         var byId = {};
@@ -389,13 +408,13 @@
 
         result.routes.forEach(function (route, rowIndex) {
             var y = top + rowIndex * rowHeight;
-            var color = colorFor(route.vehicleIndex);
+            var color = seriesVar(route.vehicleIndex);
 
-            appendText(scheduleSvg, left - 1.5, y + barHeight * 0.85, "V" + (route.vehicleIndex + 1),
-                2.4, "end", "var(--text-muted)");
+            svg.text(scheduleSvg, left - 1.5, y + barHeight * 0.85, "V" + (route.vehicleIndex + 1),
+                { size: 2.4, anchor: "end" });
 
-            appendLine(scheduleSvg, left, y + barHeight / 2, right, y + barHeight / 2,
-                "var(--border)", 0.15);
+            svg.line(scheduleSvg, left, y + barHeight / 2, right, y + barHeight / 2,
+                { stroke: "var(--border)", width: 0.15 });
 
             route.stopIds.forEach(function (stopId, index) {
                 var stop = byId[stopId];
@@ -414,73 +433,37 @@
             });
         });
 
-        appendText(scheduleSvg, (left + right) / 2, top + rowHeight * result.routes.length + 5,
+        svg.text(scheduleSvg, (left + right) / 2, top + rowHeight * result.routes.length + 5,
             "Solid blocks are arrival and service; the pale band behind each is the customer's window.",
-            2.3, "middle", "var(--text-muted)");
+            { size: 2.3, anchor: "middle" });
+
+        charts.describe(scheduleSvg, "Vehicle schedule timeline for " + result.routes.length + " vehicles across the " +
+            fmt.clock(shiftStart) + " to " + fmt.clock(shiftEnd) + " shift. Each block is a stop's arrival and service " +
+            "time inside its customer window.");
 
         function titleFor(stop, arrive, vehicleIndex) {
-            var title = document.createElementNS(SVGNS, "title");
+            var title = svg.el("title");
             title.textContent = stop.label + " — vehicle " + (vehicleIndex + 1) +
-                ", ETA " + formatClock(arrive) +
-                ", window " + formatClock(stop.readyMinutes) + "–" + formatClock(stop.dueMinutes);
+                ", ETA " + fmt.clock(arrive) +
+                ", window " + fmt.clock(stop.readyMinutes) + "–" + fmt.clock(stop.dueMinutes);
             return title;
         }
     }
 
-    // ── SVG helpers ─────────────────────────────────────────────────────────
-
     function appendRect(x, y, width, height, fill, opacity) {
-        var rect = document.createElementNS(SVGNS, "rect");
-        rect.setAttribute("x", x.toFixed(2));
-        rect.setAttribute("y", y.toFixed(2));
-        rect.setAttribute("width", width.toFixed(2));
-        rect.setAttribute("height", height.toFixed(2));
-        rect.setAttribute("rx", "0.3");
-        rect.setAttribute("fill", fill);
-        rect.setAttribute("fill-opacity", String(opacity));
+        var rect = charts.svg.el("rect", {
+            x: x.toFixed(2), y: y.toFixed(2), width: width.toFixed(2), height: height.toFixed(2),
+            rx: "0.3", fill: fill, "fill-opacity": String(opacity)
+        });
         scheduleSvg.appendChild(rect);
         return rect;
     }
 
-    function appendLine(svg, x1, y1, x2, y2, stroke, width) {
-        var line = document.createElementNS(SVGNS, "line");
-        line.setAttribute("x1", x1.toFixed(2));
-        line.setAttribute("y1", y1.toFixed(2));
-        line.setAttribute("x2", x2.toFixed(2));
-        line.setAttribute("y2", y2.toFixed(2));
-        line.setAttribute("stroke", stroke);
-        line.setAttribute("stroke-width", String(width));
-        svg.appendChild(line);
-        return line;
-    }
-
-    function appendText(svg, x, y, content, size, anchor, fill, rotate) {
-        var text = document.createElementNS(SVGNS, "text");
-        text.setAttribute("x", x.toFixed(2));
-        text.setAttribute("y", y.toFixed(2));
-        text.setAttribute("font-size", String(size));
-        text.setAttribute("text-anchor", anchor);
-        text.setAttribute("fill", fill);
-        if (rotate) {
-            text.setAttribute("transform", "rotate(" + rotate + " " + x.toFixed(2) + " " + y.toFixed(2) + ")");
-        }
-        text.textContent = content;
-        svg.appendChild(text);
-        return text;
-    }
-
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    function colorFor(index) {
-        return VEHICLE_COLORS[index % VEHICLE_COLORS.length];
-    }
-
-    function formatClock(minutes) {
-        if (!isFinite(minutes)) { return "–"; }
-        var total = Math.round(minutes);
-        var h = Math.floor(total / 60) % 24;
-        var m = total % 60;
-        return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+    // `var(--chart-N)` for SVG fills and CSS swatches (follows the theme without a redraw).
+    function seriesVar(index) {
+        return "var(--chart-" + ((index % VEHICLE_SERIES) + 1) + ")";
     }
 
     function round(value, places) {
@@ -493,36 +476,5 @@
         kpiDistance.textContent = "–";
         kpiLongest.textContent = "–";
         kpiImprovement.textContent = "–";
-    }
-
-    function setBusy(busy) {
-        optimizeBtn.disabled = busy;
-        resetBtn.disabled = busy;
-        presetSelect.disabled = busy;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
-    }
-
-    function escapeHtml(text) {
-        var div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Sends a message to the global polite live region. Clearing first and setting on a
-    // timeout makes a repeated identical message fire again instead of being swallowed.
-    function announce(message) {
-        var live = document.getElementById("a11yAnnounce");
-        if (!live) { return; }
-        live.textContent = "";
-        window.setTimeout(function () { live.textContent = message; }, 40);
     }
 }());
