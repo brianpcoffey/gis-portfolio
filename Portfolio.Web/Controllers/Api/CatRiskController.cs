@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -22,14 +23,10 @@ namespace Portfolio.Web.Controllers.Api
     public class CatRiskController : ControllerBase
     {
         private readonly ICatRiskService _catRiskService;
-        private readonly ILogger<CatRiskController> _logger;
 
-        public CatRiskController(
-            ICatRiskService catRiskService,
-            ILogger<CatRiskController> logger)
+        public CatRiskController(ICatRiskService catRiskService)
         {
             _catRiskService = catRiskService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -52,6 +49,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Policy locations, ring radius, and concentration limit.</param>
         /// <returns>Per-location ring totals plus a breach tally and the worst offender.</returns>
         [HttpPost("accumulation")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(AccumulationResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -60,16 +58,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] AccumulationRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _catRiskService.ComputeAccumulationAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid catastrophe accumulation request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _catRiskService.ComputeAccumulationAsync(request, cancellationToken));
         }
 
         /// <summary>
@@ -79,6 +68,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Policy locations, event catalog, and vulnerability curve shape.</param>
         /// <returns>AAL, PML, benchmark return-period losses, and the OEP curve.</returns>
         [HttpPost("simulate")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(SimulationResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -87,16 +77,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] SimulationRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _catRiskService.SimulateAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid catastrophe simulation request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _catRiskService.SimulateAsync(request, cancellationToken));
         }
     }
 }

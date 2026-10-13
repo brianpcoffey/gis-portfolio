@@ -59,8 +59,7 @@ namespace Portfolio.Tests.Controllers
 
         public SpatialClusterControllerTests()
         {
-            _controller = new SpatialClusterController(
-                _service.Object, NullLogger<SpatialClusterController>.Instance);
+            _controller = new SpatialClusterController(_service.Object);
         }
 
         [Fact]
@@ -80,32 +79,30 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task RunDbscan_ServiceArgumentException_ReturnsBadRequestWithErrorBody()
+        public async Task RunDbscan_ServiceArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             _service.Setup(s => s.RunDbscanAsync(It.IsAny<DbscanRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Bad epsilon."));
 
-            // Act
-            var result = await _controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad epsilon.");
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None));
         }
 
         [Fact]
-        public async Task RunDbscan_RealServiceWithNoPoints_BodyCarriesParameterSuffix()
+        public async Task RunDbscan_RealServiceWithNoPoints_MessageCarriesParameterSuffix()
         {
             // Arrange
             var controller = new SpatialClusterController(
-                new SpatialClusterService(NullLogger<SpatialClusterService>.Instance),
-                NullLogger<SpatialClusterController>.Instance);
+                new SpatialClusterService(NullLogger<SpatialClusterService>.Instance));
 
             // Act
-            var result = await controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(
+                () => controller.RunDbscan(new DbscanRequestDto(), CancellationToken.None));
 
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "At least one point is required. (Parameter 'request')");
+            // Assert: this is the text the filter puts in the 400 body.
+            Assert.Equal("At least one point is required. (Parameter 'request')", ex.Message);
         }
 
         [Fact]

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -18,12 +19,10 @@ namespace Portfolio.Web.Controllers.Api
     public class ReverseGeocodingController : ControllerBase
     {
         private readonly IReverseGeocodingService _reverseGeocodingService;
-        private readonly ILogger<ReverseGeocodingController> _logger;
 
-        public ReverseGeocodingController(IReverseGeocodingService reverseGeocodingService, ILogger<ReverseGeocodingController> logger)
+        public ReverseGeocodingController(IReverseGeocodingService reverseGeocodingService)
         {
             _reverseGeocodingService = reverseGeocodingService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -33,6 +32,8 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="lng">WGS84 longitude (-180 to 180).</param>
         /// <returns>Structured place data including address components and location type.</returns>
         [HttpGet]
+        [BadRequestOnArgumentException]
+        [ArcGisUnavailable(ArcGisUpstream.Geocoding)]
         [ProducesResponseType(typeof(ReverseGeocodingResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -45,24 +46,9 @@ namespace Portfolio.Web.Controllers.Api
                 var result = await _reverseGeocodingService.ReverseGeocodeAsync(lat, lng, cancellationToken);
                 return Ok(result);
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
             catch (KeyNotFoundException)
             {
                 return NotFound();
-            }
-            catch (Polly.CircuitBreaker.BrokenCircuitException)
-            {
-                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
-                {
-                    Status = 503,
-                    Title  = "Geocoding Unavailable",
-                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
-                    Extensions = { ["retryAfterSeconds"] = 15 }
-                });
             }
         }
     }

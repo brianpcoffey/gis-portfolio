@@ -15,8 +15,7 @@ namespace Portfolio.Tests.Controllers
 
         public ViewshedControllerTests()
         {
-            _controller = new ViewshedController(
-                _service.Object, NullLogger<ViewshedController>.Instance);
+            _controller = new ViewshedController(_service.Object);
         }
 
         [Fact]
@@ -36,51 +35,47 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Compute_ServiceArgumentException_ReturnsBadRequestWithErrorBody()
+        public async Task Compute_ServiceArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             _service.Setup(s => s.ComputeAsync(It.IsAny<ViewshedRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Bad grid."));
 
-            // Act
-            var result = await _controller.Compute(new ViewshedRequestDto(), CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad grid.");
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(
+                () => _controller.Compute(new ViewshedRequestDto(), CancellationToken.None));
         }
 
         [Fact]
-        public async Task Compute_RealServiceWithEmptyGrid_BodyOmitsParameterSuffix()
+        public async Task Compute_RealServiceWithEmptyGrid_MessageOmitsParameterSuffix()
         {
             // Arrange
             // ViewshedService.ValidateRasterShape throws without nameof(request), so unlike the
-            // other spatial services the body has no " (Parameter 'request')" suffix.
+            // other spatial services the message has no " (Parameter 'request')" suffix.
             var controller = new ViewshedController(
-                new ViewshedService(NullLogger<ViewshedService>.Instance),
-                NullLogger<ViewshedController>.Instance);
+                new ViewshedService(NullLogger<ViewshedService>.Instance));
 
             // Act
-            var result = await controller.Compute(
-                new ViewshedRequestDto { Width = 0, Height = 0, Elevation = [] }, CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Compute(
+                new ViewshedRequestDto { Width = 0, Height = 0, Elevation = [] }, CancellationToken.None));
 
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Raster dimensions must be greater than zero.");
+            // Assert: this is the text the filter puts in the 400 body.
+            Assert.Equal("Raster dimensions must be greater than zero.", ex.Message);
         }
 
         [Fact]
-        public async Task Compute_RealServiceWithoutElevation_BodyCarriesParameterSuffix()
+        public async Task Compute_RealServiceWithoutElevation_MessageCarriesParameterSuffix()
         {
             // Arrange
             var controller = new ViewshedController(
-                new ViewshedService(NullLogger<ViewshedService>.Instance),
-                NullLogger<ViewshedController>.Instance);
+                new ViewshedService(NullLogger<ViewshedService>.Instance));
 
             // Act
-            var result = await controller.Compute(
-                new ViewshedRequestDto { Width = 2, Height = 2, Elevation = null! }, CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Compute(
+                new ViewshedRequestDto { Width = 2, Height = 2, Elevation = null! }, CancellationToken.None));
 
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Elevation values are required. (Parameter 'request')");
+            // Assert: this is the text the filter puts in the 400 body.
+            Assert.Equal("Elevation values are required. (Parameter 'request')", ex.Message);
         }
     }
 }

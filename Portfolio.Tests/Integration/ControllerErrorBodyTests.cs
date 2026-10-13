@@ -16,12 +16,12 @@ namespace Portfolio.Tests.Integration;
 /// <summary>
 /// WP-43 / D-17: pins the exact wire bodies of the two controller error shapes that the
 /// <c>[BadRequestOnArgumentException]</c> and <c>[ArcGisUnavailable]</c> filters now produce, through
-/// the real host. They pass on the old try/catch code and on the filters, so they prove the move did
-/// not change a byte of the response. The 400 cases use the real services (no stubs) so the message
-/// text is the one a client sees; the 503 cases stub the service to throw the breaker exception
-/// (opening a real breaker takes several slow retried requests). Nothing leaves the machine: the
-/// factory replaces every ArcGIS transport. One factory per test, because rate-limit state lives in
-/// the host.
+/// the real host. All but the "framework" case below passed unchanged on the old try/catch code and
+/// on the filters, so they prove the move did not change a byte of the response. The 400 cases use
+/// the real services (no stubs) so the message text is the one a client sees; the 503 cases stub the
+/// service to throw the breaker exception (opening a real breaker takes several slow retried
+/// requests). Nothing leaves the machine: the factory replaces every ArcGIS transport. One factory
+/// per test, because rate-limit state lives in the host.
 /// </summary>
 public class ControllerErrorBodyTests
 {
@@ -96,6 +96,33 @@ public class ControllerErrorBodyTests
         await AssertBody(r, HttpStatusCode.BadRequest, "application/json",
             "{\"error\":\"The CSV file contains no data rows. (Parameter 'addresses.csv')\"}");
         Assert.Equal(0, f.ArcGisAttempts("IBatchGeocodingService"));
+    }
+
+    // ---- the one deliberate change: framework-originated text no longer reaches the 400 body ---------
+
+    private sealed class FrameworkThrowingReverseService : IReverseGeocodingService
+    {
+        public Task<ReverseGeocodingResultDto> ReverseGeocodeAsync(double latitude, double longitude, CancellationToken cancellationToken = default)
+        {
+            // Throws an ArgumentException from inside the BCL ("Requested value 'not-a-day' was not found.").
+            Enum.Parse<DayOfWeek>("not-a-day");
+            throw new InvalidOperationException("unreachable");
+        }
+    }
+
+    [Fact]
+    public async Task ReverseGeocode_ArgumentExceptionFromTheFramework_Returns400WithTheGenericMessage()
+    {
+        // Arrange: before WP-43 this body carried the BCL's own message; the filter applies the
+        // same "is it ours" rule as ApiExceptionMiddleware, so framework detail cannot leak.
+        await using var f = new PortfolioAppFactory();
+        var client = ClientWith(f, s => s.AddSingleton<IReverseGeocodingService>(new FrameworkThrowingReverseService()));
+
+        // Act
+        var r = await client.GetAsync("/api/v1/geocoding/reverse?lat=34&lng=-117", TestContext.Current.CancellationToken);
+
+        // Assert
+        await AssertBody(r, HttpStatusCode.BadRequest, "application/json", "{\"error\":\"The request was invalid.\"}");
     }
 
     // ---- 503 ProblemDetails: the breaker exception, from a stubbed service ------------------------

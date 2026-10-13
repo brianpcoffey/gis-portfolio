@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -20,14 +21,10 @@ namespace Portfolio.Web.Controllers.Api
     public class SpatialClusterController : ControllerBase
     {
         private readonly ISpatialClusterService _clusterService;
-        private readonly ILogger<SpatialClusterController> _logger;
 
-        public SpatialClusterController(
-            ISpatialClusterService clusterService,
-            ILogger<SpatialClusterController> logger)
+        public SpatialClusterController(ISpatialClusterService clusterService)
         {
             _clusterService = clusterService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -36,6 +33,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Points plus epsilon and minimum-points parameters.</param>
         /// <returns>Cluster labels, cluster sizes, and noise count.</returns>
         [HttpPost("dbscan")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(DbscanResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -44,16 +42,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] DbscanRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _clusterService.RunDbscanAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid DBSCAN clustering request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _clusterService.RunDbscanAsync(request, cancellationToken));
         }
     }
 }

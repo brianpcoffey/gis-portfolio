@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Enums;
@@ -17,9 +15,7 @@ namespace Portfolio.Tests.Controllers
         public AddressStandardizationControllerTests()
         {
             _serviceMock = new Mock<IAddressStandardizationService>();
-            _controller = new AddressStandardizationController(
-                _serviceMock.Object,
-                new Mock<ILogger<AddressStandardizationController>>().Object);
+            _controller = new AddressStandardizationController(_serviceMock.Object);
         }
 
         // ── /parse ────────────────────────────────────────────────────────────
@@ -71,20 +67,17 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Parse_ServiceThrowsArgumentException_ReturnsBadRequest()
+        public async Task Parse_ServiceThrowsArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             _serviceMock
                 .Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("RawAddress is required."));
 
-            var request = new AddressParseRequestDto { RawAddress = " " };
+            var request = new AddressParseRequestDto { RawAddress = "bad" };
 
-            // Act
-            var result = await _controller.Parse(request, CancellationToken.None);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => _controller.Parse(request, CancellationToken.None));
         }
 
         // ── /validate ─────────────────────────────────────────────────────────
@@ -132,82 +125,61 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Validate_ServiceThrowsArgumentException_ReturnsBadRequest()
+        public async Task Validate_ServiceThrowsArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             _serviceMock
                 .Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("RawAddress is required."));
 
             var request = new AddressParseRequestDto { RawAddress = "bad" };
 
-            // Act
-            var result = await _controller.Validate(request, CancellationToken.None);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result);
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => _controller.Validate(request, CancellationToken.None));
         }
 
         // ── Circuit-breaker resilience ──────────────────────────────────────────
 
         [Fact]
-        public async Task Parse_BrokenCircuit_Returns503WithProblemDetails()
+        public async Task Parse_BrokenCircuit_Propagates()
         {
-            // Arrange
+            // Arrange: [ArcGisUnavailable] turns it into the 503 body (see the filter tests).
             _serviceMock
                 .Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
 
             var request = new AddressParseRequestDto { RawAddress = "123 Main St" };
 
-            // Act
-            var result = await _controller.Parse(request, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(503, problem.Status);
-            Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
+            // Act & Assert
+            await Assert.ThrowsAsync<Polly.CircuitBreaker.BrokenCircuitException>(
+                () => _controller.Parse(request, CancellationToken.None));
         }
 
         [Fact]
-        public async Task Validate_BrokenCircuit_Returns503WithProblemDetails()
+        public async Task Validate_BrokenCircuit_Propagates()
         {
-            // Arrange
+            // Arrange: [ArcGisUnavailable] turns it into the 503 body (see the filter tests).
             _serviceMock
                 .Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("circuit open"));
 
             var request = new AddressParseRequestDto { RawAddress = "123 Main St" };
 
-            // Act
-            var result = await _controller.Validate(request, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(503, problem.Status);
-            Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
+            // Act & Assert
+            await Assert.ThrowsAsync<Polly.CircuitBreaker.BrokenCircuitException>(
+                () => _controller.Validate(request, CancellationToken.None));
         }
 
         // ── Exact error bodies ─────────────────────────────────────────────────
 
-        private static (AddressStandardizationController Controller, Mock<IAddressStandardizationService> Service) NewPinned()
-        {
-            var service = new Mock<IAddressStandardizationService>();
-            var controller = new AddressStandardizationController(
-                service.Object,
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<AddressStandardizationController>.Instance);
-            return (controller, service);
-        }
+        private static AddressStandardizationController NewPinned() =>
+            new(new Mock<IAddressStandardizationService>().Object);
 
         [Fact]
         public async Task Parse_BlankAddress_PinsExactErrorBody()
         {
             // Arrange
-            var (controller, _) = NewPinned();
+            var controller = NewPinned();
 
             // Act
             var result = await controller.Parse(new AddressParseRequestDto { RawAddress = " " }, CancellationToken.None);
@@ -217,76 +189,16 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Parse_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var (controller, service) = NewPinned();
-            service.Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Unparseable address.", "rawAddress"));
-
-            // Act
-            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result, 400, "Unparseable address. (Parameter 'rawAddress')");
-        }
-
-        [Fact]
-        public async Task Parse_BrokenCircuit_PinsExact503Body()
-        {
-            // Arrange
-            var (controller, service) = NewPinned();
-            service.Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
-
-            // Act
-            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.GeocodingUnavailable(result);
-        }
-
-        [Fact]
         public async Task Validate_BlankAddress_PinsExactErrorBody()
         {
             // Arrange
-            var (controller, _) = NewPinned();
+            var controller = NewPinned();
 
             // Act
             var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "" }, CancellationToken.None);
 
             // Assert
             ControllerBodyAssert.ErrorBody(result, 400, "RawAddress is required.");
-        }
-
-        [Fact]
-        public async Task Validate_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var (controller, service) = NewPinned();
-            service.Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Unvalidatable address.", "rawAddress"));
-
-            // Act
-            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result, 400, "Unvalidatable address. (Parameter 'rawAddress')");
-        }
-
-        [Fact]
-        public async Task Validate_BrokenCircuit_PinsExact503Body()
-        {
-            // Arrange
-            var (controller, service) = NewPinned();
-            service.Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
-
-            // Act
-            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.GeocodingUnavailable(result);
         }
     }
 }

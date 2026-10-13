@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -18,14 +19,10 @@ namespace Portfolio.Web.Controllers.Api
     public class AddressStandardizationController : ControllerBase
     {
         private readonly IAddressStandardizationService _addressStandardizationService;
-        private readonly ILogger<AddressStandardizationController> _logger;
 
-        public AddressStandardizationController(
-            IAddressStandardizationService addressStandardizationService,
-            ILogger<AddressStandardizationController> logger)
+        public AddressStandardizationController(IAddressStandardizationService addressStandardizationService)
         {
             _addressStandardizationService = addressStandardizationService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -34,6 +31,8 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Request body containing the raw address string.</param>
         /// <returns>Structured address components including a standardized single-line output and parse confidence score.</returns>
         [HttpPost("parse")]
+        [BadRequestOnArgumentException]
+        [ArcGisUnavailable(ArcGisUpstream.Geocoding)]
         [RequestSizeLimit(16_384)]
         [ProducesResponseType(typeof(AddressParsedDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -44,26 +43,7 @@ namespace Portfolio.Web.Controllers.Api
             if (string.IsNullOrWhiteSpace(request?.RawAddress))
                 return BadRequest(new { error = "RawAddress is required." });
 
-            try
-            {
-                var result = await _addressStandardizationService.ParseAsync(request.RawAddress, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Polly.CircuitBreaker.BrokenCircuitException)
-            {
-                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
-                {
-                    Status = 503,
-                    Title  = "Geocoding Unavailable",
-                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
-                    Extensions = { ["retryAfterSeconds"] = 15 }
-                });
-            }
+            return Ok(await _addressStandardizationService.ParseAsync(request.RawAddress, cancellationToken));
         }
 
         /// <summary>
@@ -73,6 +53,8 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Request body containing the raw address string.</param>
         /// <returns>Validation result with parsed components, ArcGIS matched address, score, and confidence tier.</returns>
         [HttpPost("validate")]
+        [BadRequestOnArgumentException]
+        [ArcGisUnavailable(ArcGisUpstream.Geocoding)]
         [RequestSizeLimit(16_384)]
         [ProducesResponseType(typeof(AddressValidationResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -83,26 +65,7 @@ namespace Portfolio.Web.Controllers.Api
             if (string.IsNullOrWhiteSpace(request?.RawAddress))
                 return BadRequest(new { error = "RawAddress is required." });
 
-            try
-            {
-                var result = await _addressStandardizationService.ValidateAsync(request.RawAddress, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Polly.CircuitBreaker.BrokenCircuitException)
-            {
-                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
-                {
-                    Status = 503,
-                    Title  = "Geocoding Unavailable",
-                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
-                    Extensions = { ["retryAfterSeconds"] = 15 }
-                });
-            }
+            return Ok(await _addressStandardizationService.ValidateAsync(request.RawAddress, cancellationToken));
         }
     }
 }

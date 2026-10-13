@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -16,7 +15,7 @@ namespace Portfolio.Tests.Controllers
             var service = new Mock<IResponseCoverageService>();
             service.Setup(s => s.GetScenarioAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ResponseScenarioDto { Name = "Redlands", TotalCallVolume = 100 });
-            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
+            var controller = new ResponseCoverageController(service.Object);
 
             // Act
             var result = await controller.GetScenario(CancellationToken.None);
@@ -33,7 +32,7 @@ namespace Portfolio.Tests.Controllers
             var service = new Mock<IResponseCoverageService>();
             service.Setup(s => s.ComputeIsochroneAsync(It.IsAny<IsochroneRequestDto>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new IsochroneResultDto { OriginNodeId = 1, ReachableNodes = 5 });
-            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
+            var controller = new ResponseCoverageController(service.Object);
 
             // Act
             var result = await controller.Isochrone(new IsochroneRequestDto(), CancellationToken.None);
@@ -44,19 +43,19 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task ResponseIsochrone_ServiceArgumentException_ReturnsBadRequest()
+        public async Task ResponseIsochrone_ServiceArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IResponseCoverageService>();
             service.Setup(s => s.ComputeIsochroneAsync(It.IsAny<IsochroneRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Isochrone bands must be ascending positive values."));
-            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
+                .ThrowsAsync(new ArgumentException("Bad isochrone.", "request"));
+            var controller = new ResponseCoverageController(service.Object);
 
             // Act
-            var result = await controller.Isochrone(new IsochroneRequestDto(), CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Isochrone(new IsochroneRequestDto(), CancellationToken.None));
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
+            // Assert: the message the filter will put in the body is untouched.
+            Assert.Equal("Bad isochrone. (Parameter 'request')", ex.Message);
         }
 
         [Fact]
@@ -66,7 +65,7 @@ namespace Portfolio.Tests.Controllers
             var service = new Mock<IResponseCoverageService>();
             service.Setup(s => s.OptimizeAsync(It.IsAny<OptimizeCoverageRequestDto>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new OptimizeCoverageResultDto { ChosenCandidateIds = [1, 2], MeetsNfpa1710 = true });
-            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
+            var controller = new ResponseCoverageController(service.Object);
 
             // Act
             var result = await controller.Optimize(new OptimizeCoverageRequestDto(), CancellationToken.None);
@@ -77,51 +76,19 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task ResponseOptimize_ServiceArgumentException_ReturnsBadRequest()
+        public async Task ResponseOptimize_ServiceArgumentException_Propagates()
         {
-            // Arrange
-            var service = new Mock<IResponseCoverageService>();
-            service.Setup(s => s.OptimizeAsync(It.IsAny<OptimizeCoverageRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Station count cannot exceed the number of candidate sites."));
-            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
-
-            // Act
-            var result = await controller.Optimize(new OptimizeCoverageRequestDto(), CancellationToken.None);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
-        }
-
-        [Fact]
-        public async Task ResponseIsochrone_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var service = new Mock<IResponseCoverageService>();
-            service.Setup(s => s.ComputeIsochroneAsync(It.IsAny<IsochroneRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Bad isochrone.", "request"));
-            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
-
-            // Act
-            var result = await controller.Isochrone(new IsochroneRequestDto(), CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad isochrone. (Parameter 'request')");
-        }
-
-        [Fact]
-        public async Task ResponseOptimize_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IResponseCoverageService>();
             service.Setup(s => s.OptimizeAsync(It.IsAny<OptimizeCoverageRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Bad coverage.", "request"));
-            var controller = new ResponseCoverageController(service.Object, NullLogger<ResponseCoverageController>.Instance);
+            var controller = new ResponseCoverageController(service.Object);
 
             // Act
-            var result = await controller.Optimize(new OptimizeCoverageRequestDto(), CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Optimize(new OptimizeCoverageRequestDto(), CancellationToken.None));
 
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad coverage. (Parameter 'request')");
+            // Assert: the message the filter will put in the body is untouched.
+            Assert.Equal("Bad coverage. (Parameter 'request')", ex.Message);
         }
     }
 }

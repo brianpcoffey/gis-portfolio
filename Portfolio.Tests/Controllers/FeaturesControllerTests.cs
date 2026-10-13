@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Polly.CircuitBreaker;
 using Portfolio.Common.DTOs;
@@ -18,9 +16,7 @@ namespace Portfolio.Tests.Controllers
         public FeaturesControllerTests()
         {
             _serviceMock = new Mock<IArcGisService>();
-            _controller = new FeaturesController(
-                _serviceMock.Object,
-                new Mock<ILogger<FeaturesController>>().Object);
+            _controller = new FeaturesController(_serviceMock.Object);
         }
 
         [Fact]
@@ -68,22 +64,16 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetFeatures_WhenCircuitBreakerIsOpen_Returns503WithProblemDetails()
+        public async Task GetFeatures_WhenCircuitBreakerIsOpen_Propagates()
         {
-            // Arrange
+            // Arrange: [ArcGisUnavailable(Features)] turns it into the 503 body (see the filter tests).
             _serviceMock
                 .Setup(s => s.QueryFeaturesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new BrokenCircuitException("circuit open"));
 
-            // Act
-            var result = await _controller.GetFeatures("1", null, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(503, problem.Status);
-            Assert.Equal("Feature Service Unavailable", problem.Title);
+            // Act & Assert
+            await Assert.ThrowsAsync<BrokenCircuitException>(
+                () => _controller.GetFeatures("1", null, CancellationToken.None));
         }
 
         [Fact]
@@ -165,22 +155,6 @@ namespace Portfolio.Tests.Controllers
 
             // Assert
             Assert.IsType<OkObjectResult>(result);
-        }
-
-        [Fact]
-        public async Task GetFeatures_BrokenCircuit_PinsExact503Body()
-        {
-            // Arrange
-            _serviceMock
-                .Setup(s => s.QueryFeaturesAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new BrokenCircuitException("open"));
-
-            // Act
-            var result = await _controller.GetFeatures("1", null, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.Unavailable(result, "Feature Service Unavailable",
-                "The upstream GIS feature service is temporarily unavailable. Retry after 30 seconds.", 30);
         }
     }
 }

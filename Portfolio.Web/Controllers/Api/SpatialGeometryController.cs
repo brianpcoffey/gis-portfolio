@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -21,14 +22,10 @@ namespace Portfolio.Web.Controllers.Api
     public class SpatialGeometryController : ControllerBase
     {
         private readonly ISpatialGeometryService _spatialGeometryService;
-        private readonly ILogger<SpatialGeometryController> _logger;
 
-        public SpatialGeometryController(
-            ISpatialGeometryService spatialGeometryService,
-            ILogger<SpatialGeometryController> logger)
+        public SpatialGeometryController(ISpatialGeometryService spatialGeometryService)
         {
             _spatialGeometryService = spatialGeometryService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -37,6 +34,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Point set to triangulate.</param>
         /// <returns>Triangle mesh result.</returns>
         [HttpPost("triangulate")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(TriangulationResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -45,16 +43,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] GeometryPointSetDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _spatialGeometryService.TriangulateAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid spatial geometry triangulation request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _spatialGeometryService.TriangulateAsync(request, cancellationToken));
         }
 
         /// <summary>
@@ -63,6 +52,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Polygon and bounding box request.</param>
         /// <returns>Clipped polygon operation result.</returns>
         [HttpPost("clip")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(PolygonOperationResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -71,16 +61,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] PolygonClipRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _spatialGeometryService.ClipToBoundingBoxAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid spatial geometry clipping request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _spatialGeometryService.ClipToBoundingBoxAsync(request, cancellationToken));
         }
     }
 }

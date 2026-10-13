@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -21,14 +22,10 @@ namespace Portfolio.Web.Controllers.Api
     public class RasterTerrainController : ControllerBase
     {
         private readonly IRasterTerrainService _rasterTerrainService;
-        private readonly ILogger<RasterTerrainController> _logger;
 
-        public RasterTerrainController(
-            IRasterTerrainService rasterTerrainService,
-            ILogger<RasterTerrainController> logger)
+        public RasterTerrainController(IRasterTerrainService rasterTerrainService)
         {
             _rasterTerrainService = rasterTerrainService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -37,6 +34,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Elevation raster and hillshade options.</param>
         /// <returns>Hillshade intensity grid.</returns>
         [HttpPost("hillshade")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(RasterHillshadeResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -45,16 +43,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] RasterHillshadeRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _rasterTerrainService.GenerateHillshadeAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid raster hillshade request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _rasterTerrainService.GenerateHillshadeAsync(request, cancellationToken));
         }
 
         /// <summary>
@@ -63,6 +52,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Weighted points and raster extent.</param>
         /// <returns>Normalized heatmap values.</returns>
         [HttpPost("heatmap")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(HeatmapResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -71,16 +61,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] HeatmapRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _rasterTerrainService.GenerateHeatmapAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid raster heatmap request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _rasterTerrainService.GenerateHeatmapAsync(request, cancellationToken));
         }
     }
 }

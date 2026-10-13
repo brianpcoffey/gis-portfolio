@@ -160,18 +160,18 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Create_ArgumentException_PinsExactErrorBody()
+        public async Task Create_ArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CreateSavedFeatureDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Unknown layer.", "dto"));
 
             // Act
-            var result = await _controller.Create(
-                new CreateSavedFeatureDto { LayerId = "l", FeatureId = "f" }, CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _controller.Create(
+                new CreateSavedFeatureDto { LayerId = "l", FeatureId = "f" }, CancellationToken.None));
 
-            // Assert
-            ControllerBodyAssert.ErrorBody(result, 400, "Unknown layer. (Parameter 'dto')");
+            // Assert: the message the filter will put in the body is untouched.
+            Assert.Equal("Unknown layer. (Parameter 'dto')", ex.Message);
         }
 
         [Fact]
