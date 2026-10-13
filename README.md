@@ -15,7 +15,6 @@
 ![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
 ![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
-![xUnit](https://img.shields.io/badge/xUnit-680_Tests-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
 
 ## Overview
@@ -28,7 +27,7 @@ The current production deployment runs on **Render** with **PostgreSQL via Npgsq
 
 ## Solution Architecture
 
-The solution follows a classic 4-layer architecture across 5 projects:
+The solution follows a classic 4-layer architecture across 6 projects:
 
 ```
 Razor Page / API Controller  (Portfolio.Web)
@@ -45,11 +44,12 @@ Razor Page / API Controller  (Portfolio.Web)
 
 | Project | Role |
 |---|---|
-| `Portfolio.Web` | ASP.NET Core host: Razor Pages + API controllers + middleware + DI root |
+| `Portfolio.Web` | ASP.NET Core host: Razor Pages + API controllers + middleware + the DI root (`Program.cs` composes the extension methods in `Startup/`) |
 | `Portfolio.Services` | Business logic, orchestration, ArcGIS HTTP calls |
 | `Portfolio.Repositories` | EF Core `DbContext`, repositories, fluent mappings, migrations |
 | `Portfolio.Common` | POCO entity models, DTOs, enums, and ArcGIS wire models |
-| `Portfolio.Tests` | xUnit + Moq unit tests for services and controllers |
+| `Portfolio.Tests` | xUnit + Moq tests: unit tests for services and controllers, golden and contract tests, and in-process host tests of the real pipeline |
+| `Portfolio.Benchmarks` | Console harness that times each native kernel against its managed fallback and checksums both results |
 
 ---
 
@@ -104,8 +104,8 @@ Full per-workload results, methodology, the superseded ad-hoc figures, and what 
 
 ### Authentication & Identity
 - **Google OAuth 2.0 Sign-In** — secure login using Google accounts
-- Cookie-based session management with `SecurePolicy = Always`
-- **Anonymous user identity** — every visitor is silently assigned a GUID cookie (`AnonUserId`) by middleware, enabling per-user saved features and profile claims without requiring sign-in
+- Cookie authentication: 8-hour sliding expiry with a 24-hour absolute cap, `Secure` outside Development, `SameSite=Lax`
+- **Anonymous user identity** — browser visitors are silently assigned a GUID cookie (`AnonUserId`) by middleware (throttled per client address, never created for `/api` calls), enabling per-user saved features and profile claims without requiring sign-in
 - Two parallel identity systems: anonymous (GUID cookie) and authenticated (Google OAuth), each used by distinct services
 - Sign-out with smooth redirection; login/logout paths at `/Login` and `/Logout`
 
@@ -119,14 +119,16 @@ Full per-workload results, methodology, the superseded ad-hoc figures, and what 
 ### API & Backend
 - Versioned RESTful JSON API controllers under `api/v1/` using `Asp.Versioning`
 - OpenAPI document generation via ASP.NET Core OpenAPI, with Scalar as the interactive API reference UI (served in all environments)
-- Structured logging with `ILogger<T>` across all services, repositories, and controllers
-- `ApiExceptionMiddleware` for centralized error handling
+- Structured logging with `ILogger<T>`; user ids appear in logs only as a short non-reversible tag
+- `ApiExceptionMiddleware` for centralized RFC 7807 error handling, plus exception filters that keep the `{ "error": "…" }` 400 body and turn an open ArcGIS circuit breaker into a 503 with a retry hint
+- Per-IP rate limiting (a global limit plus `compute` and `expensive` policies) and one shared concurrency limiter for the native-compute endpoints
+- Security headers, with a nonce-based Content-Security-Policy running in Report-Only mode alongside the enforced baseline policy (violations go to a rate-limited `/csp-report` sink)
 - All async methods accept and forward `CancellationToken`
 - Redis-backed `IDistributedCache` shared across geocoding services for deduplication and result caching, with in-memory fallback when `Redis:ConnectionString` is empty
 - Redis-backed batch job state through `RedisBatchJobStore`, allowing any replica to serve async geocoding status requests
 - Redis-backed ASP.NET Core Data Protection keys in production so encrypted cookies and antiforgery tokens remain valid across replicas
 - Typed `HttpClient` registrations with Polly timeout, retry, jitter, and circuit breaker policies for ArcGIS dependencies
-- EF Core migrations run automatically at startup via `db.Database.Migrate()`
+- EF Core migrations run at startup via `db.Database.Migrate()` by default; a deployment can instead run them as a separate step with `dotnet Portfolio.Web.dll --migrate` (see [Deployment](#deployment))
 
 ---
 
@@ -137,7 +139,7 @@ Interactive ArcGIS feature exploration with anonymous saved-feature persistence 
 
 - ArcGIS JavaScript map experience backed by ASP.NET Core API endpoints
 - Anonymous GUID identity for saved features and authenticated identity for collections
-- Repository-owned EF Core queries with owner filtering and transaction handling
+- Repository-owned EF Core queries with owner filtering
 
 **Stack:** ArcGIS JS API, ASP.NET Core, PostgreSQL
 
@@ -162,15 +164,16 @@ Property scoring API that ranks Redlands homes using weighted preferences and st
 ---
 
 ### 🗂️ Batch Geocoding
-CSV address upload workflow that processes records asynchronously through ArcGIS `findAddressCandidates`. The API returns `202 Accepted` with a polling URL, while distributed job state allows scaled replicas to serve status requests.
+CSV address upload workflow that geocodes records through ArcGIS `findAddressCandidates`. The job API returns `202 Accepted` with a polling URL, while distributed job state allows scaled replicas to serve status requests. The demo page itself posts to the synchronous endpoint and renders the response.
 
-- Channel-based producer/consumer pipeline with configurable concurrency
+- Jobs enter a bounded in-process queue (capacity 8) drained by a hosted service with two workers; a full queue answers `503` with `Retry-After` instead of piling up work. Uploads are capped at 2 MB and 1,000 data rows
+- Channel-based producer/consumer pipeline inside each job, with configurable concurrency
 - `IDistributedCache` deduplication for repeated addresses and reduced ArcGIS calls
 - Redis-backed or in-memory `IBatchJobStore` depending on environment configuration
 
 **Stack:** ArcGIS, C#, .NET, Channels
 
-**API:** `POST /api/v1/geocoding/batch`, `GET /api/v1/geocoding/batch/{jobId}/status`
+**API:** `POST /api/v1/geocoding/batch`, `GET /api/v1/geocoding/batch/{jobId}/status`; the demo page uses `POST /api/v1/geocoding/batch/sync` (hidden from OpenAPI)
 
 ---
 
@@ -346,6 +349,9 @@ Two satellite passes over the same ground, weeks apart — what changed? The cla
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Canvas, SVG
 
 **API:** `GET /api/v1/change/scene`, `POST /api/v1/change/detect`
+
+---
+
 ### ⚡ Outage Manager & Network Trace
 Electric distribution outage management — the flagship GIS application in utilities. Answers the three questions a control room needs within a minute of a recloser locking out: who is out, what isolates the fault, and who can be restored by backfeeding from an adjacent feeder.
 
@@ -360,6 +366,9 @@ Electric distribution outage management — the flagship GIS application in util
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
 
 **API:** `GET /api/v1/outage/network`, `POST /api/v1/outage/trace`, `POST /api/v1/outage/restore`
+
+---
+
 ### 🚑 Emergency Response Coverage Optimizer
 Public-safety deployment analysis over the real Redlands street network. Answers the question a fire chief has to defend in front of a city council — where the stations go — and scores the answer against **NFPA 1710**, the career-department standard of a first-due engine on scene within four minutes of travel time for 90% of incidents.
 
@@ -375,6 +384,9 @@ Public-safety deployment analysis over the real Redlands street network. Answers
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Leaflet, SVG
 
 **API:** `GET /api/v1/response/scenario`, `POST /api/v1/response/isochrone`, `POST /api/v1/response/optimize`
+
+---
+
 ### 🚚 Fleet Route Optimizer
 Last-mile dispatch planning as an actual optimization problem rather than a shortest-path lookup. Given a depot, 40 deliveries with load and delivery windows, and a fleet with a capacity limit and a shift end, it decides which truck serves which stops, in what order, and when each one arrives — the **Capacitated Vehicle Routing Problem with Time Windows**, solved over the real Redlands street network.
 
@@ -441,8 +453,8 @@ When Redis is not configured, geocoding cache falls back to `MemoryDistributedCa
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/brianpcoffey/portfolio_v2.git
-   cd portfolio_v2
+   git clone https://github.com/brianpcoffey/gis-portfolio.git
+   cd gis-portfolio
    ```
 
 2. **Configure credentials** — create `appsettings.Development.json` (never commit secrets):
@@ -472,18 +484,18 @@ When Redis is not configured, geocoding cache falls back to `MemoryDistributedCa
 
 5. **Run the application:**
    ```bash
-   dotnet run --project Portfolio.Web
+   dotnet run --project Portfolio.Web --launch-profile http
    ```
 
-6. Open `https://localhost:5001` in your browser.
+6. Open `http://localhost:5000` in your browser. (The `https` launch profile serves `https://localhost:5001` as well as port 5000.)
 
 ### API Documentation
 
 The project uses **OpenAPI** for API metadata and **Scalar** as the interactive API documentation UI. It does not currently use Swagger UI.
 
-The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Program.cs` via `MapOpenApi()` and `MapScalarApiReference()`, so they are available in all environments (intentionally public API documentation):
+The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Portfolio.Web/Startup/Pipeline.cs` via `MapOpenApi()` and `MapScalarApiReference()`, so they are available in all environments (intentionally public API documentation):
 
-- Interactive API reference: `/scalar` (e.g. `https://localhost:5001/scalar` locally)
+- Interactive API reference: `/scalar` (e.g. `http://localhost:5000/scalar` locally)
 - Raw OpenAPI document: `/openapi/v1.json`
 
 ### Running Tests
@@ -492,7 +504,7 @@ The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Program.cs` via 
 dotnet test
 ```
 
-680 tests, all passing (xUnit + Moq; no integration/DB tests). The suite is **path-agnostic**: it passes whether or not the native shared libraries have been built, and with `PORTFOLIO_DISABLE_NATIVE=1` set. Tests assert the computed result rather than which implementation produced it — an earlier convention of asserting `NativeAccelerated == false` meant that building the kernels locally broke 10 tests. Native/managed equivalence is covered separately by `Portfolio.Tests/Services/NativeParityTests.cs` and by the benchmark harness, which checksums both paths for every workload.
+`dotnet test` prints the current test count (xUnit + Moq). Besides unit tests it includes golden and contract tests and in-process host tests that boot the real pipeline on `TestServer` with an EF InMemory database and fake ArcGIS handlers — no real database, no network. The suite is **path-agnostic**: it passes whether or not the native shared libraries have been built, and with `PORTFOLIO_DISABLE_NATIVE=1` set (native-gated cases report *Skipped* when a kernel isn't loaded). Tests assert the computed result rather than which implementation produced it — an earlier convention of asserting `NativeAccelerated == false` meant that building the kernels locally broke tests. Native/managed equivalence is covered by `Portfolio.Tests/Services/NativeParityTests.cs`, by the CI `native-parity` job (which runs the whole suite with all kernels loaded, then again with native disabled) and by the benchmark harness, which checksums both paths for every workload. CI gates coverage at 80% line / 60% branch.
 
 ---
 
@@ -527,9 +539,9 @@ Leaving `Redis:ConnectionString` empty activates the in-process `MemoryDistribut
 ## Deployment
 
 ### Render (current production)
-- Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/portfolio_v2).
+- Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/gis-portfolio). The CI `deploy` job triggers Render after the test, native-parity and Docker jobs pass (it needs the `RENDER_DEPLOY_HOOK` repository secret, with Render's own Auto-Deploy switched off); a push to `main` is therefore a production deploy. See [`docs/render-deployment.md`](docs/render-deployment.md).
 - Database hosted on **Neon.tech** PostgreSQL.
-- EF Core migrations run automatically at startup — no manual migration step required.
+- EF Core migrations run at startup by default. To keep the schema check off the cold-start path, run `dotnet Portfolio.Web.dll --migrate` as Render's Pre-Deploy Command and set `RunMigrationsOnStartup=false` — set both or neither.
 - HSTS enabled in non-development environments; HTTPS redirection runs only in development (Render terminates TLS at its proxy, so the container serves plain HTTP).
 - Secrets (`DATABASE_URL`, `Redis__ConnectionString`, Google OAuth credentials) are injected as environment variables.
 
@@ -545,7 +557,9 @@ See [`k8s/README.md`](k8s/README.md) for full deploy order. Quick reference:
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml   # fill in real values first
+cp k8s/secret.example.yaml k8s/secret.yaml   # gitignored; fill in real values first
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/networkpolicy.yaml
 kubectl apply -f k8s/redis.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
