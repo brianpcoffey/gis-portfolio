@@ -193,14 +193,16 @@ function loadDashboardStats() {
             renderRevenueChart(data.revenueByMonth || []);
             renderOrdersChart(data.ordersByStatus || []);
             renderInventoryChart(data.inventoryByCategory || []);
+            describeDashboardCharts(data);
             showToast('Dashboard loaded', 'success');
         })
         .catch(err => {
             const message = plantOpsFailure('Failed to load dashboard data', err);
             ['#plantOpsRevenueChart', '#plantOpsOrdersChart', '#plantOpsInventoryChart'].forEach(sel => {
-                // role="img" prunes its children from the accessibility tree, which would silence the
-                // alert, so the container stops being an image while it shows the error.
-                $(sel).empty().removeAttr('role aria-label').append($('<div class="text-danger small" role="alert"></div>').text(message));
+                // role="img" prunes its children from the accessibility tree, so the container stops being
+                // an image while it shows the error. The three cards show the failure as plain text and
+                // the danger toast below (role="alert") is the one announcement, not four.
+                $(sel).empty().removeAttr('role aria-label').append($('<div class="text-danger small"></div>').text(message));
             });
             showToast(plantOpsFailure('Failed to load dashboard', err), 'danger');
         })
@@ -209,6 +211,39 @@ function loadDashboardStats() {
             $('#plantOpsOrdersChart .plant-ops-spinner').addClass('d-none');
             $('#plantOpsInventoryChart .plant-ops-spinner').addClass('d-none');
         });
+}
+
+// One-sentence text equivalents of the three charts. PortfolioCharts.describe adds a visually hidden
+// paragraph after each chart and points the chart's aria-describedby at it (the charts are role="img").
+// Called once all three charts have rendered, so a failed render never leaves a stale description.
+function describeDashboardCharts(data) {
+    const money = v => PortfolioFormat.money(v, { compact: true });
+    const plural = (n, word) => `${PortfolioFormat.number(n)} ${word}${n === 1 ? '' : 's'}`;
+    const describe = (id, sentence) => PortfolioCharts.describe(document.getElementById(id), sentence);
+
+    // "<subject>, <total> in total: 5 Open, 4 Shipped." (at most eight entries, then "and N more")
+    const describeCounts = (id, subject, emptyText, rows, labelKey) => {
+        if (!rows.length) { describe(id, emptyText); return; }
+        const listed = rows.slice(0, 8).map(r => `${PortfolioFormat.number(r.count)} ${r[labelKey]}`);
+        const more = rows.length > 8 ? ` and ${rows.length - 8} more` : '';
+        const total = rows.reduce((t, r) => t + r.count, 0);
+        describe(id, `${subject}, ${PortfolioFormat.number(total)} in total: ${listed.join(', ')}${more}.`);
+    };
+
+    const revenue = data.revenueByMonth || [];
+    if (revenue.length) {
+        const total = revenue.reduce((t, d) => t + d.revenue, 0);
+        const best = revenue.reduce((top, d) => (d.revenue > top.revenue ? d : top));
+        const first = revenue[0].month;
+        const last = revenue[revenue.length - 1].month;
+        describe('plantOpsRevenueChart',
+            `Revenue by month over ${plural(revenue.length, 'month')}, ${first === last ? first : `${first} to ${last}`}: ` +
+            `${money(total)} in total, highest in ${best.month} at ${money(best.revenue)}.`);
+    } else {
+        describe('plantOpsRevenueChart', 'No revenue data.');
+    }
+    describeCounts('plantOpsOrdersChart', 'Orders by status', 'No order status data.', data.ordersByStatus || [], 'status');
+    describeCounts('plantOpsInventoryChart', 'Inventory items by category', 'No inventory data.', data.inventoryByCategory || [], 'category');
 }
 
 function updateDashboardBadges(data) {
