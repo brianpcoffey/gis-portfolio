@@ -340,8 +340,8 @@ text, do not trust the number.** Useful anchors:
 
 - `Startup/DataRegistration.cs` → `AddScoped<ISpatialOverlayService` (**Update:** formerly `Program.cs`)
 - `api-config.js` → `overlay: {`
-- `Pages/Index.cshtml` → the `projects` list at the top (**Update:** formerly a
-  `<!-- Duplicates for seamless loop -->` comment between two hand-written halves)
+- `Pages/Index.cshtml` → the `projects` list at the top (**Update:** the cards used to be two
+  hand-written halves; they are now rendered from this list by `_ProjectCard`, twice for the seamless loop)
 - `Pages/Projects/Index.cshtml` → the closing of `<div class="row g-4 projects-grid">`
 
 ---
