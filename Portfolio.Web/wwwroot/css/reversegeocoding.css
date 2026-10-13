@@ -1,16 +1,17 @@
 ﻿/* ======================================================
    Reverse Geocoding Page Styles
-   All colors use CSS custom properties from base.css.
+   Colours come from the tokens in base.css; dark mode follows the tokens, and the shared
+   dark-mode rules (forms, alerts, buttons, modals) live in components.css.
    All selectors scoped under .reverse-geocoding-page.
    ====================================================== */
 
-/* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Layout -------------------------------------------------------- */
 .reverse-geocoding-page .rg-layout {
     min-height: calc(100vh - 180px);
     align-items: stretch;
 }
 
-/* â”€â”€ Map Container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Map Container ------------------------------------------------- */
 .reverse-geocoding-page .rg-map-container {
     height: calc(100vh - 180px);
     min-height: 400px;
@@ -30,7 +31,7 @@
     }
 }
 
-/* â”€â”€ Result Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Result Panel -------------------------------------------------- */
 .reverse-geocoding-page .rg-result-panel {
     height: calc(100vh - 180px);
     min-height: 400px;
@@ -50,7 +51,17 @@
     }
 }
 
-/* â”€â”€ Coordinate Display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Panel dividers follow the token (Bootstrap's own border colour is a separate palette) */
+.reverse-geocoding-page .border-bottom {
+    border-bottom-color: var(--border) !important;
+}
+
+/* Section headings (h2) look like the small-caps labels they replaced */
+.reverse-geocoding-page .rg-caps {
+    letter-spacing: 0.05em;
+}
+
+/* -- Coordinate Display -------------------------------------------- */
 .reverse-geocoding-page .rg-coordinate-display {
     background: var(--background);
 }
@@ -62,7 +73,7 @@
     color: var(--text);
 }
 
-/* â”€â”€ Result Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Result Card --------------------------------------------------- */
 .reverse-geocoding-page .rg-result-card {
     background: var(--background);
     border: 1px solid var(--border);
@@ -76,7 +87,7 @@
     color: var(--text);
 }
 
-/* â”€â”€ Detail Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Detail Grid --------------------------------------------------- */
 .reverse-geocoding-page .rg-detail-grid {
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -124,33 +135,33 @@
     font-size: 0.8rem;
 }
 
-/* â”€â”€ Location Type Badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Location Type Badge (status fills; label colour is contrast-safe on each) */
 .reverse-geocoding-page .rg-location-type-badge {
     font-size: 0.7rem;
     padding: 0.3em 0.55em;
 }
 
 .reverse-geocoding-page .rg-location-type-badge.type-street {
-    background-color: #38a169;
-    color: #fff;
+    background-color: var(--status-success-fill);
+    color: var(--on-dark);
 }
 
 .reverse-geocoding-page .rg-location-type-badge.type-poi {
-    background-color: #3182ce;
-    color: #fff;
+    background-color: var(--status-info-fill);
+    color: var(--on-dark);
 }
 
 .reverse-geocoding-page .rg-location-type-badge.type-postal {
-    background-color: #b7791f;
-    color: #fff;
+    background-color: var(--status-warning-fill);
+    color: var(--primary);
 }
 
 .reverse-geocoding-page .rg-location-type-badge.type-other {
-    background-color: var(--text-muted);
-    color: #fff;
+    background-color: var(--primary-light);
+    color: var(--on-dark);
 }
 
-/* â”€â”€ Recent Lookups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Recent Lookups ------------------------------------------------ */
 .reverse-geocoding-page .rg-recent-lookups-list {
     display: flex;
     flex-direction: column;
@@ -195,166 +206,19 @@
     font-family: 'Courier New', Courier, monospace;
 }
 
-/* â”€â”€ Accent button variant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.reverse-geocoding-page .btn-accent {
-    background-color: var(--accent-on-fill);
-    border-color: var(--accent-on-fill);
-    color: #fff;
-    transition: background-color var(--transition), border-color var(--transition);
-}
-
-.reverse-geocoding-page .btn-accent:hover,
-.reverse-geocoding-page .btn-accent:focus {
-    background-color: var(--accent-on-fill-h);
-    border-color: var(--accent-on-fill-h);
-    color: #fff;
-}
-
-.reverse-geocoding-page .btn-outline-accent {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: transparent;
-    transition: background-color var(--transition), color var(--transition);
-}
-
-.reverse-geocoding-page .btn-outline-accent:hover,
-.reverse-geocoding-page .btn-outline-accent:focus {
-    background-color: var(--accent-on-fill);
-    color: #fff;
-}
-
-/* â”€â”€ Badge GIS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.reverse-geocoding-page .badge-gis {
-    background-color: var(--accent-on-fill);
-    color: #fff;
-    border-radius: 20px;
-    padding: 0.4em 0.9em;
-    font-weight: 600;
-}
-
-/* â”€â”€ Form inputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Form inputs: boundary is --input-border (from components.css); only the fill differs here */
 .reverse-geocoding-page .form-control {
     background: var(--background);
     color: var(--text);
-    border-color: var(--border);
 }
 
 .reverse-geocoding-page .form-control:focus {
     background: var(--surface);
     color: var(--text);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 0.15rem rgba(56, 161, 105, 0.2);
 }
 
-/* â”€â”€ Dark mode overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page .rg-map-container {
-    border-color: var(--border);
-    box-shadow: 0 4px 12px var(--shadow);
+@media (prefers-reduced-motion: reduce) {
+    .reverse-geocoding-page .rg-lookup-item {
+        transition: none;
+    }
 }
-
-body.dark-mode .reverse-geocoding-page .rg-result-panel {
-    background: var(--surface);
-    border-color: var(--border);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-coordinate-display {
-    background: var(--background);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-result-card {
-    background: var(--background);
-    border-color: var(--border);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-detail-grid,
-body.dark-mode .reverse-geocoding-page .rg-detail-row,
-body.dark-mode .reverse-geocoding-page .rg-detail-cell {
-    border-color: var(--border);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-detail-label {
-    color: var(--text-muted);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-detail-value {
-    color: var(--text);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-lookup-item {
-    background: var(--background);
-    border-color: var(--border);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-lookup-item:hover {
-    background: var(--surface);
-}
-
-body.dark-mode .reverse-geocoding-page .form-control {
-    background: var(--background);
-    color: var(--text);
-    border-color: var(--border);
-}
-
-body.dark-mode .reverse-geocoding-page .form-control:focus {
-    background: var(--surface);
-    color: var(--text);
-}
-
-/* â”€â”€ Dark mode: placeholders and input-group-text â”€â”€â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page input::placeholder,
-body.dark-mode .reverse-geocoding-page textarea::placeholder {
-    color: var(--text-muted);
-    opacity: 1;
-}
-
-body.dark-mode .reverse-geocoding-page .input-group-text {
-    background-color: var(--surface);
-    color: var(--text);
-    border-color: var(--border);
-}
-
-body.dark-mode .reverse-geocoding-page .rg-location-type-badge.type-other {
-    background-color: #4a5568;
-    color: #fff;
-}
-
-/* â”€â”€ Dark mode: panel dividers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page .border-bottom {
-    border-bottom-color: var(--border) !important;
-}
-
-/* â”€â”€ Dark mode: form labels and text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page .form-label {
-    color: var(--text) !important;
-}
-
-body.dark-mode .reverse-geocoding-page .text-muted {
-    color: var(--text-muted) !important;
-}
-
-/* â”€â”€ Dark mode: btn-close (dismiss alerts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page .btn-close {
-    filter: invert(1) grayscale(1);
-}
-
-/* â”€â”€ Dark mode: alert-secondary (no address found) â”€â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page .alert-secondary {
-    background-color: var(--surface) !important;
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-}
-
-/* â”€â”€ Dark mode: rg-coord-readout and section labels â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page .rg-coord-readout {
-    color: var(--text) !important;
-}
-
-body.dark-mode .reverse-geocoding-page .rg-lookup-address {
-    color: var(--text) !important;
-}
-
-/* â”€â”€ Dark mode: fw-semibold result text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .reverse-geocoding-page .rg-match-address {
-    color: var(--text) !important;
-}
-
