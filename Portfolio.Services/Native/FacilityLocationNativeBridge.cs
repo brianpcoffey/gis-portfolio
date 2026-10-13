@@ -1,33 +1,10 @@
 using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class FacilityLocationNativeBridge
     {
-        private static readonly bool _available;
-
-        static FacilityLocationNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "facility_location_kernel",
-                    typeof(FacilityLocationNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("facility_location_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -87,7 +64,7 @@ namespace Portfolio.Services.Native
                 };
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native p-median solve failed; falling back to managed implementation.");
                 return false;
@@ -149,20 +126,11 @@ namespace Portfolio.Services.Native
                 };
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native coverage evaluation failed; falling back to managed implementation.");
                 return false;
             }
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }

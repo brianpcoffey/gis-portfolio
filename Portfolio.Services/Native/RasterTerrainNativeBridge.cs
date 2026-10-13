@@ -1,34 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class RasterTerrainNativeBridge
     {
-        private static readonly bool _available;
-
-        static RasterTerrainNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "raster_terrain_kernel",
-                    typeof(RasterTerrainNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("raster_terrain_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -53,7 +30,7 @@ namespace Portfolio.Services.Native
                 result = GenerateHillshade(request);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native raster hillshade generation failed; falling back to managed raster implementation.");
                 return false;
@@ -74,7 +51,7 @@ namespace Portfolio.Services.Native
                 result = GenerateHeatmap(request);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native raster heatmap generation failed; falling back to managed raster implementation.");
                 return false;
@@ -136,15 +113,6 @@ namespace Portfolio.Services.Native
         {
             if (status != 0)
                 throw new InvalidOperationException($"Native raster terrain kernel failed with status {status}.");
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }

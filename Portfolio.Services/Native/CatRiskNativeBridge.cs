@@ -1,34 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class CatRiskNativeBridge
     {
-        private static readonly bool _available;
-
-        static CatRiskNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "cat_risk_kernel",
-                    typeof(CatRiskNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("cat_risk_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -71,7 +48,7 @@ namespace Portfolio.Services.Native
                 neighborCount = neighborOutput;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native ring accumulation failed; falling back to managed implementation.");
                 return false;
@@ -126,7 +103,7 @@ namespace Portfolio.Services.Native
                 affectedCounts = affectedOutput;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native loss simulation failed; falling back to managed implementation.");
                 return false;
@@ -150,15 +127,6 @@ namespace Portfolio.Services.Native
                 };
             }
             return mapped;
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }
