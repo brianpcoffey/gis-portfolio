@@ -6,20 +6,21 @@ using System.Text.Json.Serialization;
 
 namespace Portfolio.Benchmarks;
 
-/// <summary>
-/// Native-versus-managed benchmark harness for all thirteen kernels.
-///
-/// <para><b>Why it spawns children.</b> Every bridge probes availability exactly once, in a
-/// static constructor. One process can therefore only ever measure one path. The parent runs
-/// itself twice — once with <c>PORTFOLIO_DISABLE_NATIVE=0</c> and once with <c>=1</c> —
-/// collects each child's JSON from stdout and joins the two on workload name.</para>
+/// <summary>Native-versus-managed benchmark harness for all thirteen kernels.</summary>
+/// <remarks>
+/// <para><b>Why it spawns children.</b> Every bridge probes availability exactly once, when its type
+/// is initialized (a static field initializer calling <c>NativeKernelLoader.TryLoad</c>), and
+/// <c>NativeToggle</c> reads <c>PORTFOLIO_DISABLE_NATIVE</c> once per process. One process can
+/// therefore only ever measure one path. The parent runs itself twice — once with
+/// <c>PORTFOLIO_DISABLE_NATIVE=0</c> and once with <c>=1</c> — collects each child's JSON from
+/// stdout and joins the two on workload name.</para>
 ///
 /// <para><b>Why the median.</b> Best-of-N rewards a single lucky run and systematically
 /// flatters whichever path has the higher variance. A 1.66x figure previously published for
 /// <c>spatial_graph_engine</c> came from a single timed run after one warmup and did not
 /// survive re-measurement. Every number here is the median of nine timed iterations after
 /// three discarded warmups, with min and max reported so the spread is visible.</para>
-/// </summary>
+/// </remarks>
 internal static class Program
 {
     private const int WarmupIterations = 3;
@@ -44,7 +45,7 @@ internal static class Program
         return await RunOrchestratorAsync();
     }
 
-    // ------------------------------------------------------------------ child
+    // Child process
 
     private static async Task<int> RunChildAsync()
     {
@@ -113,15 +114,17 @@ internal static class Program
     }
 
     /// <summary>
-    /// Pins the measurement process to the first logical processor and raises its priority.
-    ///
+    /// Pins the measurement process to one logical processor (2 when there are more than two, else 0)
+    /// and raises its priority.
+    /// </summary>
+    /// <remarks>
     /// <para>This is not tuning, it is a correctness fix for the measurement. On a hybrid
     /// CPU the scheduler will migrate the benchmark thread between performance and efficiency
     /// cores, and the same workload then measures bimodally — one raster workload here read
     /// 184 ms on one run and 454 ms on the next from an identical binary. Without pinning,
     /// which core a run landed on is a bigger effect than native versus managed, and the
     /// comparison is meaningless.</para>
-    /// </summary>
+    /// </remarks>
     private static bool PinToFirstCore()
     {
         try
@@ -158,7 +161,7 @@ internal static class Program
             || value.Equals("yes", StringComparison.OrdinalIgnoreCase);
     }
 
-    // ------------------------------------------------------------------ orchestrator
+    // Orchestrator
 
     private static async Task<int> RunOrchestratorAsync()
     {
@@ -227,7 +230,7 @@ internal static class Program
         return JsonSerializer.Deserialize(output, JsonContext.Default.ChildReport);
     }
 
-    // ------------------------------------------------------------------ rendering
+    // Rendering
 
     private static string Render(ChildReport native, ChildReport managed)
     {
