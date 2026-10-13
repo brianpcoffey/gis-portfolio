@@ -209,7 +209,7 @@ export const UI = {
                         const state = getState();
                         const col = state.collections.find(c => String(c.id) === String(id));
                         if (!col) return;
-                        const input = await UI.openCollectionModal({ title: "Edit collection", name: col.name, color: col.color });
+                        const input = await UI.openCollectionModal({ title: "Edit Collection", name: col.name, color: col.color });
                         if (!input) return;
                         const newName = input.name;
                         const newColor = input.color;
@@ -438,9 +438,9 @@ export const UI = {
         });
     },
 
-    // Replaces window.prompt: a Bootstrap modal with a name and a colour. Resolves to
+    // Replaces window.prompt: a Bootstrap modal with a name and a color. Resolves to
     // { name, color } on Save, or null when the dialog is dismissed.
-    openCollectionModal({ title = "New collection", name = "", color = DEFAULT_COLLECTION_COLOR } = {}) {
+    openCollectionModal({ title = "New Collection", name = "", color = DEFAULT_COLLECTION_COLOR } = {}) {
         const modalEl = query("collectionModal");
         const form = query("collectionForm");
         const nameInput = query("collectionName");

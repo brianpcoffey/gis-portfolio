@@ -109,7 +109,7 @@ async function initialize() {
             return;
         }
 
-        const input = await UI.openCollectionModal({ title: "New collection", color: UI.DEFAULT_COLLECTION_COLOR });
+        const input = await UI.openCollectionModal({ title: "New Collection", color: UI.DEFAULT_COLLECTION_COLOR });
 
         if (!input) return;
 
