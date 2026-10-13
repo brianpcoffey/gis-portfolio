@@ -6,16 +6,16 @@
 
 A live, full-stack .NET 10 portfolio: 18 interactive demos, mostly GIS and spatial compute, on a layered ASP.NET Core API with PostgreSQL, plus 13 C++ kernels whose benchmarks are published in full, losses included.
 
+**Try it:** [All projects](https://brianpcoffey.com/Projects) · [Home Finder](https://brianpcoffey.com/Projects/HomeFinder) · [Route Planner](https://brianpcoffey.com/Projects/Network) · [Fleet Route Optimizer](https://brianpcoffey.com/Projects/Fleet) · [US State Explorer](https://brianpcoffey.com/Projects/StateExplorer) · [API reference (Scalar)](https://brianpcoffey.com/scalar)
+
 ## At a glance
 
 - **Live site.** A .NET 10 Razor Pages app and a versioned JSON API (`/api/v1/...`, documented with OpenAPI and a [Scalar](https://brianpcoffey.com/scalar) reference) host 18 interactive demos, each with a demo page and a technical Details page.
 - **Layered architecture.** Razor Pages and controllers call service interfaces, which call repository interfaces over EF Core and PostgreSQL. ArcGIS is reached through typed `HttpClient`s with Polly timeout, retry and circuit-breaker policies. See [Solution Architecture](#solution-architecture).
-- **CI gates.** Pushes and pull requests to `main` run a formatting check, a warnings-as-errors build with a complexity gate, the test suite with ratcheting coverage floors (overall and for `Portfolio.Web`), a native-parity job (builds all 13 kernels, runs the suite with them loaded, then again with native disabled) and a production Docker image build; pull requests also get dependency review. The Render deploy job runs only after the test, native-parity and Docker jobs pass. CodeQL code scanning (GitHub default setup) and a weekly vulnerable-package sweep run alongside.
-- **13 C++ kernels with managed fallbacks.** Each kernel is a C++20 library behind P/Invoke, with a managed C# fallback whose results are checksum-compared against it on every benchmark workload. Measured against that fallback across 21 workloads, native ranges from **0.37× to 2.26×: 9 wins, 5 losses, 7 ties** (win ≥ 1.15×, loss ≤ 0.85×, tie within ±15%). **Production runs the managed paths**; the container image ships no native code. Table and method: [Measured speedup](#measured-speedup).
+- **CI gates.** Every push and pull request to `main` runs a format check, a warnings-as-errors build with a complexity gate, the tests with ratcheting coverage floors, a native-parity job (all 13 kernels loaded, then native disabled) and a production Docker build. Render deploys only after those pass. CodeQL (GitHub default setup), dependency review on PRs and a weekly vulnerable-package sweep run alongside.
+- **13 C++ kernels with managed fallbacks.** Each kernel is a C++20 library behind P/Invoke, with a managed C# fallback whose results are checksum-compared against it on every benchmark workload. Measured against that fallback across 21 workloads, native runs at **0.37× to 2.26×** the managed speed: **9 wins, 5 losses, 7 ties** (win ≥ 1.15×, loss ≤ 0.85×, tie within ±15%). **Production runs the managed paths**; the container image ships no native code. Table and method: [Measured speedup](#measured-speedup).
 - **Security and identity.** Security headers on every response, a nonce-based Content-Security-Policy in Report-Only mode beside an enforced baseline policy, per-IP rate limiting plus a shared CPU concurrency limiter on the compute endpoints, and two deliberately separate identity systems (an anonymous cookie identity and Google sign-in) with a single `Authenticated` authorization policy. See [Features](#features).
-- **Hosting.** Render (Docker) with PostgreSQL on Neon and optional Redis (Upstash) for cache, batch-job state and Data Protection keys. On Render's free plan the service spins down when idle, so the first request after a quiet period can take 30-90 seconds ([details](docs/render-deployment.md)). Azure, AKS and Azure Container Apps are future targets, not current dependencies.
-
-**Try it:** [All projects](https://brianpcoffey.com/Projects) · [Home Finder](https://brianpcoffey.com/Projects/HomeFinder) · [Route Planner](https://brianpcoffey.com/Projects/Network) · [Fleet Route Optimizer](https://brianpcoffey.com/Projects/Fleet) · [US State Explorer](https://brianpcoffey.com/Projects/StateExplorer) · [API reference (Scalar)](https://brianpcoffey.com/scalar)
+- **Hosting.** Render (Docker) with PostgreSQL on Neon and optional Redis (Upstash) for cache, batch-job state and Data Protection keys. On Render's free plan the service spins down when idle. A scheduled keep-warm ping keeps it awake from 12:00 to 03:59 UTC; outside that window the first request after a quiet period can take 30-90 seconds ([details](docs/render-deployment.md#cold-starts-and-the-keep-warm-ping)). Azure, AKS and Azure Container Apps are future targets, not current dependencies.
 
 ---
 
@@ -35,13 +35,13 @@ The solution follows a classic 4-layer architecture across 6 projects:
 Razor Page / API Controller  (Portfolio.Web)
         │
         ▼
-   Service (interface)       (Portfolio.Services)
+   Service (interface)       (Portfolio.Services)  ──▶ typed HttpClient ──▶ ArcGIS REST
         │
         ▼
  Repository (interface)      (Portfolio.Repositories)
         │
         ▼
-  PortfolioDbContext (EF Core) / HttpClient (ArcGIS)
+  PortfolioDbContext (EF Core) ──▶ PostgreSQL
 ```
 
 | Project | Role |
@@ -58,7 +58,7 @@ Razor Page / API Controller  (Portfolio.Web)
 ```mermaid
 flowchart LR
     subgraph Client["Browser"]
-        UI["Razor pages, vanilla JS"]
+        UI["Server-rendered HTML, vanilla JS"]
     end
 
     CDN["ArcGIS JS, Leaflet (CDN)"]
