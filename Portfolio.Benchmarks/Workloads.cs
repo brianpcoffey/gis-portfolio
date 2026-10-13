@@ -323,10 +323,14 @@ internal static class Workloads
             Elevation = elevation
         };
 
-        // The heatmap kernel sweeps the whole grid per point, so cost is points x cells. 200
-        // points over 250,000 cells lands in the target range; 10,000 (the service ceiling)
-        // would take ten seconds an iteration.
-        const int heatmapPoints = 200;
+        // The heatmap kernel sweeps the whole grid per point, so cost is points x cells. The service
+        // refuses a request above 25,000,000 cell-point evaluations (its MaxHeatmapWork guardrail),
+        // and this harness goes through the public API like every other workload, so a single call
+        // is 100 points over 250,000 cells, exactly on that limit. The workload is a burst of two such
+        // calls: the same 50,000,000 evaluations an earlier, since-rejected single 200-point call
+        // performed, with the per-call marshalling counted, as for the other capped services.
+        const int heatmapCalls = 2;
+        const int heatmapPoints = 100;
         var rng = new Lcg(20_260_303u);
         var points = new List<WeightedPointDto>(heatmapPoints);
         for (var i = 0; i < heatmapPoints; i++)
@@ -373,11 +377,18 @@ internal static class Workloads
             new Workload
             {
                 Kernel = "raster_terrain_kernel",
-                Name = $"Gaussian heatmap, 500x500 over {heatmapPoints} points",
+                Name = $"Gaussian heatmap, {heatmapCalls} x 500x500 over {heatmapPoints} points",
                 Run = async token =>
                 {
-                    var r = await service.GenerateHeatmapAsync(heatmap, token);
-                    return new RunOutcome(Fold(r.Values), NativeAccelerated: r.NativeAccelerated);
+                    var checksum = 0.0;
+                    var native = true;
+                    for (var c = 0; c < heatmapCalls; c++)
+                    {
+                        var r = await service.GenerateHeatmapAsync(heatmap, token);
+                        native &= r.NativeAccelerated;
+                        checksum = Fold(r.Values);
+                    }
+                    return new RunOutcome(checksum, NativeAccelerated: native);
                 }
             }
         ];

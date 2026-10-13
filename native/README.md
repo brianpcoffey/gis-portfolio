@@ -46,7 +46,7 @@ Measured on 20 logical cores, .NET 10.0.9, Windows 11:
 | `spatial_geometry_kernel` | fan triangulation, 400 x 5,000 vertices | 188 ms | 70.2 ms | 0.37x | 170 ms–192 ms | 66.0 ms–86.4 ms | exact |
 | `spatial_geometry_kernel` | bounding-box clip, 400 x 5,000-vertex polygon | 81.5 ms | 62.5 ms | 0.77x | 75.4 ms–93.3 ms | 61.1 ms–63.1 ms | exact |
 | `raster_terrain_kernel` | hillshade, 20 x 500x500 elevation grid | 196 ms | 164 ms | 0.83x | 183 ms–202 ms | 156 ms–185 ms | exact |
-| `raster_terrain_kernel` | Gaussian heatmap, 500x500 over 200 points | 215 ms | 263 ms | **1.22x** | 215 ms–217 ms | 263 ms–278 ms | exact |
+| `raster_terrain_kernel` | Gaussian heatmap, 2 x 500x500 over 100 points | 218 ms | 278 ms | **1.28x** | 215 ms–230 ms | 275 ms–293 ms | exact |
 | `spatial_graph_engine` | one-to-all Dijkstra, 40 x (2,530 nodes / 3,187 edges) | 33.2 ms | 15.0 ms | 0.45x | 27.1 ms–48.2 ms | 12.2 ms–46.3 ms | exact |
 | `spatial_graph_engine` | 40x40 cost matrix over the same network, 10 builds | 63.1 ms | 82.9 ms | **1.31x** | 62.2 ms–71.7 ms | 82.4 ms–89.7 ms | exact |
 | `spatial_cluster_kernel` | DBSCAN, 8 x 5,000 points, eps 0.16 / minPts 6 | 186 ms | 175 ms | 0.94x | 183 ms–191 ms | 165 ms–182 ms | exact |
@@ -70,8 +70,18 @@ Reading notes:
   them is `spatial_graph_engine` work and would otherwise dominate the row.
 - Several workloads are a burst of full-size calls rather than one large call, because the
   services cap their inputs (10,000 telemetry events, 5,000 geometry points, 250,000 raster
-  cells). Those caps are production guardrails, so the per-call marshalling is counted — it
-  is part of what a caller actually pays.
+  cells, 25,000,000 heatmap cell-point evaluations). Those caps are production guardrails, so
+  the per-call marshalling is counted — it is part of what a caller actually pays.
+- The Gaussian heatmap row was re-measured on 2026-10-13 (.NET 10.0.12, 20 logical cores,
+  Windows 11, the methodology above) after the service gained its 25,000,000 cell-point request
+  limit. The row it replaces (one call, 500x500 over 200 points, 215 ms vs 263 ms, 1.22x) is a
+  request the service now rejects, and the benchmark had stopped running to completion because
+  of it. The workload is now two calls of 500x500 over 100 points, each exactly at the limit:
+  the same 50,000,000 cell-point evaluations in total, so the kernel work is unchanged, but the
+  output is marshalled and normalized twice. A second full run measured native 217 ms but a
+  noisier managed path (274 ms–364 ms, 1.54x); the first run, with the tighter spread and the
+  lower speedup, is the one published. Every other row is unchanged from the earlier run, which
+  is why they were measured on .NET 10.0.9.
 - `portfolio_scoring` is the only native-backed service whose public entry point reads from a
   repository. The harness supplies a fixed-seed in-memory one; every other kernel runs on an
   in-repo deterministic dataset reached through its public API.

@@ -245,7 +245,7 @@ Computational geometry API that transforms map-drawn coordinates into derived ge
 ---
 
 ### ⛰️ Terrain Analyzer
-Raster terrain analysis API that generates hillshade and heatmap outputs from dense numeric grid inputs and renders the results as a browser-visible raster grid. The native C++ kernel processes dense arrays when available; the managed fallback computes slope/aspect and Gaussian-style kernel weights in C#. **Measured split: the Gaussian heatmap runs 1.22× faster natively, hillshade 0.83× — slower.** Same kernel, same grid size; the heatmap loop is flat arithmetic over every cell while hillshade pays a 250,000-element `ToArray()` before touching a pixel.
+Raster terrain analysis API that generates hillshade and heatmap outputs from dense numeric grid inputs and renders the results as a browser-visible raster grid. The native C++ kernel processes dense arrays when available; the managed fallback computes slope/aspect and Gaussian-style kernel weights in C#. **Measured split: the Gaussian heatmap runs 1.28× faster natively, hillshade 0.83× — slower.** Same kernel, same grid size; the heatmap loop is flat arithmetic over every cell while hillshade pays a 250,000-element `ToArray()` before touching a pixel.
 
 - Hillshade computation from configurable sun azimuth/altitude and per-cell slope/aspect approximation
 - Gaussian-style heatmap kernel from weighted point samples over a target raster extent
