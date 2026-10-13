@@ -166,9 +166,16 @@ body.dark-mode .as-badge-nlp {
     transition: background var(--transition), border-color var(--transition);
 }
 
+/* High: --status-success-text on its tint is 4.46:1 in light mode (under 4.5), so light mode uses the
+   darker --accent-on-fill-h (6.71:1 on the tint over --surface); dark mode keeps --status-success-text
+   (5.62:1). Same fix as the Network .destination-chip. */
 .address-standardization-page .as-tier-badge-card.tier-high {
     background: var(--status-success-soft);
     border-color: rgba(var(--status-success-rgb), 0.4);
+    color: var(--accent-on-fill-h);
+}
+
+body.dark-mode .address-standardization-page .as-tier-badge-card.tier-high {
     color: var(--status-success-text);
 }
 
