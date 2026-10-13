@@ -72,7 +72,7 @@ namespace Portfolio.Services.Services
             for (var i = 0; i < graph.Nodes.Count && i < costs.Length; i++)
             {
                 var cost = costs[i];
-                if (!IsFinite(cost))
+                if (!double.IsFinite(cost))
                 {
                     unreachable++;
                     continue;
@@ -120,9 +120,9 @@ namespace Portfolio.Services.Services
 
             if (request.ObjectiveMode is < 0 or > 2)
                 throw new ArgumentException("Objective mode must be 0 (mean), 1 (p90), or 2 (coverage).", nameof(request));
-            if (!IsFinite(request.FirstThresholdMinutes) || request.FirstThresholdMinutes <= 0)
+            if (!double.IsFinite(request.FirstThresholdMinutes) || request.FirstThresholdMinutes <= 0)
                 throw new ArgumentException("The first response threshold must be greater than zero.", nameof(request));
-            if (!IsFinite(request.SecondThresholdMinutes) || request.SecondThresholdMinutes < request.FirstThresholdMinutes)
+            if (!double.IsFinite(request.SecondThresholdMinutes) || request.SecondThresholdMinutes < request.FirstThresholdMinutes)
                 throw new ArgumentException("The second response threshold must be at least the first.", nameof(request));
 
             var iterations = request.MaxIterations <= 0 ? 1 : Math.Min(request.MaxIterations, MaxIterations);
@@ -210,7 +210,7 @@ namespace Portfolio.Services.Services
 
             foreach (var point in demandPoints)
             {
-                if (!IsFinite(point.CallVolume) || point.CallVolume <= 0)
+                if (!double.IsFinite(point.CallVolume) || point.CallVolume <= 0)
                     throw new ArgumentException("Call volume must be greater than zero.", "request");
             }
         }
@@ -235,7 +235,7 @@ namespace Portfolio.Services.Services
 
         private static void ValidateSpeed(double avgSpeedKmh)
         {
-            if (!IsFinite(avgSpeedKmh) || avgSpeedKmh < 5 || avgSpeedKmh > 120)
+            if (!double.IsFinite(avgSpeedKmh) || avgSpeedKmh < 5 || avgSpeedKmh > 120)
                 throw new ArgumentException("Average speed must be between 5 and 120 km/h.", "request");
         }
 
@@ -247,7 +247,7 @@ namespace Portfolio.Services.Services
             var previous = 0.0;
             foreach (var band in bandMinutes)
             {
-                if (!IsFinite(band) || band <= previous)
+                if (!double.IsFinite(band) || band <= previous)
                     throw new ArgumentException("Isochrone bands must be ascending positive values.", "request");
                 previous = band;
             }
@@ -680,7 +680,7 @@ namespace Portfolio.Services.Services
                 var candidateIndex = evaluation.Assignment[d];
                 var reachable = candidateIndex >= 0
                     && candidateIndex < request.Candidates.Count
-                    && IsFinite(evaluation.ResponseTimes[d]);
+                    && double.IsFinite(evaluation.ResponseTimes[d]);
 
                 assignments.Add(new DemandAssignmentDto
                 {
@@ -702,8 +702,6 @@ namespace Portfolio.Services.Services
             PercentWithinSecondThreshold = Round(evaluation.PercentWithinSecond)
         };
 
-        private static double Round(double value) => IsFinite(value) ? Math.Round(value, 3) : 0;
-
-        private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+        private static double Round(double value) => double.IsFinite(value) ? Math.Round(value, 3) : 0;
     }
 }

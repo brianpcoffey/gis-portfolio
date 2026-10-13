@@ -140,7 +140,7 @@ namespace Portfolio.Services.Services
 
         private static void ValidateCoordinates(IEnumerable<CoordinateDto> coordinates)
         {
-            if (coordinates.Any(p => double.IsNaN(p.X) || double.IsInfinity(p.X) || double.IsNaN(p.Y) || double.IsInfinity(p.Y)))
+            if (coordinates.Any(p => !double.IsFinite(p.X) || !double.IsFinite(p.Y)))
                 throw new ArgumentException("Coordinates must be finite numeric values.");
         }
     }
