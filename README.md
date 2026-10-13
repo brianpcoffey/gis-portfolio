@@ -4,6 +4,21 @@
 [![CodeQL](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/github-code-scanning/codeql)
 [![Live site](https://img.shields.io/badge/Live_site-brianpcoffey.com-2C7AC3?style=flat)](https://brianpcoffey.com)
 
+A live, full-stack .NET 10 portfolio: 18 interactive demos, mostly GIS and spatial compute, on a layered ASP.NET Core API with PostgreSQL, plus 13 C++ kernels whose benchmarks are published in full, losses included.
+
+## At a glance
+
+- **Live site.** A .NET 10 Razor Pages app and a versioned JSON API (`/api/v1/...`, documented with OpenAPI and a [Scalar](https://brianpcoffey.com/scalar) reference) host 18 interactive demos, each with a demo page and a technical Details page.
+- **Layered architecture.** Razor Pages and controllers call service interfaces, which call repository interfaces over EF Core and PostgreSQL. ArcGIS is reached through typed `HttpClient`s with Polly timeout, retry and circuit-breaker policies. See [Solution Architecture](#solution-architecture).
+- **CI gates.** Pushes and pull requests to `main` run a formatting check, a warnings-as-errors build with a complexity gate, the test suite with ratcheting coverage floors (overall and for `Portfolio.Web`), a native-parity job (builds all 13 kernels, runs the suite with them loaded, then again with native disabled) and a production Docker image build; pull requests also get dependency review. The Render deploy job runs only after the test, native-parity and Docker jobs pass. CodeQL code scanning (GitHub default setup) and a weekly vulnerable-package sweep run alongside.
+- **13 C++ kernels with managed fallbacks.** Each kernel is a C++20 library behind P/Invoke, with a managed C# fallback whose results are checksum-compared against it on every benchmark workload. Measured against that fallback across 21 workloads, native ranges from **0.37× to 2.26×: 9 wins, 5 losses, 7 ties** (win ≥ 1.15×, loss ≤ 0.85×, tie within ±15%). **Production runs the managed paths**; the container image ships no native code. Table and method: [Measured speedup](#measured-speedup).
+- **Security and identity.** Security headers on every response, a nonce-based Content-Security-Policy in Report-Only mode beside an enforced baseline policy, per-IP rate limiting plus a shared CPU concurrency limiter on the compute endpoints, and two deliberately separate identity systems (an anonymous cookie identity and Google sign-in) with a single `Authenticated` authorization policy. See [Features](#features).
+- **Hosting.** Render (Docker) with PostgreSQL on Neon and optional Redis (Upstash) for cache, batch-job state and Data Protection keys. On Render's free plan the service spins down when idle, so the first request after a quiet period can take 30-90 seconds ([details](docs/render-deployment.md)). Azure, AKS and Azure Container Apps are future targets, not current dependencies.
+
+**Try it:** [All projects](https://brianpcoffey.com/Projects) · [Home Finder](https://brianpcoffey.com/Projects/HomeFinder) · [Route Planner](https://brianpcoffey.com/Projects/Network) · [Fleet Route Optimizer](https://brianpcoffey.com/Projects/Fleet) · [US State Explorer](https://brianpcoffey.com/Projects/StateExplorer) · [API reference (Scalar)](https://brianpcoffey.com/scalar)
+
+---
+
 ## Overview
 
 A .NET 10 Razor Pages and ASP.NET Core API portfolio focused on scalable backend engineering, GIS workflows, geocoding services, user-scoped persistence, and cloud-ready deployment patterns. The application is intentionally structured as a lead-level system design walkthrough: thin Razor/API entry points, service-layer business logic, repository-owned data access, typed external integrations, cache-backed geocoding workflows, and containerized deployment assets.
