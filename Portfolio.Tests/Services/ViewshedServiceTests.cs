@@ -153,7 +153,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task Viewshed_WidthOf250000_IsRejectedQuickly()
         {
-            // findings-security 5.2: 237 s of CPU before the side cap.
+            // Measured before the side cap: 237 s of CPU.
             var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
             var request = FlatViewshed(250000, 1);
             var timer = System.Diagnostics.Stopwatch.StartNew();

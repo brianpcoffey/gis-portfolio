@@ -136,7 +136,7 @@ namespace Portfolio.Web.Controllers
             }
         }
 
-        // ArcGIS 4.29 probes eval once per page load and falls back (findings-security 2.6): noise.
+        // ArcGIS 4.29 probes eval once per page load and falls back: noise.
         private static bool IsKnownArcGisEval(Violation v) =>
             v.Directive == "script-src"
             && (v.Blocked is "eval" or "'unsafe-eval'")

@@ -244,7 +244,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task RasterTerrainHeatmap_TenThousandPointsOn500x500_IsRejectedQuickly()
         {
-            // findings-security 5.2: this input took 29.2 s before the cap.
+            // Measured before the cap: this input took 29.2 s.
             var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
             var request = Heatmap(500, 500, 10_000);
             var timer = System.Diagnostics.Stopwatch.StartNew();

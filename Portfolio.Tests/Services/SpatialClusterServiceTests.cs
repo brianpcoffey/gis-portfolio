@@ -123,7 +123,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void Dbscan_5000IdenticalPoints_ManagedPathAllocatesUnder32Mb()
         {
-            // findings-security 5.2: 313 MB allocated before seed de-duplication.
+            // Measured before seed de-duplication: 313 MB allocated.
             var request = IdenticalPoints(5000);
             RunManagedDbscan(IdenticalPoints(10)); // warm up JIT outside the measurement
 

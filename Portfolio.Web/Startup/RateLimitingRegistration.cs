@@ -18,7 +18,7 @@ internal static class RateLimitingRegistration
     //                 compute, applied via [EnableRateLimiting("expensive")].
     //   Controllers marked [CpuBound] additionally pass through one process-wide concurrency limiter
     //   (after their per-IP window, so over-budget clients are rejected without queueing) so total CPU
-    //   stays bounded even if the per-IP key is spoofed (findings-security 4.4). The ArcGIS proxy
+    //   stays bounded even if a per-IP key were ever spoofed. The ArcGIS proxy
     //   controllers are I/O-bound and are deliberately not [CpuBound]. Queue overflow returns 429
     //   with Retry-After: 5.
     //   "csp"    — the Content-Security-Policy report sink (30/min).
@@ -47,7 +47,7 @@ internal static class RateLimitingRegistration
             options.OnRejected = RateLimitRejection.Apply;
 
             // "compute" and "expensive" check the client's own window first, then (for [CpuBound]
-            // controllers only) the process-wide shared concurrency limiter (findings-security 4.4).
+            // controllers only) the process-wide shared concurrency limiter.
             options.AddPolicy<string>(ComputeRateLimiterPolicy.Name, new ComputeRateLimiterPolicy(SharedCpuConcurrency.Shared));
             options.AddPolicy<string>(ExpensiveRateLimiterPolicy.Name, new ExpensiveRateLimiterPolicy(SharedCpuConcurrency.Shared));
 

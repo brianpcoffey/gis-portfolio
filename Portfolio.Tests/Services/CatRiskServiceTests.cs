@@ -531,7 +531,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task Simulate_MillionKmEventRadius_IsRejectedQuickly()
         {
-            // findings-security 5.2: radius 1e6 km took 2.8 s with 5,000 x 12,000.
+            // Measured before the cap: radius 1e6 km took 2.8 s with 5,000 x 12,000.
             var service = NewService();
             var locations = Enumerable.Range(1, 5_000).Select(i => Location(i, BaseLat, BaseLon)).ToList();
             var events = Enumerable.Range(1, 12_000).Select(i => Event(i, BaseLat, BaseLon, radiusKm: 1e6)).ToList();
