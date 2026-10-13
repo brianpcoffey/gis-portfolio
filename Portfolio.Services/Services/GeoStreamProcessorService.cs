@@ -33,9 +33,13 @@ namespace Portfolio.Services.Services
             if (request.GridSizeDegrees < MinGridSizeDegrees)
                 throw new ArgumentException("Grid size must be at least 0.000001 degrees.", nameof(request));
 
-            // Non-finite speeds are rejected outright. Events with a non-finite position are
-            // counted as invalid (like out-of-range ones); the native kernel only range-checks
-            // them, so a batch containing one is processed on the managed path.
+            // Non-finite speeds are rejected outright. Events with a non-finite position are counted
+            // as invalid (like out-of-range ones), and the native kernel agrees: it treats NaN and
+            // +/-Infinity positions as invalid exactly as ProcessManaged does (the native-only test
+            // NativeGeoStream_NonFiniteAndHugePositions_AreInvalidLikeManaged pins that). A batch
+            // containing one is still routed to the managed path on purpose, to keep the response
+            // unchanged: the native path would report NativeAccelerated = true for it, where it has
+            // always been false, so removing the routing is a visible behaviour change, not a cleanup.
             var hasNonFinitePosition = ValidateEvents(request);
 
             cancellationToken.ThrowIfCancellationRequested();
