@@ -1,0 +1,53 @@
+@model ValueTuple<string, string, string, ValueTuple<string, string>[], string, string>
+@{
+    // Shared project-page header (FE-D07). Tuple model, same precedent as _PreferencesControls.cshtml.
+    // Razor's @model directive cannot parse a named-tuple type, so the model is spelled as a
+    // ValueTuple and deconstructed below. Callers pass a named tuple, which converts implicitly:
+    //   (Title, IconClass, Subtitle, Badges, DetailsUrl, DetailsLabel)
+    //   Title        - the h1 text (also used in the details link's accessible name)
+    //   IconClass    - Font Awesome classes for the h1 icon, e.g. "fa-solid fa-industry"
+    //   Subtitle     - one-line description under the title
+    //   Badges       - (string, string)[] of zero or more (IconClass, Text) pills shown at the right; may be null
+    //   DetailsUrl   - the page's Details route; null/empty hides the info button
+    //   DetailsLabel - the button's tooltip; null/empty falls back to "Technical Details"
+    // Not adopted by any page yet; the project pages switch over in a later work package.
+    var (title, iconClass, subtitle, badges, detailsUrl, detailsLabel) = Model;
+    if (string.IsNullOrEmpty(detailsLabel)) { detailsLabel = "Technical Details"; }
+}
+<div class="project-hero py-4 mb-4">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-1">
+                    @if (!string.IsNullOrEmpty(iconClass))
+                    {
+                        <i class="@iconClass me-2"></i>
+                    }
+                    @title
+                </h1>
+                @if (!string.IsNullOrEmpty(subtitle))
+                {
+                    <p class="text-muted theme-text-muted mb-0">@subtitle</p>
+                }
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                @if (badges is not null)
+                {
+                    foreach (var (badgeIcon, badgeText) in badges)
+                    {
+                        <span class="badge badge-gis fs-6"><i class="@badgeIcon me-1"></i>@badgeText</span>
+                    }
+                }
+                @if (!string.IsNullOrEmpty(detailsUrl))
+                {
+                    <a class="btn btn-outline-accent btn-sm project-info-btn"
+                       href="@detailsUrl"
+                       aria-label="View technical details for @title"
+                       title="@detailsLabel">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
