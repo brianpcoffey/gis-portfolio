@@ -15,7 +15,7 @@ namespace Portfolio.Services.Data
     /// byte-identical scene. No database, no persistence: stateless in the same shape as
     /// <c>RedlandsRoadNetwork</c> and <c>SoCalPolicyBook</c>.
     /// </summary>
-    internal static class SyntheticChangeScene
+    public static class SyntheticChangeScene
     {
         public const string SceneName = "Cajon Foothills AOI — 4-band, 2-epoch stack";
 
