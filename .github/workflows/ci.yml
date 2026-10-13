@@ -217,6 +217,65 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ---------------------------------------------------------------------------
+  # Browser end-to-end tests (Portfolio.E2E): the real app on a real Kestrel port
+  # (EF InMemory, ArcGIS faked), driven by headless Chromium through Playwright.
+  # The ArcGIS and Leaflet CDNs are live (their SRI pins are really checked); OSM
+  # tiles are stubbed and geocoding hosts are aborted (see NetworkPolicy.cs). A CDN
+  # outage turns the affected tests into skips, never into failures.
+  #
+  # NOT in deploy.needs yet (decision D-06): add it after 10 consecutive green runs
+  # on main. The coverage gate is unaffected: the `test` job runs Portfolio.Tests only.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: Browser E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Warnings are errors here too (ContinuousIntegrationBuild is set for the whole workflow).
+      - name: Build
+        run: dotnet build Portfolio.E2E -c Release
+
+      # Playwright's own advice is not to cache browsers: restoring takes about as long as downloading,
+      # and the OS packages (--with-deps) cannot be cached at all.
+      - name: Install Chromium
+        run: pwsh Portfolio.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Run browser tests
+        env:
+          PORTFOLIO_E2E: '1'
+        run: >
+          dotnet test Portfolio.E2E --no-build -c Release
+          --logger "trx;LogFileName=e2e.trx"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults/e2e
+
+      # A failed test leaves a Playwright trace (.zip, open it with `playwright show-trace`) and a
+      # full-page screenshot in Portfolio.E2E/artifacts.
+      - name: Upload traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-artifacts
+          path: |
+            TestResults/e2e/**
+            Portfolio.E2E/artifacts/**
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
   # Flags a pull request that introduces a vulnerable dependency. Not a deploy
   # prerequisite: it only runs on pull requests.
   # ---------------------------------------------------------------------------
