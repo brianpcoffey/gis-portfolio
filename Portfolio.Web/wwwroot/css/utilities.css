@@ -1,7 +1,2 @@
-/* ======================================
-   Utilities
-   --------------------------------------
-   .fade-in and the hero responsive overrides live in components.css
-   (the copies that win in load order); this file is intentionally
-   empty of rules, kept so _Layout's link keeps resolving.
-   ====================================== */
+/* Intentionally empty of rules; kept so _Layout's link keeps resolving. .fade-in and the hero
+   responsive overrides live in components.css (the copies that win in load order). */

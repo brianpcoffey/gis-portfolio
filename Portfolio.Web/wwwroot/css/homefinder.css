@@ -1,15 +1,11 @@
-/* ======================================
-   Home Finder
-   Dark mode comes from the tokens in base.css and the shared overrides in components.css;
-   this file only holds what is specific to the page.
-   ====================================== */
+/* Dark mode comes from the tokens in base.css and the shared overrides in components.css;
+   this file only holds what is specific to the page. */
 
-/* Slider labels' icons: info tone from the status tokens (dark mode only, as before) */
+/* Slider labels' icons: info tone from the status tokens (dark mode only). */
 body.dark-mode .form-label .fa-solid {
     color: var(--status-info-text);
 }
 
-/* Basemap select dropdown */
 .basemap-select {
     min-width: 160px;
     background: var(--surface);
@@ -49,10 +45,6 @@ body.dark-mode .form-range::-webkit-slider-thumb {
     background: var(--accent);
 }
 
-/* ============================================================
-   Weight Budget Ring
-   ============================================================ */
-
 .weight-budget-ring {
     position: relative;
     display: inline-flex;
@@ -72,7 +64,6 @@ body.dark-mode .form-range::-webkit-slider-thumb {
     pointer-events: none;
 }
 
-/* Ring stroke colors by state */
 #budgetRing {
     transition: stroke-dashoffset 0.35s ease, stroke 0.35s ease;
 }
@@ -88,10 +79,6 @@ body.dark-mode .form-range::-webkit-slider-thumb {
 #budgetRing.ring-over {
     stroke: var(--status-danger-fill);
 }
-
-/* ============================================================
-   Weight Bar Enhancements
-   ============================================================ */
 
 .weight-bar-container {
     height: 5px;
@@ -121,10 +108,6 @@ input.weight-slider[max="0"] {
     opacity: 0.35;
     pointer-events: none;
 }
-
-/* ============================================================
-   Score Bar (Results Panel)
-   ============================================================ */
 
 .score-bar-container {
     height: 5px;
@@ -160,10 +143,6 @@ input.weight-slider[max="0"] {
         transition: none;
     }
 }
-
-/* ============================================================
-   Responsive — Collapse weights section on small screens
-   ============================================================ */
 
 @media (max-width: 767.98px) {
     .weight-budget-ring svg {

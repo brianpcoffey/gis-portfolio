@@ -1,8 +1,3 @@
-/* ═══════════════════════════════════════════════════════════════════════
-   network.css — Route Planner / Redlands GIS product styles
-   ═══════════════════════════════════════════════════════════════════════ */
-
-/* ── Page shell ──────────────────────────────────────────────────────── */
 /* --nav-h is the measured navbar height (navigation.js); 75px is the live height until it is set. */
 .network-page {
     display: flex;
@@ -26,7 +21,6 @@
     overflow: hidden;
 }
 
-/* ── Side panel ──────────────────────────────────────────────────────── */
 .network-panel {
     width: 320px;
     min-width: 280px;
@@ -85,7 +79,6 @@
     max-width: 90px;
 }
 
-/* ── Destination chip ────────────────────────────────────────────────── */
 /* T5: success text on its tint (was #198754, 3.89:1 light / 2.38:1 dark). Light mode uses the darker
    --accent-on-fill-h (6.7:1 on the tint; --status-success-text was 4.46:1 at 13px/500); dark mode keeps
    --status-success-text (5.6:1). */
@@ -105,7 +98,6 @@ body.dark-mode .destination-chip {
     color: var(--status-success-text);
 }
 
-/* ── KPI grid ────────────────────────────────────────────────────────── */
 .kpi-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -136,7 +128,6 @@ body.dark-mode .destination-chip {
     margin-top: 0.1rem;
 }
 
-/* ── Turn-by-turn list ───────────────────────────────────────────────── */
 /* The scroller is a focusable labelled region so keyboard users can scroll it (A16). */
 .route-steps-region {
     max-height: 220px;
@@ -159,7 +150,6 @@ body.dark-mode .destination-chip {
     border-bottom: none;
 }
 
-/* ── Map container ───────────────────────────────────────────────────── */
 .network-map-container {
     flex: 1;
     position: relative;
@@ -172,7 +162,6 @@ body.dark-mode .destination-chip {
     z-index: 1;
 }
 
-/* ── Map overlay hint ────────────────────────────────────────────────── */
 .map-click-hint {
     position: absolute;
     top: 0.75rem;
@@ -193,7 +182,7 @@ body.dark-mode .destination-chip {
     opacity: 0;
 }
 
-/* ── Leaflet override: route polyline pulse ──────────────────────────── */
+/* Leaflet override: route polyline pulse. */
 .network-route-line {
     stroke: var(--chart-1);
     stroke-width: 5;
@@ -203,7 +192,6 @@ body.dark-mode .destination-chip {
     filter: drop-shadow(0 0 4px color-mix(in srgb, var(--chart-1) 55%, transparent));
 }
 
-/* ── Responsive collapse ────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .network-page {
         height: auto;
