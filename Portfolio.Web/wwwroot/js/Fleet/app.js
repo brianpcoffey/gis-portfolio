@@ -10,9 +10,10 @@
     var ui = window.PortfolioUi;
     var el = window.PortfolioDom.el;
 
-    // One colour per vehicle; routes, markers and schedule bars all key off this. The theme's
-    // eight categorical series (--chart-1..8) are reused for vehicles 9 and 10, which the map
-    // tells apart with a dashed route line.
+    // One colour per vehicle; routes, markers and schedule bars all key off this. The eight
+    // categorical series are reused for vehicles 9 and 10, which the map tells apart with a
+    // dashed route line. The map uses the theme-independent --map-series-1..8 (the tiles stay
+    // light in both themes); the schedule bars and route swatches use the themed --chart-1..8.
     var VEHICLE_SERIES = 8;
 
     // Colours for map symbols that sit over the always-light OpenStreetMap raster tiles in
@@ -43,7 +44,6 @@
 
     // Module state.
     var scenario = null;
-    var lastResult = null;
     var pending = false;
     // A preset change that arrives while a request is pending can't start a load (runExclusive refuses
     // while pending), so it is queued and replayed when the request finishes. presetRequested is the
@@ -66,11 +66,6 @@
     iterationsInput.addEventListener("input", function () {
         iterationsValue.textContent = iterationsInput.value;
     });
-    // Canvas route and marker colours are resolved tokens, so repaint the map when the theme flips.
-    charts.onThemeChange(function () {
-        if (scenario) { drawMap(lastResult, true); }
-    });
-
     loadScenario(true);
 
     // ── Data ────────────────────────────────────────────────────────────────
@@ -106,7 +101,6 @@
             },
             render: function (result) {
                 scenario = result;
-                lastResult = null;
                 presetHint.textContent = scenario.description;
                 vehiclesInput.value = scenario.vehicleCount;
                 capacityInput.value = scenario.vehicleCapacity;
@@ -151,10 +145,7 @@
                     maxIterations: parseInt(iterationsInput.value, 10)
                 });
             },
-            render: function (result) {
-                lastResult = result;
-                render(result);
-            },
+            render: render,
             summary: function (result) {
                 var routeCount = result.routes.length;
                 return routeCount + (routeCount === 1 ? " route planned" : " routes planned") +
@@ -236,15 +227,14 @@
 
     // ── Map ─────────────────────────────────────────────────────────────────
 
-    // `keepView` repaints without re-fitting the map (used when only the theme changed).
-    function drawMap(result, keepView) {
+    function drawMap(result) {
         overlay.clearLayers();
         if (!scenario) {
             return;
         }
 
         var bounds = [];
-        var series = charts.palette(VEHICLE_SERIES);
+        var series = charts.mapPalette(VEHICLE_SERIES);
         var onDark = charts.token("on-dark");
 
         // Routes first so the markers sit on top of the polylines.
@@ -311,7 +301,7 @@
         depot.bindTooltip(el("strong", { text: scenario.depotLabel }), { direction: "top" });
         bounds.push([scenario.depotLatitude, scenario.depotLongitude]);
 
-        if (bounds.length > 0 && !keepView) {
+        if (bounds.length > 0) {
             map.fitBounds(bounds, { padding: [30, 30] });
         }
     }
