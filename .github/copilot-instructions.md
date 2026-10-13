@@ -61,8 +61,9 @@
 - One test class per service/controller; `Mock<IXxx>` fields in controller tests, inline SUTs for pure
   compute services; assert the computed result, never whether native ran. Every new action or method needs
   a happy path plus validation/not-found cases. Tests never reach arcgis.com. Details: agent-context section 9.
-- CI treats warnings as errors and gates coverage at 80% line / 60% branch: never lower either. A push to
-  `main` is a production deploy; work on `cleanup/*` or feature branches and open PRs.
+- CI treats warnings as errors and gates coverage with ratcheting floors (overall and Portfolio.Web) set in
+  `.github/workflows/ci.yml`: never lower them. A push to `main` is a production deploy; work on
+  `cleanup/*` or feature branches and open PRs.
 - Build, test and tool commands: agent-context section 7.
 
 ## Do not

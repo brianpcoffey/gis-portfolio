@@ -83,15 +83,19 @@ link, ARIA landmarks and OpenGraph/Twitter card meta live in `_Layout.cshtml`.
 
 ```
 Portfolio.sln              Common, Repositories, Services, Web, Tests, Benchmarks
-Directory.Build.props      warnings-as-errors ONLY in CI (ContinuousIntegrationBuild); NuGet audit NU1902/3/4 = errors
+Directory.Build.props      warnings-as-errors ONLY in CI (ContinuousIntegrationBuild); NuGet audit NU1902/3/4 = errors;
+                           wires CodeMetricsConfig.txt into every project as an AdditionalFiles item
+CodeMetricsConfig.txt      CA1502 cyclomatic-complexity threshold (15); the severity (warning) is in .editorconfig
 Directory.Packages.props   all package versions live here
 global.json                SDK pin (rollForward: latestFeature)
 Dockerfile                 restores Portfolio.Web.csproj only (not the .sln) — keeps Tests/Benchmarks out of the image;
                            base images pinned by digest; ASPNETCORE_HTTP_PORTS=10000; runs as the non-root image user
 coverlet.runsettings       excludes *.Migrations.*, Portfolio.Benchmarks and Obsolete / GeneratedCode / CompilerGenerated /
                            ExcludeFromCodeCoverage members (the two [Obsolete] HomeFinder aliases are therefore not in coverage)
-.editorconfig              utf-8, 4-space; CRLF in the working tree (git stores LF: .gitattributes `text=auto`);
-                           file-scoped namespaces = suggestion
+.editorconfig              utf-8, 4-space, final newline, usings sorted System-first; file-scoped namespaces = suggestion;
+                           CA1502 and IDE0005 (unused usings) = warning, both off for Migrations. No line-ending rule: the
+                           working tree's CRLF comes from git (.gitattributes `* text=auto` + the platform's native eol; the
+                           index stores LF)
 .env.example               DATABASE_URL, Redis__ConnectionString, Authentication__Google__*
 .github/workflows/         ci.yml (§8), security-scan.yml (weekly vulnerable-package sweep)
 .github/dependabot.yml     weekly NuGet / GitHub Actions / Docker update PRs (never auto-merged)
@@ -291,9 +295,12 @@ dotnet restore
 dotnet build -c Release                     # CI treats warnings as errors; locally they're warnings
 dotnet test                                 # whole suite (prints the current test count); passes with or without native libs
 PORTFOLIO_DISABLE_NATIVE=1 dotnet test      # PowerShell: $env:PORTFOLIO_DISABLE_NATIVE="1"
-# coverage exactly as CI measures it, then the gate (80% line / 60% branch; never lower them)
+# the format check CI runs (drop --verify-no-changes and --no-restore to fix what it reports)
+dotnet format Portfolio.sln --verify-no-changes --no-restore --exclude Portfolio.Repositories/Migrations Portfolio.Services/Data/RedlandsRoadNetwork.cs
+# coverage exactly as CI measures it, then the gate with the same floors: read <MIN_*> from the env block of
+# .github/workflows/ci.yml (they ratchet up; never lower them)
 dotnet test Portfolio.Tests -c Release --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory TestResults
-py -I tools/metrics/coverage_gate.py TestResults
+py -I tools/metrics/coverage_gate.py TestResults --min-line <MIN_LINE_COVERAGE> --min-branch <MIN_BRANCH_COVERAGE> --package-floor Portfolio.Web <MIN_WEB_LINE_COVERAGE> <MIN_WEB_BRANCH_COVERAGE>
 dotnet run --project Portfolio.Web --launch-profile http     # http://localhost:5000 (the https profile serves https://localhost:5001 and :5000)
 dotnet Portfolio.Web.dll --migrate                           # migrate and exit (Render pre-deploy; see §4)
 dotnet run --project Portfolio.Benchmarks -c Release         # native-vs-managed table; build kernels first
@@ -318,7 +325,7 @@ Runs on push to `main`, on PRs to `main` and `cleanup/**`, and on manual dispatc
 - **dependency-review** — pull requests only.
 - **deploy** — push to `main` only, after the three jobs above; POSTs the `RENDER_DEPLOY_HOOK` secret. It exits 0 with a "skipping" message when the secret is missing, so a green job is not proof a deploy fired.
 
-Also `security-scan.yml` (weekly vulnerable-package sweep) and `dependabot.yml`. **Treat a push to `main` as a production deploy.** With Render's own Auto-Deploy switched *off* and the hook secret set — the owner's configuration since July 2026, not visible in the repo — only a green build deploys. (A `dotnet format` gate and a CA1502 complexity gate are planned by cleanup WP-50 and are not in CI at the time of writing.)
+Also `security-scan.yml` (weekly vulnerable-package sweep) and `dependabot.yml`. **Treat a push to `main` as a production deploy.** With Render's own Auto-Deploy switched *off* and the hook secret set — the owner's configuration since July 2026, not visible in the repo — only a green build deploys.
 
 ---
 
@@ -334,7 +341,7 @@ Also `security-scan.yml` (weekly vulnerable-package sweep) and `dependabot.yml`.
 - DI: services/repositories `Scoped` in `Startup/DataRegistration.cs`; the only singletons are the job store and queue and `TimeProvider`; the ArcGIS-calling services are typed `AddHttpClient<I,T>` registrations (transient) — never add a parallel `AddScoped` for them.
 - Rate limiting for new controllers: §6.
 - `Task`-returning-but-sync compute services use `Task.FromResult`; limits are `private const int`; validate with `ArgumentNullException.ThrowIfNull(request)` then `throw new ArgumentException(message, nameof(request))`.
-- Namespace style is **mixed** (block-scoped in older files, file-scoped in newer); match the file/folder you're in. UTF-8, 4-space indent (2 for YAML), CRLF in the working tree; don't reformat lines you don't change.
+- Namespace style is **mixed** (block-scoped in older files, file-scoped in newer); match the file/folder you're in. UTF-8, 4-space indent (2 for YAML); working-tree line endings are git's (CRLF on Windows, from `text=auto`), not `.editorconfig`'s; CI's format check also fails on an unused `using`. Don't reformat lines you don't change.
 
 **Frontend**
 - **Pages:** `Pages/Projects/<Name>/Index.cshtml(.cs)` + `Details.cshtml(.cs)`; PageModels are bare (`OnGet`). Page stylesheets go in the page's `Styles` section, scripts in its `Scripts` section as `<script defer src="~/js/…" asp-append-version="true">`.
