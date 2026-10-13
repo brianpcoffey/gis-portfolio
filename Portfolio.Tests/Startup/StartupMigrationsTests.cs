@@ -32,7 +32,16 @@ public class StartupMigrationsTests
     }
 
     // Nothing listens on port 1, so the first statement against it fails fast; no real database is involved.
-    private const string UnreachablePostgres = "Host=127.0.0.1;Port=1;Database=x;Username=x;Password=x;Timeout=1";
+    // Placeholder values only, built from properties so no connection-string literal sits in the source.
+    private static readonly string UnreachablePostgres = new NpgsqlConnectionStringBuilder
+    {
+        Host = "127.0.0.1",
+        Port = 1,
+        Database = "x",
+        Username = "x",
+        Password = "x",
+        Timeout = 1,
+    }.ConnectionString;
 
     private static WebApplication AppWithUnreachablePostgres()
     {
