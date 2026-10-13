@@ -7,34 +7,50 @@
     // Esri widget theme (light/dark, follows the site toggle) before the map exists.
     window.PortfolioEsri.loadTheme();
 
+    // Resolves true once the map is ready, false when it could not be loaded (the ArcGIS API failed to
+    // load, or the view failed to start). The page does not depend on the map: the failure is shown in
+    // the map container and the caller wires everything else regardless.
     async function initMap() {
-        await window.PortfolioEsri.load();
-        await new Promise((resolve) => {
-            require([
-                "esri/Map",
-                "esri/views/MapView",
-                "esri/layers/GraphicsLayer"
-            ], (Map, MapView, GraphicsLayer) => {
-                state.mapInstance = new Map({ basemap: "dark-gray-vector" });
-                state.graphicsLayer = new GraphicsLayer();
-                state.mapInstance.add(state.graphicsLayer);
+        try {
+            await window.PortfolioEsri.load();
+            await new Promise((resolve, reject) => {
+                require([
+                    "esri/Map",
+                    "esri/views/MapView",
+                    "esri/layers/GraphicsLayer"
+                ], (Map, MapView, GraphicsLayer) => {
+                    state.mapInstance = new Map({ basemap: "dark-gray-vector" });
+                    state.graphicsLayer = new GraphicsLayer();
+                    state.mapInstance.add(state.graphicsLayer);
 
-                state.mapView = new MapView({
-                    container: "homeFinderMap",
-                    map: state.mapInstance,
-                    center: [-117.1825, 34.0556],
-                    zoom: 13
-                });
+                    state.mapView = new MapView({
+                        container: "homeFinderMap",
+                        map: state.mapInstance,
+                        center: [-117.1825, 34.0556],
+                        zoom: 13
+                    });
 
-                state.mapView.when(() => {
-                    // ArcGIS nests its own role="application" surface inside the container; name that one.
-                    const surface = state.mapView.container.querySelector(".esri-view-surface");
-                    const label = document.getElementById("homeFinderMap")?.dataset.mapLabel;
-                    if (surface && label) surface.setAttribute("aria-label", label);
-                    resolve();
-                });
+                    state.mapView.when(() => {
+                        // ArcGIS nests its own role="application" surface inside the container; name that one.
+                        const surface = state.mapView.container.querySelector(".esri-view-surface");
+                        const label = document.getElementById("homeFinderMap")?.dataset.mapLabel;
+                        if (surface && label) surface.setAttribute("aria-label", label);
+                        resolve();
+                    }, reject);
+                }, reject);
             });
-        });
+            return true;
+        } catch (err) {
+            console.error("Map failed to load:", err);
+            state.mapView = null;
+            state.mapInstance = null;
+            state.graphicsLayer = null;
+            document.getElementById("mapToolbar")?.classList.add("d-none");
+            window.PortfolioEsri.showLoadError(
+                document.getElementById("homeFinderMap"),
+                "You can still search and save searches; results are listed but not plotted.");
+            return false;
+        }
     }
 
     function wireBasemapSelect() {
@@ -46,6 +62,8 @@
     }
 
     function plotResults(results) {
+        // No map (the ArcGIS API failed to load): the results panel still lists the matches.
+        if (!state.graphicsLayer || !state.mapView) return;
         require([
             "esri/Graphic",
             "esri/geometry/Point",

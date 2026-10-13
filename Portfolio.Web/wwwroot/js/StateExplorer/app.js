@@ -63,11 +63,38 @@ function renderSelectedFeature(state) {
 }
 
 
+// The map is optional for everything else on the page: if the ArcGIS API cannot load (network
+// failure, or the SRI pin blocking a changed file) say so in the map container and carry on, so the
+// state search, saved states, comparison and collections still work (MapManager's zoom, hover and
+// basemap helpers do nothing without a view).
+async function initMapOrReport() {
+
+    try {
+
+        await MapManager.init();
+
+    }
+    catch (err) {
+
+        console.error("Map failed to load", err);
+
+        document.getElementById("basemapSelect")?.closest(".theme-toolbar")?.classList.add("d-none");
+
+        window.PortfolioEsri.showLoadError(
+            document.getElementById("mapView"),
+            "State search, saved states, comparison and collections still work."
+        );
+
+    }
+
+}
+
+
 async function initialize() {
 
     UI.init();
 
-    await MapManager.init();
+    await initMapOrReport();
 
     // Load data (includes collections from server)
     const [features, saved, collections] = await Promise.all([

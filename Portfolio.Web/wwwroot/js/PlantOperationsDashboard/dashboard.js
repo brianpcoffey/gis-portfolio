@@ -60,11 +60,17 @@ if (typeof loadPlantOpsMap !== 'function') {
     let plantOpsMapInstance = null;
     let plantOpsGraphicsLayer = null;
 
+    // Resolves true once the map is ready, false when the ArcGIS API is not available. init.js is loaded
+    // from the page markup (deferred, SRI-pinned): after a network failure or an SRI block `require` is
+    // never defined. The notice goes in the map container (role="alert"; it also replaces the loading
+    // spinner), the rest of the dashboard is unaffected, and the caller skips plotting the shipments.
     async function initPlantOpsMap() {
         const mapContainer = document.getElementById('plantOpsMap');
-        if (!mapContainer || typeof require !== 'function') {
-            showToast('Map container or ArcGIS library not loaded. Please check your network and script includes.', 'danger');
-            return;
+        if (!mapContainer) return false;
+        if (typeof require !== 'function') {
+            document.getElementById('plantOpsMapToolbar')?.classList.add('d-none');
+            window.PortfolioEsri.showLoadError(mapContainer, 'Orders, shipments and inventory are unaffected.');
+            return false;
         }
         const spinner = mapContainer.querySelector('.plant-ops-spinner');
         if (spinner) spinner.remove();
@@ -102,12 +108,12 @@ if (typeof loadPlantOpsMap !== 'function') {
                     const surface = plantOpsMapView.container.querySelector('.esri-view-surface');
                     const label = mapContainer.dataset.mapLabel;
                     if (surface && label) surface.setAttribute('aria-label', label);
-                    resolve();
+                    resolve(true);
                 }, err => {
                     clearTimeout(timeout);
                     reject(err);
                 });
-            });
+            }, reject);
         });
     }
 
@@ -155,9 +161,12 @@ if (typeof loadPlantOpsMap !== 'function') {
 
     window.loadPlantOpsMap = function () {
         initPlantOpsMap()
-            .then(() => window.apiFetch(window.PortfolioApi.routes.fiber.shipments))
-            .then(plantOpsJson)
-            .then(shipments => plotPlantOpsShipments(shipments))
+            .then(ready => {
+                if (!ready) return; // no map: the notice is already in the container
+                return window.apiFetch(window.PortfolioApi.routes.fiber.shipments)
+                    .then(plantOpsJson)
+                    .then(shipments => plotPlantOpsShipments(shipments));
+            })
             .catch(err => {
                 console.error(err);
                 showToast(plantOpsFailure('Map failed to load', err), 'danger');
