@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Portfolio.Web.Middleware;
 
@@ -31,17 +30,9 @@ public sealed class BadRequestOnArgumentExceptionAttribute : ExceptionFilterAttr
             return;
 
         var request = context.HttpContext.Request;
-        LoggerFor(context).LogWarning(ex, "Invalid request on {Method} {Path}", request.Method, request.Path);
+        FilterLogging.LoggerFor(context, GetType()).LogWarning(ex, "Invalid request on {Method} {Path}", request.Method, request.Path);
 
         context.Result = new BadRequestObjectResult(new { error = ApiExceptionMiddleware.IsOwn(ex) ? ex.Message : GenericMessage });
         context.ExceptionHandled = true;
-    }
-
-    /// <summary>A logger in the category of the controller that owns the action (what <c>ILogger&lt;TController&gt;</c> would give).</summary>
-    internal static ILogger LoggerFor(ExceptionContext context)
-    {
-        var category = (context.ActionDescriptor as ControllerActionDescriptor)?.ControllerTypeInfo.AsType()
-            ?? typeof(BadRequestOnArgumentExceptionAttribute);
-        return context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(category);
     }
 }

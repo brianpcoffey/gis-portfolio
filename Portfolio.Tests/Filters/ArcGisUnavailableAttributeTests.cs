@@ -115,6 +115,20 @@ public class ArcGisUnavailableAttributeTests
     }
 
     [Fact]
+    public void ForAnActionThatIsNotOnAController_LogsUnderTheAttributesOwnCategory()
+    {
+        // Arrange
+        var (context, log) = NewContext(new BrokenCircuitException("open"), controller: null);
+
+        // Act
+        new ArcGisUnavailableAttribute(ArcGisUpstream.Geocoding).OnException(context);
+
+        // Assert
+        Assert.Equal(typeof(ArcGisUnavailableAttribute).FullName, Assert.Single(log.Entries).Category);
+        ControllerBodyAssert.GeocodingUnavailable(context.Result);
+    }
+
+    [Fact]
     public void AnUnknownUpstream_IsRejected()
     {
         // Arrange

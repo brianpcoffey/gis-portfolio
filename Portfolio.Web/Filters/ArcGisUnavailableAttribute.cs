@@ -30,7 +30,7 @@ public sealed class ArcGisUnavailableAttribute(ArcGisUpstream upstream) : Except
         };
         var retryAfterSeconds = (int)profile.BreakDuration.TotalSeconds;
 
-        BadRequestOnArgumentExceptionAttribute.LoggerFor(context).LogWarning("ArcGIS circuit breaker is open for the {Upstream} pipelines; responding 503.", upstream);
+        FilterLogging.LoggerFor(context, GetType()).LogWarning("ArcGIS circuit breaker is open for the {Upstream} pipelines; responding 503.", upstream);
 
         context.Result = new ObjectResult(new ProblemDetails
         {
