@@ -6,6 +6,9 @@ namespace Portfolio.Repositories.Mappings;
 
 public class FiberOrderMapping : IEntityTypeConfiguration<FiberOrder>
 {
+    /// <summary>The unique (user, order number) index. The repository matches this name to tell an order-number clash from any other unique violation.</summary>
+    public const string OrderNumberIndexName = "IX_FiberOrders_user_id_order_number";
+
     public void Configure(EntityTypeBuilder<FiberOrder> builder)
     {
         builder.ToTable("FiberOrders");
@@ -14,6 +17,11 @@ public class FiberOrderMapping : IEntityTypeConfiguration<FiberOrder>
         builder.Property(x => x.UserId).HasColumnName("user_id");
         builder.HasIndex(x => x.UserId); // every order query filters by user
         builder.Property(x => x.OrderNumber).HasColumnName("order_number");
+        // One order number per user. Blank numbers are exempt, so rows that never had a number cannot clash.
+        builder.HasIndex(x => new { x.UserId, x.OrderNumber })
+            .IsUnique()
+            .HasFilter("\"order_number\" <> ''")
+            .HasDatabaseName(OrderNumberIndexName);
         builder.Property(x => x.ClientName).HasColumnName("client_name");
         builder.Property(x => x.ProductName).HasColumnName("product_name");
         builder.Property(x => x.Quantity).HasColumnName("quantity");
