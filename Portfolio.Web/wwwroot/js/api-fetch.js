@@ -3,6 +3,11 @@
  * Shared, authentication-aware fetch helpers for all portfolio frontend pages.
  * Loaded globally via _Layout.cshtml after api-config.js and before page scripts.
  *
+ * Every same-origin request carries "X-Requested-With: XMLHttpRequest" (unless the caller set one). The server
+ * requires it on state-changing /api calls that carry an identity cookie (ApiRequestHeaderMiddleware): a
+ * cross-site page cannot add the header without a CORS preflight, which the API never grants. Always call the API
+ * through apiFetch or the helpers below; a raw fetch() to /api would be answered 403 on POST/PUT/PATCH/DELETE.
+ *
  * Globals exposed:
  *   window.apiFetch(url, options)          — base helper; redirects to /Login on 401
  *   window.apiGet(url)                     — GET, returns parsed JSON or throws
@@ -16,15 +21,31 @@
 (function (global) {
     "use strict";
 
+    var REQUESTED_WITH = "X-Requested-With";
+
+    // True for a relative URL or one on this page's origin. A URL that cannot be parsed is left for fetch to reject.
+    function isSameOrigin(url) {
+        try {
+            return new global.URL(url, global.location.href).origin === global.location.origin;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    function isRequest(input) {
+        return typeof global.Request === "function" && input instanceof global.Request;
+    }
+
     /**
      * Core fetch wrapper.
      * - On 401: redirects the whole page to /Login?returnUrl=<current path>,
      *   unless options.redirectOn401 === false (pages valid for anonymous visitors).
      * - options.timeoutMs aborts the request after that many milliseconds.
      * - redirectOn401 and timeoutMs are stripped before fetch is called.
+     * - Adds X-Requested-With: XMLHttpRequest to same-origin requests (see the file header).
      * - Returns the raw Response so callers can inspect status before parsing.
      *
-     * @param {string}      url
+     * @param {string|URL|Request} url
      * @param {RequestInit} [options]
      * @returns {Promise<Response>}
      */
@@ -39,6 +60,19 @@
         // Always send cookies so authentication and anonymous-identity cookies travel with each request.
         if (!opts.credentials) {
             opts.credentials = "same-origin";
+        }
+
+        // Second CSRF layer: the server requires this header on state-changing calls that carry an identity cookie.
+        // Set on every same-origin request, whatever the method and body (apiPostForm's multipart upload included);
+        // new Headers() accepts a plain object, an array or a Headers instance. Never added to a cross-origin URL,
+        // where a custom header would force a preflight. A Request is judged by its own URL, and when options.headers
+        // is absent its headers are the starting point (fetch(request, { headers }) would otherwise replace them).
+        if (isSameOrigin(isRequest(url) ? url.url : url)) {
+            var headers = new Headers(opts.headers || (isRequest(url) ? url.headers : undefined));
+            if (!headers.has(REQUESTED_WITH)) {
+                headers.set(REQUESTED_WITH, "XMLHttpRequest");
+            }
+            opts.headers = headers;
         }
 
         var timer = null;
