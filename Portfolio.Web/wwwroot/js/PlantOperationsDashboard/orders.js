@@ -33,8 +33,10 @@ function loadOrdersTable() {
         showToast('DataTables library is not loaded. Please check your script order.', 'danger');
         return;
     }
+    const loadError = plantOpsAlert('ordersTableError');
+    loadError.hide();
     window.apiFetch(window.PortfolioApi.routes.fiber.orders)
-        .then(r => r.json())
+        .then(plantOpsJson)
         .then(data => {
             if (ordersTable) {
                 ordersTable.clear().rows.add(data).draw();
@@ -59,7 +61,7 @@ function loadOrdersTable() {
                         render: function (data, type, row) {
                             // The icons carry no text, so each button needs a name that also
                             // identifies its row — otherwise every row reads as the same "Edit".
-                            let rowLabel = plantOpsEscape(row.orderNumber || row.id);
+                            let rowLabel = PortfolioDom.escapeHtml(row.orderNumber || row.id);
                             return `<button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${Number(row.id)}" aria-label="Edit order ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
                                     <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${Number(row.id)}" aria-label="Delete order ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>`;
                         }
@@ -70,7 +72,8 @@ function loadOrdersTable() {
                 autoWidth: false,
                 language: { emptyTable: 'No orders found.' }
             });
-        });
+        })
+        .catch(err => loadError.show(plantOpsFailure('Failed to load orders', err)));
 }
 
 // Show modal for create/edit order
@@ -83,11 +86,12 @@ window.showOrderModal = function (orderId) {
     if (isEdit) {
         // Fetch order details
         window.apiFetch(`${window.PortfolioApi.routes.fiber.orders}/${orderId}`)
-            .then(r => r.json())
+            .then(plantOpsJson)
             .then(data => {
                 order = data;
                 renderOrderModal(order, isEdit, modalId, $modals);
-            });
+            })
+            .catch(err => showToast(plantOpsFailure('Failed to load order', err), 'danger'));
     } else {
         renderOrderModal({}, false, modalId, $modals);
     }
@@ -107,11 +111,11 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Client Name</label>
-            <input type="text" class="form-control" name="clientName" value="${plantOpsEscape(order.clientName)}" required />
+            <input type="text" class="form-control" name="clientName" value="${PortfolioDom.escapeHtml(order.clientName)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Product Name</label>
-            <input type="text" class="form-control" name="productName" value="${plantOpsEscape(order.productName)}" required />
+            <input type="text" class="form-control" name="productName" value="${PortfolioDom.escapeHtml(order.productName)}" required />
           </div>
           <div class="col-md-4">
             <label class="form-label">Quantity</label>
@@ -169,17 +173,14 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(r => {
-            if (!r.ok) throw new Error('Failed to save order');
-            return r.json();
-        })
+        .then(plantOpsJson)
         .then(() => {
             modal.hide();
             showToast(isEdit ? 'Order updated' : 'Order created', 'success');
             loadOrdersTable();
         })
-        .catch(() => {
-            showToast('Failed to save order', 'danger');
+        .catch(err => {
+            showToast(plantOpsFailure('Failed to save order', err), 'danger');
         });
     });
 }
@@ -188,10 +189,10 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
 window.deleteOrder = async function (orderId) {
     if (!await confirmDialog('Delete this order?')) return;
     window.apiFetch(`${window.PortfolioApi.routes.fiber.orders}/${orderId}`, { method: 'DELETE' })
-        .then(r => {
-            if (!r.ok) throw new Error('Failed to delete order');
+        .then(plantOpsOk)
+        .then(() => {
             showToast('Order deleted', 'success');
             loadOrdersTable();
         })
-        .catch(() => showToast('Failed to delete order', 'danger'));
+        .catch(err => showToast(plantOpsFailure('Failed to delete order', err), 'danger'));
 };
