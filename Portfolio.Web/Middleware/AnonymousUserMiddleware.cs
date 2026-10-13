@@ -25,7 +25,8 @@ namespace Portfolio.Web.Middleware
         private readonly RequestDelegate _next;
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<AnonymousUserMiddleware> _logger;
-        private const string CookieName = "AnonUserId";
+        // Shared with ApiRequestHeaderMiddleware, which must recognise this cookie.
+        internal const string CookieName = "AnonUserId";
         private const string HttpContextItemKey = "PortfolioIdentity";
 
         // New anonymous identities per client address per minute. An instance field: the

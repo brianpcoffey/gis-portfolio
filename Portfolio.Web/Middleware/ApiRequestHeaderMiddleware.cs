@@ -38,9 +38,6 @@ namespace Portfolio.Web.Middleware
         /// <summary>The <c>error</c> text of the 403 body (the client reads <c>body.error</c>).</summary>
         public const string ErrorMessage = "This request must include the X-Requested-With header.";
 
-        // Must stay equal to the cookie AnonymousUserMiddleware issues; the integration tests send the real one back.
-        private const string AnonymousCookieName = "AnonUserId";
-
         // ".AspNetCore.Cookies": the name the cookie handler's post-configuration gives an unnamed cookie.
         private static readonly string DefaultAuthCookieName =
             CookieAuthenticationDefaults.CookiePrefix + CookieAuthenticationDefaults.AuthenticationScheme;
@@ -98,7 +95,7 @@ namespace Portfolio.Web.Middleware
                 authName = DefaultAuthCookieName;
 
             return request.Cookies.Keys.Any(name =>
-                name.Equals(AnonymousCookieName, StringComparison.OrdinalIgnoreCase) ||
+                name.Equals(AnonymousUserMiddleware.CookieName, StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith(authName, StringComparison.OrdinalIgnoreCase));
         }
     }
