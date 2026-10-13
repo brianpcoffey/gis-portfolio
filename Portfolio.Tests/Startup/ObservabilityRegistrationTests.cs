@@ -537,9 +537,18 @@ public class ObservabilityRegistrationTests
         // Assert
         Assert.Equal([HttpStatusCode.OK, HttpStatusCode.BadRequest], baselineStatuses);
         Assert.Equal(baselineStatuses, tracedStatuses);
-        Assert.NotEmpty(baselineLogs.Lines);
-        Assert.Equal(baselineLogs.Lines.Order(StringComparer.Ordinal), tracedLogs.Lines.Order(StringComparer.Ordinal));
+        var baseline = WithoutDataProtection(baselineLogs.Lines);
+        Assert.NotEmpty(baseline);
+        Assert.Equal(baseline, WithoutDataProtection(tracedLogs.Lines));
     }
+
+    // Data Protection keys live in one on-disk folder shared by every host on the machine, so which host happens to
+    // create the first key (and log its warning) is a race, and a fresh CI runner starts with an empty folder.
+    // Lines read "Level|Category|Message"; the category is the second field.
+    private static List<string> WithoutDataProtection(IEnumerable<string> lines) => lines
+        .Where(l => !l.Split('|', 3)[1].StartsWith("Microsoft.AspNetCore.DataProtection", StringComparison.Ordinal))
+        .Order(StringComparer.Ordinal)
+        .ToList();
 
     private static async Task<HttpStatusCode[]> RunScenarioAsync(WebApplicationFactory<Program> factory)
     {
