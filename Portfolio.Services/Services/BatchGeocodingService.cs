@@ -21,6 +21,7 @@ namespace Portfolio.Services.Services
         private readonly IDistributedCache _cache;
         private readonly ILogger<BatchGeocodingService> _logger;
         private readonly IBatchJobStore _jobStore;
+        private readonly IBatchJobQueue _queue;
         private readonly int _maxConcurrency;
         private readonly double _minMatchScore;
         private readonly int _cacheTtlMinutes;
@@ -33,20 +34,22 @@ namespace Portfolio.Services.Services
             IDistributedCache cache,
             ILogger<BatchGeocodingService> logger,
             IBatchJobStore jobStore,
+            IBatchJobQueue queue,
             IOptions<BatchGeocodingOptions> options)
         {
             _httpClient = httpClient;
             _cache = cache;
             _logger = logger;
             _jobStore = jobStore;
+            _queue = queue;
             var opts = options.Value;
             _maxConcurrency = opts.MaxConcurrency;
             _minMatchScore = opts.MinMatchScore;
             _cacheTtlMinutes = opts.CacheTtlMinutes;
         }
 
-        // Public overload: delegates to the core after reading the stream on the request thread.
-        // Kept for the legacy [Obsolete] sync endpoint and existing tests.
+        // Synchronous path (POST .../batch/sync): reads the stream on the request thread and geocodes
+        // inline, without the job queue. Bounded by MaxRows.
         public async Task<List<BatchGeocodingResultDto>> GeocodeAsync(IFormFile file, CancellationToken cancellationToken = default)
         {
             if (file is null || file.Length == 0)
@@ -67,12 +70,11 @@ namespace Portfolio.Services.Services
             Func<int, Task>? onTotal, Func<int, Task>? onProgress,
             CancellationToken cancellationToken = default)
         {
+            var started = DateTimeOffset.UtcNow;
             var rows = ParseCsv(csvBytes);
 
             if (rows.Count == 0)
                 throw new ArgumentException("The CSV file contains no data rows.", fileName);
-
-            _logger.LogInformation("Batch geocoding job started. Record count: {Count}", rows.Count);
 
             if (onTotal is not null)
                 await onTotal(rows.Count);
@@ -84,10 +86,6 @@ namespace Portfolio.Services.Services
                 SingleReader                  = false,
                 AllowSynchronousContinuations = false
             });
-
-            _logger.LogInformation(
-                "Batch geocoding channel created with capacity {Capacity} and {Workers} workers.",
-                500, _maxConcurrency);
 
             // Producer: write all rows into the channel.
             var producer = Task.Run(async () =>
@@ -102,12 +100,13 @@ namespace Portfolio.Services.Services
             var results = new System.Collections.Concurrent.ConcurrentBag<(string Id, BatchGeocodingResultDto Dto)>();
             var processed = 0;
             var cacheHits = 0;
+            var stats = new RunStats();
 
             var workers = Enumerable.Range(0, _maxConcurrency).Select(_ => Task.Run(async () =>
             {
                 await foreach (var row in channel.Reader.ReadAllAsync(cancellationToken))
                 {
-                    var (dto, cacheHit) = await GeocodeRowAsync(row, cancellationToken);
+                    var (dto, cacheHit) = await GeocodeRowAsync(row, stats, cancellationToken);
                     results.Add((row.Id, dto));
                     if (cacheHit)
                         Interlocked.Increment(ref cacheHits);
@@ -121,22 +120,35 @@ namespace Portfolio.Services.Services
             await Task.WhenAll(workers);
 
             var ordered = results.OrderBy(r => r.Id).Select(r => r.Dto).ToList();
+
+            // One summary per job. No per-row logging: rows carry user-entered addresses (SEC-16)
+            // and a 1,000-row job would otherwise write 1,000 lines.
+            var matchedCount = ordered.Count(r => r.Matched);
+            _logger.LogInformation(
+                "Batch geocoding summary: {Rows} rows, {Matched} matched, {Unmatched} unmatched, " +
+                "{CacheHits} cache hits, {UpstreamErrors} upstream errors, {ElapsedMs} ms.",
+                ordered.Count, matchedCount, ordered.Count - matchedCount, cacheHits,
+                stats.UpstreamErrors, (long)(DateTimeOffset.UtcNow - started).TotalMilliseconds);
+
             return (ordered, cacheHits);
         }
 
-        // Enqueues a CSV file for background processing and returns a job ID immediately.
-        // The file stream is read on the request thread before Task.Run so the IFormFile
-        // lifetime does not need to extend into the background closure.
+        // Validates the upload, records the job and puts it on the bounded queue. The row cap is
+        // enforced here, on the request thread, so an oversized CSV is a 400 rather than a failed
+        // job. A full queue throws BatchQueueFullException (503 + Retry-After at the controller).
+        // The stream is read here so the IFormFile lifetime need not extend into the background.
         public async Task<string> EnqueueAsync(IFormFile file, CancellationToken ct = default)
         {
-            // Read the entire stream on the request thread, before Task.Run.
             byte[] fileBytes;
             using (var ms = new MemoryStream())
             {
                 await file.OpenReadStream().CopyToAsync(ms, ct);
                 fileBytes = ms.ToArray();
             }
-            string originalFileName = file.FileName;
+
+            // Throws ArgumentException above MaxRows. A header-only CSV still enqueues and
+            // fails as a job, as before.
+            ParseCsv(fileBytes);
 
             var jobId = Guid.NewGuid().ToString("N");
             var job = new BatchJob
@@ -144,69 +156,83 @@ namespace Portfolio.Services.Services
                 JobId       = jobId,
                 Status      = BatchJobStatus.Queued,
                 SubmittedAt = DateTimeOffset.UtcNow,
-                FileName    = originalFileName
+                FileName    = file.FileName
             };
 
             await _jobStore.CreateAsync(job, ct);
 
-            // Fire and forget — captures only value-type-safe locals (byte[], string, BatchJob).
-            _ = Task.Run(async () =>
+            if (!_queue.TryEnqueue(new BatchWorkItem(job, fileBytes)))
             {
-                job.Status = BatchJobStatus.Processing;
-                await _jobStore.UpdateAsync(job);
-
-                try
-                {
-                    var started = DateTimeOffset.UtcNow;
-
-                    var (results, cacheHits) = await RunGeocodeAsync(
-                        fileBytes, originalFileName,
-                        // TotalRows known once the CSV is parsed, before any geocoding.
-                        onTotal: async total =>
-                        {
-                            job.TotalRows = total;
-                            await _jobStore.UpdateAsync(job);
-                        },
-                        // Report incremental progress so pollers see ProcessedRows climb.
-                        // Persist on every row for small demo batches; throttle for larger ones.
-                        onProgress: async done =>
-                        {
-                            job.ProcessedRows = done;
-                            if (job.TotalRows <= 50 || done % 5 == 0 || done == job.TotalRows)
-                                await _jobStore.UpdateAsync(job);
-                        },
-                        CancellationToken.None);
-
-                    var matchedScores = results.Where(r => r.Matched).Select(r => r.Score).ToList();
-
-                    job.Results             = results;
-                    job.ProcessedRows       = results.Count;
-                    job.FailedRows          = results.Count(r => !r.Matched);
-                    job.CacheHits           = cacheHits;
-                    // Mean match score across matched results only — unmatched rows (score 0)
-                    // must not dilute the reported quality.
-                    job.AverageScore        = matchedScores.Count > 0 ? matchedScores.Average() : 0;
-                    job.CompletedAt         = DateTimeOffset.UtcNow;
-                    job.ThroughputPerSecond = results.Count /
-                        Math.Max((job.CompletedAt.Value - started).TotalSeconds, 0.001);
-                    job.Status              = BatchJobStatus.Completed;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Batch job {JobId} failed.", jobId);
-                    job.Status      = BatchJobStatus.Failed;
-                    job.CompletedAt = DateTimeOffset.UtcNow;
-                }
-
-                await _jobStore.UpdateAsync(job);
-            }, CancellationToken.None);
+                // The caller never learns this id; mark the record so it is not left Queued until TTL.
+                job.Status      = BatchJobStatus.Failed;
+                job.CompletedAt = DateTimeOffset.UtcNow;
+                await _jobStore.UpdateAsync(job, CancellationToken.None);
+                throw new BatchQueueFullException();
+            }
 
             return jobId;
         }
 
+        // Runs one queued job to a terminal status. Called by the hosted BatchGeocodingWorker.
+        // The final store update is in finally, so a failure or cancellation still leaves the
+        // job Completed/Failed rather than stuck in Processing.
+        public async Task ProcessJobAsync(BatchWorkItem item, CancellationToken ct)
+        {
+            var job = item.Job;
+            try
+            {
+                job.Status = BatchJobStatus.Processing;
+                await _jobStore.UpdateAsync(job, ct);
+
+                var started = DateTimeOffset.UtcNow;
+
+                var (results, cacheHits) = await RunGeocodeAsync(
+                    item.CsvBytes, job.FileName,
+                    // TotalRows known once the CSV is parsed, before any geocoding.
+                    onTotal: async total =>
+                    {
+                        job.TotalRows = total;
+                        await _jobStore.UpdateAsync(job, ct);
+                    },
+                    // Report incremental progress so pollers see ProcessedRows climb.
+                    // Persist on every row for small demo batches; throttle for larger ones.
+                    onProgress: async done =>
+                    {
+                        job.ProcessedRows = done;
+                        if (job.TotalRows <= 50 || done % 5 == 0 || done == job.TotalRows)
+                            await _jobStore.UpdateAsync(job, ct);
+                    },
+                    ct);
+
+                var matchedScores = results.Where(r => r.Matched).Select(r => r.Score).ToList();
+
+                job.Results             = results;
+                job.ProcessedRows       = results.Count;
+                job.FailedRows          = results.Count(r => !r.Matched);
+                job.CacheHits           = cacheHits;
+                // Mean match score across matched results only: unmatched rows (score 0)
+                // must not dilute the reported quality.
+                job.AverageScore        = matchedScores.Count > 0 ? matchedScores.Average() : 0;
+                job.CompletedAt         = DateTimeOffset.UtcNow;
+                job.ThroughputPerSecond = results.Count /
+                    Math.Max((job.CompletedAt.Value - started).TotalSeconds, 0.001);
+                job.Status              = BatchJobStatus.Completed;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Batch job {JobId} failed.", job.JobId);
+                job.Status      = BatchJobStatus.Failed;
+                job.CompletedAt = DateTimeOffset.UtcNow;
+            }
+            finally
+            {
+                await _jobStore.UpdateAsync(job, CancellationToken.None);
+            }
+        }
+
         // Geocodes a single CSV row, using IDistributedCache to avoid duplicate HTTP calls across replicas.
         // Returns the result plus whether it was served from cache (for the job's CacheHits tally).
-        private async Task<(BatchGeocodingResultDto Dto, bool CacheHit)> GeocodeRowAsync(CsvRow row, CancellationToken cancellationToken)
+        private async Task<(BatchGeocodingResultDto Dto, bool CacheHit)> GeocodeRowAsync(CsvRow row, RunStats stats, CancellationToken cancellationToken)
         {
             var normalizedKey = $"{row.Address}|{row.City}|{row.State}|{row.Zip}".Trim().ToLowerInvariant();
             var cacheKey = $"geocode:{normalizedKey}";
@@ -222,7 +248,7 @@ namespace Portfolio.Services.Services
 
             if (cached is null)
             {
-                cached = await FetchGeocodeAsync(row, cancellationToken);
+                cached = await FetchGeocodeAsync(row, stats, cancellationToken);
                 var entryBytes = JsonSerializer.SerializeToUtf8Bytes(cached, PortfolioJsonOptions.Default);
                 await _cache.SetAsync(cacheKey, entryBytes,
                     new DistributedCacheEntryOptions
@@ -232,9 +258,6 @@ namespace Portfolio.Services.Services
             }
 
             var matched = cached.Score >= _minMatchScore;
-
-            if (!matched)
-                _logger.LogWarning("Unmatched address for row Id {Id} (score {Score}).", row.Id, cached.Score);
 
             var dto = new BatchGeocodingResultDto
             {
@@ -250,7 +273,7 @@ namespace Portfolio.Services.Services
         }
 
         // Makes the HTTP call to the ArcGIS World Geocoding REST API.
-        private async Task<GeocodeCacheEntry> FetchGeocodeAsync(CsvRow row, CancellationToken cancellationToken)
+        private async Task<GeocodeCacheEntry> FetchGeocodeAsync(CsvRow row, RunStats stats, CancellationToken cancellationToken)
         {
             var address = Uri.EscapeDataString(row.Address);
             var city = Uri.EscapeDataString(row.City);
@@ -282,15 +305,17 @@ namespace Portfolio.Services.Services
             {
                 throw;
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException)
             {
-                _logger.LogError(ex, "HTTP error geocoding address for row {Id}", row.Id);
+                // Counted, not logged per row: the summary reports the total (SEC-16).
+                Interlocked.Increment(ref stats.UpstreamErrors);
                 return new GeocodeCacheEntry(string.Empty, 0, 0, 0);
             }
         }
 
-        // Hard cap on data rows per upload — bounds memory and outbound geocoding volume.
-        private const int MaxRows = 10_000;
+        // Hard cap on data rows per upload, sync and async alike (decision D-10): bounds memory,
+        // outbound geocoding volume and Redis commands.
+        private const int MaxRows = 1_000;
 
         // Parses the CSV bytes into typed rows. Expects header: Id,Address,City,State,Zip
         private static List<CsvRow> ParseCsv(byte[] csvBytes)
@@ -329,6 +354,12 @@ namespace Portfolio.Services.Services
             }
 
             return rows;
+        }
+
+        // Per-run tally of upstream HTTP failures, reported once in the job summary.
+        private sealed class RunStats
+        {
+            public int UpstreamErrors;
         }
 
         private sealed class CsvRow

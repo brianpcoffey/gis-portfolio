@@ -31,7 +31,7 @@ namespace Portfolio.Tests.Services
             var handler = new FakeHttpMessageHandler(responseJson);
             var httpClient = new HttpClient(handler);
 
-            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, options);
+            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, new Portfolio.Services.BoundedBatchJobQueue(), options);
         }
 
         private static IFormFile BuildCsvFile(string csvContent)
@@ -142,7 +142,7 @@ namespace Portfolio.Tests.Services
 
             var options = Options.Create(new BatchGeocodingOptions { MaxConcurrency = 1, MinMatchScore = 80 });
 
-            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, options);
+            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, new Portfolio.Services.BoundedBatchJobQueue(), options);
 
             cts.CancelAfter(50);
 
@@ -183,6 +183,48 @@ namespace Portfolio.Tests.Services
 
             // Assert
             Assert.Equal(1000, results.Count);
+        }
+
+        // 1,001 rows is one over the D-10 cap: the sync path rejects it with the public 400 message.
+        [Fact]
+        public async Task GeocodeAsync_CsvOverRowCap_ThrowsArgumentException()
+        {
+            // Arrange
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 1001; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Main St,Denver,CO,80201\n");
+            var service = CreateService("{}");
+
+            // Act
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.GeocodeAsync(BuildCsvFile(sb.ToString())));
+
+            // Assert
+            Assert.StartsWith("CSV exceeds the maximum of 1000 data rows.", ex.Message);
+        }
+
+        // The run writes one summary line and nothing per row (rows carry user-entered addresses).
+        [Fact]
+        public async Task GeocodeAsync_LogsOneSummaryAndNothingPerRow()
+        {
+            // Arrange
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 20; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Secret Ln,Denver,CO,80201\n");
+            // Score 10 is below the match threshold, so every row is unmatched.
+            var service = CreateService(BuildGeocodeJson("x", 10.0, 0, 0));
+
+            // Act
+            await service.GeocodeAsync(BuildCsvFile(sb.ToString()));
+
+            // Assert
+            var logs = _loggerMock.Invocations
+                .Where(i => i.Method.Name == "Log")
+                .Select(i => i.Arguments[2]?.ToString() ?? string.Empty)
+                .ToList();
+            var summary = Assert.Single(logs);
+            Assert.Contains("20 rows", summary);
+            Assert.Contains("20 unmatched", summary);
+            Assert.DoesNotContain("Secret", summary);
         }
 
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler
