@@ -19,11 +19,16 @@
         }
     }
 
+    // The open name dialog's promise. While it is set a second request (Enter or Space again on the Save
+    // Search button during the modal's fade) gets the same promise instead of a second set of listeners.
+    let pendingName = null;
+
     // Replaces window.prompt: a Bootstrap modal (#saveSearchModal in Index.cshtml) with one name field.
     // Opens with the name selected, Enter submits, an empty name is refused in place, and focus goes
     // back to the Save Search button when it closes. Resolves to the trimmed name on Save, or null when
     // the dialog is dismissed.
     function askSearchName(defaultName) {
+        if (pendingName) return pendingName;
         const modalEl = document.getElementById("saveSearchModal");
         const form = document.getElementById("saveSearchForm");
         const input = document.getElementById("saveSearchName");
@@ -33,7 +38,7 @@
         setNameInvalid(input, false);
         const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-        return new Promise((resolve) => {
+        pendingName = new Promise((resolve) => {
             let result = null;
             const onSubmit = (e) => {
                 e.preventDefault();
@@ -66,9 +71,27 @@
             modalEl.addEventListener("hidden.bs.modal", onHidden, { once: true });
             modal.show();
         });
+        // Registered before any caller's await, so the guard is released before they resume; also on rejection.
+        const release = () => { pendingName = null; };
+        pendingName.then(release, release);
+        return pendingName;
     }
 
+    // True from the click on Save Search until the save finishes. A second caller of askSearchName gets the
+    // same promise, so without this each caller would POST the name it resolves to.
+    let saving = false;
+
     async function saveSearch() {
+        if (saving) return;
+        saving = true;
+        try {
+            await saveSearchOnce();
+        } finally {
+            saving = false;
+        }
+    }
+
+    async function saveSearchOnce() {
         const prefs = HF.getPreferences();
         const name = await askSearchName(`Search ${new Date().toLocaleDateString()}`);
         if (!name) return;
