@@ -15,6 +15,7 @@ namespace Portfolio.Services.Services
         private const double AvgSpeedKmh = 40.0;
 
         // Built once at first access; the static graph never changes at runtime.
+        // Shared instance: callers must never mutate it.
         private static readonly RoadGraphDto _cachedGraph = RedlandsRoadNetwork.Build();
 
         private readonly ILogger<SpatialGraphService> _logger;
@@ -41,8 +42,7 @@ namespace Portfolio.Services.Services
             ValidateGraph(request.Nodes, request.Edges);
 
             // Single O(n) pass to verify both terminal nodes exist.
-            var nodeIds = new HashSet<int>(request.Nodes.Count);
-            foreach (var n in request.Nodes) nodeIds.Add(n.Id);
+            var nodeIds = NodeIdSet(request.Nodes);
             if (!nodeIds.Contains(request.StartNodeId) || !nodeIds.Contains(request.EndNodeId))
                 throw new ArgumentException("Start and end nodes must exist in the graph.", nameof(request));
 
@@ -74,8 +74,7 @@ namespace Portfolio.Services.Services
             ArgumentNullException.ThrowIfNull(request);
             ValidateGraph(request.Nodes, request.Edges);
 
-            var nodeIds = new HashSet<int>(request.Nodes.Count);
-            foreach (var n in request.Nodes) nodeIds.Add(n.Id);
+            var nodeIds = NodeIdSet(request.Nodes);
             if (!nodeIds.Contains(request.OriginNodeId))
                 throw new ArgumentException("Origin node must exist in the graph.", nameof(request));
             if (request.MaxCost < 0 || !double.IsFinite(request.MaxCost))
@@ -112,8 +111,7 @@ namespace Portfolio.Services.Services
             ArgumentNullException.ThrowIfNull(graph);
             ValidateGraph(graph.Nodes, graph.Edges);
 
-            var nodeIds = new HashSet<int>(graph.Nodes.Count);
-            foreach (var n in graph.Nodes) nodeIds.Add(n.Id);
+            var nodeIds = NodeIdSet(graph.Nodes);
             if (!nodeIds.Contains(originNodeId))
                 throw new ArgumentException("Origin node must exist in the graph.", nameof(originNodeId));
 
@@ -149,8 +147,7 @@ namespace Portfolio.Services.Services
             if ((long)sourceIds.Count * targetIds.Count > MaxMatrixCells)
                 throw new ArgumentException($"Distance matrices are limited to {MaxMatrixCells} cells.", nameof(sourceIds));
 
-            var nodeIds = new HashSet<int>(graph.Nodes.Count);
-            foreach (var n in graph.Nodes) nodeIds.Add(n.Id);
+            var nodeIds = NodeIdSet(graph.Nodes);
             foreach (var id in sourceIds)
                 if (!nodeIds.Contains(id))
                     throw new ArgumentException("Every source node must exist in the graph.", nameof(sourceIds));
@@ -208,81 +205,7 @@ namespace Portfolio.Services.Services
         }
 
         private static RouteResultDto FindShortestPathDijkstra(RouteRequestDto request, CancellationToken cancellationToken)
-        {
-            var nodeLookup = BuildNodeLookup(request.Nodes);
-            var distances = new Dictionary<int, double>(request.Nodes.Count);
-            foreach (var n in request.Nodes) distances[n.Id] = double.PositiveInfinity;
-
-            var previous = new Dictionary<int, int>(request.Nodes.Count);
-            var settled = new HashSet<int>(request.Nodes.Count);
-            var exploredOrder = new List<int>();
-            var queue = new PriorityQueue<int, double>(request.Nodes.Count);
-            int explored = 0;
-
-            distances[request.StartNodeId] = 0;
-            queue.Enqueue(request.StartNodeId, 0);
-
-            var adjacency = BuildAdjacency(request.Edges, request.Nodes.Count);
-            while (queue.Count > 0)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var current = queue.Dequeue();
-                if (!settled.Add(current))
-                    continue;
-                explored++;
-                exploredOrder.Add(current);
-                if (current == request.EndNodeId)
-                    break;
-                if (!adjacency.TryGetValue(current, out var edges))
-                    continue;
-
-                var curDist = distances[current];
-                foreach (var edge in edges)
-                {
-                    if (settled.Contains(edge.To))
-                        continue;
-                    // Edges to undeclared nodes are dropped, as the native kernel does when it
-                    // builds its CSR adjacency.
-                    if (!distances.TryGetValue(edge.To, out var known))
-                        continue;
-                    var candidate = curDist + edge.Cost;
-                    if (candidate >= known)
-                        continue;
-
-                    distances[edge.To] = candidate;
-                    previous[edge.To] = current;
-                    queue.Enqueue(edge.To, candidate);
-                }
-            }
-
-            if (double.IsPositiveInfinity(distances[request.EndNodeId]))
-            {
-                return new RouteResultDto
-                {
-                    NativeAccelerated = false,
-                    Found = false,
-                    TotalCost = 0,
-                    AlgorithmUsed = "dijkstra",
-                    ExploredNodes = explored,
-                    ExploredNodeIds = exploredOrder
-                };
-            }
-
-            var path = ReconstructPath(previous, request.StartNodeId, request.EndNodeId);
-            var dto = new RouteResultDto
-            {
-                NativeAccelerated = false,
-                Found = true,
-                TotalCost = Math.Round(distances[request.EndNodeId], 2),
-                NodeIds = path,
-                Path = MapPath(path, nodeLookup),
-                AlgorithmUsed = "dijkstra",
-                ExploredNodes = explored,
-                ExploredNodeIds = exploredOrder
-            };
-            EnrichMetrics(dto, request.Nodes);
-            return dto;
-        }
+            => SearchShortestPath(request, null, "dijkstra", cancellationToken);
 
         private static RouteResultDto FindShortestPathAStar(RouteRequestDto request, CancellationToken cancellationToken)
         {
@@ -290,65 +213,92 @@ namespace Portfolio.Services.Services
             if (!nodeLookup.TryGetValue(request.EndNodeId, out var endNode))
                 throw new ArgumentException("End node not found.", nameof(request));
 
-            var gScore = new Dictionary<int, double>(request.Nodes.Count);
-            foreach (var n in request.Nodes) gScore[n.Id] = double.PositiveInfinity;
+            double Heuristic(int id) => nodeLookup.TryGetValue(id, out var node)
+                ? Haversine(node, endNode)
+                : 0;
+
+            return SearchShortestPath(request, Heuristic, "astar", cancellationToken);
+        }
+
+        // One best-first search shared by Dijkstra (heuristic == null, priority = cost so far)
+        // and A* (priority = cost so far + heuristic). Edges to undeclared nodes are dropped,
+        // as the native kernel does when it builds its CSR adjacency.
+        private static RouteResultDto SearchShortestPath(
+            RouteRequestDto request,
+            Func<int, double>? heuristic,
+            string algorithmName,
+            CancellationToken cancellationToken)
+        {
+            var cost = new Dictionary<int, double>(request.Nodes.Count);
+            foreach (var n in request.Nodes) cost[n.Id] = double.PositiveInfinity;
 
             var previous = new Dictionary<int, int>(request.Nodes.Count);
             var closed = new HashSet<int>(request.Nodes.Count);
             var exploredOrder = new List<int>();
             var open = new PriorityQueue<int, double>(request.Nodes.Count);
-            int explored = 0;
 
-            var startNode = nodeLookup[request.StartNodeId];
-            gScore[request.StartNodeId] = 0;
-            open.Enqueue(request.StartNodeId, Haversine(startNode, endNode));
+            cost[request.StartNodeId] = 0;
+            open.Enqueue(request.StartNodeId, heuristic?.Invoke(request.StartNodeId) ?? 0);
 
             var adjacency = BuildAdjacency(request.Edges, request.Nodes.Count);
-
             while (open.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var current = open.Dequeue();
                 if (!closed.Add(current))
                     continue;
-                explored++;
                 exploredOrder.Add(current);
                 if (current == request.EndNodeId)
                     break;
-                if (!adjacency.TryGetValue(current, out var edges))
-                    continue;
-
-                var curG = gScore[current];
-                foreach (var edge in edges)
-                {
-                    if (closed.Contains(edge.To))
-                        continue;
-                    // Edges to undeclared nodes are dropped, as the native kernel does when it
-                    // builds its CSR adjacency.
-                    if (!gScore.TryGetValue(edge.To, out var known))
-                        continue;
-                    var tentativeG = curG + edge.Cost;
-                    if (tentativeG >= known)
-                        continue;
-
-                    gScore[edge.To] = tentativeG;
-                    previous[edge.To] = current;
-                    var h = nodeLookup.TryGetValue(edge.To, out var neighbor)
-                        ? Haversine(neighbor, endNode)
-                        : 0;
-                    open.Enqueue(edge.To, tentativeG + h);
-                }
+                if (adjacency.TryGetValue(current, out var edges))
+                    RelaxEdges(current, edges, cost, previous, closed, open, heuristic);
             }
 
-            if (double.IsPositiveInfinity(gScore[request.EndNodeId]))
+            return BuildRouteResult(request, cost, previous, exploredOrder, algorithmName);
+        }
+
+        private static void RelaxEdges(
+            int current,
+            List<AdjEdge> edges,
+            Dictionary<int, double> cost,
+            Dictionary<int, int> previous,
+            HashSet<int> closed,
+            PriorityQueue<int, double> open,
+            Func<int, double>? heuristic)
+        {
+            var curCost = cost[current];
+            foreach (var edge in edges)
+            {
+                if (closed.Contains(edge.To))
+                    continue;
+                if (!cost.TryGetValue(edge.To, out var known))
+                    continue;
+                var candidate = curCost + edge.Cost;
+                if (candidate >= known)
+                    continue;
+
+                cost[edge.To] = candidate;
+                previous[edge.To] = current;
+                open.Enqueue(edge.To, candidate + (heuristic?.Invoke(edge.To) ?? 0));
+            }
+        }
+
+        private static RouteResultDto BuildRouteResult(
+            RouteRequestDto request,
+            Dictionary<int, double> cost,
+            Dictionary<int, int> previous,
+            List<int> exploredOrder,
+            string algorithmName)
+        {
+            if (double.IsPositiveInfinity(cost[request.EndNodeId]))
             {
                 return new RouteResultDto
                 {
                     NativeAccelerated = false,
                     Found = false,
                     TotalCost = 0,
-                    AlgorithmUsed = "astar",
-                    ExploredNodes = explored,
+                    AlgorithmUsed = algorithmName,
+                    ExploredNodes = exploredOrder.Count,
                     ExploredNodeIds = exploredOrder
                 };
             }
@@ -358,11 +308,11 @@ namespace Portfolio.Services.Services
             {
                 NativeAccelerated = false,
                 Found = true,
-                TotalCost = Math.Round(gScore[request.EndNodeId], 2),
+                TotalCost = Math.Round(cost[request.EndNodeId], 2),
                 NodeIds = path,
-                Path = MapPath(path, nodeLookup),
-                AlgorithmUsed = "astar",
-                ExploredNodes = explored,
+                Path = MapPath(path, BuildNodeLookup(request.Nodes)),
+                AlgorithmUsed = algorithmName,
+                ExploredNodes = exploredOrder.Count,
                 ExploredNodeIds = exploredOrder
             };
             EnrichMetrics(dto, request.Nodes);
@@ -371,12 +321,16 @@ namespace Portfolio.Services.Services
 
         // Computes haversine great-circle distance in km between two graph nodes.
         private static double Haversine(GraphNodeDto a, GraphNodeDto b)
+            => HaversineKm(a.Latitude, a.Longitude, b.Latitude, b.Longitude);
+
+        // Operation order is load-bearing: results must stay bit-identical.
+        private static double HaversineKm(double lat1, double lon1, double lat2, double lon2)
         {
             const double R = 6371.0;
-            var dLat = ToRad(b.Latitude - a.Latitude);
-            var dLon = ToRad(b.Longitude - a.Longitude);
+            var dLat = ToRad(lat2 - lat1);
+            var dLon = ToRad(lon2 - lon1);
             var h = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
-                  + Math.Cos(ToRad(a.Latitude)) * Math.Cos(ToRad(b.Latitude))
+                  + Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2))
                   * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
             return R * 2 * Math.Atan2(Math.Sqrt(h), Math.Sqrt(1 - h));
         }
@@ -399,12 +353,7 @@ namespace Portfolio.Services.Services
                 var a = dto.Path[i - 1];
                 var b = dto.Path[i];
                 // X = longitude, Y = latitude in CoordinateDto.
-                var dLat = ToRad(b.Y - a.Y);
-                var dLon = ToRad(b.X - a.X);
-                var h = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
-                      + Math.Cos(ToRad(a.Y)) * Math.Cos(ToRad(b.Y))
-                      * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-                total += 6371.0 * 2 * Math.Atan2(Math.Sqrt(h), Math.Sqrt(1 - h));
+                total += HaversineKm(a.Y, a.X, b.Y, b.X);
             }
 
             dto.DistanceKm = Math.Round(total, 2);
@@ -495,6 +444,13 @@ namespace Portfolio.Services.Services
             }
         }
 
+        private static HashSet<int> NodeIdSet(IReadOnlyList<GraphNodeDto> nodes)
+        {
+            var ids = new HashSet<int>(nodes.Count);
+            foreach (var n in nodes) ids.Add(n.Id);
+            return ids;
+        }
+
         // Builds a node-id → node lookup dictionary from the request node list.
         private static Dictionary<int, GraphNodeDto> BuildNodeLookup(IReadOnlyList<GraphNodeDto> nodes)
         {
@@ -533,6 +489,13 @@ namespace Portfolio.Services.Services
 
         private static void ValidateGraph(IReadOnlyList<GraphNodeDto>? nodes, IReadOnlyList<GraphEdgeDto>? edges)
         {
+            ValidateCounts(nodes, edges);
+            ValidateNodeCoordinates(nodes!);
+            ValidateEdgeCosts(edges!);
+        }
+
+        private static void ValidateCounts(IReadOnlyList<GraphNodeDto>? nodes, IReadOnlyList<GraphEdgeDto>? edges)
+        {
             if (nodes is null || nodes.Count == 0)
                 throw new ArgumentException("At least one graph node is required.");
             if (nodes.Count > MaxNodeCount)
@@ -541,15 +504,20 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("At least one graph edge is required.");
             if (edges.Count > MaxEdgeCount)
                 throw new ArgumentException($"Graph operations are limited to {MaxEdgeCount} edges.");
+        }
 
-            // Single pass for both coordinate and edge-cost validation.
+        private static void ValidateNodeCoordinates(IReadOnlyList<GraphNodeDto> nodes)
+        {
             foreach (var n in nodes)
             {
                 if (!double.IsFinite(n.Latitude)
                     || !double.IsFinite(n.Longitude))
                     throw new ArgumentException("Graph node coordinates must be finite numeric values.");
             }
+        }
 
+        private static void ValidateEdgeCosts(IReadOnlyList<GraphEdgeDto> edges)
+        {
             foreach (var e in edges)
             {
                 if (e.Cost < 0 || !double.IsFinite(e.Cost))
