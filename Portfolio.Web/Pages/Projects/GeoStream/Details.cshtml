@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Live Location Stream – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-satellite-dish me-2"></i>Live Location Stream – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-satellite-dish me-2" aria-hidden="true"></i>Live Location Stream – Technical Details</h1>
 		<a href="/Projects/GeoStream" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Live Location Stream demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Process GPS-style telemetry batches into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<ul>
 			<li><strong>Page:</strong> <code>Pages/Projects/GeoStream/Index.cshtml</code> provides a telemetry JSON editor, processing controls, KPI cards, and a grid-style visualization panel.</li>
@@ -37,7 +35,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>GeoStreamController</code> is versioned at <code>/api/v1/geostream</code> and marked <code>[AllowAnonymous]</code> for portfolio demo access.</li>
@@ -48,7 +46,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
 			<li><strong>Service:</strong> <code>GeoStreamProcessorService</code> validates input, checks <code>GeoStreamNativeBridge.IsAvailable</code>, and dispatches to native or managed execution.</li>
@@ -59,7 +57,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<ul>
 			<li><strong>Current MVP:</strong> No PostgreSQL persistence is used; requests are processed synchronously and returned as DTOs.</li>
@@ -69,7 +67,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Native build:</strong> <code>native/geostream_processor/CMakeLists.txt</code> builds a shared library and copies it beside the .NET output when built locally.</li>
@@ -79,7 +77,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Grid aggregation over raw event rendering:</strong> Improves map readability and reduces browser load, but loses individual-event detail unless a drill-down path is added.</li>
@@ -89,7 +87,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>Where should a real system draw the boundary between ingestion, processing, caching, and rendering?</li>

@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Raster Change Detection – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-satellite me-2"></i>Raster Change Detection – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-satellite me-2" aria-hidden="true"></i>Raster Change Detection – Technical Details</h1>
 		<a href="/Projects/Change" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Raster Change Detection demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Two satellite passes over the same ground, weeks apart — what changed? That question drives new-construction monitoring, deforestation tracking, flood-extent mapping, post-disaster damage assessment, and every tip-and-cue workflow in commercial GEOINT.</li>
@@ -27,7 +25,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Algorithm</h2>
 		<ul>
 			<li><strong>Change Vector Analysis:</strong> <code>magnitude[i] = sqrt( Σ<sub>b</sub> (epochB[b][i] − epochA[b][i])² )</code> — the Euclidean length of the per-pixel spectral difference vector. CVA beats differencing a single band because it does not need to know which band carries the change, and because a uniform illumination offset moves every band together rather than saturating one. Epoch B in the demo carries exactly such an offset, deliberately.</li>
@@ -41,7 +39,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Endpoints:</strong> <code>GET /api/v1/change/scene?width=256&amp;height=256&amp;noise=0.025</code> and <code>POST /api/v1/change/detect</code>.</li>
@@ -53,7 +51,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Native Boundary</h2>
 		<ul>
 			<li><strong>Kernel:</strong> <code>change_detection_kernel</code>, a C++20 shared library exposing <code>Change_ComputeCvaMagnitude</code>, <code>Change_OtsuThreshold</code>, <code>Change_MorphologicalOpen</code> and <code>Change_LabelComponents</code> through a stable C ABI with status-code returns.</li>
@@ -81,7 +79,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Canvas, not 65,536 divs:</strong> The Terrain Analyzer renders its raster with <code>.raster-grid</code> / <code>.raster-cell</code> DOM nodes, which is fine at its size. At 256×256 that is 65,536 elements and at 512×512 it is 262,144 — a layout and memory cost no browser absorbs gracefully. Every raster here is written as <code>ImageData</code> to a <code>&lt;canvas&gt;</code> instead, and only the 128-bin histogram stays SVG. That is the single most consequential frontend decision on the page.</li>
@@ -95,7 +93,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>Why Change Vector Analysis instead of simply differencing one band? What does CVA give you when the two acquisitions have different illumination?</li>

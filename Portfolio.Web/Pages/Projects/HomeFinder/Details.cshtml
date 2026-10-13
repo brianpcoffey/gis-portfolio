@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Redlands Smart Home Finder – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-house-chimney me-2"></i>Redlands Smart Home Finder – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-house-chimney me-2" aria-hidden="true"></i>Redlands Smart Home Finder – Technical Details</h1>
 		<a href="/Projects/HomeFinder" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Redlands Smart Home Finder demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Score and rank Redlands-area properties against user-defined home search preferences, then display the best matches on a map and in result cards.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
 			The page uses Razor for initial layout and <code>wwwroot/js/HomeFinder/app.js</code> for client behavior. It is not a SPA; preference sliders, map graphics, property cards, and saved-search interactions are coordinated with modular vanilla JavaScript.
@@ -40,7 +38,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>HomeFinderController</code> is versioned at <code>/api/v1/homefinder</code> and currently requires <code>[Authorize(Policy = "Authenticated")]</code>.</li>
@@ -52,7 +50,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
 			<li><strong>Scoring service:</strong> <code>HomeScoringService</code> retrieves filtered property data from <code>IPropertyRepository</code>, scores each property across ten weighted dimensions, sorts by composite score descending, and assigns sequential rank before returning the top-N result set as DTOs.</li>
@@ -65,7 +63,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<ul>
 			<li><strong>Repository pattern:</strong> <code>IPropertyRepository</code> and <code>ISavedSearchRepository</code> isolate EF Core access from business logic.</li>
@@ -76,7 +74,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Hosting:</strong> Render hosts the ASP.NET Core app; PostgreSQL connection strings and Google OAuth secrets are injected through configuration.</li>
@@ -89,7 +87,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Weighted scoring:</strong> A transparent ten-dimension scoring formula is easy to explain and test, but less adaptive than ML-based recommendation models. Every sub-score is a pure function of entity fields and preference weights, making unit testing and parity checks between the managed and native paths straightforward.</li>
@@ -101,7 +99,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>How would you keep scoring explainable as ranking factors become more complex?</li>

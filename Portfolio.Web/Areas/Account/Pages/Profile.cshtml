@@ -5,7 +5,9 @@
     ViewData["Title"] = "My Profile";
 }
 
-<link rel="stylesheet" href="~/css/profile.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+}
 
 <div class="container py-5">
     <div class="profile-page">
@@ -24,7 +26,7 @@
         {
             <div class="profile-alert alert-dismissible fade show d-flex align-items-center justify-content-between mb-4" role="alert">
                 <span>
-                    <i class="fa-solid fa-check-circle me-2"></i>@Model.StatusMessage
+                    <i class="fa-solid fa-check-circle me-2" aria-hidden="true"></i>@Model.StatusMessage
                 </span>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>

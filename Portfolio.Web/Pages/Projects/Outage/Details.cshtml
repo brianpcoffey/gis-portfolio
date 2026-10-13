@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Outage Manager & Network Trace – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-bolt me-2"></i>Outage Manager &amp; Network Trace – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-bolt me-2" aria-hidden="true"></i>Outage Manager &amp; Network Trace – Technical Details</h1>
 		<a href="/Projects/Outage" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Outage Manager demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Answer the three questions a distribution control room needs within a minute of a recloser locking out — who is out, what isolates the fault, and who can be restored by backfeeding from an adjacent feeder.</li>
@@ -27,7 +25,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Algorithm</h2>
 		<ul>
 			<li><strong>Downstream trace:</strong> A breadth-first sweep from the faulted element's downstream node, forbidden from crossing back through the fault itself and never traversing an open device. On a radial circuit that is exactly the de-energized subtree. The faulted element is included; customers affected is the summed customer count over the set.</li>
@@ -40,7 +38,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Endpoints:</strong> <code>GET /api/v1/outage/network</code>, <code>POST /api/v1/outage/trace</code>, <code>POST /api/v1/outage/restore</code>.</li>
@@ -52,7 +50,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Native Boundary</h2>
 		<ul>
 			<li><strong>Kernel:</strong> <code>network_trace_kernel</code>, a C++20 shared library exposing <code>Trace_Downstream</code>, <code>Trace_Upstream</code>, <code>Trace_FindIsolationDevices</code>, and <code>Trace_ComputeEnergizedSet</code> through a stable C ABI with <code>#pragma pack(push, 8)</code> structs and status-code returns (plus <code>-5</code> for "faulted element not found").</li>
@@ -82,7 +80,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>A separate dataset, not a reuse of the road graph:</strong> Bending the OSM road network into a feeder would have been faster and wrong. Radial topology, device state, and per-element customer attribution are the entire problem; a graph without them cannot express it.</li>
@@ -95,7 +93,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>The network is stored with directed <code>from</code>/<code>to</code> but energization is computed undirected. Why, and what would break if you traced connectivity directionally?</li>
