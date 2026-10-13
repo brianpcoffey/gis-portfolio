@@ -13,6 +13,23 @@ indent_size = 4
 csharp_style_namespace_declarations = file_scoped:suggestion
 dotnet_sort_system_directives_first = true
 
+# Cyclomatic-complexity gate (WP-50). CA1502 reads its threshold from CodeMetricsConfig.txt (15, wired in
+# Directory.Build.props); a method above it is a warning, which CI promotes to an error.
+dotnet_diagnostic.CA1502.severity = warning
+
+# EF migrations are scaffolded, never hand-edited, and peak well under the threshold; keep them out of every gate.
+[**/Migrations/*.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+# Generated from OpenStreetMap; never hand-edited. Analyzers only: coverlet does not read .editorconfig,
+# so coverage still counts this file (it must keep doing so).
+[Portfolio.Services/Data/RedlandsRoadNetwork.cs]
+generated_code = true
+
+# The benchmark harness is not shipped code; its Render method is a report printer.
+[Portfolio.Benchmarks/**.cs]
+dotnet_diagnostic.CA1502.severity = none
+
 [*.{js,css,html,cshtml,json}]
 indent_size = 4
 
