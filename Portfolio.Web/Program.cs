@@ -68,13 +68,7 @@ builder.Services.AddPortfolioSession(builder.Environment);
 
 builder.Services.AddPortfolioAuthentication(builder.Configuration, builder.Environment);
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy        = System.Text.Json.JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.DefaultIgnoreCondition      = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
+builder.Services.AddPortfolioControllers();
 
 // --------------------------
 // Rate Limiting
@@ -133,29 +127,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddPortfolioHealthChecks();
 
-// --------------------------
-// API Versioning
-// --------------------------
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    // Require explicit URL-segment versions so missing or ambiguous API versions are detected.
-    options.AssumeDefaultVersionWhenUnspecified = false;
-    options.ReportApiVersions = true;
-    options.ApiVersionReader = new UrlSegmentApiVersionReader();
-})
-.AddMvc()
-.AddApiExplorer(options =>
-{
-    options.GroupNameFormat = "'v'VVV";
-    options.SubstituteApiVersionInUrl = true;
-});
-
-// --------------------------
-// Swagger / API Explorer
-// --------------------------
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.Services.AddPortfolioApiVersioning();
 
 builder.Services.AddPortfolioDatabase(builder.Configuration);
 
