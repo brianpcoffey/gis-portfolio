@@ -347,7 +347,7 @@ extern "C" CHG_API int Change_LabelComponents(
 		std::vector<int> parent;
 		parent.push_back(0); // label 0 = background, never a root query
 
-		// ── Pass one: provisional labels + equivalences ──────────────────────
+		// Pass one: provisional labels + equivalences
 		for (int y = 0; y < height; ++y)
 		{
 			for (int x = 0; x < width; ++x)
@@ -404,7 +404,7 @@ extern "C" CHG_API int Change_LabelComponents(
 			}
 		}
 
-		// ── Pass two: resolve, compact, accumulate ───────────────────────────
+		// Pass two: resolve, compact, accumulate
 		const int provisionalCount = static_cast<int>(parent.size());
 		std::vector<int> compact(provisionalCount, 0);
 		int componentCount = 0;

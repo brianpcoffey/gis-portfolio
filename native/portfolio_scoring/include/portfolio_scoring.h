@@ -19,12 +19,11 @@
 extern "C" {
 #endif
 
-/* -----------------------------------------------------------------------
- * Input / output structs
+/*
  * All fields match the corresponding C# properties in Property.cs and
  * HomeSearchPreferencesDto.cs.  Field order MUST stay in sync with the
  * [StructLayout(LayoutKind.Sequential)] definitions in NativeStructs.cs.
- * ----------------------------------------------------------------------- */
+ */
 
 #pragma pack(push, 8)
 
@@ -115,10 +114,6 @@ typedef struct ScoreOutputNative
 } ScoreOutputNative;
 
 #pragma pack(pop)
-
-/* -----------------------------------------------------------------------
- * Exported functions
- * ----------------------------------------------------------------------- */
 
 #if defined(_WIN32) || defined(_WIN64)
 #  define PS_API __declspec(dllexport)
