@@ -194,5 +194,6 @@ namespace Portfolio.Tests.Middleware
                 HasStarted = true;
                 foreach (var (cb, state) in _starting) await cb(state);
             }
-        }    }
+        }
+    }
 }
