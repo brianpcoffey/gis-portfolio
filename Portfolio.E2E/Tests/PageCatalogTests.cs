@@ -68,6 +68,25 @@ public class PageCatalogTests
         Assert.Equal(["/Projects/Fleet", "/Projects/Network", "/Projects/Response"], leaflet);
     }
 
+    // An overflow is only compared when the layout suite visits its page and width, so an entry for a page that was renamed or
+    // removed, or for a width the suite does not use, would never be compared and never fail as stale.
+    [Fact]
+    public void KnownOverflows_EveryKey_IsAPageAndWidthTheLayoutSuiteVisits()
+    {
+        // Arrange
+        var paths = PageCatalog.All.Select(p => p.Path).ToHashSet(StringComparer.Ordinal);
+        var widths = LayoutTests.Viewports.Select(viewport => viewport.Width).ToHashSet();
+
+        // Act
+        var unknown = LayoutTests.KnownOverflows.Keys
+            .Where(key => !paths.Contains(key.Path) || !widths.Contains(key.Width))
+            .Select(key => $"{key.Path} at {key.Width} px")
+            .ToList();
+
+        // Assert
+        Assert.True(unknown.Count == 0, $"KnownOverflows has entries for pages or widths the layout suite does not visit: {string.Join(", ", unknown)}");
+    }
+
     [Fact]
     public void Find_UnknownPath_Throws()
     {

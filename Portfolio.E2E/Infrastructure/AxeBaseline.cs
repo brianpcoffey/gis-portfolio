@@ -42,6 +42,16 @@ public sealed class AxeBaseline
 
     private AxeBaseline(SortedDictionary<string, SortedDictionary<string, SortedDictionary<string, SortedSet<string>>>> cells) => _cells = cells;
 
+    /// <summary>
+    /// The run configurations the accessibility suite scans every page in, and so the only ones the file may hold: the viewport
+    /// width in pixels, then the colour scheme.
+    /// </summary>
+    public static IReadOnlyList<string> Configurations { get; } = ["1280-light", "1280-dark", "360-light"];
+
+    /// <summary>Every (page, configuration) the baseline has an entry for, empty ones included.</summary>
+    public IEnumerable<(string Page, string Configuration)> Entries =>
+        _cells.SelectMany(page => page.Value.Keys.Select(configuration => (page.Key, configuration)));
+
     /// <summary>The file's location in the source tree (found by walking up from the test binaries), or <c>null</c> when there is no source tree.</summary>
     public static string? SourcePath()
     {

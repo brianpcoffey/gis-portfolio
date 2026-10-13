@@ -10,13 +10,13 @@ namespace Portfolio.E2E.Tests;
 /// </summary>
 public sealed class LayoutTests(E2EHost host) : BrowserTestBase(host)
 {
-    private static readonly (int Width, int Height)[] Viewports = [(360, 800), (768, 1024), (1280, 800)];
+    internal static readonly (int Width, int Height)[] Viewports = [(360, 800), (768, 1024), (1280, 800)];
     private static readonly string[] Schemes = ["light", "dark"];
 
     // Overflows the site has today, so this suite can land before their fixes (those are separate pull requests). Like the axe
     // baseline it only shrinks: an overflow that is not listed fails, and a listed one that no longer happens fails too, so
     // whoever fixes the page deletes its line. Each entry says what overflows and why.
-    private static readonly Dictionary<(string Path, int Width), string> KnownOverflows = new()
+    internal static readonly Dictionary<(string Path, int Width), string> KnownOverflows = new()
     {
         [("/Projects/PlantOperationsDashboard", 360)] =
             "The three D3 charts are drawn once, at the width their container has when the page loads, and are not redrawn on resize: " +

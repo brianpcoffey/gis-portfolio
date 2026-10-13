@@ -28,12 +28,11 @@ public sealed class AccessibilityTests(E2EHost host, AxeRecorder recorder) : Bro
     private const int Height = 800;
     private static readonly string[] Tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
     private static readonly string[][] ThirdPartyDom = [[".esri-view-root"], [".leaflet-pane"]];
-    private static readonly string[] Configurations = ["1280-light", "1280-dark", "360-light"];
     private static readonly Lazy<AxeBaseline> Baseline = new(() => AxeBaseline.Load(AxeBaseline.SourcePath()));
 
     /// <summary>Every page in each of the three configurations.</summary>
     public static TheoryData<string, string> PagesAndConfigurations =>
-        [.. PageCatalog.All.SelectMany(page => Configurations.Select(configuration => (page.Path, configuration)))];
+        [.. PageCatalog.All.SelectMany(page => AxeBaseline.Configurations.Select(configuration => (page.Path, configuration)))];
 
     [E2ETheory]
     [MemberData(nameof(PagesAndConfigurations))]

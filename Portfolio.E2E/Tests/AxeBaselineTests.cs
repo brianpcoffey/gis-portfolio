@@ -83,6 +83,48 @@ public class AxeBaselineTests
     }
 
     [Fact]
+    public void Entries_ParsedFile_ListsEveryPageAndConfigurationIncludingEmptyOnes()
+    {
+        // Arrange
+        var baseline = AxeBaseline.Parse(
+            """{ "pages": { "/b": { "360-light": {} }, "/a": { "1280-light": { "label": ["#x"] }, "1280-dark": {} } } }""");
+
+        // Act
+        var entries = baseline.Entries.ToList();
+
+        // Assert
+        Assert.Equal([("/a", "1280-dark"), ("/a", "1280-light"), ("/b", "360-light")], entries);
+    }
+
+    // A baseline entry is only compared when the accessibility suite visits its page and configuration, so an entry for a page that
+    // was renamed or removed, or with a mistyped configuration, would never be compared and never fail as stale. This is the check
+    // that does not wait for a visit.
+    [Fact]
+    public void CommittedFile_EveryEntry_IsForAPageAndConfigurationTheSuiteScans()
+    {
+        // Arrange
+        var path = AxeBaseline.SourcePath();
+        Assert.True(path is not null && File.Exists(path), "axe-baseline.json should be next to Portfolio.E2E.csproj.");
+        var pages = PageCatalog.All.Select(page => page.Path).ToHashSet(StringComparer.Ordinal);
+
+        // Act
+        var entries = AxeBaseline.Load(path).Entries.ToList();
+        var unknownPages = entries.Select(entry => entry.Page).Where(page => !pages.Contains(page)).Distinct(StringComparer.Ordinal).ToList();
+        var unknownConfigurations = entries
+            .Where(entry => !AxeBaseline.Configurations.Contains(entry.Configuration))
+            .Select(entry => $"{entry.Page}: {entry.Configuration}")
+            .ToList();
+
+        // Assert
+        Assert.True(
+            unknownPages.Count == 0,
+            $"axe-baseline.json lists pages that PageCatalog does not have (renamed or removed? delete or rename the entries): {string.Join(", ", unknownPages)}");
+        Assert.True(
+            unknownConfigurations.Count == 0,
+            $"axe-baseline.json has configurations the suite does not scan (one of {string.Join(", ", AxeBaseline.Configurations)}): {string.Join("; ", unknownConfigurations)}");
+    }
+
+    [Fact]
     public void ToJson_ThenParse_RoundTripsAndKeepsEmptyCells()
     {
         // Arrange
