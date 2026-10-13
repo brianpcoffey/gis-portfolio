@@ -106,12 +106,6 @@
             });
     }
 
-    /**
-     * GET and return parsed JSON. Throws Error with message on non-ok response.
-     *
-     * @param {string} url
-     * @returns {Promise<any>}
-     */
     function apiGet(url) {
         return apiFetch(url).then(function (res) {
             if (!res.ok) {
@@ -121,13 +115,6 @@
         });
     }
 
-    /**
-     * POST a JSON body and return parsed JSON. Throws on non-ok response.
-     *
-     * @param {string} url
-     * @param {object} body
-     * @returns {Promise<any>}
-     */
     function apiPost(url, body) {
         return apiFetch(url, {
             method  : "POST",
@@ -141,13 +128,6 @@
         });
     }
 
-    /**
-     * PUT a JSON body and return parsed JSON. Throws on non-ok response.
-     *
-     * @param {string} url
-     * @param {object} body
-     * @returns {Promise<any>}
-     */
     function apiPut(url, body) {
         return apiFetch(url, {
             method  : "PUT",
@@ -161,12 +141,6 @@
         });
     }
 
-    /**
-     * DELETE and return true on success. Throws on non-ok response.
-     *
-     * @param {string} url
-     * @returns {Promise<true>}
-     */
     function apiDelete(url) {
         return apiFetch(url, { method: "DELETE" }).then(function (res) {
             if (!res.ok && res.status !== 404) {
@@ -176,15 +150,7 @@
         });
     }
 
-    /**
-     * POST a FormData body (multipart/form-data) and return parsed JSON.
-     * Do NOT set Content-Type — the browser sets it automatically with boundary.
-     * Throws on non-ok response.
-     *
-     * @param {string}   url
-     * @param {FormData} formData
-     * @returns {Promise<any>}
-     */
+    // Do not set Content-Type: the browser adds it, with the multipart boundary.
     function apiPostForm(url, formData) {
         return apiFetch(url, {
             method : "POST",
@@ -197,8 +163,6 @@
         });
     }
 
-    // ── Expose globals ─────────────────────────────────────────────────────────
-
     global.apiFetch      = apiFetch;
     global.apiGet        = apiGet;
     global.apiPost       = apiPost;
@@ -207,7 +171,6 @@
     global.apiPostForm   = apiPostForm;
     global.getApiError   = getApiError;
 
-    // Backward-compatible alias used by PlantOperationsDashboard scripts.
     global.fetchWithAuth = apiFetch;
 
 }(window));

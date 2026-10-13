@@ -18,42 +18,34 @@
         base    : BASE,
 
         routes: {
-            // ── Geocoding ──────────────────────────────────────────────────────
             geocoding: {
                 batch        : BASE + "/geocoding/batch",
                 batchSync    : BASE + "/geocoding/batch/sync",
                 reverse      : BASE + "/geocoding/reverse"
             },
 
-            // ── Address Standardization ────────────────────────────────────────
             addresses: {
                 parse    : BASE + "/addresses/parse",
                 validate : BASE + "/addresses/validate"
             },
 
-            // ── ArcGIS Features ────────────────────────────────────────────────
             features: {
                 query : BASE + "/features",
                 saved : BASE + "/features/saved"
             },
 
-            // ── Collections ────────────────────────────────────────────────────
             collections: BASE + "/collections",
 
-            // ── Profile ────────────────────────────────────────────────────────
             profile: BASE + "/profile",
 
-            // ── User Profiles ──────────────────────────────────────────────────
             users: BASE + "/users",
 
-            // ── Home Finder ────────────────────────────────────────────────────
             homeFinder: {
                 search   : BASE + "/homefinder/search",
                 property : BASE + "/homefinder/property",  // + /{id}
                 searches : BASE + "/homefinder/searches"   // + /{id} for GET/DELETE
             },
 
-            // ── Fiber Operations ───────────────────────────────────────────────
             fiber: {
                 orders    : BASE + "/fiber/orders",
                 materials : BASE + "/fiber/materials",
@@ -61,7 +53,6 @@
                 dashboard : BASE + "/fiber/dashboard/stats"
             },
 
-            // ── Native Spatial Compute MVPs ───────────────────────────────────
             spatialCompute: {
                 geostream: {
                     events: BASE + "/geostream/events"

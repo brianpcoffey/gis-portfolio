@@ -1,4 +1,3 @@
-// uiHelpers.js
 // Small DOM helpers and constants shared by the State Explorer UI modules
 // (lists.js, modals.js, comparison.js, uiManager.js).
 

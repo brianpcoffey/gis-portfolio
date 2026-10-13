@@ -13,8 +13,6 @@
     var firstInput = R.dom.firstInput;
     var secondInput = R.dom.secondInput;
 
-    // ── Response-time histogram ─────────────────────────────────────────────
-
     function drawHistogram(result) {
         charts.svg.clear(histogramSvg);
 
@@ -55,7 +53,6 @@
             svg.text(histogramSvg, left - 1.2, gy + 0.9, formatCount(maxWeight * q / 4), { size: 2.2, anchor: "end" });
         }
 
-        // Optimized bars.
         var barWidth = (right - left) / binCount;
         for (i = 0; i < binCount; i++) {
             if (optimizedBins[i] <= 0) { continue; }

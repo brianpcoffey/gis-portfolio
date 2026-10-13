@@ -2,12 +2,10 @@
 (function () {
     "use strict";
 
-    // ── State ──────────────────────────────────────────────────────────────
     var _file = null;           // raw File object
     var _results = [];          // full result array from API
     var _dataTable = null;      // DataTables instance
 
-    // ── Element refs ────────────────────────────────────────────────────────
     var uploadZone    = document.getElementById("uploadZone");
     var csvFileInput  = document.getElementById("csvFileInput");
     var fileInfoCard  = document.getElementById("fileInfoCard");
@@ -31,8 +29,6 @@
     var filterBtns           = document.querySelectorAll(".filter-btn");
     var fmt                  = window.PortfolioFormat;
     var announce             = window.PortfolioUi.announce;
-
-    // ── CSV helpers ─────────────────────────────────────────────────────────
 
     // Simple state-machine CSV parser that handles quoted fields with commas.
     function parseCSVLine(line) {
@@ -69,8 +65,6 @@
         if (bytes < 1048576) return fmt.unit(bytes / 1024, "KB");
         return fmt.unit(bytes / 1048576, "MB");
     }
-
-    // ── Upload zone wiring ──────────────────────────────────────────────────
 
     uploadZone.addEventListener("click", function () {
         csvFileInput.click();
@@ -139,8 +133,6 @@
         reader.readAsText(file);
     }
 
-    // ── Clear ───────────────────────────────────────────────────────────────
-
     btnClear.addEventListener("click", function () {
         resetUpload();
     });
@@ -154,8 +146,6 @@
         hideUploadAlert();
         hideApiAlert();
     }
-
-    // ── Alert helpers ───────────────────────────────────────────────────────
 
     function showUploadAlert(msg) {
         uploadAlertMsg.textContent = msg;
@@ -178,8 +168,6 @@
         apiAlert.classList.add("d-none");
         apiAlert.classList.remove("show");
     }
-
-    // ── Geocode button ──────────────────────────────────────────────────────
 
     btnGeocode.addEventListener("click", function () {
         if (!_file) return;
@@ -223,8 +211,6 @@
         };
     }
 
-    // ── Score bar HTML ──────────────────────────────────────────────────────
-
     function scoreBarHtml(score) {
         if (score === null || score === undefined) {
             return '<span class="theme-text-muted">\u2014</span>';
@@ -237,32 +223,26 @@
                '</div>';
     }
 
-    // ── Render results ──────────────────────────────────────────────────────
-
     function renderResults(data) {
         var total     = data.length;
         var matched   = data.filter(function (r) { return r.matched; }).length;
         var unmatched = total - matched;
 
-        // KPIs
         kpiTotal.textContent    = fmt.number(total);
         kpiMatched.textContent  = fmt.number(matched);
         kpiUnmatched.textContent = fmt.number(unmatched);
         summaryText.textContent = fmt.number(matched) + " of " + fmt.number(total) + " addresses matched (" +
             fmt.percent(total > 0 ? (matched / total) * 100 : 0) + " match rate)";
 
-        // Show results panel
         resultsPlaceholder.classList.add("d-none");
         resultsContent.classList.remove("d-none");
 
-        // Destroy existing DataTable
         if (_dataTable !== null) {
             _dataTable.destroy();
             _dataTable = null;
             $("#resultsTable tbody").empty();
         }
 
-        // Build rows
         var rows = data.map(function (r, idx) {
             var statusBadge = r.matched
                 ? '<span class="badge status-badge status-matched">Matched</span>'
@@ -283,7 +263,6 @@
             ];
         });
 
-        // Initialize DataTable
         _dataTable = $("#resultsTable").DataTable({
             data: rows,
             columns: [
@@ -302,11 +281,8 @@
             }
         });
 
-        // Reset filter buttons
         setActiveFilter(document.querySelector('.filter-btn[data-filter="all"]'));
     }
-
-    // ── Filter toggle ───────────────────────────────────────────────────────
 
     // Exactly one filter button is active; aria-pressed mirrors the visual state.
     function setActiveFilter(active) {
@@ -336,8 +312,6 @@
             }
         });
     });
-
-    // ── Export CSV ──────────────────────────────────────────────────────────
 
     btnExport.addEventListener("click", function () {
         if (!_results || _results.length === 0) return;

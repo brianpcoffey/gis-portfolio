@@ -1,4 +1,3 @@
-// lists.js
 // Renders the saved-states list, the collections list (and the save dialog's collection select)
 // and the statistics counters. Render helpers are idempotent and quick; they read state, never write it.
 
@@ -32,7 +31,6 @@ export function renderSavedFeaturesList() {
         item.dataset.featureId = featureKey;
         if (savedDbId) item.dataset.savedId = savedDbId;
 
-        // Build display title with optional collection
         const titleText = saved.displayName || saved.Name || saved.name || `State ${featureKey}`;
         const collectionName = saved.CollectionName || saved.collectionName;
         const left = el("button", { type: "button", class: "btn btn-link p-0 text-start flex-grow-1 se-saved-select", "data-action": "select", "data-feature-id": featureKey },

@@ -147,8 +147,6 @@
         if (state.isochroneLayer) { map.removeLayer(state.isochroneLayer); state.isochroneLayer = null; }
     }
 
-    // ── Helpers ─────────────────────────────────────────────────────────────
-
     // Green -> amber -> red from the status fills (resolved once per draw).
     function responseRamp() {
         return { low: charts.status("success"), mid: charts.status("warning"), high: charts.status("danger") };

@@ -21,7 +21,6 @@
     var MAP_UNSERVED = "#94a3b8";
     var MAP_DEPOT = "#111827";
 
-    // Cache DOM nodes up front.
     var alertBox = ui.inlineAlert(document.getElementById("fleetAlert"));
     var presetSelect = document.getElementById("fleetPreset");
     var presetHint = document.getElementById("fleetPresetHint");
@@ -42,7 +41,6 @@
     var kpiLongest = document.getElementById("fleetKpiLongest");
     var kpiImprovement = document.getElementById("fleetKpiImprovement");
 
-    // Module state.
     var scenario = null;
     var pending = false;
     // A preset change that arrives while a request is pending can't start a load (runExclusive refuses
@@ -67,8 +65,6 @@
         iterationsValue.textContent = iterationsInput.value;
     });
     loadScenario(true);
-
-    // ── Data ────────────────────────────────────────────────────────────────
 
     // Runs `opts` through PortfolioUi.runAction on `trigger`, holding the other controls busy.
     function runExclusive(trigger, opts) {
@@ -195,8 +191,6 @@
         }, null, 2);
     }
 
-    // ── Route summary list ──────────────────────────────────────────────────
-
     function buildRouteList(result) {
         var capacity = parseFloat(capacityInput.value);
         var rows = result.routes.map(function (route) {
@@ -224,8 +218,6 @@
 
         routeList.replaceChildren.apply(routeList, rows);
     }
-
-    // ── Map ─────────────────────────────────────────────────────────────────
 
     function drawMap(result) {
         overlay.clearLayers();
@@ -306,8 +298,6 @@
         }
     }
 
-    // ── Convergence chart ───────────────────────────────────────────────────
-
     function drawConvergence(result) {
         charts.svg.clear(convergenceSvg);
         var svg = charts.svg;
@@ -382,8 +372,6 @@
             svg.text(convergenceSvg, cx, cy - 2, label, { size: 2.3, anchor: anchor, fill: "var(--text)" });
         }
     }
-
-    // ── Schedule timeline ───────────────────────────────────────────────────
 
     function drawSchedule(result) {
         charts.svg.clear(scheduleSvg);
@@ -469,8 +457,6 @@
         scheduleSvg.appendChild(rect);
         return rect;
     }
-
-    // ── Helpers ─────────────────────────────────────────────────────────────
 
     // `var(--chart-N)` for SVG fills and CSS swatches (follows the theme without a redraw).
     function seriesVar(index) {

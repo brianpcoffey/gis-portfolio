@@ -27,7 +27,6 @@
     // Reflectance ceiling used to stretch 0..1 surface reflectance into 0..255.
     var DISPLAY_GAIN = 255 / 0.6;
 
-    // Cache DOM nodes up front.
     var alertBox = ui.inlineAlert(document.getElementById("changeAlert"));
     var sizeSelect = document.getElementById("changeSize");
     var noiseInput = document.getElementById("changeNoise");
@@ -55,7 +54,6 @@
     var kpiThreshold = document.getElementById("changeKpiThreshold");
     var kpiRecovered = document.getElementById("changeKpiRecovered");
 
-    // Module state.
     var scene = null;
     var detection = null;
     var selectedBlobId = 0;
@@ -125,8 +123,6 @@
 
     syncThresholdMode();
     loadScene(true);
-
-    // ── Data ────────────────────────────────────────────────────────────────
 
     // Holds the other controls busy while `opts` runs through PortfolioUi.runAction on `trigger`.
     function runExclusive(trigger, held, opts) {
@@ -255,8 +251,6 @@
         return recovered;
     }
 
-    // ── False-colour composites and the swipe ───────────────────────────────
-
     function drawComposites() {
         if (!scene) { return; }
         paintComposite(canvasA, scene.epochA);
@@ -311,8 +305,6 @@
         swipeHandle.style.left = percent.toFixed(2) + "%";
         if (swipeRange) { swipeRange.value = Math.round(percent); }
     }
-
-    // ── Change mask overlay ─────────────────────────────────────────────────
 
     function drawMask() {
         if (!scene) { return; }
@@ -402,8 +394,6 @@
             (box.maxY - box.minY + 1) * scale);
     }
 
-    // ── Otsu histogram ──────────────────────────────────────────────────────
-
     function drawHistogram() {
         charts.svg.clear(histogramSvg);
 
@@ -465,8 +455,6 @@
             detection.thresholdMode + " threshold is " + detection.threshold.toFixed(3) + ".");
     }
 
-    // ── Detection list ──────────────────────────────────────────────────────
-
     function renderBlobList() {
         var el = window.PortfolioDom.el;
         if (!detection || detection.blobs.length === 0) {
@@ -510,8 +498,6 @@
         });
         return label;
     }
-
-    // ── Helpers ─────────────────────────────────────────────────────────────
 
     function syncThresholdMode() {
         manualInput.disabled = !modeManual.checked;

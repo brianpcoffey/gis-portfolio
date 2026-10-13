@@ -1,11 +1,9 @@
-// ReverseGeocoding/app.js
 // Self-contained IIFE for the Reverse Geocoding page.
 // Loads ArcGIS JS SDK 4.29 via require() and manages map, marker, API calls, and history.
 
 (function () {
     "use strict";
 
-    // ── Constants ──────────────────────────────────────────────────────────────
     var HISTORY_KEY = "rg_recent_lookups";
     var MAX_HISTORY = 5;
     var API_BASE = window.PortfolioApi.routes.geocoding.reverse;
@@ -15,7 +13,6 @@
     // Esri widget theme (light/dark) before the map exists.
     window.PortfolioEsri.loadTheme();
 
-    // ── State ──────────────────────────────────────────────────────────────────
     var currentResult = null;
     var markerGraphic = null;
     var graphicsLayer = null;
@@ -23,7 +20,6 @@
     var GraphicClass = null;
     var webMercatorUtils = null;
 
-    // ── DOM refs ───────────────────────────────────────────────────────────────
     var coordinateReadout = document.getElementById("rgCoordinateReadout");
     var latInput = document.getElementById("rgLatInput");
     var lngInput = document.getElementById("rgLngInput");
@@ -48,7 +44,6 @@
     var alertBox = document.getElementById("rgAlert");
     var alertMsg = document.getElementById("rgAlertMsg");
 
-    // ── History helpers ────────────────────────────────────────────────────────
     function loadHistory() {
         try {
             return JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "[]");
@@ -117,7 +112,6 @@
         renderResult(entry.dto, entry.lat, entry.lng);
     }
 
-    // ── UI helpers ─────────────────────────────────────────────────────────────
     function showState(state) {
         // state: "placeholder" | "loading" | "notfound" | "result"
         placeholder.classList.add("d-none");
@@ -183,7 +177,6 @@
         showState("result");
     }
 
-    // ── Marker management ──────────────────────────────────────────────────────
     function placeMarker(lat, lng) {
         if (!graphicsLayer || !GraphicClass) return;
 
@@ -217,7 +210,6 @@
         }
     }
 
-    // ── API call ───────────────────────────────────────────────────────────────
     function fetchReverseGeocode(lat, lng) {
         hideAlert();
         showState("loading");
@@ -260,7 +252,6 @@
             });
     }
 
-    // ── Manual input validation ────────────────────────────────────────────────
     function validateManualInputs() {
         var lat = parseFloat(latInput.value);
         var lng = parseFloat(lngInput.value);
@@ -280,7 +271,6 @@
         return valid ? { lat: lat, lng: lng } : null;
     }
 
-    // ── Save to history button ─────────────────────────────────────────────────
     if (saveHistoryBtn) {
         saveHistoryBtn.addEventListener("click", function () {
             if (currentResult) {
@@ -289,7 +279,6 @@
         });
     }
 
-    // ── Look Up button ─────────────────────────────────────────────────────────
     if (lookupBtn) {
         lookupBtn.addEventListener("click", function () {
             var coords = validateManualInputs();
@@ -304,7 +293,6 @@
         });
     }
 
-    // ── ArcGIS Map initialization ──────────────────────────────────────────────
     window.PortfolioEsri.load().then(function () { window.require(
         [
             "esri/Map",
@@ -362,7 +350,6 @@
                 if (surface && label) surface.setAttribute("aria-label", label);
             });
 
-            // Restore history on load
             renderHistory(loadHistory());
         }
     ); });

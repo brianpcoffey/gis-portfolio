@@ -1,4 +1,3 @@
-// savedFeatureHandlers.js
 // App-side handlers for the ui:* events about saved states: zoom, remove, select, open the save
 // dialog and confirm the save (the only one that calls the API to create a record).
 // registerSavedFeatureHandlers() attaches them to document (called from app.js).
@@ -19,7 +18,7 @@ function onZoomSaved(e) {
 
 async function onRemoveSaved(e) {
 
-    // Now expecting both savedId (db id) and featureId (external)
+    // Expects both savedId (db id) and featureId (external)
     const savedId = String(e.detail.savedId || "");
     const featureKey = String(e.detail.featureId || "");
 
@@ -187,7 +186,6 @@ async function onConfirmSave(e) {
 }
 
 
-// UI Events
 export function registerSavedFeatureHandlers() {
 
     document.addEventListener("ui:zoomSaved", onZoomSaved);

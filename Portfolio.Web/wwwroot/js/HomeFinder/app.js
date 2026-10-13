@@ -7,10 +7,6 @@
     const state = HF.state;
     const announce = HF.announce;
 
-    // ============================================================
-    // Search
-    // ============================================================
-
     async function performSearch() {
         const total = HF.getWeightSum();
         if (total !== 100) {
@@ -31,11 +27,7 @@
         btn.replaceChildren(PortfolioDom.el("span", { class: "spinner-border spinner-border-sm me-1", "aria-hidden": "true" }), "Searching\u2026");
 
         try {
-            // Use apiFetch instead of raw fetch so that a 401 response
-            // triggers a full-page redirect to Google OAuth login.
-            // This avoids the CORS error that would occur if the browser
-            // tried to follow a 302 redirect to accounts.google.com
-            // from within a fetch() call.
+            // apiFetch rather than raw fetch, so a 401 becomes a full-page redirect to /Login (see api-fetch.js).
             const res = await apiFetch(HOME_FINDER_ROUTES.search, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -77,10 +69,6 @@
 
     // HomeFinder.performSearch is also called by saved-searches.js (applying a saved search re-runs it).
     HF.performSearch = performSearch;
-
-    // ============================================================
-    // Init
-    // ============================================================
 
     document.addEventListener("DOMContentLoaded", async () => {
         // Restore previous session preferences before wiring sliders

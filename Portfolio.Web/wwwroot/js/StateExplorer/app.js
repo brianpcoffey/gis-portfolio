@@ -1,4 +1,3 @@
-// app.js
 // Application orchestration: bootstraps map, wires events, coordinates FeatureService, stateStore and UI.
 // The event handlers live in toolbarHandlers.js, mapHandlers.js, savedFeatureHandlers.js and
 // selectionHandlers.js; initialize() below is the ordered registration list.
@@ -20,7 +19,6 @@ import { registerSavedFeatureHandlers } from './savedFeatureHandlers.js';
 import { registerSelectionHandlers } from './selectionHandlers.js';
 
 
-// Re-renders every panel that follows the shared state.
 function renderPanels() {
 
     UI.renderCollections();
@@ -32,7 +30,6 @@ function renderPanels() {
 }
 
 
-// Keeps the feature-details panel on the selected feature.
 function renderSelectedFeature(state) {
 
     const selectedId =
@@ -85,7 +82,6 @@ async function initialize() {
     // Anonymous visitors stay on the page: collections are disabled with a sign-in hint.
     UI.setCollectionsSignedIn(!CollectionService.requiresSignIn);
 
-    // State subscription
     subscribe(renderPanels);
 
     registerToolbarHandlers();
@@ -98,7 +94,6 @@ async function initialize() {
 
     subscribe(renderSelectedFeature);
 
-    // Initial render
     renderPanels();
 
 }

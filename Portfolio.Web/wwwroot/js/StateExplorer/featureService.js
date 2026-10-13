@@ -1,4 +1,3 @@
-// featureService.js
 // API layer: all network requests centralized here. Shows toasts on error but DOES NOT mutate UI state.
 
 import { UI } from './uiManager.js';
