@@ -4,25 +4,17 @@ using Portfolio.Common.Models;
 
 namespace Portfolio.Services.Native
 {
-    // Façade over the native scoring library.
+    // Façade over the native scoring library: probes once at type initialisation, maps the managed
+    // Property / HomeSearchPreferencesDto to the native structs, and calls NativeScoringInterop.
     //
-    // Responsibilities:
-    //  1. Probe for the native library once at class initialisation time.
-    //  2. Expose IsAvailable so callers can branch without catching exceptions.
-    //  3. Map managed Property / HomeSearchPreferencesDto -> native structs and back.
-    //  4. Expose ScoreProperty (single) and ScorePropertyBatch (bulk) that delegate to
-    //     NativeScoringInterop only when IsAvailable is true.
-    //
-    // This class is deliberately not an interface; HomeScoringService has a complete
-    // managed fallback so no mock is needed in tests.
+    // Deliberately not an interface; HomeScoringService has a complete managed fallback,
+    // so no mock is needed in tests.
     internal static class NativeScoringBridge
     {
         private static readonly bool _available = NativeKernelLoader.TryLoad("portfolio_scoring");
 
-        // True when portfolio_scoring.(dll|so) was successfully loaded.
         internal static bool IsAvailable => _available;
 
-        // Score a single property via the native kernel.
         // Caller MUST check IsAvailable before calling.
         internal static ScoreOutputNative ScoreProperty(
             Property p,
@@ -34,7 +26,6 @@ namespace Portfolio.Services.Native
             return result;
         }
 
-        // Score a batch of properties via the native kernel.
         // Returns a parallel array of ScoreOutputNative with the same element count.
         // Caller MUST check IsAvailable before calling.
         internal static ScoreOutputNative[] ScorePropertyBatch(
@@ -53,7 +44,6 @@ namespace Portfolio.Services.Native
             return outputs;
         }
 
-        // Log a startup warning via a caller-supplied logger (called from HomeScoringService ctor).
         internal static void LogAvailability(ILogger logger)
         {
             if (_available)
@@ -63,8 +53,6 @@ namespace Portfolio.Services.Native
                 logger.LogInformation(
                     "Native scoring kernel unavailable; using managed scoring implementation.");
         }
-
-        // ── Mapping helpers ──────────────────────────────────────────────────────
 
         private static PropertyInputNative MapProperty(Property p)
         {

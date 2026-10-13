@@ -4,18 +4,15 @@ using Portfolio.Common.DTOs;
 namespace Portfolio.Services.Data
 {
     /// <summary>
-    /// A deterministic synthetic two-epoch, four-band multitemporal stack over a single
-    /// AOI, with four labelled changes planted in epoch B so detections can be scored
-    /// against ground truth.
-    ///
-    /// Bands are modelled loosely on Landsat surface reflectance — Red, Green, NIR, SWIR —
-    /// so NDVI is computable and the false-colour composite the UI renders (NIR/Red/Green)
-    /// is the real vegetation-forward composite an analyst would reach for.
-    ///
-    /// Generated from a fixed-seed LCG, so the same arguments always produce a
-    /// byte-identical scene. No database, no persistence: stateless in the same shape as
-    /// <c>RedlandsRoadNetwork</c> and <c>SoCalPolicyBook</c>.
+    /// A deterministic synthetic two-epoch, four-band multitemporal stack over a single AOI, with four labelled changes
+    /// planted in epoch B so detections can be scored against ground truth.
     /// </summary>
+    /// <remarks>
+    /// Bands are modelled loosely on Landsat surface reflectance (Red, Green, NIR, SWIR), so NDVI is computable and the
+    /// false-colour composite the UI renders (NIR/Red/Green) is the real vegetation-forward composite an analyst would
+    /// reach for. Generated from a fixed-seed LCG, so the same arguments always produce a byte-identical scene;
+    /// stateless, like <c>RedlandsRoadNetwork</c> and <c>SoCalPolicyBook</c>.
+    /// </remarks>
     internal static class SyntheticChangeScene
     {
         public const string SceneName = "Cajon Foothills AOI — 4-band, 2-epoch stack";
@@ -53,7 +50,7 @@ namespace Portfolio.Services.Data
 
             var seed = 20260719;
 
-            // ── Base land cover, identical in both epochs ────────────────────
+            // Base land cover, identical in both epochs
             var terrain = ValueNoise(width, height, ref seed);
             var riverHalfWidth = Math.Max(2, width / 64);
 
@@ -76,8 +73,8 @@ namespace Portfolio.Services.Data
                 }
             }
 
-            // ── Planted changes: paint the "before" state into epoch A and the ──
-            // ── "after" state into epoch B, so each delta is exact by construction ──
+            // Planted changes: paint the "before" state into epoch A and the "after" state into epoch B,
+            // so each delta is exact by construction.
             var groundTruth = new List<GroundTruthBoxDto>();
 
             groundTruth.Add(PlantRectangle(
@@ -103,7 +100,7 @@ namespace Portfolio.Services.Data
                 Math.Max(6, (int)(0.086 * width)), Math.Max(6, (int)(0.086 * height)),
                 BareSoil, SolarPanel));
 
-            // ── Acquisition differences: illumination offset then sensor noise ──
+            // Acquisition differences: illumination offset, then sensor noise
             for (var i = 0; i < epochB.Length; i++)
                 epochB[i] += EpochBBrightnessOffset;
 
@@ -133,8 +130,6 @@ namespace Portfolio.Services.Data
             };
         }
 
-        // ── Base scene ──────────────────────────────────────────────────────
-
         // Land cover from the terrain field plus a river and a road grid. Roads are drawn
         // last so they cut across whatever they pass over, which is what makes the
         // false-colour composite read as a place rather than as noise.
@@ -157,8 +152,6 @@ namespace Portfolio.Services.Data
             var t = height <= 1 ? 0 : (double)y / (height - 1);
             return 0.30 * width + 0.10 * width * Math.Sin(t * 2.0 * Math.PI * 1.4);
         }
-
-        // ── Planted changes ─────────────────────────────────────────────────
 
         private static GroundTruthBoxDto PlantRectangle(
             double[] epochA, double[] epochB,
@@ -312,8 +305,6 @@ namespace Portfolio.Services.Data
             };
         }
 
-        // ── Noise ───────────────────────────────────────────────────────────
-
         // Box-Muller over the shared LCG. Both normals from each pair are consumed so the
         // sequence never wastes a draw.
         private static void AddGaussianNoise(double[] raster, double sigma, ref int seed)
@@ -328,8 +319,6 @@ namespace Portfolio.Services.Data
                     raster[i + 1] += magnitude * Math.Sin(2.0 * Math.PI * u2);
             }
         }
-
-        // ── Value noise ─────────────────────────────────────────────────────
 
         // Three octaves of bilinearly interpolated lattice noise, normalised to 0..1.
         private static double[] ValueNoise(int width, int height, ref int seed)
@@ -378,8 +367,8 @@ namespace Portfolio.Services.Data
 
         private static double Clamp01(double value) => value < 0 ? 0 : value > 1 ? 1 : value;
 
-        // Park-Miller LCG, the same generator every other synthetic dataset in the
-        // portfolio uses.
+        // Park-Miller minimal-standard LCG, the same generator RedlandsDeliveryScenario uses; the other
+        // demo datasets use the Numerical Recipes constants.
         private static double NextDouble(ref int seed)
         {
             seed = (int)((long)seed * 48271 % 2147483647);

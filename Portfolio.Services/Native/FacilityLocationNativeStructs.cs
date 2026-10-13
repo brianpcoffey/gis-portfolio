@@ -1,10 +1,10 @@
 namespace Portfolio.Services.Native
 {
-    /// <summary>
-    /// Result of one native p-median solve: the chosen candidate indices and the objective
-    /// trace. The kernel takes flat primitive buffers rather than structs, so this type
-    /// exists only to keep the bridge's out-parameter list readable.
-    /// </summary>
+    /// <summary>Result of one native p-median solve: the chosen candidate indices and the objective trace.</summary>
+    /// <remarks>
+    /// The kernel takes flat primitive buffers rather than structs, so this type exists only to keep the
+    /// bridge's out-parameter list readable.
+    /// </remarks>
     internal sealed class FacilitySolveNativeResult
     {
         public int[] ChosenCandidateIndices { get; init; } = [];

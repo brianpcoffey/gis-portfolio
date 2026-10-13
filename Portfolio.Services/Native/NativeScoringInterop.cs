@@ -13,9 +13,7 @@ namespace Portfolio.Services.Native
         // Portfolio.Services.dll regardless of working directory.
         private const string LibName = "portfolio_scoring";
 
-        /// <summary>
-        /// Score a single property.  Writes one <see cref="ScoreOutputNative"/> to <paramref name="result"/>.
-        /// </summary>
+        /// <summary>Scores a single property, writing one <see cref="ScoreOutputNative"/> to <paramref name="result"/>.</summary>
         [DllImport(LibName,
             EntryPoint        = "ScoreProperty",
             CallingConvention = CallingConvention.Cdecl)]
@@ -27,9 +25,8 @@ namespace Portfolio.Services.Native
             out ScoreOutputNative      result);
 
         /// <summary>
-        /// Score <paramref name="count"/> properties in one native call.
-        /// <paramref name="properties"/> and <paramref name="scores"/> must each have
-        /// at least <paramref name="count"/> elements.
+        /// Scores <paramref name="count"/> properties in one native call; <paramref name="properties"/> and
+        /// <paramref name="scores"/> must each have at least <paramref name="count"/> elements.
         /// </summary>
         [DllImport(LibName,
             EntryPoint        = "ScorePropertyBatch",

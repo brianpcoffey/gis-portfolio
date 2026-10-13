@@ -3,18 +3,15 @@ using Portfolio.Common.DTOs;
 namespace Portfolio.Services.Data
 {
     /// <summary>
-    /// A deterministic synthetic electric distribution network over Redlands: one
-    /// substation, two radial feeders with their protective devices and fused laterals,
-    /// and the normally-open tie switch between them.
-    ///
-    /// Generated from a fixed-seed LCG so the circuit is identical on every run. No
-    /// database, no persistence: this is a stateless demo dataset in the same shape as
-    /// <c>RedlandsRoadNetwork</c> and <c>SoCalPolicyBook</c>.
-    ///
-    /// The tie is the whole point of the dataset. Without a normally-open point between
-    /// the two feeders there is nothing to restore from, and the restoration search would
-    /// have no candidate to evaluate.
+    /// A deterministic synthetic electric distribution network over Redlands: one substation, two radial feeders with
+    /// their protective devices and fused laterals, and the normally-open tie switch between them.
     /// </summary>
+    /// <remarks>
+    /// Generated from a fixed-seed LCG, so the circuit is identical on every run; stateless, like
+    /// <c>RedlandsRoadNetwork</c> and <c>SoCalPolicyBook</c>. The tie is the whole point of the dataset: without a
+    /// normally-open point between the two feeders there is nothing to restore from, and the restoration search would
+    /// have no candidate to evaluate.
+    /// </remarks>
     internal static class RedlandsDistributionNetwork
     {
         public const string NetworkName = "Redlands Substation — Feeders A and B";

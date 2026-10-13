@@ -1,18 +1,15 @@
 namespace Portfolio.Services.Native
 {
     /// <summary>
-    /// Global kill switch for every native kernel.
-    ///
-    /// Setting <c>PORTFOLIO_DISABLE_NATIVE</c> to <c>1</c>, <c>true</c> or <c>yes</c> makes
-    /// every bridge report <c>IsAvailable == false</c>, so the managed fallbacks run even
-    /// when the shared libraries are present and loadable.
-    ///
-    /// This exists for two reasons. The benchmark harness needs to measure both paths from
-    /// one build, and each bridge probes availability exactly once in a static constructor —
-    /// so the only other way to exercise the fallback is to physically move the libraries.
-    /// It also makes the fallback verifiable in a deployed environment without a redeploy,
-    /// which matters because the managed path is production behaviour today.
+    /// Global kill switch: <c>PORTFOLIO_DISABLE_NATIVE</c> set to <c>1</c>, <c>true</c> or <c>yes</c> makes every
+    /// bridge report <c>IsAvailable == false</c>, so the managed fallbacks run even when the libraries load.
     /// </summary>
+    /// <remarks>
+    /// Each bridge probes once, when its type initialises, so without this switch the fallback could only be exercised
+    /// by moving the libraries. The benchmarks use it to measure both paths from one build, and it lets the fallback
+    /// (production behaviour today) be verified without a redeploy. The variable is read once per process, so set it
+    /// before the process starts.
+    /// </remarks>
     internal static class NativeToggle
     {
         private const string EnvironmentVariable = "PORTFOLIO_DISABLE_NATIVE";

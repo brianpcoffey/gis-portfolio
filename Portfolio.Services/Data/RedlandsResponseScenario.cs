@@ -3,14 +3,13 @@ using Portfolio.Common.DTOs;
 namespace Portfolio.Services.Data
 {
     /// <summary>
-    /// A deterministic emergency-response scenario laid over the Redlands OSM road
-    /// network: clustered call demand, candidate station sites, and the two stations
-    /// operating today.
-    ///
-    /// Every location is a real road-network node rather than a snapped coordinate, so
-    /// the candidate-to-demand travel-time matrix has no unreachable pairs. Generated
-    /// from a fixed-seed LCG, in the same shape as <c>SoCalPolicyBook</c>.
+    /// A deterministic emergency-response scenario laid over the Redlands OSM road network: clustered call demand,
+    /// candidate station sites, and the two stations operating today.
     /// </summary>
+    /// <remarks>
+    /// Every location is a real road-network node rather than a snapped coordinate, so the candidate-to-demand
+    /// travel-time matrix has no unreachable pairs. Generated from a fixed-seed LCG, like <c>SoCalPolicyBook</c>.
+    /// </remarks>
     internal static class RedlandsResponseScenario
     {
         public const string ScenarioName = "Redlands, CA — Fire Response Coverage";
@@ -18,11 +17,11 @@ namespace Portfolio.Services.Data
         private const int DemandPointCount = 450;
         private const int CandidateCount = 24;
 
-        /// <summary>
-        /// A call-generating district. Demand density and call volume both follow the
-        /// district, which is what gives the optimizer something to find — uniform demand
-        /// makes every siting look equally good.
-        /// </summary>
+        /// <summary>A call-generating district.</summary>
+        /// <remarks>
+        /// Demand density and call volume both follow the district, which is what gives the optimizer something to
+        /// find: uniform demand makes every siting look equally good.
+        /// </remarks>
         private sealed class District
         {
             public required string Name { get; init; }
@@ -70,9 +69,8 @@ namespace Portfolio.Services.Data
         private static readonly Lock _gate = new();
 
         /// <summary>
-        /// Builds the scenario against the supplied road graph. The result is cached: the
-        /// graph never changes at runtime, and the nearest-node scan is the only
-        /// non-trivial work.
+        /// Builds the scenario against the supplied road graph, caching the result because the graph never changes at
+        /// runtime and the nearest-node scan is the only non-trivial work.
         /// </summary>
         public static ResponseScenarioDto Build(RoadGraphDto graph)
         {
