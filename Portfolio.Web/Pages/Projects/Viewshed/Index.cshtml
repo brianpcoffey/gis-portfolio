@@ -1,37 +1,27 @@
 @page
+@using Portfolio.Common.Models
 @model Portfolio.Web.Pages.Projects.Viewshed.IndexModel
 @{
 	Layout = "/Pages/Shared/_Layout.cshtml";
 	ViewData["Title"] = "Viewshed Analyzer";
+	var hero = new ProjectHero("Viewshed Analyzer", "fa-solid fa-eye", "Line-of-sight visibility over a terrain grid — click any cell to place the observer and see what they can see, backed by a native C++ ray-casting kernel.",
+		new[] { new ProjectHeroBadge("fa-solid fa-mountain", "C++ Viewshed Kernel") }, "/Projects/Viewshed/Details");
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/spatialcompute.css" />
+@section Styles {
+	<link rel="stylesheet" href="~/css/gis.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/css/spatialcompute.css" asp-append-version="true" />
+}
 
 <div class="spatial-compute-page theme-root">
-	<div class="project-hero py-4 mb-4">
-		<div class="container">
-			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-				<div>
-					<h1 class="mb-1"><i class="fa-solid fa-eye me-2"></i>Viewshed Analyzer</h1>
-					<p class="text-muted theme-text-muted mb-0">Line-of-sight visibility over a terrain grid — click any cell to place the observer and see what they can see, backed by a native C++ ray-casting kernel.</p>
-				</div>
-				<div class="d-flex align-items-center gap-2">
-					<span class="badge badge-gis fs-6"><i class="fa-solid fa-mountain me-1"></i>C++ Viewshed Kernel</span>
-					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Viewshed/Details" aria-label="View technical details for Viewshed Analyzer" title="Technical Details">
-						<i class="fa-solid fa-circle-info"></i>
-					</a>
-				</div>
-			</div>
-		</div>
-	</div>
+	<partial name="_ProjectHero" model="hero" />
 
 	<div class="container pb-5">
 		<div id="viewshedAlert" class="alert alert-danger d-none" role="alert"></div>
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Observer Controls</strong></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Observer Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
 							<label for="viewshedSize" class="form-label small">Grid size (cells per side)</label>
@@ -51,16 +41,26 @@
 								<option value="rolling">Rolling hills</option>
 							</select>
 						</div>
-						<p class="text-muted theme-text-muted small mb-0"><i class="fa-solid fa-circle-info me-1"></i>Click a cell in the grid to move the observer, then re-run.</p>
-						<button id="viewshedRunBtn" class="btn btn-accent"><i class="fa-solid fa-eye me-1"></i>Compute Viewshed</button>
-						<button id="viewshedRegenBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Regenerate Terrain</button>
+						<div class="row g-2">
+							<div class="col-6">
+								<label for="viewshedObserverX" class="form-label small">Observer column</label>
+								<input id="viewshedObserverX" class="form-control" type="number" min="0" max="23" step="1" value="12" />
+							</div>
+							<div class="col-6">
+								<label for="viewshedObserverY" class="form-label small">Observer row</label>
+								<input id="viewshedObserverY" class="form-control" type="number" min="0" max="23" step="1" value="12" />
+							</div>
+						</div>
+						<p class="text-muted theme-text-muted small mb-0"><i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>Click a cell in the grid, or set the observer column and row, then re-run.</p>
+						<button id="viewshedRunBtn" class="btn btn-accent"><i class="fa-solid fa-eye me-1" aria-hidden="true"></i>Compute Viewshed</button>
+						<button id="viewshedRegenBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i>Regenerate Terrain</button>
 						<pre id="viewshedSummary" class="sample-json mt-auto mb-0"></pre>
 					</div>
 				</div>
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-table-cells text-accent"></i><strong>Visibility Map</strong></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-table-cells text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Visibility Map</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="viewshedKpiVisible" class="kpi-value">0</div><div class="kpi-label">Visible</div></div></div>
@@ -69,7 +69,7 @@
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="viewshedKpiNative" class="kpi-value">No</div><div class="kpi-label">Native</div></div></div>
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
-							<div id="viewshedGrid" class="raster-grid" aria-label="Viewshed visibility grid"></div>
+							<div id="viewshedGrid" class="raster-grid" role="group" aria-label="Viewshed visibility grid"></div>
 						</div>
 						<div class="d-flex flex-wrap gap-3 mt-3 small text-muted theme-text-muted">
 							<span><span class="viewshed-swatch viewshed-swatch-visible"></span> Visible terrain</span>

@@ -1,30 +1,20 @@
 @page
+@using Portfolio.Common.Models
 @model Portfolio.Web.Pages.Projects.GeoStream.IndexModel
 @{
 	Layout = "/Pages/Shared/_Layout.cshtml";
 	ViewData["Title"] = "Live Location Stream";
+	var hero = new ProjectHero("Live Location Stream", "fa-solid fa-satellite-dish", "Process live-style GPS telemetry into spatial grid aggregates and anomaly markers.",
+		new[] { new ProjectHeroBadge("fa-solid fa-microchip", "C++ Stream Kernel MVP") }, "/Projects/GeoStream/Details");
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/spatialcompute.css" />
+@section Styles {
+	<link rel="stylesheet" href="~/css/gis.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/css/spatialcompute.css" asp-append-version="true" />
+}
 
 <div class="spatial-compute-page theme-root">
-	<div class="project-hero py-4 mb-4">
-		<div class="container">
-			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-				<div>
-					<h1 class="mb-1"><i class="fa-solid fa-satellite-dish me-2"></i>Live Location Stream</h1>
-					<p class="text-muted theme-text-muted mb-0">Process live-style GPS telemetry into spatial grid aggregates and anomaly markers.</p>
-				</div>
-				<div class="d-flex align-items-center gap-2">
-					<span class="badge badge-gis fs-6"><i class="fa-solid fa-microchip me-1"></i>C++ Stream Kernel MVP</span>
-					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/GeoStream/Details" aria-label="View technical details for Live Location Stream" title="Technical Details">
-						<i class="fa-solid fa-circle-info"></i>
-					</a>
-				</div>
-			</div>
-		</div>
-	</div>
+	<partial name="_ProjectHero" model="hero" />
 
 	<div class="container pb-5">
 		<div id="geoStreamAlert" class="alert alert-danger d-none" role="alert"></div>
@@ -32,7 +22,7 @@
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
 					<div class="card-header d-flex align-items-center gap-2">
-						<i class="fa-solid fa-sliders text-accent"></i><strong>Telemetry Batch</strong>
+						<i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Telemetry Batch</h2>
 					</div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
@@ -45,10 +35,10 @@
 						</div>
 						<div>
 							<label for="geoSampleJson" class="form-label small">Sample events</label>
-							<textarea id="geoSampleJson" class="form-control font-monospace" rows="10" aria-label="Sample telemetry JSON"></textarea>
+							<textarea id="geoSampleJson" class="form-control font-monospace" rows="10"></textarea>
 						</div>
 						<button id="geoRunBtn" class="btn btn-accent mt-auto">
-							<i class="fa-solid fa-play me-1"></i>Process Telemetry
+							<i class="fa-solid fa-play me-1" aria-hidden="true"></i>Process Telemetry
 						</button>
 					</div>
 				</div>
@@ -56,7 +46,7 @@
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
 					<div class="card-header d-flex align-items-center gap-2">
-						<i class="fa-solid fa-chart-area text-accent"></i><strong>Aggregated Feed View</strong>
+						<i class="fa-solid fa-chart-area text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Aggregated Feed View</h2>
 					</div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
@@ -65,7 +55,7 @@
 							<div class="col-6 col-md-3"><div class="kpi-card text-center"><div id="geoKpiAnomalies" class="kpi-value">0</div><div class="kpi-label">Anomalies</div></div></div>
 							<div class="col-6 col-md-3"><div class="kpi-card text-center"><div id="geoKpiNative" class="kpi-value">No</div><div class="kpi-label">Native</div></div></div>
 						</div>
-						<div id="geoStage" class="spatial-map-panel spatial-stage mb-3" aria-label="Telemetry aggregate visualization"></div>
+						<div id="geoStage" class="spatial-map-panel spatial-stage mb-3" role="img" aria-label="Telemetry aggregate map: no results yet"></div>
 						<div id="geoAggregateList" class="result-list"></div>
 					</div>
 				</div>

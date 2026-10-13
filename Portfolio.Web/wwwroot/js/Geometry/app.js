@@ -2,6 +2,9 @@
 (function () {
     "use strict";
 
+    var fmt = window.PortfolioFormat;
+    var charts = window.PortfolioCharts;
+
     var samplePoints = [
         { x: 0.10, y: 0.20 },
         { x: 0.42, y: 0.08 },
@@ -13,8 +16,9 @@
     var pointsText = document.getElementById("geometryPoints");
     var triangulateBtn = document.getElementById("geometryTriangulateBtn");
     var clipBtn = document.getElementById("geometryClipBtn");
-    var alertBox = document.getElementById("geometryAlert");
+    var alertBox = PortfolioUi.inlineAlert(document.getElementById("geometryAlert"));
     var svg = document.getElementById("geometrySvg");
+    var resultsPanel = svg.closest(".card");
     var resultText = document.getElementById("geometryResult");
     var kpiShapes = document.getElementById("geometryKpiShapes");
     var kpiNative = document.getElementById("geometryKpiNative");
@@ -23,23 +27,34 @@
     pointsText.value = JSON.stringify(samplePoints, null, 2);
     triangulateBtn.addEventListener("click", triangulate);
     clipBtn.addEventListener("click", clip);
+    charts.describe(svg, "No geometry computed yet. Choose Triangulate or Clip Vertices.");
+
+    // Runs one operation; the sibling button is guarded too so only one request is in flight.
+    function runOperation(trigger, sibling, request, render, summary) {
+        var releaseSibling = PortfolioUi.busy({ buttons: [sibling] });
+        PortfolioUi.runAction({
+            trigger: trigger,
+            alert: alertBox,
+            region: resultsPanel,
+            request: request,
+            render: render,
+            summary: summary
+        }).then(releaseSibling);
+    }
 
     function triangulate() {
-        hideAlert();
+        alertBox.hide();
         var points = readPoints();
         if (!points) return;
 
-        setBusy(true);
-        apiPost(window.PortfolioApi.routes.spatialCompute.geometry.triangulate, { points: points })
-            .then(function (result) {
-                renderTriangles(result, points);
-            })
-            .catch(function (err) { showAlert(err.message || "Triangulation failed."); })
-            .finally(function () { setBusy(false); });
+        runOperation(triangulateBtn, clipBtn,
+            function () { return apiPost(window.PortfolioApi.routes.spatialCompute.geometry.triangulate, { points: points }); },
+            function (result) { renderTriangles(result, points); },
+            function (result) { return "Triangulation complete: " + fmt.number(result.triangles.length) + " triangles."; });
     }
 
     function clip() {
-        hideAlert();
+        alertBox.hide();
         var points = readPoints();
         if (!points) return;
 
@@ -51,49 +66,50 @@
             maxY: Number(document.getElementById("clipMaxY").value)
         };
 
-        setBusy(true);
-        apiPost(window.PortfolioApi.routes.spatialCompute.geometry.clip, request)
-            .then(renderClip)
-            .catch(function (err) { showAlert(err.message || "Clip operation failed."); })
-            .finally(function () { setBusy(false); });
+        runOperation(clipBtn, triangulateBtn,
+            function () { return apiPost(window.PortfolioApi.routes.spatialCompute.geometry.clip, request); },
+            renderClip,
+            function (result) { return "Clip complete: " + fmt.number(result.vertices.length) + " vertices in the clipped shape."; });
     }
 
     function renderTriangles(result, originalPoints) {
-        clearSvg();
+        charts.svg.clear(svg);
         result.triangles.forEach(function (triangle) {
-            var polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-            polygon.setAttribute("class", "triangle-shape");
-            polygon.setAttribute("points", [triangle.a, triangle.b, triangle.c].map(toSvgPoint).join(" "));
-            svg.appendChild(polygon);
+            svg.appendChild(charts.svg.el("polygon", {
+                "class": "triangle-shape",
+                points: [triangle.a, triangle.b, triangle.c].map(toSvgPoint).join(" ")
+            }));
         });
         renderPoints(originalPoints);
-        kpiShapes.textContent = result.triangles.length;
-        kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
+        kpiShapes.textContent = fmt.number(result.triangles.length);
+        kpiNative.textContent = fmt.yesNo(result.nativeAccelerated);
         kpiMode.textContent = "Tri";
         resultText.textContent = JSON.stringify(result, null, 2);
+        charts.describe(svg, "Triangulation of " + originalPoints.length + " points into " + result.triangles.length + " triangles.");
     }
 
     function renderClip(result) {
-        clearSvg();
-        var polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        polygon.setAttribute("class", "clip-shape");
-        polygon.setAttribute("points", result.vertices.map(toSvgPoint).join(" "));
-        svg.appendChild(polygon);
+        charts.svg.clear(svg);
+        svg.appendChild(charts.svg.el("polygon", {
+            "class": "clip-shape",
+            points: result.vertices.map(toSvgPoint).join(" ")
+        }));
         renderPoints(result.vertices);
         kpiShapes.textContent = result.vertices.length > 0 ? 1 : 0;
-        kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
+        kpiNative.textContent = fmt.yesNo(result.nativeAccelerated);
         kpiMode.textContent = "Clip";
         resultText.textContent = JSON.stringify(result, null, 2);
+        charts.describe(svg, "Clipped polygon with " + result.vertices.length + " vertices.");
     }
 
     function renderPoints(points) {
         points.forEach(function (point) {
-            var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", point.x * 100);
-            circle.setAttribute("cy", 100 - point.y * 100);
-            circle.setAttribute("r", "1.4");
-            circle.setAttribute("fill", "currentColor");
-            svg.appendChild(circle);
+            svg.appendChild(charts.svg.el("circle", {
+                cx: point.x * 100,
+                cy: 100 - point.y * 100,
+                r: "1.4",
+                fill: "currentColor"
+            }));
         });
     }
 
@@ -101,31 +117,12 @@
         try {
             return JSON.parse(pointsText.value);
         } catch (err) {
-            showAlert("Point set must be valid JSON.");
+            alertBox.show("Point set must be valid JSON.");
             return null;
         }
     }
 
     function toSvgPoint(point) {
         return (point.x * 100) + "," + (100 - point.y * 100);
-    }
-
-    function clearSvg() {
-        svg.innerHTML = "";
-    }
-
-    function setBusy(busy) {
-        triangulateBtn.disabled = busy;
-        clipBtn.disabled = busy;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
     }
 }());
