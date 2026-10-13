@@ -34,11 +34,6 @@ namespace Portfolio.Services.Data
         // is what makes CVA the right tool rather than naive single-band differencing.
         private const double EpochBBrightnessOffset = 0.015;
 
-        private const int Red = 0;
-        private const int Green = 1;
-        private const int Nir = 2;
-        private const int Swir = 3;
-
         // Reflectance signatures, in band order.
         private static readonly double[] Water = [0.04, 0.06, 0.02, 0.01];
         private static readonly double[] Vegetation = [0.05, 0.09, 0.45, 0.20];

@@ -18,8 +18,7 @@ namespace Portfolio.Tests.Controllers
         {
             _serviceMock = new Mock<IUserProfileService>();
             _controller = new ProfileController(
-                _serviceMock.Object,
-                new Mock<ILogger<ProfileController>>().Object);
+                _serviceMock.Object);
         }
 
         [Fact]

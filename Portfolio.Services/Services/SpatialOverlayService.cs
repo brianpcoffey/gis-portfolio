@@ -41,7 +41,7 @@ namespace Portfolio.Services.Services
                     throw new ArgumentException("Each zone must have a ring of at least three vertices.", nameof(request));
                 foreach (var vertex in zone.Ring)
                 {
-                    if (!IsFinite(vertex.X) || !IsFinite(vertex.Y))
+                    if (!double.IsFinite(vertex.X) || !double.IsFinite(vertex.Y))
                         throw new ArgumentException("Zone vertices must be finite values.", nameof(request));
                 }
                 totalVertices += zone.Ring.Count;
@@ -51,7 +51,7 @@ namespace Portfolio.Services.Services
 
             foreach (var point in request.Points)
             {
-                if (!IsFinite(point.X) || !IsFinite(point.Y))
+                if (!double.IsFinite(point.X) || !double.IsFinite(point.Y))
                     throw new ArgumentException("Point coordinates must be finite values.", nameof(request));
             }
 
@@ -154,7 +154,5 @@ namespace Portfolio.Services.Services
                 Points = taggedPoints
             };
         }
-
-        private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
 }

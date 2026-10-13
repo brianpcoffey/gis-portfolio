@@ -37,14 +37,6 @@ public class FiberMaterialRepository : IFiberMaterialRepository
         return material;
     }
 
-    public async Task<List<FiberMaterial>> GetLowStockAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await _db.FiberMaterials
-            .AsNoTracking()
-            .Where(m => m.UserId == userId && m.QtyOnHand < m.ReorderPoint)
-            .ToListAsync(cancellationToken);
-    }
-
     public async Task<FiberMaterial> UpdateAsync(int id, Portfolio.Common.DTOs.FiberMaterialDto dto, Guid userId, CancellationToken cancellationToken = default)
     {
         var material = await _db.FiberMaterials.FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId, cancellationToken);

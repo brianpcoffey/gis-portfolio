@@ -12,7 +12,6 @@ namespace Portfolio.Tests.Services
     {
         private readonly Mock<IFiberShipmentRepository> _shipmentRepoMock;
         private readonly Mock<IUserProfileService> _userProfileServiceMock;
-        private readonly FakeTimeProvider _timeProvider;
         private readonly FiberShipmentService _service;
         private readonly Guid _testUserId = Guid.NewGuid();
 
@@ -21,8 +20,7 @@ namespace Portfolio.Tests.Services
             _shipmentRepoMock = new Mock<IFiberShipmentRepository>();
             _userProfileServiceMock = new Mock<IUserProfileService>();
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns(_testUserId);
-            _timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
-            _service = new FiberShipmentService(_shipmentRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
+            _service = new FiberShipmentService(_shipmentRepoMock.Object, _userProfileServiceMock.Object);
         }
 
         [Fact]
@@ -52,7 +50,7 @@ namespace Portfolio.Tests.Services
         public async Task Throws_WhenUserNotIdentified()
         {
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
-            var service = new FiberShipmentService(_shipmentRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
+            var service = new FiberShipmentService(_shipmentRepoMock.Object, _userProfileServiceMock.Object);
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetAllAsync());
         }
 

@@ -44,24 +44,6 @@ namespace Portfolio.Tests.Services
             return fileMock.Object;
         }
 
-        private static HttpResponseMessage BuildGeocodeResponse(string address, double score, double x, double y)
-        {
-            var payload = new
-            {
-                candidates = new[]
-                {
-                    new { address, score, location = new { x, y } }
-                }
-            };
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    JsonSerializer.Serialize(payload),
-                    Encoding.UTF8,
-                    "application/json")
-            };
-        }
-
         private static string BuildGeocodeJson(string address, double score, double x, double y)
         {
             var payload = new

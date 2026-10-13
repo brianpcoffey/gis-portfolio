@@ -70,9 +70,9 @@ namespace Portfolio.Services.Services
         {
             ArgumentNullException.ThrowIfNull(request);
             ValidateLocations(request.Locations, nameof(request));
-            if (!IsFinite(request.RadiusKm) || request.RadiusKm <= 0 || request.RadiusKm > MaxRadiusKm)
+            if (!double.IsFinite(request.RadiusKm) || request.RadiusKm <= 0 || request.RadiusKm > MaxRadiusKm)
                 throw new ArgumentException($"Ring radius must be between 0 and {MaxRadiusKm} km.", nameof(request));
-            if (!IsFinite(request.ConcentrationLimit) || request.ConcentrationLimit <= 0)
+            if (!double.IsFinite(request.ConcentrationLimit) || request.ConcentrationLimit <= 0)
                 throw new ArgumentException("Concentration limit must be greater than zero.", nameof(request));
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -108,7 +108,7 @@ namespace Portfolio.Services.Services
 
             if ((long)request.Locations.Count * request.Events.Count > MaxEvaluations)
                 throw new ArgumentException($"Simulation size is limited to {MaxEvaluations} site-event evaluations.", nameof(request));
-            if (!IsFinite(request.VulnerabilityAlpha) || request.VulnerabilityAlpha <= 0)
+            if (!double.IsFinite(request.VulnerabilityAlpha) || request.VulnerabilityAlpha <= 0)
                 throw new ArgumentException("Vulnerability alpha must be greater than zero.", nameof(request));
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -142,17 +142,17 @@ namespace Portfolio.Services.Services
 
             foreach (var location in locations)
             {
-                if (!IsFinite(location.Latitude) || !IsFinite(location.Longitude))
+                if (!double.IsFinite(location.Latitude) || !double.IsFinite(location.Longitude))
                     throw new ArgumentException("Location coordinates must be finite values.", paramName);
-                if (!IsFinite(location.InsuredValue) || location.InsuredValue <= 0)
+                if (!double.IsFinite(location.InsuredValue) || location.InsuredValue <= 0)
                     throw new ArgumentException("Insured value must be greater than zero.", paramName);
                 if (location.InsuredValue > MaxInsuredValue)
                     throw new ArgumentException("Insured value must not exceed 1,000,000,000,000.", paramName);
-                if (!IsFinite(location.SiteHazard) || location.SiteHazard < 0 || location.SiteHazard > 1)
+                if (!double.IsFinite(location.SiteHazard) || location.SiteHazard < 0 || location.SiteHazard > 1)
                     throw new ArgumentException("Site hazard must be between 0 and 1.", paramName);
-                if (!IsFinite(location.DeductibleRate) || location.DeductibleRate < 0 || location.DeductibleRate > 1)
+                if (!double.IsFinite(location.DeductibleRate) || location.DeductibleRate < 0 || location.DeductibleRate > 1)
                     throw new ArgumentException("Deductible rate must be between 0 and 1.", paramName);
-                if (!IsFinite(location.LimitRate) || location.LimitRate < 0 || location.LimitRate > 1)
+                if (!double.IsFinite(location.LimitRate) || location.LimitRate < 0 || location.LimitRate > 1)
                     throw new ArgumentException("Limit rate must be between 0 and 1.", paramName);
             }
         }
@@ -166,9 +166,9 @@ namespace Portfolio.Services.Services
 
             foreach (var catEvent in events)
             {
-                if (!IsFinite(catEvent.Latitude) || !IsFinite(catEvent.Longitude))
+                if (!double.IsFinite(catEvent.Latitude) || !double.IsFinite(catEvent.Longitude))
                     throw new ArgumentException("Event coordinates must be finite values.", paramName);
-                if (!IsFinite(catEvent.Intensity) || !IsFinite(catEvent.RadiusKm) || !IsFinite(catEvent.AnnualRate))
+                if (!double.IsFinite(catEvent.Intensity) || !double.IsFinite(catEvent.RadiusKm) || !double.IsFinite(catEvent.AnnualRate))
                     throw new ArgumentException("Event parameters must be finite values.", paramName);
                 if (catEvent.RadiusKm <= 0)
                     throw new ArgumentException("Event radius must be greater than zero.", paramName);
@@ -511,7 +511,5 @@ namespace Portfolio.Services.Services
             var dLon = Math.Abs(lon2 - lon1);
             return dLon > radiusKm / (KmPerLatDegree * cosLat);
         }
-
-        private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
 }

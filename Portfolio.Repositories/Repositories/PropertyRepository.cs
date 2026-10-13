@@ -13,13 +13,6 @@ namespace Portfolio.Repositories.Repositories
             _db = db;
         }
 
-        public async Task<List<Property>> GetAllAsync(CancellationToken cancellationToken = default)
-        {
-            return await _db.Properties
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-        }
-
         public async Task<Property?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             return await _db.Properties
@@ -45,30 +38,5 @@ namespace Portfolio.Repositories.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<Property> AddAsync(Property property, CancellationToken cancellationToken = default)
-        {
-            _db.Properties.Add(property);
-            await _db.SaveChangesAsync(cancellationToken);
-            return property;
-        }
-
-        public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
-        {
-            var property = await _db.Properties.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-            if (property == null) return false;
-            _db.Properties.Remove(property);
-            await _db.SaveChangesAsync(cancellationToken);
-            return true;
-        }
-
-        public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
-        {
-            return await _db.Properties.AnyAsync(p => p.Id == id, cancellationToken);
-        }
-
-        public async Task<int> CountAsync(CancellationToken cancellationToken = default)
-        {
-            return await _db.Properties.CountAsync(cancellationToken);
-        }
     }
 }
