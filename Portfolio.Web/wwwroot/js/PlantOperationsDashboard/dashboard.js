@@ -60,14 +60,14 @@ if (typeof loadPlantOpsMap !== 'function') {
     let plantOpsMapInstance = null;
     let plantOpsGraphicsLayer = null;
 
-    // Resolves true once the map is ready, false when the ArcGIS API is not available. init.js is loaded
-    // from the page markup (deferred, SRI-pinned): after a network failure or an SRI block `require` is
+    // Resolves true once the map is ready, false when the ArcGIS API is not available. The SDK script is
+    // loaded from the page markup (deferred, SRI-pinned): after a network failure or an SRI block `$arcgis` is
     // never defined. The notice goes in the map container (role="alert"; it also replaces the loading
     // spinner), the rest of the dashboard is unaffected, and the caller skips plotting the shipments.
     async function initPlantOpsMap() {
         const mapContainer = document.getElementById('plantOpsMap');
         if (!mapContainer) return false;
-        if (typeof require !== 'function') {
+        if (typeof window.$arcgis?.import !== 'function') {
             document.getElementById('plantOpsMapToolbar')?.classList.add('d-none');
             window.PortfolioEsri.showLoadError(mapContainer, 'Orders, shipments and inventory are unaffected.');
             return false;
@@ -75,88 +75,87 @@ if (typeof loadPlantOpsMap !== 'function') {
         const spinner = mapContainer.querySelector('.plant-ops-spinner');
         if (spinner) spinner.remove();
 
+        const [Map, MapView, GraphicsLayer] = await window.$arcgis.import([
+            '@arcgis/core/Map.js',
+            '@arcgis/core/views/MapView.js',
+            '@arcgis/core/layers/GraphicsLayer.js'
+        ]);
+
+        // Use the same basemap options as HomeFinder
+        const basemapSelect = document.getElementById('plantOpsBasemapSelect');
+        const initialBasemap = basemapSelect ? basemapSelect.value : 'dark-gray-vector';
+        plantOpsMapInstance = new Map({ basemap: initialBasemap });
+        plantOpsGraphicsLayer = new GraphicsLayer();
+        plantOpsMapInstance.add(plantOpsGraphicsLayer);
+
+        plantOpsMapView = new MapView({
+            container: 'plantOpsMap',
+            map: plantOpsMapInstance,
+            center: [-98.5795, 39.8283], // Center of North America (USA)
+            zoom: 4
+        });
+
+        if (basemapSelect) {
+            basemapSelect.addEventListener('change', () => {
+                plantOpsMapInstance.basemap = basemapSelect.value;
+            });
+        }
+
         return new Promise((resolve, reject) => {
-            require([
-                'esri/Map',
-                'esri/views/MapView',
-                'esri/layers/GraphicsLayer'
-            ], (Map, MapView, GraphicsLayer) => {
-                // Use the same basemap options as HomeFinder
-                const basemapSelect = document.getElementById('plantOpsBasemapSelect');
-                const initialBasemap = basemapSelect ? basemapSelect.value : 'dark-gray-vector';
-                plantOpsMapInstance = new Map({ basemap: initialBasemap });
-                plantOpsGraphicsLayer = new GraphicsLayer();
-                plantOpsMapInstance.add(plantOpsGraphicsLayer);
-
-                plantOpsMapView = new MapView({
-                    container: 'plantOpsMap',
-                    map: plantOpsMapInstance,
-                    center: [-98.5795, 39.8283], // Center of North America (USA)
-                    zoom: 4
-                });
-
-                if (basemapSelect) {
-                    basemapSelect.addEventListener('change', () => {
-                        plantOpsMapInstance.basemap = basemapSelect.value;
-                    });
-                }
-
-                const timeout = window.PortfolioEsri.visibleTimeout(15000, () => reject(new Error('Map timed out')));
-                plantOpsMapView.when(() => {
-                    timeout.clear();
-                    // ArcGIS nests its own role="application" surface in the container; name that one.
-                    const surface = plantOpsMapView.container.querySelector('.esri-view-surface');
-                    const label = mapContainer.dataset.mapLabel;
-                    if (surface && label) surface.setAttribute('aria-label', label);
-                    resolve(true);
-                }, err => {
-                    timeout.clear();
-                    reject(err);
-                });
-            }, reject);
+            const timeout = window.PortfolioEsri.visibleTimeout(15000, () => reject(new Error('Map timed out')));
+            plantOpsMapView.when(() => {
+                timeout.clear();
+                // ArcGIS nests its own role="application" surface in the container; name that one.
+                const surface = plantOpsMapView.container.querySelector('.esri-view-surface');
+                const label = mapContainer.dataset.mapLabel;
+                if (surface && label) surface.setAttribute('aria-label', label);
+                resolve(true);
+            }, err => {
+                timeout.clear();
+                reject(err);
+            });
         });
     }
 
-    function plotPlantOpsShipments(shipments) {
-        require([
-            'esri/Graphic',
-            'esri/geometry/Point',
-            'esri/symbols/SimpleMarkerSymbol',
-            'esri/PopupTemplate'
-        ], (Graphic, Point, SimpleMarkerSymbol, PopupTemplate) => {
-            plantOpsGraphicsLayer.removeAll();
-            shipments.forEach(s => {
-                const lon = Number(s.destinationLng);
-                const lat = Number(s.destinationLat);
-                if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) return;
+    async function plotPlantOpsShipments(shipments) {
+        const [Graphic, Point, SimpleMarkerSymbol, PopupTemplate] = await window.$arcgis.import([
+            '@arcgis/core/Graphic.js',
+            '@arcgis/core/geometry/Point.js',
+            '@arcgis/core/symbols/SimpleMarkerSymbol.js',
+            '@arcgis/core/PopupTemplate.js'
+        ]);
+        plantOpsGraphicsLayer.removeAll();
+        shipments.forEach(s => {
+            const lon = Number(s.destinationLng);
+            const lat = Number(s.destinationLat);
+            if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) return;
 
-                // Status tokens (resolved for the current theme): in transit / delivered / other.
-                const color = s.status?.toLowerCase().includes('in transit')
-                    ? PortfolioCharts.status('success')
-                    : s.status?.toLowerCase().includes('deliv')
-                        ? PortfolioCharts.status('info')
-                        : PortfolioCharts.status('warning');
+            // Status tokens (resolved for the current theme): in transit / delivered / other.
+            const color = s.status?.toLowerCase().includes('in transit')
+                ? PortfolioCharts.status('success')
+                : s.status?.toLowerCase().includes('deliv')
+                    ? PortfolioCharts.status('info')
+                    : PortfolioCharts.status('warning');
 
-                plantOpsGraphicsLayer.add(new Graphic({
-                    geometry: new Point({ longitude: lon, latitude: lat }),
-                    symbol: new SimpleMarkerSymbol({
-                        color, size: 12,
-                        outline: { color: [255, 255, 255], width: 1 }
-                    }),
-                    attributes: s,
-                    popupTemplate: new PopupTemplate({
-                        title: `${PortfolioDom.escapeHtml(s.trackingNumber)} — ${PortfolioDom.escapeHtml(s.carrierName)}`,
-                        content: `Status: ${PortfolioDom.escapeHtml(s.status)}<br/>Dest: ${PortfolioDom.escapeHtml(s.destinationCity)}, ${PortfolioDom.escapeHtml(s.destinationState)}`
-                    })
-                }));
-            });
-            const points = plantOpsGraphicsLayer.graphics.toArray();
-            if (points.length) {
-                plantOpsMapView.goTo(points, { padding: 50 });
-            } else {
-                showToast('No shipments with coordinates found.', 'warning');
-            }
+            plantOpsGraphicsLayer.add(new Graphic({
+                geometry: new Point({ longitude: lon, latitude: lat }),
+                symbol: new SimpleMarkerSymbol({
+                    color, size: 12,
+                    outline: { color: [255, 255, 255], width: 1 }
+                }),
+                attributes: s,
+                popupTemplate: new PopupTemplate({
+                    title: `${PortfolioDom.escapeHtml(s.trackingNumber)} — ${PortfolioDom.escapeHtml(s.carrierName)}`,
+                    content: `Status: ${PortfolioDom.escapeHtml(s.status)}<br/>Dest: ${PortfolioDom.escapeHtml(s.destinationCity)}, ${PortfolioDom.escapeHtml(s.destinationState)}`
+                })
+            }));
         });
+        const points = plantOpsGraphicsLayer.graphics.toArray();
+        if (points.length) {
+            plantOpsMapView.goTo(points, { padding: 50 });
+        } else {
+            showToast('No shipments with coordinates found.', 'warning');
+        }
     }
 
     window.loadPlantOpsMap = function () {
