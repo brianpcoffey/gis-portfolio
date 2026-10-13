@@ -58,7 +58,7 @@ internal static class InfrastructureRegistration
     }
 
     // --------------------------
-    // HSTS (non-Development only; see UseHsts below)
+    // HSTS (non-Development only; see UsePortfolioPipeline in Startup/Pipeline.cs)
     // --------------------------
     // One year, current host only. includeSubDomains and preload are deliberately off:
     // preload is effectively irreversible, and subdomains are not all under this app's control.
