@@ -46,6 +46,13 @@ function buildSymbols() {
     };
 }
 
+// None of the symbol colours depend on the theme, so they are read once (five getComputedStyle
+// reads) and reused for every state change and hover.
+let symbolCache = null;
+function mapSymbols() {
+    return symbolCache || (symbolCache = buildSymbols());
+}
+
 function symbolFor(featureId, state, symbols) {
     if (state.selectedFeatureId === featureId) return symbols.selected;
     if (state.compareSet.has(featureId)) return symbols.comparing;
@@ -121,7 +128,7 @@ export const MapManager = {
     renderFeatures(stateSnapshot) {
 
         const state = stateSnapshot || getState();
-        const symbols = buildSymbols();
+        const symbols = mapSymbols();
 
         const currentIds = new Set(
             state.features.map(f => String(f.featureId || f.FeatureId))
@@ -214,7 +221,7 @@ export const MapManager = {
 
             geometry: g.geometry,
 
-            symbol: buildSymbols().hover
+            symbol: mapSymbols().hover
 
         });
 
