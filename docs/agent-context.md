@@ -188,11 +188,9 @@ route paths**) resolves to a controller route — update both when a route chang
 Entities (`PortfolioDbContext`): `SavedFeature, Collection, UserProfile, UserClaim, Property, SavedSearch,
 FiberClient, FiberOrder, FiberShipment, FiberMaterial, FiberInventoryTransaction`. `ls
 Portfolio.Repositories/Migrations` lists the migrations. Migrations run at startup (`db.Database.Migrate()`);
-`dotnet Portfolio.Web.dll --migrate` runs them and exits (a failure exits non-zero), and
-`RunMigrationsOnStartup=false` skips the startup pass — **set both or neither**. **Production uses neither:**
-on Render's free plan the Pre-Deploy Command field is locked and empty, so migrations run at startup (the log
-shows `Database migration successful.`). `--migrate` is only for a host that has a pre-deploy step, such as a
-paid Render plan (`docs/render-deployment.md`).
+`dotnet Portfolio.Web.dll --migrate` runs them and exits (Render's pre-deploy command; a failure exits
+non-zero so the deploy aborts), and `RunMigrationsOnStartup=false` skips the startup pass — **set both or
+neither**.
 
 ### Pipeline order (preserve; `Startup/Pipeline.cs`, pinned by `PipelineOrderTests`)
 `UseForwardedHeaders` → `SecurityHeadersMiddleware` → exception handler/HSTS (non-dev) → HTTPS redirect
@@ -304,7 +302,7 @@ dotnet format Portfolio.sln --verify-no-changes --no-restore --exclude Portfolio
 dotnet test Portfolio.Tests -c Release --collect:"XPlat Code Coverage" --settings coverlet.runsettings --results-directory TestResults
 py -I tools/metrics/coverage_gate.py TestResults --min-line <MIN_LINE_COVERAGE> --min-branch <MIN_BRANCH_COVERAGE> --package-floor Portfolio.Web <MIN_WEB_LINE_COVERAGE> <MIN_WEB_BRANCH_COVERAGE>
 dotnet run --project Portfolio.Web --launch-profile http     # http://localhost:5000 (the https profile serves https://localhost:5001 and :5000)
-dotnet Portfolio.Web.dll --migrate                           # migrate and exit (for hosts with a pre-deploy step; see §4)
+dotnet Portfolio.Web.dll --migrate                           # migrate and exit (Render pre-deploy; see §4)
 dotnet run --project Portfolio.Benchmarks -c Release         # native-vs-managed table; build kernels first
 dotnet ef migrations add <Name> --project Portfolio.Repositories --startup-project Portfolio.Web
 docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml up
@@ -366,12 +364,12 @@ Also `security-scan.yml` (weekly vulnerable-package sweep) and `dependabot.yml`.
 
 ## 10. Gotchas & known inconsistencies
 
-- `README.md` mentions the deprecated Home Finder `score` / `properties/{id}` aliases: both are still `[Obsolete]`, hidden from OpenAPI, and (because of `coverlet.runsettings`) absent from coverage. `POST …/geocoding/batch/sync` is *live* (the demo uses it) but hidden from OpenAPI; its unversioned legacy twin `POST /api/batchgeocoding/sync` was removed (it had answered 404 since API versioning began requiring a URL version, and `LegacyBatchGeocodingRouteTests` pins that).
+- `README.md` mentions the deprecated Home Finder `score` / `properties/{id}` aliases: both are still `[Obsolete]`, hidden from OpenAPI, and (because of `coverlet.runsettings`) absent from coverage. `POST …/geocoding/batch/sync` is *live* (the demo uses it) but hidden from OpenAPI; `POST /api/batchgeocoding/sync` is its unversioned legacy twin.
 - Native bridges: `NativeKernelLoader.IsNativeInvocationException` includes `InvalidOperationException`, so a native negative-status error logs once and silently falls back to managed — intentionally documented, don't "fix" silently. The comments in `NativeToggle.cs` and `Portfolio.Benchmarks/Program.cs` still say the probe happens "in a static constructor"; it is a `static readonly` field initialiser, with the same once-per-process behaviour.
 - General caution for native code: `std::map::operator[]` on a missing key inserts a default (`0.0` = "reachable free"); use `.find()`.
 - **Coverage depends on the generated `RedlandsRoadNetwork.cs`**: without its lines, line coverage fell to ~73% at the cleanup baseline, below the 80% gate. Never mark it generated/excluded for coverlet (`[GeneratedCode]`, `ExcludeByFile`); an `.editorconfig` `generated_code` entry (analyzers only) is fine.
 - Docker: the `Dockerfile` sets `ASPNETCORE_HTTP_PORTS=10000` (Render's default port); `docker/docker-compose.yml` overrides it to 8080.
-- Render's free tier cold-starts, and every cold start runs the startup migration check; the `--migrate` switch exists to move that to a pre-deploy step, but the free plan locks the Pre-Deploy Command field, so production doesn't use it. As of Oct 2026 the service also has no Health Check Path set (recommended: `/health/live`). Render's actual dashboard settings (pre-deploy command, health check path, `RunMigrationsOnStartup`, Auto-Deploy, the hook secret) are not in the repo; `docs/render-deployment.md` records what was observed.
+- Render's free tier cold-starts; that's why the `--migrate` pre-deploy step exists. Render's actual dashboard settings (pre-deploy command, `RunMigrationsOnStartup`, Auto-Deploy, the hook secret) are not in the repo.
 - `Pages/Shared/_Layout.cshtml.css` is an unreferenced scaffold file (§3).
 - A `.vs/` dir, `TestResults/` and `DataProtection-Keys/` may be present locally — never commit them. Stale `net8.0` folders under `bin/`/`obj/` are noise; everything targets `net10.0`.
 - `docs/resume-update.md`: the résumé PDF in `wwwroot/files/` may lag the Drive source; the site describes the PDF using metrics read from the file.
