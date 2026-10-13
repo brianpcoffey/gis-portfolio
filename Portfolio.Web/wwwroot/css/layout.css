@@ -75,9 +75,16 @@ body.dark-mode .navbar {
     cursor: pointer;
 }
 
+/* Same ring as preferences.css: the site's --focus-ring token, keyboard focus only.
+   Bootstrap's .navbar-toggler:focus adds its own shadow, so clear that too. */
 .hamburger-btn:focus {
-    box-shadow: 0 0 0 0.2rem rgba(56, 161, 105, 0.35);
-    outline: none;
+    box-shadow: none;
+}
+
+.hamburger-btn:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 
 .hamburger-bar {
@@ -160,7 +167,7 @@ body.dark-mode .navbar {
 
 .hero-desc {
     font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.95);
     margin-bottom: 2rem;
     line-height: 1.7;
 }
@@ -218,24 +225,6 @@ body.dark-mode .navbar {
     list-style: none;
     padding: 0;
     margin: 0;
-}
-
-.skill-tag {
-    display: inline-block;
-    background: var(--background);
-    color: var(--text);
-    padding: 0.3rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    margin: 0.25rem;
-    border: 1px solid var(--border);
-    transition: all var(--transition);
-}
-
-.skill-card:hover .skill-tag {
-    background: var(--accent-on-fill);
-    color: #fff;
-    border-color: var(--accent-on-fill);
 }
 
 /* ======================================
@@ -343,8 +332,9 @@ body.dark-mode .projects-section {
 }
 
 .projects-track {
+    --track-gap: 1.5rem;
     display: flex;
-    gap: 1.5rem;
+    gap: var(--track-gap);
     width: max-content;
     animation: scrollProjects 45s linear infinite;
 }
@@ -355,16 +345,45 @@ body.dark-mode .projects-section {
     flex: 0 0 auto;
 }
 
+/* The track is two identical halves, and a half is 18 cards + 17 gaps wide, but the
+   second pass starts 18 cards + 18 gaps after the first. -50% alone is therefore half a
+   gap short and the loop jumps; the extra half gap lands the copy exactly on the original. */
 @keyframes scrollProjects {
     0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+    100% { transform: translateX(calc(-50% - var(--track-gap) / 2)); }
 }
 
 /* Pause scroll on hover, or when a card inside receives keyboard focus, so keyboard
-   and touch users can stop the motion — not just mouse users (WCAG 2.2.2). */
+   and touch users can stop the motion — not just mouse users (WCAG 2.2.2).
+   carousel.js also switches to manual mode on keyboard focus (below). */
 .projects-slider:hover .projects-track,
 .projects-slider:focus-within .projects-track {
     animation-play-state: paused;
+}
+
+/* Manual mode (carousel.js adds .is-manual): while paused, under reduced motion, or
+   while a card has keyboard focus. The track stops moving and the slider becomes a
+   horizontally scrollable, snap-aligned row, so every card is reachable by scrolling and
+   focus can never land on a card that is off-screen. The inert copies are removed. */
+.projects-slider.is-manual {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1rem;
+    mask-image: none;
+    -webkit-mask-image: none;
+}
+
+.projects-slider.is-manual .projects-track {
+    animation: none;
+    transform: none;
+}
+
+.projects-slider.is-manual .projects-track > .project-card {
+    scroll-snap-align: start;
+}
+
+.projects-slider.is-manual .projects-track > .project-card[inert] {
+    display: none;
 }
 
 /* ======================================
@@ -484,7 +503,7 @@ body.dark-mode .projects-index-section {
 }
 
 .contact-section p {
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .contact-links {
@@ -501,7 +520,8 @@ body.dark-mode .projects-index-section {
     color: #fff;
     font-size: 1.1rem;
     padding: 0.75rem 1.5rem;
-    background: rgba(255, 255, 255, 0.1);
+    /* Dark tint, not a white wash: it lowers the gradient under the white text to >= 4.5:1. */
+    background: rgba(0, 0, 0, 0.18);
     border-radius: 8px;
     transition: all var(--transition);
     min-width: 200px;
@@ -509,7 +529,7 @@ body.dark-mode .projects-index-section {
 }
 
 .contact-link:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
     color: #fff;
     transform: translateY(-3px);
 }
@@ -562,22 +582,6 @@ body.dark-mode .projects-index-section {
 .footer-text-link:hover,
 .footer-text-link:focus-visible {
     color: var(--accent-light);
-}
-
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-main {
-    flex: 1 0 auto;
 }
 
 .site-footer {
