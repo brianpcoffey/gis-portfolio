@@ -32,6 +32,25 @@ window.plantOpsOk = plantOpsOk;
 window.plantOpsFailure = plantOpsFailure;
 window.plantOpsAlert = plantOpsAlert;
 
+// Focus after a modal closes. Every modal here is built fresh in #plantOpsModals, and a save re-renders
+// the table that held its opener, so Bootstrap's own restore (data-api triggers only) finds nothing and
+// focus is left on the hidden modal. Remember the opener on show; after hide, focus it if it is still in
+// the page, else the active tab's "New ..." button (#btnNewOrder / #btnNewShipment / #btnNewMaterial).
+let plantOpsModalOpener = null;
+document.addEventListener('show.bs.modal', e => {
+    if (e.target.closest('#plantOpsModals')) plantOpsModalOpener = document.activeElement;
+});
+document.addEventListener('hidden.bs.modal', e => {
+    if (!e.target.closest('#plantOpsModals')) return;
+    const opener = plantOpsModalOpener;
+    plantOpsModalOpener = null;
+    setTimeout(() => {
+        const usable = opener && opener !== document.body && opener.isConnected;
+        const target = usable ? opener : document.querySelector('#ordersShipmentsTabsContent .tab-pane.active .btn[id^="btnNew"]');
+        if (target) target.focus();
+    }, 0);
+});
+
 
 
 // Ensure loadPlantOpsMap is always defined to avoid ReferenceError
