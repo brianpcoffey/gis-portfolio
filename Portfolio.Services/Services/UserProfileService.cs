@@ -44,8 +44,9 @@ namespace Portfolio.Services.Services
         {
             var ctx = _httpContextAccessor.HttpContext;
             if (ctx == null) return null;
-            // Items holds the authenticated identity when sign-in has set one, otherwise the anonymous
-            // id from AnonymousUserMiddleware.
+            // Set by AnonymousUserMiddleware: a signed-in request gets the profile its GoogleId claim maps to (it
+            // never falls back to the anonymous cookie), any other request the anonymous id. The Google sign-in
+            // event also sets it on the callback request.
             if (ctx.Items.TryGetValue(HttpContextItemKey, out var o) && o is Guid g) return g;
             return null;
         }
