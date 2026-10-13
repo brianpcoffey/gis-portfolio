@@ -21,6 +21,27 @@ const icon = (cls) => el("i", { class: `fa-solid ${cls}`, "aria-hidden": "true" 
 
 function query(id) { return document.getElementById(id); }
 
+// Marks the collection-name field invalid and links it to its error text, or clears both.
+// aria-describedby is only present while invalid, so the hidden message is not read otherwise.
+function setNameInvalid(input, invalid) {
+    input.classList.toggle("is-invalid", invalid);
+    if (invalid) {
+        input.setAttribute("aria-invalid", "true");
+        input.setAttribute("aria-describedby", "collectionNameError");
+    } else {
+        input.removeAttribute("aria-invalid");
+        input.removeAttribute("aria-describedby");
+    }
+}
+
+// Puts focus back after the collection dialog closes: on the opener while it is still in the
+// page, else on the row's name button (a saved edit re-renders the row), else on "+ New".
+function restoreCollectionFocus(opener, rowId) {
+    if (opener?.isConnected) { opener.focus(); return; }
+    const row = rowId ? document.querySelector(`[data-collection-id="${CSS.escape(String(rowId))}"] .se-collection-select`) : null;
+    (row || query("btnNewCollection"))?.focus();
+}
+
 // Extract useful metadata pairs from a feature object.
 // Prioritizes a small set of friendly fields (Name, Feature ID, Region, Capital, Population (est.), Area, Admission)
 // Omits any ObjectID/OBJECTID/ObjectId keys and maps common GIS field names to user-friendly labels.
@@ -201,6 +222,8 @@ export const UI = {
                             UI.showToast("Collection", "Collection updated", "success");
                             // keep selection on updated collection
                             setSelectedCollection(id);
+                            // The re-render replaced the edit button that held focus.
+                            if (!document.activeElement || document.activeElement === document.body) restoreCollectionFocus(null, id);
                         } catch (err) {
                             console.error("update collection failed", err);
                             UI.showToast("Collection", "Failed to update collection", "danger");
@@ -424,9 +447,14 @@ export const UI = {
         const colorInput = query("collectionColor");
         if (!modalEl || !form || !nameInput || !colorInput) return Promise.resolve(null);
 
+        // Bootstrap only restores focus to data-api triggers, so remember who opened the dialog
+        // (the "+ New" button, or the edit button of a collection row).
+        const opener = document.activeElement;
+        const openerRowId = opener?.closest?.("[data-collection-id]")?.dataset.collectionId;
+
         query("collectionModalTitle").textContent = title;
         nameInput.value = name || "";
-        nameInput.classList.remove("is-invalid");
+        setNameInvalid(nameInput, false);
         colorInput.value = HEX_COLOR.test(color || "") ? color : DEFAULT_COLLECTION_COLOR;
         collectionModalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
 
@@ -436,20 +464,25 @@ export const UI = {
                 e.preventDefault();
                 const trimmed = nameInput.value.trim();
                 if (!trimmed) {
-                    nameInput.classList.add("is-invalid");
+                    setNameInvalid(nameInput, true);
                     nameInput.focus();
                     return;
                 }
                 result = { name: trimmed, color: colorInput.value };
                 collectionModalInstance.hide();
             };
+            const onInput = () => setNameInvalid(nameInput, false);
             const onShown = () => nameInput.focus();
             const onHidden = () => {
                 form.removeEventListener("submit", onSubmit);
+                nameInput.removeEventListener("input", onInput);
                 modalEl.removeEventListener("shown.bs.modal", onShown);
+                setNameInvalid(nameInput, false);
                 resolve(result);
+                setTimeout(() => restoreCollectionFocus(opener, openerRowId), 0);
             };
             form.addEventListener("submit", onSubmit);
+            nameInput.addEventListener("input", onInput);
             modalEl.addEventListener("shown.bs.modal", onShown, { once: true });
             modalEl.addEventListener("hidden.bs.modal", onHidden, { once: true });
             collectionModalInstance.show();
