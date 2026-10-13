@@ -28,8 +28,10 @@ function tokenRgb(name) {
 
 // Symbols used for different states, drawn from the brand and status tokens (D-09c) so the
 // map matches the rest of the page: saved = success, selected = info, comparing = warning.
+// The polygons sit on the Esri basemap, which stays light in both themes, so the neutral comes
+// from the theme-independent --map-muted (the status *-rgb tokens are theme-independent too).
 function buildSymbols() {
-    const muted = tokenRgb("text-muted");
+    const muted = tokenRgb("map-muted");
     const fill = (rgb, alpha, width) => ({
         type: "simple-fill",
         color: [...rgb, alpha],
