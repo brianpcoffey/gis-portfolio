@@ -4,3 +4,5 @@ metadata:
   name: portfolio
   labels:
     app.kubernetes.io/name: portfolio
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest

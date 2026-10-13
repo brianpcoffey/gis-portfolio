@@ -17,3 +17,5 @@ DataProtection-Keys/
 
 # Agent worktrees created by Claude Code (each is its own checkout).
 .claude/worktrees/
+k8s/secret.yaml
+*.user

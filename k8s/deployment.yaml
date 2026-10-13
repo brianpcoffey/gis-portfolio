@@ -15,9 +15,18 @@ spec:
       labels:
         app: portfolio
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: portfolio
-          image: portfolio:latest
+          # Replace REPLACE_ME with the pushed image tag; do not use a mutable tag such as latest.
+          image: portfolio:REPLACE_ME
           ports:
             - containerPort: 8080
           envFrom:
@@ -25,6 +34,11 @@ spec:
                 name: portfolio-config
             - secretRef:
                 name: portfolio-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: "250m"
@@ -49,9 +63,13 @@ spec:
           volumeMounts:
             - name: dataprotection
               mountPath: /app/DataProtection-Keys
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: dataprotection
           # With Redis-backed Data Protection (PersistKeysToStackExchangeRedis), the filesystem
           # mount is not the source of truth for key storage. emptyDir is intentional — keys live
           # in Redis, not the pod filesystem. Each pod loads keys from Redis at startup.
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}

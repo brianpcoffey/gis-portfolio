@@ -6,8 +6,8 @@ namespace Portfolio.Tests.Services
     // Parity tests that drive the NATIVE kernels directly, rather than through the services
     // (which prefer native when it is available and so cannot be used to compare the two).
     //
-    // Every test here is a no-op when the shared library is absent, which is the normal CI
-    // and clean-clone state — so the suite stays green either way. When a kernel HAS been
+    // Every test here is reported as Skipped when the shared library is absent, which is the
+    // normal clean-clone state — so the suite stays green either way. When a kernel HAS been
     // built they become real assertions, and they exist because that gap let two genuine
     // defects ship: the whole managed contract was tested and nothing checked that native
     // honoured it.
@@ -27,8 +27,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void NativeClip_PolygonStraddlingCorner_EmitsBoxCorner()
         {
-            if (!SpatialGeometryNativeBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(SpatialGeometryNativeBridge.IsAvailable, "native library not loaded");
 
             // Same fixture as the managed contract test: correct clipping of this triangle
             // against [0,1]x[0,1] yields four vertices INCLUDING the (1,1) box corner.
@@ -59,8 +58,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void NativeClip_PolygonFullyOutsideBox_ReturnsEmpty()
         {
-            if (!SpatialGeometryNativeBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(SpatialGeometryNativeBridge.IsAvailable, "native library not loaded");
 
             var result = SpatialGeometryNativeBridge.ClipToBoundingBox(new PolygonClipRequestDto
             {
@@ -83,8 +81,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void NativeClip_PolygonFullyInsideBox_IsUnchanged()
         {
-            if (!SpatialGeometryNativeBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(SpatialGeometryNativeBridge.IsAvailable, "native library not loaded");
 
             var subject = new List<CoordinateDto>
             {
@@ -114,8 +111,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public void NativeClip_MatchesManagedOnARichPolygon()
         {
-            if (!SpatialGeometryNativeBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(SpatialGeometryNativeBridge.IsAvailable, "native library not loaded");
 
             // A star that crosses all four box edges — the shape whose native and managed
             // results diverged by 2,451 vertices before the fix.
@@ -148,8 +144,7 @@ namespace Portfolio.Tests.Services
         [Fact]
         public async Task NativeViewshed_MatchesManaged_OnAGridThatForcesMidpointSamples()
         {
-            if (!ViewshedNativeBridge.IsAvailable)
-                return;
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, "native library not loaded");
 
             // An odd-sized grid with the observer at dead centre puts a large number of rays
             // on exact half-cell samples, which is what surfaced the rounding disagreement.
