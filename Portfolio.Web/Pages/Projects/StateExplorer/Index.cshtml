@@ -55,7 +55,7 @@
                     <h2 class="h6 mb-0"><i class="fa-solid fa-folder me-1" aria-hidden="true"></i>My Collections</h2>
                     <button id="btnNewCollection" type="button" class="btn btn-sm btn-accent">+ New</button>
                 </div>
-                <div class="card-body p-0 theme-body">
+                <div class="card-body p-0">
                     <div id="collectionsList" class="list-group list-group-flush se-scroll-sm">
                         <div class="list-group-item theme-text-muted text-center small">Loading...</div>
                     </div>
@@ -67,7 +67,7 @@
                     <h2 class="h6 mb-0"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Saved States</h2>
                     <span id="savedCount" class="badge theme-badge">0</span>
                 </div>
-                <div class="card-body p-0 theme-body">
+                <div class="card-body p-0">
                     <div id="savedFeaturesList" class="list-group list-group-flush se-scroll-lg">
                         <div class="list-group-item theme-text-muted text-center small">No saved states yet</div>
                     </div>
@@ -94,14 +94,14 @@
         <div class="col-lg-3 col-md-12">
             <div class="card shadow-sm mb-3 theme-card">
                 <div class="card-header theme-card-header"><h2 class="h6 mb-0"><i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>State Details</h2></div>
-                <div class="card-body theme-body" id="featureDetails" aria-live="polite">
+                <div class="card-body" id="featureDetails" aria-live="polite">
                     <p class="theme-text-muted text-center small">Click a state on the map to view details</p>
                 </div>
             </div>
 
             <div class="card shadow-sm theme-card">
                 <div class="card-header theme-card-header"><h2 class="h6 mb-0"><i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Statistics</h2></div>
-                <div class="card-body theme-body">
+                <div class="card-body">
                     <div id="statsPanel" class="row text-center g-2">
                         <div class="col-6">
                             <div class="border rounded p-3 theme-stat">
@@ -143,7 +143,7 @@
                 <h2 id="saveFeatureModalTitle" class="modal-title h5">Save State</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body theme-body">
+            <div class="modal-body">
                 <input type="hidden" id="modalFeatureId" />
                 <div class="mb-3">
                     <label class="form-label" for="modalFeatureName">State Name</label>
@@ -177,7 +177,7 @@
                     <h2 id="collectionModalTitle" class="modal-title h5">New Collection</h2>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body theme-body">
+                <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label" for="collectionName">Collection name</label>
                         <input type="text" id="collectionName" class="form-control" maxlength="100" required autocomplete="off" />
