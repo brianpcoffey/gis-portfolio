@@ -17,7 +17,7 @@ namespace Portfolio.Repositories.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -300,6 +300,11 @@ namespace Portfolio.Repositories.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "OrderNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FiberOrders_user_id_order_number")
+                        .HasFilter("\"order_number\" <> ''");
 
                     b.ToTable("FiberOrders", (string)null);
                 });

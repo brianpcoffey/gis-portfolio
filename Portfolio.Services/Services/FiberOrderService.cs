@@ -8,6 +8,8 @@ namespace Portfolio.Services.Services;
 
 public class FiberOrderService : IFiberOrderService
 {
+    private const int MaxOrderNumberAttempts = 3;
+
     private readonly IFiberOrderRepository _orderRepo;
     private readonly IUserProfileService _userProfileService;
     private readonly TimeProvider _timeProvider;
@@ -40,20 +42,26 @@ public class FiberOrderService : IFiberOrderService
     public async Task<FiberOrderDto> CreateAsync(CreateFiberOrderDto dto, CancellationToken cancellationToken = default)
     {
         var userId = CurrentUserId;
-        var order = new FiberOrder
+        for (var attempt = 0; attempt < MaxOrderNumberAttempts; attempt++)
         {
-            UserId = userId,
-            OrderNumber = await NextOrderNumberAsync(userId, cancellationToken),
-            ClientName = dto.ClientName,
-            ProductName = dto.ProductName,
-            Quantity = dto.Quantity,
-            UnitPrice = dto.UnitPrice,
-            Status = dto.Status,
-            OrderDate = dto.OrderDate,
-            ShipDate = dto.ShipDate,
-        };
-        var created = await _orderRepo.AddAsync(order, cancellationToken);
-        return MapToDto(created);
+            var order = new FiberOrder
+            {
+                UserId = userId,
+                OrderNumber = await NextOrderNumberAsync(userId, cancellationToken),
+                ClientName = dto.ClientName,
+                ProductName = dto.ProductName,
+                Quantity = dto.Quantity,
+                UnitPrice = dto.UnitPrice,
+                Status = dto.Status,
+                OrderDate = dto.OrderDate,
+                ShipDate = dto.ShipDate,
+            };
+            // Null means another create by this user took the number first: read the issued numbers again and retry.
+            var created = await _orderRepo.TryAddAsync(order, cancellationToken);
+            if (created is not null) return MapToDto(created);
+        }
+
+        throw new InvalidOperationException("Could not assign an order number. Please try again.");
     }
 
     public async Task<FiberOrderDto> UpdateAsync(int id, UpdateFiberOrderDto dto, CancellationToken cancellationToken = default)
@@ -83,11 +91,11 @@ public class FiberOrderService : IFiberOrderService
     // and a per-user, per-day sequence that starts at 0001 (it widens past 9999 rather than wrapping). The next
     // sequence is one past the highest the user already holds for that day, so deleting an earlier order never lets
     // a later create reuse a surviving order's number. The seeded demo orders follow the same scheme, dated by their
-    // own order date (FiberDemoSeedData). Reading the highest sequence and inserting are separate steps and the column
-    // has no unique index, so two overlapping creates by the same user could be issued the same number. Today the
-    // dashboard's order form prevents that by disabling its submit button until a create finishes (orders.js), so one
-    // form sends one create at a time. Nothing on the server stops a second client (another tab or a script) from
-    // racing; closing that gap would take a unique (UserId, OrderNumber) index and a retry, which is not done here.
+    // own order date (FiberDemoSeedData). Reading the highest sequence and inserting are separate steps, so two
+    // overlapping creates by the same user (another tab, a script) can be offered the same number. A unique
+    // (UserId, OrderNumber) index lets only one insert win; the repository reports the loser as null and CreateAsync
+    // reads the issued numbers again and retries, up to MaxOrderNumberAttempts times. The dashboard's order form also
+    // disables its submit button until a create finishes (orders.js), so one form sends one create at a time.
     private async Task<string> NextOrderNumberAsync(Guid userId, CancellationToken cancellationToken)
     {
         var prefix = $"ORD-{_timeProvider.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-";
