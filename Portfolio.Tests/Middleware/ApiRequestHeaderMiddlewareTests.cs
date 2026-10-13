@@ -113,6 +113,8 @@ namespace Portfolio.Tests.Middleware
         [InlineData("PUT")]
         [InlineData("PATCH")]
         [InlineData("DELETE")]
+        [InlineData("TRACE")]
+        [InlineData("FOO")]
         public async Task UnsafeMethod_WithAnonymousCookieAndNoHeader_Returns403WithTheExactJsonBody(string method)
         {
             // Act

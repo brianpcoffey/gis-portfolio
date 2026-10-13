@@ -22,6 +22,10 @@ public class ApiRequestHeaderTests
     private const string AnonCookieName = "AnonUserId";
     private const string RejectionBody = "{\"error\":\"This request must include the X-Requested-With header.\"}";
     private const string SavedFeatures = "/api/v1/features/saved";
+    private const string Triangulate = "/api/v1/geometry/triangulate";
+
+    // A compute call that needs no identity and answers 200 whatever the caller's cookies are.
+    private static readonly object Triangle = new { points = new[] { new { x = 0, y = 0 }, new { x = 1, y = 0 }, new { x = 0, y = 1 } } };
 
     private static readonly object NewFeature = new
     {
@@ -115,6 +119,8 @@ public class ApiRequestHeaderTests
     [InlineData("PUT", "/1")]
     [InlineData("PATCH", "/1")]
     [InlineData("DELETE", "/1")]
+    [InlineData("TRACE", "")]
+    [InlineData("FOO", "")]
     public async Task UnsafeMethods_WithAnonymousCookieAndNoHeader_AreRejected_BeforeRouting(string method, string suffix)
     {
         // Arrange
@@ -153,8 +159,8 @@ public class ApiRequestHeaderTests
     public async Task Post_WithTheCookieTheAppIssued_AndNoHeader_Returns403()
     {
         // Arrange
-        // Takes the cookie name and value from a real Set-Cookie, so the middleware's cookie name cannot drift
-        // from the one AnonymousUserMiddleware issues.
+        // Takes the cookie name and value from a real Set-Cookie, so the rule is checked against the cookie the app
+        // actually issues.
         await using var f = new PortfolioAppFactory();
         var client = NewClient(f);
         var page = Request(HttpMethod.Get, "/Privacy");
@@ -175,20 +181,24 @@ public class ApiRequestHeaderTests
     [Theory]
     [InlineData(".AspNetCore.Cookies")]
     [InlineData(".AspNetCore.CookiesC1")]
-    public async Task Post_WithTheAuthCookieOrAChunk_AndNoHeader_Returns403_AndWithTheHeaderIsNot(string cookieName)
+    [InlineData(".aspnetcore.cookies")]
+    public async Task Post_WithTheAuthCookieOrAChunk_AndNoHeader_Returns403_AndWithTheHeaderReachesTheEndpoint(string cookieName)
     {
         // Arrange
-        // The value is not a valid ticket; the rule keys on the cookie's presence, before authentication runs.
+        // The value is not a valid ticket; the rule keys on the cookie's presence, before authentication runs. The
+        // compute endpoint answers 200 for any caller, so the header leg shows the cookie alone did not block it.
         await using var f = new PortfolioAppFactory();
         var client = NewClient(f);
 
         // Act
-        var without = await client.SendAsync(Request(HttpMethod.Post, SavedFeatures, $"{cookieName}=not-a-ticket", json: NewFeature), TestContext.Current.CancellationToken);
-        var with = await client.SendAsync(Request(HttpMethod.Post, SavedFeatures, $"{cookieName}=not-a-ticket", withHeader: true, json: NewFeature), TestContext.Current.CancellationToken);
+        var without = await client.SendAsync(Request(HttpMethod.Post, Triangulate, $"{cookieName}=not-a-ticket", json: Triangle), TestContext.Current.CancellationToken);
+        var with = await client.SendAsync(Request(HttpMethod.Post, Triangulate, $"{cookieName}=not-a-ticket", withHeader: true, json: Triangle), TestContext.Current.CancellationToken);
+        var withBody = await with.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // Assert
         AssertRejected(without, await without.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
-        Assert.NotEqual(HttpStatusCode.Forbidden, with.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, with.StatusCode);
+        Assert.NotEqual(RejectionBody, withBody);
     }
 
     [Fact]
@@ -230,10 +240,9 @@ public class ApiRequestHeaderTests
         // Arrange
         // No cookie means no ambient authority: curl, probes and Scalar without cookies pass unchanged.
         await using var f = new PortfolioAppFactory();
-        var points = new { points = new[] { new { x = 0, y = 0 }, new { x = 1, y = 0 }, new { x = 0, y = 1 } } };
 
         // Act
-        var r = await NewClient(f).SendAsync(Request(HttpMethod.Post, "/api/v1/geometry/triangulate", json: points), TestContext.Current.CancellationToken);
+        var r = await NewClient(f).SendAsync(Request(HttpMethod.Post, Triangulate, json: Triangle), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
@@ -244,11 +253,10 @@ public class ApiRequestHeaderTests
     {
         // Arrange
         await using var f = new PortfolioAppFactory();
-        var points = new { points = new[] { new { x = 0, y = 0 }, new { x = 1, y = 0 }, new { x = 0, y = 1 } } };
 
         // Act
         var r = await NewClient(f).SendAsync(
-            Request(HttpMethod.Post, "/api/v1/geometry/triangulate", ".AspNetCore.Session=abc; theme=dark", json: points),
+            Request(HttpMethod.Post, Triangulate, ".AspNetCore.Session=abc; theme=dark", json: Triangle),
             TestContext.Current.CancellationToken);
 
         // Assert
