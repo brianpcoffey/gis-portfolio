@@ -150,7 +150,7 @@ Portfolio.Benchmarks/      console harness comparing native vs managed for all 1
 ```
 
 Ignored/untracked local noise: `bin/ obj/ .vs/ TestResults/ build/ DataProtection-Keys/ .env appsettings.Development.json k8s/secret.yaml *.user .claude/worktrees/`.
-The site's CSS is in `wwwroot/css` (there is no scoped-CSS bundle).
+`Pages/Shared/_Layout.cshtml.css` is an unreferenced scaffold stylesheet (nothing links the scoped-CSS bundle); the site's CSS is in `wwwroot/css`.
 Git: branch `main`, remote `github.com/brianpcoffey/gis-portfolio`; cleanup work lands through `cleanup/*` branches and PRs.
 
 ---
@@ -370,6 +370,7 @@ Also `security-scan.yml` (weekly vulnerable-package sweep) and `dependabot.yml`.
 - **Coverage depends on the generated `RedlandsRoadNetwork.cs`**: without its lines, line coverage fell to ~73% at the cleanup baseline, below the 80% gate. Never mark it generated/excluded for coverlet (`[GeneratedCode]`, `ExcludeByFile`); an `.editorconfig` `generated_code` entry (analyzers only) is fine.
 - Docker: the `Dockerfile` sets `ASPNETCORE_HTTP_PORTS=10000` (Render's default port); `docker/docker-compose.yml` overrides it to 8080.
 - Render's free tier cold-starts; that's why the `--migrate` pre-deploy step exists. Render's actual dashboard settings (pre-deploy command, `RunMigrationsOnStartup`, Auto-Deploy, the hook secret) are not in the repo.
+- `Pages/Shared/_Layout.cshtml.css` is an unreferenced scaffold file (§3).
 - A `.vs/` dir, `TestResults/` and `DataProtection-Keys/` may be present locally — never commit them. Stale `net8.0` folders under `bin/`/`obj/` are noise; everything targets `net10.0`.
 - `docs/resume-update.md`: the résumé PDF in `wwwroot/files/` may lag the Drive source; the site describes the PDF using metrics read from the file.
 
