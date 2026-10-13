@@ -41,8 +41,7 @@ namespace Portfolio.Services.Native
                     output,
                     output.Length);
 
-                if (status < 0)
-                    throw new InvalidOperationException($"Native spatial cluster kernel failed with status {status}.");
+                ThrowIfFailed(status);
 
                 labels = output;
                 clusterCount = status;
@@ -53,6 +52,29 @@ namespace Portfolio.Services.Native
                 logger.LogWarning(ex, "Native DBSCAN failed; falling back to managed clustering implementation.");
                 return false;
             }
+        }
+
+        // A non-negative return is the cluster count. A negative one is a failure of the call itself, never
+        // a property of the data (the service has validated the request and the output buffer is sized from
+        // the point count), so it is surfaced as an InvalidOperationException: TryRunDbscan's catch logs it
+        // and falls back to the managed DBSCAN, which has already seen the same validated request.
+        //   -1  invalid argument (null pointer, count <= 0, short buffer, epsilon not finite and > 0, minPoints < 1)
+        //  -99  C++ exception caught at the native boundary
+        // internal so the status mapping can be tested without provoking a real native failure.
+        internal static void ThrowIfFailed(int status)
+        {
+            if (status < 0)
+                throw new InvalidOperationException($"Native spatial cluster kernel failed with status {status} ({DescribeStatus(status)}).");
+        }
+
+        private static string DescribeStatus(int status)
+        {
+            return status switch
+            {
+                -1 => "invalid argument",
+                -99 => "native exception",
+                _ => "unknown"
+            };
         }
     }
 }
