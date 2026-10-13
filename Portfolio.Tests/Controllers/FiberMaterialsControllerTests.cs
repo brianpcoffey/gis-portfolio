@@ -1,11 +1,8 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
-using Xunit;
 
 namespace Portfolio.Tests.Controllers
 {
@@ -17,7 +14,7 @@ namespace Portfolio.Tests.Controllers
         public FiberMaterialsControllerTests()
         {
             _serviceMock = new Mock<IFiberMaterialService>();
-            _controller  = new FiberMaterialsController(
+            _controller = new FiberMaterialsController(
                 _serviceMock.Object);
         }
 
@@ -90,7 +87,7 @@ namespace Portfolio.Tests.Controllers
         public async Task Create_WithValidDto_ReturnsOkWithCreated()
         {
             // Arrange
-            var dto     = new CreateFiberMaterialDto { Name = "Ribbon Cable", Sku = "RC001", Category = "Cable" };
+            var dto = new CreateFiberMaterialDto { Name = "Ribbon Cable", Sku = "RC001", Category = "Cable" };
             var created = new FiberMaterialDto { Id = 5, Name = "Ribbon Cable" };
             _serviceMock.Setup(s => s.CreateAsync(It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(created);
 
@@ -118,7 +115,7 @@ namespace Portfolio.Tests.Controllers
         public async Task Update_WhenSuccessful_ReturnsOkWithUpdated()
         {
             // Arrange
-            var dto     = new UpdateFiberMaterialDto { Name = "Updated Fiber" };
+            var dto = new UpdateFiberMaterialDto { Name = "Updated Fiber" };
             var updated = new FiberMaterialDto { Id = 3, Name = "Updated Fiber" };
             _serviceMock.Setup(s => s.UpdateAsync(3, It.IsAny<FiberMaterialDto>(), It.IsAny<CancellationToken>())).ReturnsAsync(updated);
 
@@ -183,7 +180,7 @@ namespace Portfolio.Tests.Controllers
         public async Task ReceiveStock_WhenSuccessful_ReturnsOkWithUpdatedMaterial()
         {
             // Arrange
-            var dto     = new ReceiveStockDto { Quantity = 100m, Notes = "Shipment A" };
+            var dto = new ReceiveStockDto { Quantity = 100m, Notes = "Shipment A" };
             var updated = new FiberMaterialDto { Id = 4, QtyOnHand = 250m };
             _serviceMock.Setup(s => s.ReceiveStockAsync(4, dto, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
 

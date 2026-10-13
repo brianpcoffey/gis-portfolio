@@ -2,7 +2,6 @@ root = true
 
 [*]
 charset = utf-8
-end_of_line = crlf
 insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = space
@@ -12,6 +11,30 @@ indent_size = 4
 # Prefer file-scoped namespaces, var when apparent, and expression bodies where they read well.
 csharp_style_namespace_declarations = file_scoped:suggestion
 dotnet_sort_system_directives_first = true
+
+# Cyclomatic-complexity gate (WP-50). CA1502 reads its threshold from CodeMetricsConfig.txt (15, wired in
+# Directory.Build.props); a method above it is a warning, which CI promotes to an error.
+dotnet_diagnostic.CA1502.severity = warning
+
+# Unused usings (WP-50). IDE0005 defaults to hidden, which is below the severity `dotnet format` reports at, so
+# without this the CI format check cannot see a using that nothing needs. As a warning, `dotnet format
+# --verify-no-changes` fails on one, and the fix is the same command without --verify-no-changes. The build is
+# unaffected: IDE0005 only runs in a build with EnforceCodeStyleInBuild, which no project sets.
+dotnet_diagnostic.IDE0005.severity = warning
+
+# EF migrations are scaffolded, never hand-edited, and peak well under the threshold; keep them out of every gate.
+[**/Migrations/*.cs]
+dotnet_diagnostic.CA1502.severity = none
+dotnet_diagnostic.IDE0005.severity = none
+
+# Generated from OpenStreetMap; never hand-edited. Analyzers only: coverlet does not read .editorconfig,
+# so coverage still counts this file (it must keep doing so).
+[Portfolio.Services/Data/RedlandsRoadNetwork.cs]
+generated_code = true
+
+# The benchmark harness is not shipped code; its Render method is a report printer.
+[Portfolio.Benchmarks/**.cs]
+dotnet_diagnostic.CA1502.severity = none
 
 [*.{js,css,html,cshtml,json}]
 indent_size = 4

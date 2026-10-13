@@ -4,7 +4,6 @@ using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
-using Xunit;
 
 namespace Portfolio.Tests.Controllers
 {
@@ -17,7 +16,7 @@ namespace Portfolio.Tests.Controllers
         public UserProfileControllerTests()
         {
             _serviceMock = new Mock<IUserProfileService>();
-            _controller  = new UserProfileController(_serviceMock.Object);
+            _controller = new UserProfileController(_serviceMock.Object);
         }
 
         [Fact]
@@ -56,7 +55,7 @@ namespace Portfolio.Tests.Controllers
         public async Task UpdateCurrentProfile_ReturnsOkWithUpdatedProfile()
         {
             // Arrange
-            var dto     = new UpdateProfileDto { DisplayName = "Alice" };
+            var dto = new UpdateProfileDto { DisplayName = "Alice" };
             var updated = new ProfileDto { UserId = _testUserId };
             _serviceMock
                 .Setup(s => s.UpdateCurrentProfileAsync(dto, It.IsAny<CancellationToken>()))

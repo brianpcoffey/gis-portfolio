@@ -92,20 +92,20 @@ internal static class ArcGisClientRegistration
             pipeline.AddRetry(new HttpRetryStrategyOptions
             {
                 MaxRetryAttempts = profile.MaxRetryAttempts,
-                BackoffType      = DelayBackoffType.Exponential,
-                UseJitter        = true,
-                Delay            = profile.RetryDelay,
-                ShouldHandle     = args => ValueTask.FromResult(
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
+                Delay = profile.RetryDelay,
+                ShouldHandle = args => ValueTask.FromResult(
                     args.Outcome.Exception is HttpRequestException ||
                     args.Outcome.Result?.StatusCode >= System.Net.HttpStatusCode.InternalServerError)
             });
 
             pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
             {
-                SamplingDuration  = profile.SamplingDuration,
-                FailureRatio      = profile.FailureRatio,
+                SamplingDuration = profile.SamplingDuration,
+                FailureRatio = profile.FailureRatio,
                 MinimumThroughput = profile.MinimumThroughput,
-                BreakDuration     = profile.BreakDuration
+                BreakDuration = profile.BreakDuration
             });
         });
     }

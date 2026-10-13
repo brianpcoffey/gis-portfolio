@@ -1,10 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Portfolio.Repositories;
 using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Repositories;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Portfolio.Tests.Repositories
 {

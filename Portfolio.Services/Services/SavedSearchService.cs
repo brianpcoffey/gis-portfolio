@@ -1,8 +1,8 @@
+using System.Text.Json;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
-using System.Text.Json;
 
 namespace Portfolio.Services.Services
 {

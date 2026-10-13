@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace Portfolio.Tests.Helpers;
 
 /// <summary>Snapshot assertions whose failures list the missing and unexpected items one per line.</summary>

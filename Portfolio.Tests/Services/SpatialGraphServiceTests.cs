@@ -102,7 +102,8 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var request = new RouteRequestDto
             {
-                StartNodeId = 99, EndNodeId = 2,
+                StartNodeId = 99,
+                EndNodeId = 2,
                 Nodes = [new GraphNodeDto { Id = 1 }, new GraphNodeDto { Id = 2 }],
                 Edges = [new GraphEdgeDto { FromNodeId = 1, ToNodeId = 2, Cost = 1 }]
             };
@@ -116,7 +117,8 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var request = new RouteRequestDto
             {
-                StartNodeId = 1, EndNodeId = 3,
+                StartNodeId = 1,
+                EndNodeId = 3,
                 Nodes =
                 [
                     new GraphNodeDto { Id = 1, Latitude = 0, Longitude = 0 },
@@ -138,7 +140,8 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var request = new ServiceAreaRequestDto
             {
-                OriginNodeId = 1, MaxCost = 0,
+                OriginNodeId = 1,
+                MaxCost = 0,
                 Nodes =
                 [
                     new GraphNodeDto { Id = 1, Latitude = 0, Longitude = 0 },
@@ -158,7 +161,8 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var request = new ServiceAreaRequestDto
             {
-                OriginNodeId = 1, MaxCost = -1,
+                OriginNodeId = 1,
+                MaxCost = -1,
                 Nodes = [new GraphNodeDto { Id = 1 }],
                 Edges = []
             };
@@ -171,7 +175,8 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var request = new RouteRequestDto
             {
-                StartNodeId = 1, EndNodeId = 1,
+                StartNodeId = 1,
+                EndNodeId = 1,
                 Nodes =
                 [
                     new GraphNodeDto { Id = 1, Latitude = 34, Longitude = -117 },
@@ -210,7 +215,7 @@ namespace Portfolio.Tests.Services
             // The graph is built once and cached — both calls must return the exact
             // same object reference (verifies the static cache is working).
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var first  = await service.GetRedlandsGraphAsync();
+            var first = await service.GetRedlandsGraphAsync();
             var second = await service.GetRedlandsGraphAsync();
 
             Assert.Same(first, second);
@@ -222,13 +227,13 @@ namespace Portfolio.Tests.Services
             // Full round-trip: fetch the Redlands graph and route from node 1 to node 105 with Dijkstra.
             // Node 105 is an ordinary intersection; Esri HQ is node 2530 in the OSM-generated network.
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var request = new RouteRequestDto
             {
                 StartNodeId = 1,
-                EndNodeId   = 105,
-                Algorithm   = "dijkstra",
+                EndNodeId = 105,
+                Algorithm = "dijkstra",
                 Nodes = graph.Nodes,
                 Edges = graph.Edges
             };
@@ -236,7 +241,7 @@ namespace Portfolio.Tests.Services
             var result = await service.FindShortestPathAsync(request);
 
             Assert.True(result.Found);
-            Assert.Equal(1,   result.NodeIds.First());
+            Assert.Equal(1, result.NodeIds.First());
             Assert.Equal(105, result.NodeIds.Last());
             Assert.Equal("dijkstra", result.AlgorithmUsed);
             Assert.True(result.TotalCost > 0);
@@ -249,13 +254,13 @@ namespace Portfolio.Tests.Services
         public async Task SpatialGraphService_AStarOnRedlandsGraph_ReachesEsriHqFromRowA()
         {
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var request = new RouteRequestDto
             {
                 StartNodeId = 1,
-                EndNodeId   = 105,
-                Algorithm   = "astar",
+                EndNodeId = 105,
+                Algorithm = "astar",
                 Nodes = graph.Nodes,
                 Edges = graph.Edges
             };
@@ -263,7 +268,7 @@ namespace Portfolio.Tests.Services
             var result = await service.FindShortestPathAsync(request);
 
             Assert.True(result.Found);
-            Assert.Equal(1,   result.NodeIds.First());
+            Assert.Equal(1, result.NodeIds.First());
             Assert.Equal(105, result.NodeIds.Last());
             Assert.Equal("astar", result.AlgorithmUsed);
         }
@@ -274,12 +279,12 @@ namespace Portfolio.Tests.Services
             // A* uses a spatial heuristic — it should settle fewer nodes than
             // Dijkstra when routing across the Redlands graph.
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var dijkReq = new RouteRequestDto { StartNodeId = 1, EndNodeId = 105, Algorithm = "dijkstra", Nodes = graph.Nodes, Edges = graph.Edges };
-            var astarReq = new RouteRequestDto { StartNodeId = 1, EndNodeId = 105, Algorithm = "astar",   Nodes = graph.Nodes, Edges = graph.Edges };
+            var astarReq = new RouteRequestDto { StartNodeId = 1, EndNodeId = 105, Algorithm = "astar", Nodes = graph.Nodes, Edges = graph.Edges };
 
-            var dijkResult  = await service.FindShortestPathAsync(dijkReq);
+            var dijkResult = await service.FindShortestPathAsync(dijkReq);
             var astarResult = await service.FindShortestPathAsync(astarReq);
 
             Assert.True(astarResult.ExploredNodes < dijkResult.ExploredNodes,
@@ -305,10 +310,10 @@ namespace Portfolio.Tests.Services
                 new() { FromNodeId = 2, ToNodeId = 3, Cost = 2,   Bidirectional = true }
             };
 
-            var dijkResult  = await service.FindShortestPathAsync(new RouteRequestDto { StartNodeId = 1, EndNodeId = 3, Algorithm = "dijkstra", Nodes = nodes, Edges = edges });
-            var astarResult = await service.FindShortestPathAsync(new RouteRequestDto { StartNodeId = 1, EndNodeId = 3, Algorithm = "astar",    Nodes = nodes, Edges = edges });
+            var dijkResult = await service.FindShortestPathAsync(new RouteRequestDto { StartNodeId = 1, EndNodeId = 3, Algorithm = "dijkstra", Nodes = nodes, Edges = edges });
+            var astarResult = await service.FindShortestPathAsync(new RouteRequestDto { StartNodeId = 1, EndNodeId = 3, Algorithm = "astar", Nodes = nodes, Edges = edges });
 
-            Assert.Equal(4.0, dijkResult.TotalCost,  precision: 2);
+            Assert.Equal(4.0, dijkResult.TotalCost, precision: 2);
             Assert.Equal(4.0, astarResult.TotalCost, precision: 2);
         }
 
@@ -318,16 +323,19 @@ namespace Portfolio.Tests.Services
             // Only the shape of the result is asserted: a connected, non-empty path that
             // starts at the requested origin and ends at node 105. Optimal cost is not checked here.
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var result = await service.FindShortestPathAsync(new RouteRequestDto
             {
-                StartNodeId = 1, EndNodeId = 105, Algorithm = "astar",
-                Nodes = graph.Nodes, Edges = graph.Edges
+                StartNodeId = 1,
+                EndNodeId = 105,
+                Algorithm = "astar",
+                Nodes = graph.Nodes,
+                Edges = graph.Edges
             });
 
             Assert.True(result.Found);
-            Assert.Equal(1,   result.NodeIds.First());
+            Assert.Equal(1, result.NodeIds.First());
             Assert.Equal(105, result.NodeIds.Last());
             Assert.True(result.TotalCost > 0);
             Assert.Equal("astar", result.AlgorithmUsed);
@@ -337,12 +345,15 @@ namespace Portfolio.Tests.Services
         public async Task SpatialGraphService_RouteMetrics_PathCoordinateCountMatchesNodeIdCount()
         {
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var result = await service.FindShortestPathAsync(new RouteRequestDto
             {
-                StartNodeId = 61, EndNodeId = 105, Algorithm = "astar",
-                Nodes = graph.Nodes, Edges = graph.Edges
+                StartNodeId = 61,
+                EndNodeId = 105,
+                Algorithm = "astar",
+                Nodes = graph.Nodes,
+                Edges = graph.Edges
             });
 
             Assert.Equal(result.NodeIds.Count, result.Path.Count);
@@ -353,12 +364,15 @@ namespace Portfolio.Tests.Services
         {
             // EstimatedMinutes ≈ DistanceKm / 40 km/h × 60 min — allow 5% tolerance.
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var result = await service.FindShortestPathAsync(new RouteRequestDto
             {
-                StartNodeId = 1, EndNodeId = 105, Algorithm = "dijkstra",
-                Nodes = graph.Nodes, Edges = graph.Edges
+                StartNodeId = 1,
+                EndNodeId = 105,
+                Algorithm = "dijkstra",
+                Nodes = graph.Nodes,
+                Edges = graph.Edges
             });
 
             var expectedMinutes = result.DistanceKm / 40.0 * 60.0;
@@ -369,7 +383,7 @@ namespace Portfolio.Tests.Services
         public async Task SpatialGraphService_ServiceAreaOnRedlandsGraph_IncludesOriginAndNearbyNodes()
         {
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var result = await service.ComputeServiceAreaAsync(new ServiceAreaRequestDto
             {
@@ -388,12 +402,14 @@ namespace Portfolio.Tests.Services
         public async Task SpatialGraphService_ServiceAreaOnRedlandsGraph_ResultIsOrderedById()
         {
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var graph   = await service.GetRedlandsGraphAsync();
+            var graph = await service.GetRedlandsGraphAsync();
 
             var result = await service.ComputeServiceAreaAsync(new ServiceAreaRequestDto
             {
-                OriginNodeId = 50, MaxCost = 2.0,
-                Nodes = graph.Nodes, Edges = graph.Edges
+                OriginNodeId = 50,
+                MaxCost = 2.0,
+                Nodes = graph.Nodes,
+                Edges = graph.Edges
             });
 
             Assert.Equal(result.ReachableNodeIds.OrderBy(id => id).ToList(), result.ReachableNodeIds);
@@ -406,7 +422,8 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var request = new RouteRequestDto
             {
-                StartNodeId = 2, EndNodeId = 1,
+                StartNodeId = 2,
+                EndNodeId = 1,
                 Nodes =
                 [
                     new GraphNodeDto { Id = 1, Latitude = 34.0, Longitude = -117.0 },
@@ -452,7 +469,8 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var request = new RouteRequestDto
             {
-                StartNodeId = 1, EndNodeId = 3,
+                StartNodeId = 1,
+                EndNodeId = 3,
                 Algorithm = algorithm,
                 Nodes =
                 [
@@ -485,7 +503,9 @@ namespace Portfolio.Tests.Services
 
         private static RouteRequestDto UndeclaredEdgeRoute(string algorithm) => new()
         {
-            StartNodeId = 1, EndNodeId = 3, Algorithm = algorithm,
+            StartNodeId = 1,
+            EndNodeId = 3,
+            Algorithm = algorithm,
             Nodes =
             [
                 new() { Id = 1, Latitude = 34.0, Longitude = -117.3 },

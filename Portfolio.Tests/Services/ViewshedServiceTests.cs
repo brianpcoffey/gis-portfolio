@@ -86,8 +86,11 @@ namespace Portfolio.Tests.Services
             var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
             var request = new ViewshedRequestDto
             {
-                Width = 2, Height = 2, CellSize = 30,
-                ObserverX = 5, ObserverY = 0,
+                Width = 2,
+                Height = 2,
+                CellSize = 30,
+                ObserverX = 5,
+                ObserverY = 0,
                 Elevation = [1, 2, 3, 4]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
@@ -99,8 +102,11 @@ namespace Portfolio.Tests.Services
             var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
             var request = new ViewshedRequestDto
             {
-                Width = 2, Height = 2, CellSize = 30,
-                ObserverX = 0, ObserverY = 0,
+                Width = 2,
+                Height = 2,
+                CellSize = 30,
+                ObserverX = 0,
+                ObserverY = 0,
                 Elevation = [1, 2, 3]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
@@ -112,8 +118,11 @@ namespace Portfolio.Tests.Services
             var service = new ViewshedService(NullLogger<ViewshedService>.Instance);
             var request = new ViewshedRequestDto
             {
-                Width = 2, Height = 2, CellSize = 0,
-                ObserverX = 0, ObserverY = 0,
+                Width = 2,
+                Height = 2,
+                CellSize = 0,
+                ObserverX = 0,
+                ObserverY = 0,
                 Elevation = [1, 2, 3, 4]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
@@ -121,8 +130,11 @@ namespace Portfolio.Tests.Services
 
         private static ViewshedRequestDto FlatViewshed(int width, int height, int observerX = 0, int observerY = 0) => new()
         {
-            Width = width, Height = height, CellSize = 30,
-            ObserverX = observerX, ObserverY = observerY,
+            Width = width,
+            Height = height,
+            CellSize = 30,
+            ObserverX = observerX,
+            ObserverY = observerY,
             Elevation = Enumerable.Repeat(0.0, width * height).ToList()
         };
 

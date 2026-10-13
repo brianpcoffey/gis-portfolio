@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Portfolio.Common.DTOs;
-using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
 
 namespace Portfolio.Benchmarks;

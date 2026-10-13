@@ -1,14 +1,13 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Portfolio.Common.Configuration;
 using Portfolio.Services.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 namespace Portfolio.Tests.Services
 {

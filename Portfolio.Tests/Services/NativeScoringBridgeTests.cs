@@ -1,7 +1,6 @@
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Services.Native;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {
@@ -17,62 +16,62 @@ namespace Portfolio.Tests.Services
     {
         private static Property MakeProperty() => new()
         {
-            Id                  = 1,
-            Price               = 650_000m,
-            PropertyTax         = 8_500m,   // annual
-            HoaFee              = 200m,     // monthly
-            Utilities           = 150m,     // monthly
-            LotSqft             = 2_400,
-            Bedrooms            = 4,
-            Bathrooms           = 2,
-            CommuteMin          = 25,
-            SchoolRating        = 80,
-            CrimeScore          = 20,
-            Walkability         = 70,
-            TransitAccess       = 60,
-            AmenitiesScore      = 75,
-            FutureAppreciation  = 70,
-            ResalePotential     = 65,
-            RoofCondition       = 85,
-            AcCondition         = 80,
-            PlumbingCondition   = 90,
+            Id = 1,
+            Price = 650_000m,
+            PropertyTax = 8_500m,   // annual
+            HoaFee = 200m,     // monthly
+            Utilities = 150m,     // monthly
+            LotSqft = 2_400,
+            Bedrooms = 4,
+            Bathrooms = 2,
+            CommuteMin = 25,
+            SchoolRating = 80,
+            CrimeScore = 20,
+            Walkability = 70,
+            TransitAccess = 60,
+            AmenitiesScore = 75,
+            FutureAppreciation = 70,
+            ResalePotential = 65,
+            RoofCondition = 85,
+            AcCondition = 80,
+            PlumbingCondition = 90,
             ElectricalCondition = 88,
-            LastRenovation      = DateTime.UtcNow.Year - 5,
-            FloodRisk           = 10,
-            NoiseLevel          = 30,
-            Latitude            = 34.05,
-            Longitude           = -117.18
+            LastRenovation = DateTime.UtcNow.Year - 5,
+            FloodRisk = 10,
+            NoiseLevel = 30,
+            Latitude = 34.05,
+            Longitude = -117.18
         };
 
         private static HomeSearchPreferencesDto MakePrefs() => new()
         {
-            MaxPrice           = 800_000m,
-            MaxMonthlyBudget   = 4_500m,
-            MinBedrooms        = 3,
-            MinBathrooms       = 2,
-            MinSqft            = 1_800,
-            MaxCommuteMin      = 45,
+            MaxPrice = 800_000m,
+            MaxMonthlyBudget = 4_500m,
+            MinBedrooms = 3,
+            MinBathrooms = 2,
+            MinSqft = 1_800,
+            MaxCommuteMin = 45,
             WeightAffordability = 0.20,
-            WeightNeighborhood  = 0.15,
-            WeightSize          = 0.10,
-            WeightAppreciation  = 0.10,
-            WeightCondition     = 0.10,
-            WeightCommute       = 0.10,
-            WeightAmenities     = 0.10,
-            WeightTaxUtilities  = 0.05,
-            WeightResale        = 0.05,
-            WeightEnvironment   = 0.05
+            WeightNeighborhood = 0.15,
+            WeightSize = 0.10,
+            WeightAppreciation = 0.10,
+            WeightCondition = 0.10,
+            WeightCommute = 0.10,
+            WeightAmenities = 0.10,
+            WeightTaxUtilities = 0.05,
+            WeightResale = 0.05,
+            WeightEnvironment = 0.05
         };
 
         // Mirrors HomeScoringService's managed calculations so we can compute
         // expected values without instantiating the full service.
         private static double ManagedMonthlyCost(Property p)
         {
-            const double rate  = 0.065 / 12.0;
-            const int    n     = 360;
-            double loan        = (double)p.Price * 0.80;
-            double compound    = Math.Pow(1 + rate, n);
-            double mortgage    = loan * (rate * compound / (compound - 1));
+            const double rate = 0.065 / 12.0;
+            const int n = 360;
+            double loan = (double)p.Price * 0.80;
+            double compound = Math.Pow(1 + rate, n);
+            double mortgage = loan * (rate * compound / (compound - 1));
             return Math.Round(mortgage + (double)p.PropertyTax / 12.0
                               + (double)p.HoaFee + (double)p.Utilities, 2);
         }
@@ -87,14 +86,14 @@ namespace Portfolio.Tests.Services
 
         private static double ManagedSize(Property p, HomeSearchPreferencesDto prefs)
         {
-            var ratio  = prefs.MinSqft > 0 ? (double)p.LotSqft / prefs.MinSqft : 1.0;
-            var bonus  = (p.Bedrooms - prefs.MinBedrooms) * 10.0;
+            var ratio = prefs.MinSqft > 0 ? (double)p.LotSqft / prefs.MinSqft : 1.0;
+            var bonus = (p.Bedrooms - prefs.MinBedrooms) * 10.0;
             return Clamp100(Math.Min(ratio * 50, 100) + bonus);
         }
 
         private static double ManagedCondition(Property p)
         {
-            var avg  = (p.RoofCondition + p.AcCondition + p.PlumbingCondition + p.ElectricalCondition) / 4.0;
+            var avg = (p.RoofCondition + p.AcCondition + p.PlumbingCondition + p.ElectricalCondition) / 4.0;
             var reno = p.LastRenovation.HasValue
                        ? Math.Max(0, 10 - (DateTime.UtcNow.Year - p.LastRenovation.Value)) * 2.0
                        : 0.0;
@@ -115,21 +114,21 @@ namespace Portfolio.Tests.Services
 
         private static double ManagedComposite(Property p, HomeSearchPreferencesDto prefs)
         {
-            double cost        = ManagedMonthlyCost(p);
-            double total       = prefs.AllWeights.Sum();
+            double cost = ManagedMonthlyCost(p);
+            double total = prefs.AllWeights.Sum();
             if (total <= 0) total = 1.0;
 
             return Clamp100(
                 (prefs.WeightAffordability / total) * ManagedAffordability(cost, (double)prefs.MaxMonthlyBudget)
-              + (prefs.WeightNeighborhood  / total) * ManagedNeighborhood(p)
-              + (prefs.WeightSize          / total) * ManagedSize(p, prefs)
-              + (prefs.WeightAppreciation  / total) * Clamp100(p.FutureAppreciation)
-              + (prefs.WeightCondition     / total) * ManagedCondition(p)
-              + (prefs.WeightCommute       / total) * ManagedCommute(p.CommuteMin, prefs.MaxCommuteMin)
-              + (prefs.WeightAmenities     / total) * Clamp100(p.AmenitiesScore)
-              + (prefs.WeightTaxUtilities  / total) * ManagedTaxUtilities(p)
-              + (prefs.WeightResale        / total) * Clamp100(p.ResalePotential)
-              + (prefs.WeightEnvironment   / total) * ManagedEnvironment(p));
+              + (prefs.WeightNeighborhood / total) * ManagedNeighborhood(p)
+              + (prefs.WeightSize / total) * ManagedSize(p, prefs)
+              + (prefs.WeightAppreciation / total) * Clamp100(p.FutureAppreciation)
+              + (prefs.WeightCondition / total) * ManagedCondition(p)
+              + (prefs.WeightCommute / total) * ManagedCommute(p.CommuteMin, prefs.MaxCommuteMin)
+              + (prefs.WeightAmenities / total) * Clamp100(p.AmenitiesScore)
+              + (prefs.WeightTaxUtilities / total) * ManagedTaxUtilities(p)
+              + (prefs.WeightResale / total) * Clamp100(p.ResalePotential)
+              + (prefs.WeightEnvironment / total) * ManagedEnvironment(p));
         }
 
         [Fact]
@@ -145,10 +144,10 @@ namespace Portfolio.Tests.Services
         {
             Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
-            var p     = MakeProperty();
+            var p = MakeProperty();
             var prefs = MakePrefs();
 
-            var native   = NativeScoringBridge.ScoreProperty(p, prefs);
+            var native = NativeScoringBridge.ScoreProperty(p, prefs);
             var expected = ManagedComposite(p, prefs);
 
             Assert.InRange(native.Composite, expected - 0.01, expected + 0.01);
@@ -159,10 +158,10 @@ namespace Portfolio.Tests.Services
         {
             Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
-            var p     = MakeProperty();
+            var p = MakeProperty();
             var prefs = MakePrefs();
 
-            var native   = NativeScoringBridge.ScoreProperty(p, prefs);
+            var native = NativeScoringBridge.ScoreProperty(p, prefs);
             var expected = ManagedMonthlyCost(p);
 
             // ±0.05 USD/month tolerance for decimal vs double rounding.
@@ -177,16 +176,16 @@ namespace Portfolio.Tests.Services
             var native = NativeScoringBridge.ScoreProperty(MakeProperty(), MakePrefs());
 
             Assert.InRange(native.Affordability, 0, 100);
-            Assert.InRange(native.Neighborhood,  0, 100);
-            Assert.InRange(native.Size,          0, 100);
-            Assert.InRange(native.Appreciation,  0, 100);
-            Assert.InRange(native.Condition,     0, 100);
-            Assert.InRange(native.Commute,       0, 100);
-            Assert.InRange(native.Amenities,     0, 100);
-            Assert.InRange(native.TaxUtilities,  0, 100);
-            Assert.InRange(native.Resale,        0, 100);
-            Assert.InRange(native.Environment,   0, 100);
-            Assert.InRange(native.Composite,     0, 100);
+            Assert.InRange(native.Neighborhood, 0, 100);
+            Assert.InRange(native.Size, 0, 100);
+            Assert.InRange(native.Appreciation, 0, 100);
+            Assert.InRange(native.Condition, 0, 100);
+            Assert.InRange(native.Commute, 0, 100);
+            Assert.InRange(native.Amenities, 0, 100);
+            Assert.InRange(native.TaxUtilities, 0, 100);
+            Assert.InRange(native.Resale, 0, 100);
+            Assert.InRange(native.Environment, 0, 100);
+            Assert.InRange(native.Composite, 0, 100);
         }
 
         [Fact]
@@ -194,8 +193,8 @@ namespace Portfolio.Tests.Services
         {
             Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
-            var p1  = MakeProperty();
-            var p2  = MakeProperty(); p2.Id = 2; p2.Price = 500_000m;
+            var p1 = MakeProperty();
+            var p2 = MakeProperty(); p2.Id = 2; p2.Price = 500_000m;
             var prefs = MakePrefs();
 
             var outputs = NativeScoringBridge.ScorePropertyBatch([p1, p2], prefs);
@@ -208,11 +207,11 @@ namespace Portfolio.Tests.Services
         {
             Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
-            var p1    = MakeProperty();
-            var p2    = MakeProperty(); p2.Id = 2; p2.Price = 500_000m;
+            var p1 = MakeProperty();
+            var p2 = MakeProperty(); p2.Id = 2; p2.Price = 500_000m;
             var prefs = MakePrefs();
 
-            var batch   = NativeScoringBridge.ScorePropertyBatch([p1, p2], prefs);
+            var batch = NativeScoringBridge.ScorePropertyBatch([p1, p2], prefs);
             var single1 = NativeScoringBridge.ScoreProperty(p1, prefs);
             var single2 = NativeScoringBridge.ScoreProperty(p2, prefs);
 
@@ -225,7 +224,7 @@ namespace Portfolio.Tests.Services
         {
             Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
-            var p     = MakeProperty();
+            var p = MakeProperty();
             var prefs = MakePrefs();
             prefs.MaxMonthlyBudget = 0m;
 
@@ -239,12 +238,12 @@ namespace Portfolio.Tests.Services
         {
             Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
 
-            var pWithReno    = MakeProperty();
-            var pWithout     = MakeProperty();
+            var pWithReno = MakeProperty();
+            var pWithout = MakeProperty();
             pWithout.LastRenovation = null;
 
-            var prefs   = MakePrefs();
-            var with    = NativeScoringBridge.ScoreProperty(pWithReno, prefs);
+            var prefs = MakePrefs();
+            var with = NativeScoringBridge.ScoreProperty(pWithReno, prefs);
             var without = NativeScoringBridge.ScoreProperty(pWithout, prefs);
 
             // Property with recent renovation should score >= property without.
@@ -285,15 +284,15 @@ namespace Portfolio.Tests.Services
         }
 
         [Theory]
-        [InlineData(100, 20, 70, 60,   77.5)]   // (100 + 70 + 60 + 80) / 4
-        [InlineData(80,  0, 80, 80,    85.0)]   // crime 0 → 100-0=100
+        [InlineData(100, 20, 70, 60, 77.5)]   // (100 + 70 + 60 + 80) / 4
+        [InlineData(80, 0, 80, 80, 85.0)]   // crime 0 → 100-0=100
         public void ManagedNeighborhood_ComputesCorrectly(
             int school, int crime, int walk, int transit, double expected)
         {
             var p = MakeProperty();
-            p.SchoolRating  = school;
-            p.CrimeScore    = crime;
-            p.Walkability   = walk;
+            p.SchoolRating = school;
+            p.CrimeScore = crime;
+            p.Walkability = walk;
             p.TransitAccess = transit;
             Assert.InRange(ManagedNeighborhood(p), expected - 0.01, expected + 0.01);
         }
@@ -321,7 +320,7 @@ namespace Portfolio.Tests.Services
         public void ManagedEnvironment_BestCase_ReturnsHundred()
         {
             var p = MakeProperty();
-            p.FloodRisk  = 0;
+            p.FloodRisk = 0;
             p.NoiseLevel = 0;
             Assert.InRange(ManagedEnvironment(p), 99.9, 100.0);
         }
@@ -330,7 +329,7 @@ namespace Portfolio.Tests.Services
         public void ManagedEnvironment_WorstCase_ReturnsNearZero()
         {
             var p = MakeProperty();
-            p.FloodRisk  = 100;
+            p.FloodRisk = 100;
             p.NoiseLevel = 100;
             Assert.InRange(ManagedEnvironment(p), -0.01, 0.01);
         }
@@ -342,15 +341,15 @@ namespace Portfolio.Tests.Services
             // the result must still be in [0, 100].
             var prefs = MakePrefs();
             prefs.WeightAffordability = 1;
-            prefs.WeightNeighborhood  = 1;
-            prefs.WeightSize          = 1;
-            prefs.WeightAppreciation  = 1;
-            prefs.WeightCondition     = 1;
-            prefs.WeightCommute       = 1;
-            prefs.WeightAmenities     = 1;
-            prefs.WeightTaxUtilities  = 1;
-            prefs.WeightResale        = 1;
-            prefs.WeightEnvironment   = 1;
+            prefs.WeightNeighborhood = 1;
+            prefs.WeightSize = 1;
+            prefs.WeightAppreciation = 1;
+            prefs.WeightCondition = 1;
+            prefs.WeightCommute = 1;
+            prefs.WeightAmenities = 1;
+            prefs.WeightTaxUtilities = 1;
+            prefs.WeightResale = 1;
+            prefs.WeightEnvironment = 1;
 
             var composite = ManagedComposite(MakeProperty(), prefs);
             Assert.InRange(composite, 0.0, 100.0);

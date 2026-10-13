@@ -1,9 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Portfolio.Common.Models;
 using Portfolio.Repositories;
 using Portfolio.Services.Services;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {

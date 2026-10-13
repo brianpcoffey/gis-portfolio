@@ -1,11 +1,8 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
-using Xunit;
 
 namespace Portfolio.Tests.Controllers
 {
@@ -17,7 +14,7 @@ namespace Portfolio.Tests.Controllers
         public FiberOrdersControllerTests()
         {
             _serviceMock = new Mock<IFiberOrderService>();
-            _controller  = new FiberOrdersController(
+            _controller = new FiberOrdersController(
                 _serviceMock.Object);
         }
 
@@ -90,7 +87,7 @@ namespace Portfolio.Tests.Controllers
         public async Task Create_WithValidDto_ReturnsOkWithCreatedOrder()
         {
             // Arrange
-            var dto     = new CreateFiberOrderDto { ClientName = "Gamma Inc", ProductName = "Cable", Quantity = 5, UnitPrice = 10m };
+            var dto = new CreateFiberOrderDto { ClientName = "Gamma Inc", ProductName = "Cable", Quantity = 5, UnitPrice = 10m };
             var created = new FiberOrderDto { Id = 7, ClientName = "Gamma Inc" };
             _serviceMock.Setup(s => s.CreateAsync(dto, It.IsAny<CancellationToken>())).ReturnsAsync(created);
 
@@ -118,7 +115,7 @@ namespace Portfolio.Tests.Controllers
         public async Task Update_WhenSuccessful_ReturnsOkWithUpdatedOrder()
         {
             // Arrange
-            var dto     = new UpdateFiberOrderDto { ClientName = "Updated" };
+            var dto = new UpdateFiberOrderDto { ClientName = "Updated" };
             var updated = new FiberOrderDto { Id = 2, ClientName = "Updated" };
             _serviceMock.Setup(s => s.UpdateAsync(2, dto, It.IsAny<CancellationToken>())).ReturnsAsync(updated);
 

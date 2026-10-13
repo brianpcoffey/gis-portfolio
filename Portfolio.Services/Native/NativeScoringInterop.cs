@@ -17,28 +17,28 @@ namespace Portfolio.Services.Native
         /// Scores a single property, writing one <see cref="ScoreOutputNative"/> to <paramref name="result"/>.
         /// </summary>
         [DllImport(LibName,
-            EntryPoint        = "ScoreProperty",
+            EntryPoint = "ScoreProperty",
             CallingConvention = CallingConvention.Cdecl)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory
                                    | DllImportSearchPath.ApplicationDirectory)]
         internal static extern void ScoreProperty(
-            in  PropertyInputNative    property,
-            in  PreferencesInputNative prefs,
-            out ScoreOutputNative      result);
+            in PropertyInputNative property,
+            in PreferencesInputNative prefs,
+            out ScoreOutputNative result);
 
         /// <summary>
         /// Scores <paramref name="count"/> properties in one native call; <paramref name="properties"/> and
         /// <paramref name="scores"/> must each have at least <paramref name="count"/> elements.
         /// </summary>
         [DllImport(LibName,
-            EntryPoint        = "ScorePropertyBatch",
+            EntryPoint = "ScorePropertyBatch",
             CallingConvention = CallingConvention.Cdecl)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory
                                    | DllImportSearchPath.ApplicationDirectory)]
         internal static extern void ScorePropertyBatch(
-            [In]  PropertyInputNative[]    properties,
-            int                            count,
-            in    PreferencesInputNative   prefs,
-            [Out] ScoreOutputNative[]      scores);
+            [In] PropertyInputNative[] properties,
+            int count,
+            in PreferencesInputNative prefs,
+            [Out] ScoreOutputNative[] scores);
     }
 }

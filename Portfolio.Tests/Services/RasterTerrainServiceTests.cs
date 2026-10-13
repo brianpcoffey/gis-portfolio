@@ -79,7 +79,9 @@ namespace Portfolio.Tests.Services
             var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
             var request = new RasterHillshadeRequestDto
             {
-                Width = 2, Height = 2, CellSize = 0,
+                Width = 2,
+                Height = 2,
+                CellSize = 0,
                 Elevation = [10, 20, 30, 40]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHillshadeAsync(request));
@@ -91,7 +93,9 @@ namespace Portfolio.Tests.Services
             var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
             var request = new RasterHillshadeRequestDto
             {
-                Width = 2, Height = 2, CellSize = 1,
+                Width = 2,
+                Height = 2,
+                CellSize = 1,
                 Elevation = [10, 20, 30]   // should be 4
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHillshadeAsync(request));
@@ -110,8 +114,13 @@ namespace Portfolio.Tests.Services
             var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
             var request = new HeatmapRequestDto
             {
-                Width = 2, Height = 2, Radius = 0.5,
-                MinX = 1, MaxX = 0, MinY = 0, MaxY = 1,   // min > max
+                Width = 2,
+                Height = 2,
+                Radius = 0.5,
+                MinX = 1,
+                MaxX = 0,
+                MinY = 0,
+                MaxY = 1,   // min > max
                 Points = [new WeightedPointDto { X = 0.5, Y = 0.5, Weight = 1 }]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHeatmapAsync(request));
@@ -123,8 +132,13 @@ namespace Portfolio.Tests.Services
             var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
             var request = new HeatmapRequestDto
             {
-                Width = 2, Height = 2, Radius = 0,
-                MinX = 0, MaxX = 1, MinY = 0, MaxY = 1,
+                Width = 2,
+                Height = 2,
+                Radius = 0,
+                MinX = 0,
+                MaxX = 1,
+                MinY = 0,
+                MaxY = 1,
                 Points = [new WeightedPointDto { X = 0.5, Y = 0.5, Weight = 1 }]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHeatmapAsync(request));
@@ -136,7 +150,9 @@ namespace Portfolio.Tests.Services
             var service = new RasterTerrainService(NullLogger<RasterTerrainService>.Instance);
             var request = new RasterHillshadeRequestDto
             {
-                Width = 1, Height = 1, CellSize = 1,
+                Width = 1,
+                Height = 1,
+                CellSize = 1,
                 Elevation = [100.0]
             };
 
@@ -155,7 +171,13 @@ namespace Portfolio.Tests.Services
 
         private static HeatmapRequestDto Heatmap(int width, int height, int pointCount) => new()
         {
-            Width = width, Height = height, MinX = 0, MinY = 0, MaxX = 1, MaxY = 1, Radius = 0.1,
+            Width = width,
+            Height = height,
+            MinX = 0,
+            MinY = 0,
+            MaxX = 1,
+            MaxY = 1,
+            Radius = 0.1,
             Points = Enumerable.Range(0, pointCount)
                 .Select(i => new WeightedPointDto { X = (i % 10) / 10.0, Y = (i % 7) / 7.0, Weight = 1 })
                 .ToList()

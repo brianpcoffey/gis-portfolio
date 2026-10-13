@@ -1,5 +1,5 @@
-using Portfolio.Services.Native;
 using System.Runtime.InteropServices;
+using Portfolio.Services.Native;
 
 namespace Portfolio.Tests.Services
 {

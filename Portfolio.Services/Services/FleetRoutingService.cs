@@ -1,10 +1,10 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Data;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Native;
 using Portfolio.Services.Services.Fleet;
-using System.Diagnostics;
 
 namespace Portfolio.Services.Services
 {

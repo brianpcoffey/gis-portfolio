@@ -68,11 +68,11 @@ namespace Portfolio.Web.Controllers.Api
 
             try
             {
-                var jobId   = await _batchGeocodingService.EnqueueAsync(file, ct);
+                var jobId = await _batchGeocodingService.EnqueueAsync(file, ct);
                 var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
                 return Accepted(new BatchJobAcceptedDto(
-                    JobId:     jobId,
+                    JobId: jobId,
                     StatusUrl: $"{baseUrl}/api/v1/geocoding/batch/{jobId}/status"
                 ));
             }
@@ -83,7 +83,7 @@ namespace Portfolio.Web.Controllers.Api
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
                 {
                     Status = 503,
-                    Title  = "Batch Queue Full",
+                    Title = "Batch Queue Full",
                     Detail = $"Too many batch jobs are queued. Retry after {QueueFullRetryAfterSeconds} seconds.",
                     Extensions = { ["retryAfterSeconds"] = QueueFullRetryAfterSeconds }
                 });

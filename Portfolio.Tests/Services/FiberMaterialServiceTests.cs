@@ -1,11 +1,10 @@
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
-using Portfolio.Repositories.Interfaces;
 using Portfolio.Repositories;
-using Portfolio.Services.Services;
-using Xunit;
+using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
+using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Services
 {

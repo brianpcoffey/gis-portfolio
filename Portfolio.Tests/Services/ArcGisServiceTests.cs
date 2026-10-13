@@ -1,16 +1,16 @@
+using System.Net;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Services.Services;
-using System.Net;
-using System.Text.Json;
 
 namespace Portfolio.Tests.Services
 {
     public class ArcGisServiceTests
     {
-private const string BaseUrl = "https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer";
-private readonly Mock<ILogger<ArcGisService>> _loggerMock = new();
+        private const string BaseUrl = "https://sampleserver6.arcgisonline.com/arcgis/rest/services/Census/MapServer";
+        private readonly Mock<ILogger<ArcGisService>> _loggerMock = new();
 
         private ArcGisService CreateService(HttpResponseMessage response)
         {

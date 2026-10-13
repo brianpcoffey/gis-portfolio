@@ -16,9 +16,16 @@ namespace Portfolio.Tests.DTOs
         {
             return new HomeSearchPreferencesDto
             {
-                WeightAffordability = w, WeightNeighborhood = w, WeightSize = w, WeightAppreciation = w,
-                WeightCondition = w, WeightCommute = w, WeightAmenities = w, WeightTaxUtilities = w,
-                WeightResale = w, WeightEnvironment = w
+                WeightAffordability = w,
+                WeightNeighborhood = w,
+                WeightSize = w,
+                WeightAppreciation = w,
+                WeightCondition = w,
+                WeightCommute = w,
+                WeightAmenities = w,
+                WeightTaxUtilities = w,
+                WeightResale = w,
+                WeightEnvironment = w
             };
         }
 

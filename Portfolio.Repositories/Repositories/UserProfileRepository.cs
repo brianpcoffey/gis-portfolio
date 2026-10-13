@@ -43,18 +43,18 @@ namespace Portfolio.Repositories.Repositories
             return await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
         }
 
-/// <summary>
-/// Finds the profile holding the given claim type/value, e.g. to locate a profile by GoogleId without its UserId.
-/// </summary>
-public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string claimValue, CancellationToken cancellationToken = default)
-{
-    var claim = await _db.UserClaims
-        .AsNoTracking()
-        .Include(c => c.UserProfile)
-        .FirstOrDefaultAsync(c => c.ClaimType == claimType && c.ClaimValue == claimValue, cancellationToken);
+        /// <summary>
+        /// Finds the profile holding the given claim type/value, e.g. to locate a profile by GoogleId without its UserId.
+        /// </summary>
+        public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string claimValue, CancellationToken cancellationToken = default)
+        {
+            var claim = await _db.UserClaims
+                .AsNoTracking()
+                .Include(c => c.UserProfile)
+                .FirstOrDefaultAsync(c => c.ClaimType == claimType && c.ClaimValue == claimValue, cancellationToken);
 
-    return claim?.UserProfile;
-}
+            return claim?.UserProfile;
+        }
 
 
         // Inserts the profile, or overwrites every field of the existing one; persists before returning.

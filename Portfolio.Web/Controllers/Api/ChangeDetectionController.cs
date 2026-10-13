@@ -2,11 +2,11 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Portfolio.Web.RateLimiting;
 using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Filters;
+using Portfolio.Web.RateLimiting;
 
 namespace Portfolio.Web.Controllers.Api
 {

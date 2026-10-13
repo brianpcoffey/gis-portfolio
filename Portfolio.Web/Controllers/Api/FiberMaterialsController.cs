@@ -16,102 +16,102 @@ namespace Portfolio.Web.Controllers.Api
     [Route("api/v{version:apiVersion}/fiber/materials")]
     public class FiberMaterialsController : ControllerBase
     {
-    private readonly IFiberMaterialService _materialService;
+        private readonly IFiberMaterialService _materialService;
 
-    public FiberMaterialsController(IFiberMaterialService materialService)
-    {
-        _materialService = materialService;
-    }
+        public FiberMaterialsController(IFiberMaterialService materialService)
+        {
+            _materialService = materialService;
+        }
 
-    // Maps a create/update request DTO to the internal material DTO (server-computed fields default).
-    // Accepts UpdateFiberMaterialDto too, since it derives from CreateFiberMaterialDto.
-    private static FiberMaterialDto ToDto(CreateFiberMaterialDto dto) => new()
-    {
-        Name = dto.Name,
-        Sku = dto.Sku,
-        Category = dto.Category,
-        QtyOnHand = dto.QtyOnHand,
-        UnitCost = dto.UnitCost,
-        ReorderPoint = dto.ReorderPoint
-    };
+        // Maps a create/update request DTO to the internal material DTO (server-computed fields default).
+        // Accepts UpdateFiberMaterialDto too, since it derives from CreateFiberMaterialDto.
+        private static FiberMaterialDto ToDto(CreateFiberMaterialDto dto) => new()
+        {
+            Name = dto.Name,
+            Sku = dto.Sku,
+            Category = dto.Category,
+            QtyOnHand = dto.QtyOnHand,
+            UnitCost = dto.UnitCost,
+            ReorderPoint = dto.ReorderPoint
+        };
 
-    /// <summary>Retrieves all fiber materials.</summary>
-    [HttpGet]
-    [ProducesResponseType(200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
-    {
-        var result = await _materialService.GetAllAsync(cancellationToken);
-        return Ok(result);
-    }
+        /// <summary>Retrieves all fiber materials.</summary>
+        [HttpGet]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+        {
+            var result = await _materialService.GetAllAsync(cancellationToken);
+            return Ok(result);
+        }
 
-    /// <summary>Retrieves a fiber material by ID.</summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
-    {
-        var result = await _materialService.GetByIdAsync(id, cancellationToken);
-        if (result == null) return NotFound();
-        return Ok(result);
-    }
+        /// <summary>Retrieves a fiber material by ID.</summary>
+        [HttpGet("{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
+        {
+            var result = await _materialService.GetByIdAsync(id, cancellationToken);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
 
-    /// <summary>Creates a new fiber material.</summary>
-    [HttpPost]
-    [RequestSizeLimit(65_536)]
-    [ProducesResponseType(201)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> Create([FromBody] CreateFiberMaterialDto dto, CancellationToken cancellationToken)
-    {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-        var result = await _materialService.CreateAsync(ToDto(dto), cancellationToken);
-        return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
-    }
+        /// <summary>Creates a new fiber material.</summary>
+        [HttpPost]
+        [RequestSizeLimit(65_536)]
+        [ProducesResponseType(201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> Create([FromBody] CreateFiberMaterialDto dto, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+            var result = await _materialService.CreateAsync(ToDto(dto), cancellationToken);
+            return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
+        }
 
-    /// <summary>Updates an existing fiber material.</summary>
-    [HttpPut("{id}")]
-    [RequestSizeLimit(65_536)]
-    [ProducesResponseType(200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateFiberMaterialDto dto, CancellationToken cancellationToken)
-    {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-        var result = await _materialService.UpdateAsync(id, ToDto(dto), cancellationToken);
-        return Ok(result);
-    }
+        /// <summary>Updates an existing fiber material.</summary>
+        [HttpPut("{id}")]
+        [RequestSizeLimit(65_536)]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateFiberMaterialDto dto, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+            var result = await _materialService.UpdateAsync(id, ToDto(dto), cancellationToken);
+            return Ok(result);
+        }
 
-    /// <summary>Deletes a fiber material by ID.</summary>
-    [HttpDelete("{id}")]
-    [ProducesResponseType(204)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
-    {
-        var deleted = await _materialService.DeleteAsync(id, cancellationToken);
-        if (!deleted) return NotFound();
-        return NoContent();
-    }
+        /// <summary>Deletes a fiber material by ID.</summary>
+        [HttpDelete("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+        {
+            var deleted = await _materialService.DeleteAsync(id, cancellationToken);
+            if (!deleted) return NotFound();
+            return NoContent();
+        }
 
-    /// <summary>Records a stock receipt for a fiber material.</summary>
-    [HttpPost("{id}/receive")]
-    [RequestSizeLimit(65_536)]
-    [ProducesResponseType(200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> ReceiveStock(int id, [FromBody] ReceiveStockDto dto, CancellationToken cancellationToken)
-    {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-        var result = await _materialService.ReceiveStockAsync(id, dto, cancellationToken);
-        return Ok(result);
-    }
+        /// <summary>Records a stock receipt for a fiber material.</summary>
+        [HttpPost("{id}/receive")]
+        [RequestSizeLimit(65_536)]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> ReceiveStock(int id, [FromBody] ReceiveStockDto dto, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+            var result = await _materialService.ReceiveStockAsync(id, dto, cancellationToken);
+            return Ok(result);
+        }
 
     }
 }

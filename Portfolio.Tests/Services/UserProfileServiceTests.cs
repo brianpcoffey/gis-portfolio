@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -308,7 +307,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var profile = new UserProfile { UserId = _testUserId };
-            var claims  = new List<UserClaim>
+            var claims = new List<UserClaim>
             {
                 new() { UserId = _testUserId, ClaimType = "role", ClaimValue = "admin" }
             };
@@ -435,7 +434,7 @@ namespace Portfolio.Tests.Services
         public async Task UpdateCurrentProfileAsync_WithDisplayName_SetsClaimAndReturnsDto()
         {
             // Arrange
-            var dto     = new UpdateProfileDto { DisplayName = "Alice" };
+            var dto = new UpdateProfileDto { DisplayName = "Alice" };
             var profile = new UserProfile { UserId = _testUserId };
             _repoMock.Setup(r => r.SetClaimAsync(_testUserId, "display_name", "Alice", It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
             _repoMock.Setup(r => r.GetProfileAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(profile);
@@ -454,7 +453,7 @@ namespace Portfolio.Tests.Services
         public async Task UpdateCurrentProfileAsync_WithNullDisplayName_RemovesClaimAndReturnsDto()
         {
             // Arrange
-            var dto     = new UpdateProfileDto { DisplayName = null };
+            var dto = new UpdateProfileDto { DisplayName = null };
             var profile = new UserProfile { UserId = _testUserId };
             _repoMock.Setup(r => r.RemoveClaimAsync(_testUserId, "display_name", It.IsAny<CancellationToken>())).ReturnsAsync(false);
             _repoMock.Setup(r => r.GetProfileAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(profile);
@@ -544,7 +543,7 @@ namespace Portfolio.Tests.Services
         public async Task CreateOrUpdateFromGoogleAsync_WhenExistingGoogleProfile_UpdatesLastActiveDate()
         {
             // Arrange
-            var google  = new GoogleProfileDto { GoogleId = "goog1", Email = "a@b.com", Name = "Alice" };
+            var google = new GoogleProfileDto { GoogleId = "goog1", Email = "a@b.com", Name = "Alice" };
             var profile = new UserProfile { UserId = _testUserId, LastActiveDate = DateTime.UtcNow.AddDays(-1) };
             _repoMock.Setup(r => r.GetProfileByClaimAsync("google_id", "goog1", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(profile);

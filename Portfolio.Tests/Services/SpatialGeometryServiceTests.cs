@@ -39,7 +39,10 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGeometryService(NullLogger<SpatialGeometryService>.Instance);
             var request = new PolygonClipRequestDto
             {
-                MinX = 0, MinY = 0, MaxX = 1, MaxY = 1,
+                MinX = 0,
+                MinY = 0,
+                MaxX = 1,
+                MaxY = 1,
                 Subject =
                 [
                     new CoordinateDto { X = 0.5, Y = 0.5 },
@@ -67,7 +70,10 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGeometryService(NullLogger<SpatialGeometryService>.Instance);
             var request = new PolygonClipRequestDto
             {
-                MinX = 0, MinY = 0, MaxX = 1, MaxY = 1,
+                MinX = 0,
+                MinY = 0,
+                MaxX = 1,
+                MaxY = 1,
                 Subject =
                 [
                     new CoordinateDto { X = 5, Y = 5 },
@@ -153,7 +159,10 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGeometryService(NullLogger<SpatialGeometryService>.Instance);
             var request = new PolygonClipRequestDto
             {
-                MinX = 1, MaxX = 0, MinY = 0, MaxY = 1,   // min > max — invalid
+                MinX = 1,
+                MaxX = 0,
+                MinY = 0,
+                MaxY = 1,   // min > max — invalid
                 Subject = [new CoordinateDto { X = 0, Y = 0 }]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.ClipToBoundingBoxAsync(request));
@@ -165,7 +174,10 @@ namespace Portfolio.Tests.Services
             var service = new SpatialGeometryService(NullLogger<SpatialGeometryService>.Instance);
             var request = new PolygonClipRequestDto
             {
-                MinX = 0, MaxX = 1, MinY = 0, MaxY = 1,
+                MinX = 0,
+                MaxX = 1,
+                MinY = 0,
+                MaxY = 1,
                 Subject = [new CoordinateDto { X = double.PositiveInfinity, Y = 0 }]
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.ClipToBoundingBoxAsync(request));

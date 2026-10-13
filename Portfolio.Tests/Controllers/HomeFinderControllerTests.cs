@@ -3,7 +3,6 @@ using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
-using Xunit;
 
 namespace Portfolio.Tests.Controllers
 {
@@ -17,8 +16,8 @@ namespace Portfolio.Tests.Controllers
 
         public HomeFinderControllerTests()
         {
-            _scoringMock     = new Mock<IHomeScoringService>();
-            _profileMock     = new Mock<IUserProfileService>();
+            _scoringMock = new Mock<IHomeScoringService>();
+            _profileMock = new Mock<IUserProfileService>();
             _savedSearchMock = new Mock<ISavedSearchService>();
             _controller = new HomeFinderController(
                 _scoringMock.Object,

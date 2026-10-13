@@ -1,10 +1,10 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Portfolio.Common.Enums;
 using Portfolio.Services.Services;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 namespace Portfolio.Tests.Services
 {
@@ -155,7 +155,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange — first call returns 60 (below 75); fallback call returns 60 too (>= 50 → Low)
             var callCount = 0;
-            var lowJson  = BuildCandidateResponse("Springfield, IL 62701, USA", 60.0);
+            var lowJson = BuildCandidateResponse("Springfield, IL 62701, USA", 60.0);
             var config = new System.Collections.Generic.Dictionary<string, string?>();
 
             var handler = new CountingFakeHandler(lowJson, () => callCount++);
@@ -186,15 +186,15 @@ namespace Portfolio.Tests.Services
         }
 
         [Theory]
-        [InlineData("100 Oak St, Denver, CO 80201",   "Street")]
-        [InlineData("100 Oak Ave, Denver, CO 80201",  "Avenue")]
+        [InlineData("100 Oak St, Denver, CO 80201", "Street")]
+        [InlineData("100 Oak Ave, Denver, CO 80201", "Avenue")]
         [InlineData("100 Oak Blvd, Denver, CO 80201", "Boulevard")]
-        [InlineData("100 Oak Dr, Denver, CO 80201",   "Drive")]
-        [InlineData("100 Oak Rd, Denver, CO 80201",   "Road")]
-        [InlineData("100 Oak Ln, Denver, CO 80201",   "Lane")]
-        [InlineData("100 Oak Ct, Denver, CO 80201",   "Court")]
-        [InlineData("100 Oak Pl, Denver, CO 80201",   "Place")]
-        [InlineData("100 Oak Hwy, Denver, CO 80201",  "Highway")]
+        [InlineData("100 Oak Dr, Denver, CO 80201", "Drive")]
+        [InlineData("100 Oak Rd, Denver, CO 80201", "Road")]
+        [InlineData("100 Oak Ln, Denver, CO 80201", "Lane")]
+        [InlineData("100 Oak Ct, Denver, CO 80201", "Court")]
+        [InlineData("100 Oak Pl, Denver, CO 80201", "Place")]
+        [InlineData("100 Oak Hwy, Denver, CO 80201", "Highway")]
         public async Task ParseAsync_SuffixAbbreviation_ExpandsToFullWord(string input, string expectedSuffix)
         {
             // Arrange
@@ -218,12 +218,12 @@ namespace Portfolio.Tests.Services
 
             // Assert — directional "NW" must not bleed into City
             Assert.Equal("Washington", result.City);
-            Assert.DoesNotContain("Nw",         result.City,       StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Nw", result.City, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Washington", result.StreetName, StringComparison.OrdinalIgnoreCase);
             Assert.Equal("Avenue", result.StreetSuffix);
-            Assert.Equal("1600",   result.HouseNumber);
-            Assert.Equal("DC",     result.State);
-            Assert.Equal("20500",  result.PostalCode);
+            Assert.Equal("1600", result.HouseNumber);
+            Assert.Equal("DC", result.State);
+            Assert.Equal("20500", result.PostalCode);
             Assert.Equal("Pennsylvania", result.StreetName);
             Assert.Contains("Avenue NW", result.StandardizedAddress);
         }

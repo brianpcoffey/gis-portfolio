@@ -10,4 +10,4 @@ namespace Portfolio.Common.Models
         public DateTime? LastModified { get; set; }
         public ICollection<SavedFeature> SavedFeatures { get; set; } = new List<SavedFeature>();
     }
-}       
+}

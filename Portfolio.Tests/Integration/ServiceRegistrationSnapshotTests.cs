@@ -67,10 +67,10 @@ public class ServiceRegistrationSnapshotTests
         _ = f.Client(); // build the host so ConfigureTestServices captures the descriptors
 
         // Act
+        // The IHostedService clause keeps only this app's own hosted services (the framework registers others).
         var actual = f.Registrations
             .Where(r => r.Service.FullName!.StartsWith("Portfolio.", StringComparison.Ordinal) ||
                         r.Service.Name is "IBatchJobStore" or "IDistributedCache" or "TimeProvider" or "IMemoryCache" ||
-                        // Hosted services: only this app's own (the framework registers others).
                         (r.Service.Name == "IHostedService" && r.Impl.StartsWith("Portfolio.", StringComparison.Ordinal)))
             .Select(r => $"{r.Service.FullName} | {r.Lifetime} | {r.Impl}")
             .Order(StringComparer.Ordinal)

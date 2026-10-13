@@ -1,5 +1,4 @@
 using Portfolio.Common.Models;
-using System.Threading;
 
 namespace Portfolio.Repositories.Interfaces
 {

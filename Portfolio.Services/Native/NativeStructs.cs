@@ -18,7 +18,7 @@ namespace Portfolio.Services.Native
 
         // Size
         public double LotSqft;
-        public int    Bedrooms;
+        public int Bedrooms;
         public double Bathrooms;
 
         // Commute
@@ -39,7 +39,7 @@ namespace Portfolio.Services.Native
         public double AcCondition;
         public double PlumbingCondition;
         public double ElectricalCondition;
-        public int    LastRenovationYear;  // 0 = unknown
+        public int LastRenovationYear;  // 0 = unknown
 
         // Amenities / misc
         public double AmenitiesScore;
@@ -59,9 +59,9 @@ namespace Portfolio.Services.Native
         // Hard-filter thresholds
         public double MaxPrice;
         public double MaxMonthlyBudget;
-        public int    MinBedrooms;
+        public int MinBedrooms;
         public double MinSqft;
-        public int    MaxCommuteMin;
+        public int MaxCommuteMin;
 
         // Importance weights (normalised internally by the kernel)
         public double WAffordability;

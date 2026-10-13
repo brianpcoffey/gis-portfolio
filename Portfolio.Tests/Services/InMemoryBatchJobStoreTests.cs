@@ -8,10 +8,10 @@ namespace Portfolio.Tests.Services
     {
         private static BatchJob MakeJob(string jobId = "abc123") => new()
         {
-            JobId       = jobId,
-            Status      = BatchJobStatus.Queued,
+            JobId = jobId,
+            Status = BatchJobStatus.Queued,
             SubmittedAt = DateTimeOffset.UtcNow,
-            FileName    = "test.csv"
+            FileName = "test.csv"
         };
 
         [Fact]
@@ -19,7 +19,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var store = new InMemoryBatchJobStore();
-            var job   = MakeJob("job-1");
+            var job = MakeJob("job-1");
 
             // Act
             await store.CreateAsync(job);
@@ -27,9 +27,9 @@ namespace Portfolio.Tests.Services
 
             // Assert
             Assert.NotNull(retrieved);
-            Assert.Equal("job-1",              retrieved.JobId);
+            Assert.Equal("job-1", retrieved.JobId);
             Assert.Equal(BatchJobStatus.Queued, retrieved.Status);
-            Assert.Equal("test.csv",           retrieved.FileName);
+            Assert.Equal("test.csv", retrieved.FileName);
         }
 
         [Fact]
@@ -50,11 +50,11 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var store = new InMemoryBatchJobStore();
-            var job   = MakeJob("job-u");
+            var job = MakeJob("job-u");
             await store.CreateAsync(job);
 
             // Act
-            job.Status       = BatchJobStatus.Completed;
+            job.Status = BatchJobStatus.Completed;
             job.ProcessedRows = 5;
             await store.UpdateAsync(job);
             var retrieved = await store.GetAsync("job-u");
@@ -70,7 +70,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var store = new InMemoryBatchJobStore();
-            var job   = MakeJob("job-upsert");
+            var job = MakeJob("job-upsert");
 
             // Act
             await store.UpdateAsync(job);
@@ -86,8 +86,8 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var store = new InMemoryBatchJobStore();
-            var jobA  = MakeJob("aaa");
-            var jobB  = MakeJob("bbb");
+            var jobA = MakeJob("aaa");
+            var jobB = MakeJob("bbb");
 
             // Act
             await store.CreateAsync(jobA);
@@ -125,7 +125,7 @@ namespace Portfolio.Tests.Services
             // Arrange
             var clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
             var store = new InMemoryBatchJobStore(clock);
-            var job   = MakeJob("slide");
+            var job = MakeJob("slide");
             await store.CreateAsync(job);
             clock.Advance(TimeSpan.FromHours(20));
             await store.UpdateAsync(job);
@@ -162,7 +162,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             var store = new InMemoryBatchJobStore();
-            var job   = MakeJob("job-r");
+            var job = MakeJob("job-r");
             await store.CreateAsync(job);
 
             // Act

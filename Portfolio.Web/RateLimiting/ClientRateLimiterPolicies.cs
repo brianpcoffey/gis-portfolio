@@ -10,9 +10,9 @@ internal static class SharedCpuConcurrency
     /// <summary>Permits = max(2, cores); up to 16 requests queue, oldest first.</summary>
     internal static RateLimiter Create() => new NonDisposingRateLimiter(new ConcurrencyLimiter(new ConcurrencyLimiterOptions
     {
-        PermitLimit           = Math.Max(2, Environment.ProcessorCount),
-        QueueLimit            = 16,
-        QueueProcessingOrder  = QueueProcessingOrder.OldestFirst
+        PermitLimit = Math.Max(2, Environment.ProcessorCount),
+        QueueLimit = 16,
+        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
     }));
 
     internal static readonly RateLimiter Shared = Create();
@@ -96,10 +96,10 @@ internal sealed class ComputeRateLimiterPolicy(RateLimiter sharedCpu) : ClientRa
 
     protected override RateLimiter CreateWindow() => new SlidingWindowRateLimiter(new SlidingWindowRateLimiterOptions
     {
-        PermitLimit       = 60,
-        Window            = TimeSpan.FromMinutes(1),
+        PermitLimit = 60,
+        Window = TimeSpan.FromMinutes(1),
         SegmentsPerWindow = 6,
-        QueueLimit        = 0
+        QueueLimit = 0
     });
 }
 
@@ -111,7 +111,7 @@ internal sealed class ExpensiveRateLimiterPolicy(RateLimiter sharedCpu) : Client
     protected override RateLimiter CreateWindow() => new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
     {
         PermitLimit = 15,
-        Window      = TimeSpan.FromMinutes(1),
-        QueueLimit  = 0
+        Window = TimeSpan.FromMinutes(1),
+        QueueLimit = 0
     });
 }

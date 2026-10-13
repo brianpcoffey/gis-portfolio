@@ -1,10 +1,7 @@
 using Moq;
-using Portfolio.Common.DTOs;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
-using System.Linq;
-using Xunit;
 
 namespace Portfolio.Tests.Services
 {
@@ -130,18 +127,24 @@ namespace Portfolio.Tests.Services
         public async Task GetDashboardAsync_CalculatesMtdRevenueFromCurrentMonthOrdersOnly()
         {
             // Arrange
-            var now      = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
             var mtdOrder = new Portfolio.Common.Models.FiberOrder
             {
-                Id = 1, UserId = _testUserId, Status = "Confirmed",
+                Id = 1,
+                UserId = _testUserId,
+                Status = "Confirmed",
                 OrderDate = new DateTime(now.Year, now.Month, 1),
-                UnitPrice = 100m, Quantity = 3
+                UnitPrice = 100m,
+                Quantity = 3
             };
             var oldOrder = new Portfolio.Common.Models.FiberOrder
             {
-                Id = 2, UserId = _testUserId, Status = "Delivered",
+                Id = 2,
+                UserId = _testUserId,
+                Status = "Delivered",
                 OrderDate = now.AddMonths(-1),
-                UnitPrice = 50m, Quantity = 10
+                UnitPrice = 50m,
+                Quantity = 10
             };
             _orderRepoMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<Portfolio.Common.Models.FiberOrder> { mtdOrder, oldOrder });
@@ -173,11 +176,11 @@ namespace Portfolio.Tests.Services
 
             // Assert — all 5 known statuses appear even with no orders
             var statuses = result.OrdersByStatus.Select(s => s.Status).ToList();
-            Assert.Contains("Draft",         statuses);
-            Assert.Contains("Confirmed",     statuses);
+            Assert.Contains("Draft", statuses);
+            Assert.Contains("Confirmed", statuses);
             Assert.Contains("In Production", statuses);
-            Assert.Contains("Shipped",       statuses);
-            Assert.Contains("Delivered",     statuses);
+            Assert.Contains("Shipped", statuses);
+            Assert.Contains("Delivered", statuses);
             Assert.All(result.OrdersByStatus, s => Assert.Equal(0, s.Count));
         }
 
@@ -212,13 +215,13 @@ namespace Portfolio.Tests.Services
             var now = DateTime.UtcNow;
             var orders = Enumerable.Range(1, 6).Select(i => new Portfolio.Common.Models.FiberOrder
             {
-                Id         = i,
-                UserId     = _testUserId,
+                Id = i,
+                UserId = _testUserId,
                 ClientName = $"Client{i}",
-                UnitPrice  = i * 100m,
-                Quantity   = 1,
-                OrderDate  = new DateTime(now.Year, 1, 1),
-                Status     = "Delivered"
+                UnitPrice = i * 100m,
+                Quantity = 1,
+                OrderDate = new DateTime(now.Year, 1, 1),
+                Status = "Delivered"
             }).ToList();
             _orderRepoMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(orders);
             _shipmentRepoMock.Setup(r => r.GetAllAsync(_testUserId, It.IsAny<CancellationToken>()))

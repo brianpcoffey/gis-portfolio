@@ -1,8 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
-using Portfolio.Repositories;
 using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
@@ -108,9 +106,9 @@ namespace Portfolio.Services.Services
                 LastModified = now
             };
 
-var saved = await _repo.AddAsync(entity, cancellationToken);
-_logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}", saved.FeatureId, saved.LayerId, LogRedaction.UserId(userId));
-return MapToDto(saved);
+            var saved = await _repo.AddAsync(entity, cancellationToken);
+            _logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}", saved.FeatureId, saved.LayerId, LogRedaction.UserId(userId));
+            return MapToDto(saved);
         }
 
         public async Task<bool> DeleteByDbIdAsync(int id, CancellationToken cancellationToken = default)
