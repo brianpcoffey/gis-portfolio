@@ -17,12 +17,10 @@ namespace Portfolio.Web.Controllers.Api
     public class FiberShipmentsController : ControllerBase
     {
     private readonly IFiberShipmentService _shipmentService;
-    private readonly ILogger<FiberShipmentsController> _logger;
 
-    public FiberShipmentsController(IFiberShipmentService shipmentService, ILogger<FiberShipmentsController> logger)
+    public FiberShipmentsController(IFiberShipmentService shipmentService)
     {
         _shipmentService = shipmentService;
-        _logger = logger;
     }
 
     /// <summary>Retrieves all fiber shipments.</summary>
