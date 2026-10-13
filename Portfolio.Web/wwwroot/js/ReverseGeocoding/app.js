@@ -320,7 +320,10 @@
             container: "rgMapView",
             map: map,
             center: [-98.5795, 39.8283],
-            zoom: 4
+            zoom: 4,
+            // Every click moves the marker and re-runs the lookup, and that opens the popup (updateMarkerPopup).
+            // The view's own click-to-open popup would race it: a fast answer lands first and the view closes it again.
+            popupEnabled: false
         });
 
         mapView.on("click", function (event) {
