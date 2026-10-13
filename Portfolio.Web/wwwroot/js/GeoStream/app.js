@@ -86,8 +86,10 @@
                 })));
         });
 
+        // result.anomalyCount counts anomaly events, not cells, so count the flagged cells for "with anomalies".
+        var anomalyCells = result.aggregates.filter(function (a) { return a.anomalyCount > 0; }).length;
         stage.setAttribute("aria-label", "Telemetry aggregate map: " + result.aggregates.length + " cells, " +
-            result.anomalyCount + " with anomalies");
+            anomalyCells + " with anomalies");
 
         if (window.showToast) {
             window.showToast("Telemetry batch processed.", "success");
