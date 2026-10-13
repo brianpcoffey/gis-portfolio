@@ -38,7 +38,7 @@ public class Property
     public decimal PropertyTax { get; set; }
     public decimal Utilities { get; set; }
 
-    // Neighborhood scores (0�100)
+    // Neighborhood scores (0–100)
     public int SchoolRating { get; set; }
     public int CrimeScore { get; set; }
     public int Walkability { get; set; }

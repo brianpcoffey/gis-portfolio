@@ -46,11 +46,9 @@ public class ScoredPropertyDto
     /// <summary>Listing brokerage.</summary>
     public string? BrokeredBy { get; set; }
 
-    // Monthly cost breakdown
     /// <summary>Estimated total monthly cost of ownership (mortgage, taxes, utilities, and similar).</summary>
     public decimal EstimatedMonthlyCost { get; set; }
 
-    // Sub-scores (0–100)
     /// <summary>Affordability sub-score, from 0 to 100.</summary>
     public double AffordabilityScore { get; set; }
     /// <summary>Neighborhood-quality sub-score, from 0 to 100.</summary>
@@ -72,7 +70,6 @@ public class ScoredPropertyDto
     /// <summary>Environmental sub-score, from 0 to 100.</summary>
     public double EnvironmentScore { get; set; }
 
-    // Final weighted composite (0–100)
     /// <summary>Final weighted composite score, from 0 to 100.</summary>
     public double CompositeScore { get; set; }
     /// <summary>Rank of this property among the scored results (1 = best).</summary>
