@@ -29,7 +29,8 @@ env:
   # regression does. Measured when they were last raised (WP-50, Release, managed only):
   # overall 90.38% line / 79.39% branch, Portfolio.Web 84.78% / 67.95%. Raise them when coverage
   # rises; never lower them to make a build green, and never below 80% line / 60% branch.
-  # tools/metrics/coverage_gate.py reads the first two from the environment by name.
+  # The gate step passes all four to tools/metrics/coverage_gate.py explicitly, so renaming one makes the
+  # step fail rather than fall back to the script's own 80/60 defaults.
   MIN_LINE_COVERAGE: '89'
   MIN_BRANCH_COVERAGE: '78'
   # Per-assembly floors for Portfolio.Web, which the overall figure would otherwise hide behind
@@ -99,6 +100,7 @@ jobs:
         run: >
           python3 -I tools/metrics/coverage_gate.py TestResults
           --summary coverage-summary.md
+          --min-line "$MIN_LINE_COVERAGE" --min-branch "$MIN_BRANCH_COVERAGE"
           --package-floor Portfolio.Web "$MIN_WEB_LINE_COVERAGE" "$MIN_WEB_BRANCH_COVERAGE"
 
       - name: Publish coverage to the job summary
