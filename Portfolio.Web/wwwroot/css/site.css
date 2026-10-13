@@ -5,7 +5,7 @@
    can cache-bust them — an @import carries no version hash of its own, so a palette change in
    base.css never reached a returning visitor. */
 
-/* White label on --accent is 3.24:1 and on --accent-light 2.45:1; both are
+/* White label on --accent is 3.25:1 and on --accent-light 2.43:1; both are
    under AA. The filled tokens carry the label instead, and hover goes
    *darker* rather than lighter so the contrast improves on interaction. */
 /* Both variants are written on Bootstrap's button variable API so hover,

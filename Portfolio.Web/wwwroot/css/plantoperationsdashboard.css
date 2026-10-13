@@ -101,7 +101,7 @@ body.dark-mode .pagination .page-item.disabled .page-link {
 
 /* Only rules not covered by site.css or Bootstrap. */
 
-/* Low-stock highlight: status tokens (was --accent-light with --surface text, 2.45:1). Badges keep
+/* Low-stock highlight: status tokens (was --accent-light with --surface text, 2.43:1). Badges keep
    their bg-danger fill, so they get light text; table rows tint the cell text instead. */
 .badge.plant-ops-low-stock {
     color: var(--on-dark);

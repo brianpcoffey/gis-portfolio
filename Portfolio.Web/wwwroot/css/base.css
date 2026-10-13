@@ -15,8 +15,8 @@
     --hero-gradient: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #38a169 100%);
 
     /* Contrast-safe accent tokens (WCAG 2.1 AA, 1.4.3).
-       --accent (#38a169) carries white text at only 3.24:1, and
-       --accent-light at 2.45:1 — both fail the 4.5:1 floor for normal
+       --accent (#38a169) carries white text at only 3.25:1, and
+       --accent-light at 2.43:1 — both fail the 4.5:1 floor for normal
        text. --accent alone stays for decorative fills, borders and focus
        rings (1.4.11 needs only 3:1). Anything that carries *text* uses
        one of these instead:
