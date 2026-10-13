@@ -173,6 +173,13 @@ body.dark-mode .table > tbody > tr.plant-ops-low-stock > td {
     width: 100%;
     margin-bottom: 2rem;
 }
+/* dashboard.js draws each chart with a viewBox at the width its card had; this makes it fill the card, so a
+   window that shrinks never leaves the chart wider than the card while the chart is drawn again. */
+.plant-ops-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
 
 .plant-ops-tabs-card .tab-content {
     width: 100%;
