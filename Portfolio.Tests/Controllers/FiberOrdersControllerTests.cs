@@ -18,8 +18,7 @@ namespace Portfolio.Tests.Controllers
         {
             _serviceMock = new Mock<IFiberOrderService>();
             _controller  = new FiberOrdersController(
-                _serviceMock.Object,
-                new Mock<ILogger<FiberOrdersController>>().Object);
+                _serviceMock.Object);
         }
 
         // ── GetAll ──────────────────────────────────────────────────────
@@ -40,20 +39,14 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetAll_WhenServiceThrows_Returns500ProblemDetails()
+        public async Task GetAll_WhenServiceThrows_PropagatesTheException()
         {
             // Arrange
             _serviceMock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("db error"));
 
-            // Act
-            var result = await _controller.GetAll(CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
-            var problem = Assert.IsType<ProblemDetails>(status.Value);
-            Assert.Equal(500, problem.Status);
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(() => _controller.GetAll(CancellationToken.None));
         }
 
         // ── Get ─────────────────────────────────────────────────────────
@@ -87,18 +80,14 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Get_WhenServiceThrows_Returns500ProblemDetails()
+        public async Task Get_WhenServiceThrows_PropagatesTheException()
         {
             // Arrange
             _serviceMock.Setup(s => s.GetByIdAsync(1, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("unexpected"));
 
-            // Act
-            var result = await _controller.Get(1, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(() => _controller.Get(1, CancellationToken.None));
         }
 
         // ── Create ──────────────────────────────────────────────────────
@@ -120,19 +109,15 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Create_WhenServiceThrows_Returns500ProblemDetails()
+        public async Task Create_WhenServiceThrows_PropagatesTheException()
         {
             // Arrange
             var dto = new CreateFiberOrderDto { ClientName = "X" };
             _serviceMock.Setup(s => s.CreateAsync(dto, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("db error"));
 
-            // Act
-            var result = await _controller.Create(dto, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(() => _controller.Create(dto, CancellationToken.None));
         }
 
         // ── Update ──────────────────────────────────────────────────────
@@ -154,19 +139,15 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Update_WhenServiceThrows_Returns500ProblemDetails()
+        public async Task Update_WhenServiceThrows_PropagatesTheException()
         {
             // Arrange
             var dto = new UpdateFiberOrderDto { ClientName = "X" };
             _serviceMock.Setup(s => s.UpdateAsync(1, dto, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("unexpected"));
 
-            // Act
-            var result = await _controller.Update(1, dto, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
+            // Act & Assert
+            await Assert.ThrowsAsync<Exception>(() => _controller.Update(1, dto, CancellationToken.None));
         }
 
         // ── Delete ──────────────────────────────────────────────────────
@@ -198,75 +179,15 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Delete_WhenServiceThrows_Returns500ProblemDetails()
+        public async Task Delete_WhenServiceThrows_PropagatesTheException()
         {
             // Arrange
             _serviceMock.Setup(s => s.DeleteAsync(1, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("unexpected"));
 
-            // Act
-            var result = await _controller.Delete(1, CancellationToken.None);
-
-            // Assert
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
-        }
-
-        // ── Exact 500 bodies for every catch-all (the exception message must not leak) ──
-
-        [Fact]
-        public async Task GetAll_ServiceThrows_PinsExact500Body()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("secret detail"));
-
             // Act & Assert
-            ControllerBodyAssert.Unexpected(await _controller.GetAll(CancellationToken.None));
+            await Assert.ThrowsAsync<Exception>(() => _controller.Delete(1, CancellationToken.None));
         }
 
-        [Fact]
-        public async Task Get_ServiceThrows_PinsExact500Body()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("secret detail"));
-
-            // Act & Assert
-            ControllerBodyAssert.Unexpected(await _controller.Get(1, CancellationToken.None));
-        }
-
-        [Fact]
-        public async Task Create_ServiceThrows_PinsExact500Body()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CreateFiberOrderDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("secret detail"));
-
-            // Act & Assert
-            ControllerBodyAssert.Unexpected(await _controller.Create(new CreateFiberOrderDto(), CancellationToken.None));
-        }
-
-        [Fact]
-        public async Task Update_ServiceThrows_PinsExact500Body()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<UpdateFiberOrderDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("secret detail"));
-
-            // Act & Assert
-            ControllerBodyAssert.Unexpected(await _controller.Update(1, new UpdateFiberOrderDto(), CancellationToken.None));
-        }
-
-        [Fact]
-        public async Task Delete_ServiceThrows_PinsExact500Body()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.DeleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("secret detail"));
-
-            // Act & Assert
-            ControllerBodyAssert.Unexpected(await _controller.Delete(1, CancellationToken.None));
-        }
     }
 }

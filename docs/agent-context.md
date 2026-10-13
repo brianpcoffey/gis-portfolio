@@ -63,7 +63,7 @@ Portfolio.sln
 Directory.Build.props      warnings-as-errors ONLY in CI (ContinuousIntegrationBuild); NuGet audit NU1902/3/4 = errors
 Directory.Packages.props   all package versions live here
 Dockerfile                 restores Portfolio.Web.csproj only (not the .sln) — keeps Tests/Benchmarks out of the image
-coverlet.runsettings       excludes *.Migrations.*, Portfolio.Benchmarks and [Obsolete] members (hides 3 live endpoints) from coverage
+coverlet.runsettings       excludes *.Migrations.*, Portfolio.Benchmarks and [Obsolete] members (hides 2 live endpoints: the HomeFinder aliases) from coverage
 .editorconfig              utf-8, CRLF, 4-space; file-scoped namespaces = suggestion
 .env.example               DATABASE_URL, Redis__ConnectionString, Authentication__Google__*
 .github/workflows/ci.yml   see §8

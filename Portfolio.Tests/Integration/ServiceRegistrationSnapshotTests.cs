@@ -4,7 +4,7 @@ namespace Portfolio.Tests.Integration;
 
 /// <summary>
 /// Golden list of the DI registrations Program.cs makes for application types: sorted
-/// "ServiceType | Lifetime | ImplementationType" for Portfolio.* plus IBatchJobStore,
+/// "ServiceType | Lifetime | ImplementationType" for Portfolio.* plus IBatchJobStore, Portfolio.* IHostedService,
 /// IDistributedCache, TimeProvider and IMemoryCache. "(factory)" is a registration made through a
 /// factory delegate (the typed HttpClient registrations); each geocoding interface has exactly that one.
 /// IMemoryCache is registered by the framework, not by Program.cs.
@@ -14,6 +14,7 @@ public class ServiceRegistrationSnapshotTests
     private const string Expected = """
         Microsoft.Extensions.Caching.Distributed.IDistributedCache | Singleton | Microsoft.Extensions.Caching.Distributed.MemoryDistributedCache
         Microsoft.Extensions.Caching.Memory.IMemoryCache | Singleton | Microsoft.Extensions.Caching.Memory.MemoryCache
+        Microsoft.Extensions.Hosting.IHostedService | Singleton | Portfolio.Web.BackgroundServices.BatchGeocodingWorker
         Portfolio.Repositories.Interfaces.ICollectionRepository | Scoped | Portfolio.Repositories.Repositories.CollectionRepository
         Portfolio.Repositories.Interfaces.IFiberInventoryTransactionRepository | Scoped | Portfolio.Repositories.Repositories.FiberInventoryTransactionRepository
         Portfolio.Repositories.Interfaces.IFiberMaterialRepository | Scoped | Portfolio.Repositories.Repositories.FiberMaterialRepository
@@ -24,6 +25,7 @@ public class ServiceRegistrationSnapshotTests
         Portfolio.Repositories.Interfaces.ISavedSearchRepository | Scoped | Portfolio.Repositories.Repositories.SavedSearchRepository
         Portfolio.Repositories.Interfaces.IUserProfileRepository | Scoped | Portfolio.Repositories.Repositories.UserProfileRepository
         Portfolio.Repositories.PortfolioDbContext | Scoped | Portfolio.Repositories.PortfolioDbContext
+        Portfolio.Services.Abstractions.IBatchJobQueue | Singleton | (factory)
         Portfolio.Services.Abstractions.IBatchJobStore | Singleton | Portfolio.Services.InMemoryBatchJobStore
         Portfolio.Services.Interfaces.IAddressStandardizationService | Transient | (factory)
         Portfolio.Services.Interfaces.IArcGisService | Transient | (factory)
@@ -64,7 +66,9 @@ public class ServiceRegistrationSnapshotTests
         // Act
         var actual = f.Registrations
             .Where(r => r.Service.FullName!.StartsWith("Portfolio.", StringComparison.Ordinal) ||
-                        r.Service.Name is "IBatchJobStore" or "IDistributedCache" or "TimeProvider" or "IMemoryCache")
+                        r.Service.Name is "IBatchJobStore" or "IDistributedCache" or "TimeProvider" or "IMemoryCache" ||
+                        // Hosted services: only this app's own (the framework registers others).
+                        (r.Service.Name == "IHostedService" && r.Impl.StartsWith("Portfolio.", StringComparison.Ordinal)))
             .Select(r => $"{r.Service.FullName} | {r.Lifetime} | {r.Impl}")
             .Order(StringComparer.Ordinal)
             .ToList();
