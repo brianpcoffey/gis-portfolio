@@ -234,10 +234,11 @@ function describeDashboardCharts(data) {
     if (revenue.length) {
         const total = revenue.reduce((t, d) => t + d.revenue, 0);
         const best = revenue.reduce((top, d) => (d.revenue > top.revenue ? d : top));
+        // The API returns only months that have orders, so the count is not the span from first to last.
         const first = revenue[0].month;
         const last = revenue[revenue.length - 1].month;
         describe('plantOpsRevenueChart',
-            `Revenue by month over ${plural(revenue.length, 'month')}, ${first === last ? first : `${first} to ${last}`}: ` +
+            `Revenue by month, ${plural(revenue.length, 'month')} with orders, ${first === last ? first : `${first} to ${last}`}: ` +
             `${money(total)} in total, highest in ${best.month} at ${money(best.revenue)}.`);
     } else {
         describe('plantOpsRevenueChart', 'No revenue data.');
