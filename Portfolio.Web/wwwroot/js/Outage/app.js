@@ -48,6 +48,7 @@
     var svg = document.getElementById("outageSvg");
     var tooltip = document.getElementById("outageTooltip");
     var panel = svg.parentNode;
+    var resultsPanel = svg.closest(".card");
     var kpiAffected = document.getElementById("outageKpiAffected");
     var kpiPercent = document.getElementById("outageKpiPercent");
     var kpiIsolation = document.getElementById("outageKpiIsolation");
@@ -89,6 +90,7 @@
         var release = ui.busy({ buttons: held.filter(function (b) { return b !== trigger; }) });
         opts.trigger = trigger;
         opts.alert = alertBox;
+        opts.region = resultsPanel;
         return ui.runAction(opts).then(function (r) { release(); pending = false; return r; });
     }
 

@@ -22,6 +22,7 @@
     var summary = document.getElementById("catSummary");
     var exposureSvg = document.getElementById("catExposureSvg");
     var curveSvg = document.getElementById("catCurveSvg");
+    var resultsPanel = exposureSvg.closest(".card");
     var kpiTiv = document.getElementById("catKpiTiv");
     var kpiAal = document.getElementById("catKpiAal");
     var kpiPml = document.getElementById("catKpiPml");
@@ -54,6 +55,7 @@
         var releaseOther = ui.busy({ buttons: [other] });
         opts.trigger = primary;
         opts.alert = alertBox;
+        opts.region = resultsPanel;
         return ui.runAction(opts).then(function (r) { releaseOther(); return r; });
     }
 

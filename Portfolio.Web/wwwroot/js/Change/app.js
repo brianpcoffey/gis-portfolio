@@ -43,6 +43,7 @@
     var blobList = document.getElementById("changeBlobList");
     var summary = document.getElementById("changeSummary");
     var swipeStage = document.getElementById("changeSwipeStage");
+    var resultsPanel = swipeStage.closest(".card");
     var swipeRange = document.getElementById("changeSwipeRange");
     var canvasA = document.getElementById("changeCanvasA");
     var canvasB = document.getElementById("changeCanvasB");
@@ -132,6 +133,7 @@
         var release = ui.busy({ buttons: held });
         opts.trigger = trigger;
         opts.alert = alertBox;
+        opts.region = resultsPanel;
         return ui.runAction(opts).then(function (r) { release(); return r; });
     }
 

@@ -35,6 +35,7 @@
     var summary = document.getElementById("fleetSummary");
     var convergenceSvg = document.getElementById("fleetConvergenceSvg");
     var scheduleSvg = document.getElementById("fleetScheduleSvg");
+    var resultsPanel = convergenceSvg.closest(".card");
     var kpiVehicles = document.getElementById("fleetKpiVehicles");
     var kpiDistance = document.getElementById("fleetKpiDistance");
     var kpiLongest = document.getElementById("fleetKpiLongest");
@@ -82,6 +83,7 @@
         var release = ui.busy({ buttons: others });
         opts.trigger = trigger;
         opts.alert = alertBox;
+        opts.region = resultsPanel;
         return ui.runAction(opts).then(function (r) {
             release();
             pending = false;

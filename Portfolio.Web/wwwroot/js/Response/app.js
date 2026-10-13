@@ -38,6 +38,7 @@
     var summary = document.getElementById("responseSummary");
     var comparison = document.getElementById("responseComparison");
     var histogramSvg = document.getElementById("responseHistogramSvg");
+    var resultsPanel = histogramSvg.closest(".card");
     var kpiP90 = document.getElementById("responseKpiP90");
     var kpiFirst = document.getElementById("responseKpiFirst");
     var kpiSecond = document.getElementById("responseKpiSecond");
@@ -83,6 +84,7 @@
         var release = ui.busy({ buttons: others });
         opts.trigger = trigger;
         opts.alert = alertBox;
+        opts.region = resultsPanel;
         return ui.runAction(opts).then(function (r) { release(); pending = false; return r; });
     }
 
