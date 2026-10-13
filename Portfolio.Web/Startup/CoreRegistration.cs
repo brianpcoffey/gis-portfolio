@@ -2,9 +2,6 @@ namespace Portfolio.Web.Startup;
 
 internal static class CoreRegistration
 {
-    // --------------------------
-    // Kestrel limits
-    // --------------------------
     // 1 MB is the default request-body ceiling for every endpoint; the compute and upload actions
     // that legitimately need more raise it per endpoint with [RequestSizeLimit] (a Kestrel-level
     // limit, so only a live run enforces it, not TestServer). The Server response header is dropped
@@ -19,9 +16,6 @@ internal static class CoreRegistration
         return builder;
     }
 
-    // --------------------------
-    // Razor Pages & Services
-    // --------------------------
     internal static IServiceCollection AddPortfolioCore(this IServiceCollection services)
     {
         services.AddRazorPages();

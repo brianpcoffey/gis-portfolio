@@ -8,13 +8,11 @@ namespace Portfolio.Common.DTOs;
 /// </summary>
 public class HomeSearchPreferencesDto : IValidatableObject
 {
-    // Budget
     /// <summary>Maximum purchase price the user will consider.</summary>
     public decimal MaxPrice { get; set; } = 800_000;
     /// <summary>Maximum total monthly housing budget.</summary>
     public decimal MaxMonthlyBudget { get; set; } = 4_000;
 
-    // Property filters
     /// <summary>Minimum number of bedrooms required.</summary>
     public int MinBedrooms { get; set; } = 2;
     /// <summary>Minimum number of bathrooms required.</summary>

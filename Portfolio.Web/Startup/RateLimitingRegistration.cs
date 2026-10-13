@@ -5,11 +5,9 @@ namespace Portfolio.Web.Startup;
 
 internal static class RateLimitingRegistration
 {
-    // --------------------------
-    // Rate Limiting
-    // --------------------------
     // Partitioned per-client (IP) limiting. RemoteIpAddress reflects X-Forwarded-For here because
-    // ForwardedHeaders is configured first (AddPortfolioForwardedHeaders, UseForwardedHeaders), so this is the real client behind Render's proxy.
+    // ForwardedHeaders is configured first (AddPortfolioForwardedHeaders, UseForwardedHeaders), so
+    // this is the real client behind Render's proxy.
     //   Global   — a generous per-IP ceiling (300/min) on every routed request (blocks blunt flooding).
     //   "compute" — a sliding 60/min budget for the native-compute endpoints. Viewshed runs on
     //               every cell click, so a 15/min budget would break the UI.

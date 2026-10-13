@@ -9,10 +9,13 @@ namespace Portfolio.Web.Filters;
 
 /// <summary>
 /// Turns a <see cref="BrokenCircuitException"/> (the ArcGIS circuit breaker is open) into a 503
-/// ProblemDetails body carrying a <c>retryAfterSeconds</c> extension. The number is the pipeline's
-/// own <see cref="ArcGisResilienceProfile.BreakDuration"/>, so it cannot drift from the breaker.
-/// Apply it to an action, never a controller. A warning is logged under the controller's category.
+/// ProblemDetails body carrying a <c>retryAfterSeconds</c> extension.
 /// </summary>
+/// <remarks>
+/// The number is the pipeline's own <see cref="ArcGisResilienceProfile.BreakDuration"/>, so it cannot
+/// drift from the breaker. Apply it to an action, never a controller. A warning is logged under the
+/// controller's category.
+/// </remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public sealed class ArcGisUnavailableAttribute : ExceptionFilterAttribute
 {

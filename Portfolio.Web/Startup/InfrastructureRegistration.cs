@@ -13,9 +13,6 @@ internal sealed record RedisSettings(bool Enabled, string ConnectionString);
 
 internal static class InfrastructureRegistration
 {
-    // --------------------------
-    // Redis Configuration & Job Store
-    // --------------------------
     internal static RedisSettings AddPortfolioRedis(this IServiceCollection services, IConfiguration configuration, ILogger logger)
     {
         var redisConnectionString = Portfolio.Web.Infrastructure.ConnectionStrings.NormalizeRedis(
@@ -40,9 +37,6 @@ internal static class InfrastructureRegistration
         return new RedisSettings(isRedisEnabled, redisConnectionString);
     }
 
-    // --------------------------
-    // Forwarded Headers (Render / reverse-proxy TLS termination)
-    // --------------------------
     // Render terminates TLS at its proxy and forwards plain HTTP to the container.
     // With no ForwardedHeaders:KnownNetworks configured (the default), KnownNetworks and
     // KnownProxies are cleared, which trusts the X-Forwarded-* headers regardless of the proxy IP,
@@ -57,9 +51,7 @@ internal static class InfrastructureRegistration
         return services;
     }
 
-    // --------------------------
-    // HSTS (non-Development only; see UsePortfolioPipeline in Startup/Pipeline.cs)
-    // --------------------------
+    // Applied outside Development only (see UsePortfolioPipeline in Startup/Pipeline.cs).
     // One year, current host only. includeSubDomains and preload are deliberately off:
     // preload is effectively irreversible, and subdomains are not all under this app's control.
     internal static IServiceCollection AddPortfolioHsts(this IServiceCollection services)
@@ -73,9 +65,6 @@ internal static class InfrastructureRegistration
         return services;
     }
 
-    // --------------------------
-    // Caching & Session
-    // --------------------------
     internal static IServiceCollection AddPortfolioCaching(this IServiceCollection services, RedisSettings redisSettings)
     {
         var (isRedisEnabled, redisConnectionString) = redisSettings;
@@ -110,12 +99,8 @@ internal static class InfrastructureRegistration
         return services;
     }
 
-    // --------------------------
-    // Health Checks (Kubernetes probes)
-    // --------------------------
-    // Liveness (/health/live) runs no checks — it only proves the process is responsive.
-    // Readiness (/health/ready) runs checks tagged "ready" (DB connectivity) so a pod is
-    // kept out of the Service until its dependencies are up.
+    // /health/ready runs the checks tagged "ready" (DB connectivity) so a pod is kept out of the
+    // Service until its dependencies are up; /health/live runs none (see MapPortfolioEndpoints).
     internal static IServiceCollection AddPortfolioHealthChecks(this IServiceCollection services)
     {
         services.AddHealthChecks()
@@ -123,9 +108,6 @@ internal static class InfrastructureRegistration
         return services;
     }
 
-    // --------------------------
-    // Data Protection Key Persistence
-    // --------------------------
     internal static IServiceCollection AddPortfolioDataProtection(this IServiceCollection services, RedisSettings redisSettings, IWebHostEnvironment environment, ILogger logger)
     {
         var (isRedisEnabled, redisConnectionString) = redisSettings;
@@ -150,7 +132,7 @@ internal static class InfrastructureRegistration
         }
         else
         {
-            // Local dev: persist keys to filesystem
+            // No Redis: persist keys to the filesystem
             var keysPath = environment.IsDevelopment() 
                 ? Path.Combine(Directory.GetCurrentDirectory(), "DataProtection-Keys")
                 : "/app/DataProtection-Keys";

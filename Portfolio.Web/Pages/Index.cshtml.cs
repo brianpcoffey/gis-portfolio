@@ -14,8 +14,8 @@ public class IndexModel : PageModel
     public IndexModel(IWebHostEnvironment env) => _env = env;
 
     /// <summary>
-    /// Facts about the résumé download, e.g. "PDF · 1 page · 80 KB · Updated July 2026".
-    /// Empty when the file is missing, so the view renders nothing rather than a lie.
+    /// Facts about the résumé download, e.g. "PDF · 1 page · 80 KB · Updated July 2026"; empty
+    /// when the file is missing, so the view renders nothing rather than a lie.
     /// </summary>
     public string ResumeMeta { get; private set; } = string.Empty;
 
@@ -25,11 +25,11 @@ public class IndexModel : PageModel
         ResumeMeta = BuildResumeMeta(path);
     }
 
-    /// <summary>
-    /// Reads the file's real size and modified date rather than hard-coding them.
+    /// <summary>Reads the file's real size and modified date rather than hard-coding them.</summary>
+    /// <remarks>
     /// A hard-coded "80 KB · Updated July 2026" silently becomes false the next time
     /// the PDF is replaced, and a stale date on a résumé is worse than no date.
-    /// </summary>
+    /// </remarks>
     internal static string BuildResumeMeta(string path, Func<string, int?>? pageCounter = null)
     {
         FileInfo info;
@@ -61,7 +61,7 @@ public class IndexModel : PageModel
 
     /// <summary>
     /// Counts page objects in a PDF without taking on a PDF library dependency for
-    /// one line of UI text. Returns null when the file cannot be read.
+    /// one line of UI text; returns null when the file cannot be read.
     /// </summary>
     private static int? CountPdfPages(string path)
     {

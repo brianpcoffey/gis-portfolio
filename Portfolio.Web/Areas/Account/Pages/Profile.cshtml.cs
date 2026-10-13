@@ -17,7 +17,6 @@ namespace Portfolio.Web.Areas.Account.Pages
             _profileService = profileService;
         }
 
-        // --- Read-only fields (from Google) ---
         public Guid UserId { get; private set; }
         public string? Email { get; private set; }
         public string? GoogleName { get; private set; }
@@ -25,11 +24,9 @@ namespace Portfolio.Web.Areas.Account.Pages
         public string? GoogleId { get; private set; }
         public bool IsGoogleLinked { get; private set; }
 
-        // --- Editable fields ---
         [BindProperty]
         public string? DisplayName { get; set; }
 
-        // --- Status ---
         [TempData]
         public string? StatusMessage { get; set; }
 

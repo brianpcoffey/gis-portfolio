@@ -7,9 +7,6 @@ namespace Portfolio.Web.Startup;
 
 internal static class Pipeline
 {
-    // --------------------------
-    // Middleware
-    // --------------------------
     internal static WebApplication UsePortfolioPipeline(this WebApplication app)
     {
         // Apply X-Forwarded-For / X-Forwarded-Proto from Render's TLS-terminating proxy.
@@ -64,19 +61,13 @@ internal static class Pipeline
 
     internal static WebApplication MapPortfolioEndpoints(this WebApplication app)
     {
-        // --------------------------
-        // OpenAPI / Scalar API reference
-        // --------------------------
-
         // OpenAPI & Scalar UI are intentionally available in production for public API documentation.
         app.MapOpenApi();
         app.MapScalarApiReference();
 
-        // --------------------------
-        // Health check endpoints (probed by Kubernetes; anonymous)
-        // --------------------------
-        // Liveness: process is up. Run NO checks so a transient DB blip never restarts the pod.
-        // Probes hit these frequently from the kubelet, so they opt out of rate limiting.
+        // Health probes are anonymous. Liveness: process is up. Run NO checks so a transient DB blip
+        // never restarts the pod. Probes hit these frequently from the kubelet, so they opt out of
+        // rate limiting.
         app.MapHealthChecks("/health/live", new HealthCheckOptions
         {
             Predicate = _ => false
@@ -87,9 +78,6 @@ internal static class Pipeline
             Predicate = check => check.Tags.Contains("ready")
         }).DisableRateLimiting();
 
-        // --------------------------
-        // Map endpoints
-        // --------------------------
         app.MapControllers();
         app.MapRazorPages();
         return app;

@@ -4,9 +4,6 @@ namespace Portfolio.Web.Infrastructure
 {
     internal static class ConnectionStrings
     {
-        // --------------------------
-        // Helper: Resolve the database connection string
-        // --------------------------
         // ConnectionStrings:DefaultConnection wins, then the DATABASE_URL environment variable
         // (the Render convention). A blank value counts as unset at each step: the committed
         // appsettings files carry "" precisely so that DATABASE_URL is reachable.
@@ -23,9 +20,6 @@ namespace Portfolio.Web.Infrastructure
             throw new InvalidOperationException("Database connection string not set.");
         }
 
-        // --------------------------
-        // Helper: Parse postgres:// URI or standard connection string
-        // --------------------------
         internal static NpgsqlConnectionStringBuilder ParsePostgres(string connectionString)
         {
             // If it's already a standard connection string (contains "Host="), use it directly
@@ -46,7 +40,6 @@ namespace Portfolio.Web.Infrastructure
                 throw new ArgumentException($"Unsupported URI scheme: {uri.Scheme}. Expected 'postgres' or 'postgresql'.");
             }
 
-            // Parse user info (user:password)
             var userInfo = uri.UserInfo.Split(':', 2);
             if (userInfo.Length < 2 || string.IsNullOrEmpty(userInfo[0]))
             {
@@ -60,14 +53,12 @@ namespace Portfolio.Web.Infrastructure
             // Default port to 5432 if not specified (uri.Port returns -1 when missing)
             var port = uri.Port > 0 ? uri.Port : 5432;
 
-            // Handle IPv6 localhost
             var host = uri.Host;
             if (host == "[::1]")
             {
                 host = "127.0.0.1";
             }
 
-            // Extract database name from path
             var database = uri.AbsolutePath.TrimStart('/');
             if (string.IsNullOrEmpty(database))
             {
@@ -87,7 +78,6 @@ namespace Portfolio.Web.Infrastructure
                 SslMode = SslMode.Require
             };
 
-            // Override SSL mode if specified in query string
             if (queryParams["sslmode"] is string sslModeValue &&
                 Enum.TryParse<SslMode>(sslModeValue, ignoreCase: true, out var sslMode))
             {
@@ -97,9 +87,6 @@ namespace Portfolio.Web.Infrastructure
             return npgsqlBuilder;
         }
 
-        // --------------------------
-        // Helper: Normalize Redis connection string
-        // --------------------------
         internal static string NormalizeRedis(string connectionString)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -126,7 +113,6 @@ namespace Portfolio.Web.Infrastructure
             var port = uri.Port > 0 ? uri.Port : (useSsl ? 6380 : 6379);
             var password = string.IsNullOrEmpty(uri.UserInfo) ? null : Uri.UnescapeDataString(uri.UserInfo.Split(':').Last());
 
-            // Build StackExchange.Redis-compatible connection string
             var configOptions = new List<string>
             {
                 $"{host}:{port}"
@@ -147,15 +133,11 @@ namespace Portfolio.Web.Infrastructure
             return string.Join(",", configOptions);
         }
 
-        // --------------------------
-        // Helper: Mask Redis password for logging
-        // --------------------------
         internal static string MaskRedisPassword(string connectionString)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
                 return string.Empty;
 
-            // Mask password= portion
             var parts = connectionString.Split(',');
             var masked = parts.Select(part =>
             {

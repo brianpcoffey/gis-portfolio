@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 
-/// <summary>Applies the configurable forwarded-header trust. Internal static so tests can call it.</summary>
+/// <summary>Applies the configurable forwarded-header trust (internal static so tests can call it).</summary>
 internal static class ForwardedHeadersSetup
 {
     internal static void Apply(ForwardedHeadersOptions options, IConfiguration configuration, ILogger? logger = null)

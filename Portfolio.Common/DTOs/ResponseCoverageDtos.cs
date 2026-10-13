@@ -23,8 +23,8 @@ namespace Portfolio.Common.DTOs
     }
 
     /// <summary>
-    /// One candidate site: a location where a station could be sited. Existing stations
-    /// are included as candidates so the optimizer may keep them.
+    /// One candidate site: a location where a station could be sited (existing stations
+    /// are included as candidates so the optimizer may keep them).
     /// </summary>
     public class CandidateSiteDto
     {

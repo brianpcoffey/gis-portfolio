@@ -51,9 +51,6 @@ internal static class DataRegistration
         return services;
     }
 
-    // --------------------------
-    // Database Context (PostgreSQL on Neon)
-    // --------------------------
     internal static IServiceCollection AddPortfolioDatabase(this IServiceCollection services, IConfiguration configuration)
     {
         var databaseUrl = Portfolio.Web.Infrastructure.ConnectionStrings.ResolveDatabaseUrl(

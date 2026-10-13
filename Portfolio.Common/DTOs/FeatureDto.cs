@@ -18,8 +18,8 @@ public class FeatureDto
     public string GeometryJson { get; set; } = string.Empty;
 
     /// <summary>
-    /// Contains all metadata attributes from the ArcGIS feature layer.
-    /// Keys may include STATE_NAME, STATE_ABBR, POPULATION, etc.
+    /// Contains all metadata attributes from the ArcGIS feature layer
+    /// (keys may include STATE_NAME, STATE_ABBR, POPULATION, etc.).
     /// </summary>
     public Dictionary<string, object?>? Attributes { get; set; }
 }

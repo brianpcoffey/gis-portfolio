@@ -3,10 +3,8 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace Portfolio.Web.RateLimiting;
 
-/// <summary>
-/// The process-wide concurrency cap for <see cref="CpuBoundAttribute"/> endpoints. It lives in one
-/// static place so every per-client chain shares the same instance.
-/// </summary>
+/// <summary>The process-wide concurrency cap for <see cref="CpuBoundAttribute"/> endpoints.</summary>
+/// <remarks>It lives in one static place so every per-client chain shares the same instance.</remarks>
 internal static class SharedCpuConcurrency
 {
     /// <summary>Permits = max(2, cores); up to 16 requests queue, oldest first.</summary>
@@ -20,11 +18,11 @@ internal static class SharedCpuConcurrency
     internal static readonly RateLimiter Shared = Create();
 }
 
-/// <summary>
-/// Delegates everything to the wrapped limiter but ignores disposal. A chained per-client limiter
-/// disposes its children when the partition is evicted; without this the shared limiter would be
-/// disposed with the first idle client.
-/// </summary>
+/// <summary>Delegates everything to the wrapped limiter but ignores disposal.</summary>
+/// <remarks>
+/// A chained per-client limiter disposes its children when the partition is evicted; without this the
+/// shared limiter would be disposed with the first idle client.
+/// </remarks>
 internal sealed class NonDisposingRateLimiter(RateLimiter inner) : RateLimiter
 {
     public override RateLimiterStatistics? GetStatistics() => inner.GetStatistics();
@@ -47,8 +45,8 @@ internal sealed class NonDisposingRateLimiter(RateLimiter inner) : RateLimiter
 /// <summary>
 /// Shared 429 handling: sets Retry-After (whole seconds, rounded up) from the lease when the limiter
 /// supplies one, and 5 seconds for a full concurrency queue, which has no refill time to report.
-/// The body stays empty, as the default rejection writes.
 /// </summary>
+/// <remarks>The body stays empty, as the default rejection writes.</remarks>
 internal static class RateLimitRejection
 {
     internal const int QueueOverflowRetryAfterSeconds = 5;
@@ -66,9 +64,12 @@ internal static class RateLimitRejection
 
 /// <summary>
 /// Per-client (remote IP) policy: a per-IP window first, then, for <see cref="CpuBoundAttribute"/>
-/// endpoints, the shared concurrency limiter. The window comes first so an over-budget client is
-/// rejected at once and never takes a place in the shared queue.
+/// endpoints, the shared concurrency limiter.
 /// </summary>
+/// <remarks>
+/// The window comes first so an over-budget client is rejected at once and never takes a place in
+/// the shared queue.
+/// </remarks>
 internal abstract class ClientRateLimiterPolicy(RateLimiter sharedCpu) : IRateLimiterPolicy<string>
 {
     public Func<OnRejectedContext, CancellationToken, ValueTask>? OnRejected { get; } = RateLimitRejection.Apply;

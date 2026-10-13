@@ -16,9 +16,6 @@ internal static class ApiRegistration
         return services;
     }
 
-    // --------------------------
-    // API Versioning
-    // --------------------------
     // Versioning, the API Explorer and OpenAPI are registered together, in that order.
     internal static IServiceCollection AddPortfolioApiVersioning(this IServiceCollection services)
     {
@@ -37,9 +34,7 @@ internal static class ApiRegistration
             options.SubstituteApiVersionInUrl = true;
         });
 
-        // --------------------------
-        // OpenAPI / API Explorer (MapOpenApi serves /openapi/v1.json; Scalar renders it at /scalar)
-        // --------------------------
+        // MapOpenApi serves /openapi/v1.json; Scalar renders it at /scalar.
         services.AddEndpointsApiExplorer();
         services.AddOpenApi();
         return services;

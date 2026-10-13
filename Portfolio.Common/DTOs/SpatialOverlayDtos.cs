@@ -20,7 +20,7 @@ namespace Portfolio.Common.DTOs
         /// <summary>Human-readable zone name (echoed back on the summary).</summary>
         public string Name { get; set; } = string.Empty;
 
-        /// <summary>Ordered ring vertices. The ring is closed implicitly (last connects to first).</summary>
+        /// <summary>Ordered ring vertices; the ring is closed implicitly (last connects to first).</summary>
         public List<OverlayPointDto> Ring { get; set; } = [];
     }
 
