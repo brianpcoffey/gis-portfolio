@@ -1,0 +1,41 @@
+name: Keep warm
+
+# Pings the live site's liveness probe during working hours, so a visitor does not wait for a cold
+# start on Render's free plan. Outside the window the free instance is allowed to sleep.
+# docs/render-deployment.md ("Cold starts and the keep-warm ping") explains the schedule and the budget.
+on:
+  schedule:
+    # Every 5 minutes at minutes 3-58. GitHub delays and drops runs at the top of the hour.
+    - cron: '3-58/5 12-23 * * *'   # 12:03-23:58 UTC
+    - cron: '3-58/5 0-3 * * *'     # 00:03-03:58 UTC (the window is 12:00-03:59 UTC)
+    # One strict run a day. It is the only scheduled run that fails and notifies.
+    - cron: '41 15 * * *'
+  workflow_dispatch:
+
+# No token scopes. The job makes one outbound GET and never touches the repository.
+permissions: {}
+
+jobs:
+  ping:
+    name: Ping /health/live
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Ping /health/live
+        env:
+          URL: https://brianpcoffey.com/health/live
+          # A failed ping fails the run only in the strict daily slot and on manual runs.
+          STRICT: ${{ github.event.schedule == '41 15 * * *' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          # Up to three attempts. A cold start can take about a minute, so each attempt waits up to 75 seconds.
+          code=000
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 75 \
+              -A 'gis-portfolio-keep-warm (+https://github.com/brianpcoffey/gis-portfolio)' "$URL") || code=000
+            [ "$code" = 200 ] && { echo "attempt $attempt: 200"; exit 0; }
+            echo "attempt $attempt: HTTP $code"
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
+          if [ "$STRICT" = true ]; then echo "::error::/health/live failed 3 times (last $code)"; exit 1; fi
+          echo "::warning::/health/live failed 3 times (last $code); next run retries"
