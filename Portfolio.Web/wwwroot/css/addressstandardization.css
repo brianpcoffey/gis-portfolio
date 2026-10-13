@@ -190,12 +190,11 @@ body.dark-mode .as-badge-nlp {
     color: var(--status-warning-text);
 }
 
-/* Low shares the warning tone; the dashed border, icon and label tell it apart from Medium */
+/* Low is the caution orange, distinct from Medium's amber (same colours as before the token move) */
 .address-standardization-page .as-tier-badge-card.tier-low {
-    background: var(--status-warning-soft);
-    border-color: rgba(var(--status-warning-rgb), 0.6);
-    border-style: dashed;
-    color: var(--status-warning-text);
+    background: var(--status-caution-soft);
+    border-color: var(--status-caution-border);
+    color: var(--status-caution-text);
 }
 
 .address-standardization-page .as-tier-badge-card.tier-unresolved {
