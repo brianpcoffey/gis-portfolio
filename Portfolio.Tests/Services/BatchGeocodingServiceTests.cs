@@ -168,6 +168,23 @@ namespace Portfolio.Tests.Services
             Assert.False(results[0].Matched);
         }
 
+        // Characterization: a CSV at exactly the row cap is accepted (the cap itself changes in WP-36).
+        [Fact]
+        public async Task GeocodeAsync_CsvAtRowCap_IsAccepted()
+        {
+            // Arrange
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 1000; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Main St,Denver,CO,80201\n");
+            var service = CreateService(BuildGeocodeJson("1 Main St, Denver, CO 80201", 95.0, -104.9, 39.7));
+
+            // Act
+            var results = await service.GeocodeAsync(BuildCsvFile(sb.ToString()));
+
+            // Assert
+            Assert.Equal(1000, results.Count);
+        }
+
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler
         {
             protected override Task<HttpResponseMessage> SendAsync(
