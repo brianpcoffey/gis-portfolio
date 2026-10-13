@@ -15,7 +15,22 @@ build/
 Portfolio.Web/appsettings.Development.json
 DataProtection-Keys/
 
-# Agent worktrees created by Claude Code (each is its own checkout).
-.claude/worktrees/
+# Real cluster secret; k8s/secret.example.yaml is the committed template.
 k8s/secret.yaml
 *.user
+
+# Agent tooling and agent-facing documents stay on the owner's disk and out of git.
+# Claude Code: project config (launch.json etc.) and every agent worktree (each is its own checkout).
+.claude/
+**/CLAUDE.md
+**/CLAUDE.local.md
+# Documents written for agents: context, prompts, cleanup plans and findings, implementation plans.
+.github/copilot-instructions.md
+docs/agent-context.md
+docs/cleanup-prompt.md
+docs/cleanup/
+docs/plans/
+
+# Only the root README.md is tracked; every other README.md (native/, k8s/, css/, ...) stays local.
+**/README.md
+!/README.md
