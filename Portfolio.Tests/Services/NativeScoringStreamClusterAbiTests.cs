@@ -823,5 +823,49 @@ namespace Portfolio.Tests.Services
         {
             NativeScoringBridge.ThrowIfFailed(0);
         }
+
+        // ---------------------------------------------------------------------------------------
+        // Status mapping of the other two bridges. These run without the native libraries; the
+        // Try... wrappers around them are covered through real kernel failures above.
+        // ---------------------------------------------------------------------------------------
+
+        [Theory]
+        [InlineData(-1, "invalid argument")]
+        [InlineData(-2, "aggregate buffer too small")]
+        [InlineData(-99, "native exception")]
+        [InlineData(5, "unknown")]
+        public void GeoStreamBridge_NonZeroStatus_ThrowsAClassifiedNativeFailure(int status, string reason)
+        {
+            var thrown = Assert.Throws<InvalidOperationException>(() => GeoStreamNativeBridge.ThrowIfFailed(status));
+
+            Assert.Contains($"status {status} ({reason})", thrown.Message);
+            Assert.True(NativeKernelLoader.IsNativeInvocationException(thrown));
+        }
+
+        [Fact]
+        public void GeoStreamBridge_ZeroStatus_DoesNotThrow()
+        {
+            GeoStreamNativeBridge.ThrowIfFailed(0);
+        }
+
+        [Theory]
+        [InlineData(-1, "invalid argument")]
+        [InlineData(-99, "native exception")]
+        [InlineData(-7, "unknown")]
+        public void ClusterBridge_NegativeStatus_ThrowsAClassifiedNativeFailure(int status, string reason)
+        {
+            var thrown = Assert.Throws<InvalidOperationException>(() => SpatialClusterNativeBridge.ThrowIfFailed(status));
+
+            Assert.Contains($"status {status} ({reason})", thrown.Message);
+            Assert.True(NativeKernelLoader.IsNativeInvocationException(thrown));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(3)]
+        public void ClusterBridge_NonNegativeStatus_IsAClusterCountNotAFailure(int clusterCount)
+        {
+            SpatialClusterNativeBridge.ThrowIfFailed(clusterCount);
+        }
     }
 }

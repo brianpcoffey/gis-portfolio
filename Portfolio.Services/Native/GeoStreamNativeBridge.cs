@@ -105,7 +105,8 @@ namespace Portfolio.Services.Native
         //   -1  invalid argument (null pointer, negative count, grid size not finite and > 0)
         //   -2  aggregate buffer too small
         //  -99  C++ exception caught at the native boundary
-        private static void ThrowIfFailed(int status)
+        // internal so the status mapping can be tested without provoking a real native failure.
+        internal static void ThrowIfFailed(int status)
         {
             if (status != 0)
                 throw new InvalidOperationException($"Native geostream processor failed with status {status} ({DescribeStatus(status)}).");
