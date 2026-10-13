@@ -1,3 +1,4 @@
+using System.Globalization;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
@@ -39,12 +40,10 @@ public class FiberOrderService : IFiberOrderService
     public async Task<FiberOrderDto> CreateAsync(CreateFiberOrderDto dto, CancellationToken cancellationToken = default)
     {
         var userId = CurrentUserId;
-        // Known gap: OrderNumber is never generated (not here, in FiberOrderRepository or in
-        // FiberDemoSeedData), so the dashboard's "Order #" column is blank. Tracked as a cleanup follow-up.
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var order = new FiberOrder
         {
             UserId = userId,
+            OrderNumber = await NextOrderNumberAsync(userId, cancellationToken),
             ClientName = dto.ClientName,
             ProductName = dto.ProductName,
             Quantity = dto.Quantity,
@@ -78,6 +77,31 @@ public class FiberOrderService : IFiberOrderService
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _orderRepo.DeleteAsync(id, CurrentUserId, cancellationToken);
+    }
+
+    // Order numbers read ORD-<yyyyMMdd>-<NNNN>: the UTC day the order is created (from the injected TimeProvider)
+    // and a per-user, per-day sequence that starts at 0001 (it widens past 9999 rather than wrapping). The next
+    // sequence is one past the highest the user already holds for that day, so deleting an earlier order never lets
+    // a later create reuse a surviving order's number. The seeded demo orders follow the same scheme, dated by their
+    // own order date (FiberDemoSeedData). There is no unique constraint on the column, so two creates by the same
+    // user racing in the same instant could be issued the same number; the dashboard issues one request at a time.
+    private async Task<string> NextOrderNumberAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var prefix = $"ORD-{_timeProvider.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-";
+        var issued = await _orderRepo.GetOrderNumbersAsync(userId, prefix, cancellationToken);
+        var highest = 0;
+        foreach (var number in issued)
+        {
+            if (number.Length > prefix.Length
+                && number.StartsWith(prefix, StringComparison.Ordinal)
+                && int.TryParse(number.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var sequence)
+                && sequence > highest)
+            {
+                highest = sequence;
+            }
+        }
+
+        return $"{prefix}{(highest + 1).ToString("D4", CultureInfo.InvariantCulture)}";
     }
 
     private static FiberOrderDto MapToDto(FiberOrder o) => new()
