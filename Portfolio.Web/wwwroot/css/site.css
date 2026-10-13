@@ -284,7 +284,7 @@ body.dark-mode .btn-google {
     line-height: 1.5;
 }
 
-/* Sits on the white card, so muted text rather than the white used on the gradient. */
+/* Sits on the card surface, so muted text rather than the white used on the gradient. */
 .login-back-link {
     font-size: 0.875rem;
     color: var(--text-muted);
