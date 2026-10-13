@@ -71,19 +71,25 @@ function initStickyNavbar() {
 
 /**
  * Publish the navbar height as --nav-h for full-height pages (network.css). Updates are
- * skipped while the mobile menu is open, so the page does not resize under it.
+ * skipped while the mobile menu is open, so the page does not resize under it. That only
+ * applies while the collapsed-menu layout is active (below Bootstrap's lg breakpoint, matching
+ * navbar-expand-lg): `.show` stays on #navbarNav if the viewport widens past lg with the menu
+ * open, and the toggler is then hidden, so the height must be published again.
  */
 function initNavHeight() {
     const navbar = document.getElementById('mainNav');
     if (!navbar || typeof ResizeObserver === 'undefined') return;
 
     const menu = document.getElementById('navbarNav');
+    const collapsedLayout = window.matchMedia('(max-width: 991.98px)');
     const update = () => {
-        if (menu && (menu.classList.contains('show') || menu.classList.contains('collapsing'))) return;
+        if (collapsedLayout.matches && menu &&
+            (menu.classList.contains('show') || menu.classList.contains('collapsing'))) return;
         document.documentElement.style.setProperty('--nav-h', navbar.offsetHeight + 'px');
     };
     new ResizeObserver(update).observe(navbar);
     if (menu) menu.addEventListener('hidden.bs.collapse', update);
+    collapsedLayout.addEventListener('change', update);
 }
 
 /**
