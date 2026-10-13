@@ -178,11 +178,47 @@ public class RegistrationOptionsTests
         // Assert: feature queries retry twice (3 attempts), geocoding three times (4 attempts).
         Assert.Equal(TimeSpan.FromSeconds(25), features.Timeout);
         Assert.Equal(2, features.MaxRetryAttempts);
+        Assert.Equal(TimeSpan.FromMilliseconds(500), features.RetryDelay);
+        Assert.Equal(TimeSpan.FromSeconds(60), features.SamplingDuration);
+        Assert.Equal(0.5, features.FailureRatio);
         Assert.Equal(TimeSpan.FromSeconds(30), features.BreakDuration);
         Assert.Equal(5, features.MinimumThroughput);
         Assert.Equal(TimeSpan.FromSeconds(8), geocoding.Timeout);
         Assert.Equal(3, geocoding.MaxRetryAttempts);
+        Assert.Equal(TimeSpan.FromMilliseconds(300), geocoding.RetryDelay);
+        Assert.Equal(TimeSpan.FromSeconds(30), geocoding.SamplingDuration);
+        Assert.Equal(0.5, geocoding.FailureRatio);
         Assert.Equal(TimeSpan.FromSeconds(15), geocoding.BreakDuration);
         Assert.Equal(8, geocoding.MinimumThroughput);
+    }
+
+    [Theory]
+    [InlineData("/api/v1/profile", StatusCodes.Status401Unauthorized, false)]
+    [InlineData("/Login", StatusCodes.Status302Found, true)]
+    public async Task GoogleOptions_AuthorizationRedirect_RoutesThroughApiAwareRedirect(string path, int expectedStatus, bool expectLocation)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDataProtection();
+        services.AddPortfolioAuthentication(
+            Config(("Authentication:Google:ClientId", "test-id"), ("Authentication:Google:ClientSecret", "test-secret")),
+            Env("Production"));
+        var options = services.BuildServiceProvider()
+            .GetRequiredService<IOptionsMonitor<Microsoft.AspNetCore.Authentication.Google.GoogleOptions>>()
+            .Get("Google");
+        var http = new DefaultHttpContext();
+        http.Request.Path = path;
+        var scheme = new Microsoft.AspNetCore.Authentication.AuthenticationScheme("Google", null,
+            typeof(Microsoft.AspNetCore.Authentication.Google.GoogleHandler));
+        var context = new Microsoft.AspNetCore.Authentication.RedirectContext<Microsoft.AspNetCore.Authentication.OAuth.OAuthOptions>(
+            http, scheme, options, new Microsoft.AspNetCore.Authentication.AuthenticationProperties(), "https://accounts.google.test/auth");
+
+        // Act
+        await options.Events.OnRedirectToAuthorizationEndpoint(context);
+
+        // Assert
+        Assert.Equal(expectedStatus, http.Response.StatusCode);
+        Assert.Equal(expectLocation, http.Response.Headers.ContainsKey("Location"));
     }
 }
