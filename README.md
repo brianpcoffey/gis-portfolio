@@ -750,7 +750,7 @@ The OpenAPI/Scalar endpoints are mapped **unconditionally** in `Portfolio.Web/St
 - Interactive API reference: `/scalar` (e.g. `http://localhost:5000/scalar` locally)
 - Raw OpenAPI document: `/openapi/v1.json`
 
-A state-changing call (POST, PUT, PATCH or DELETE) that carries an identity cookie must also send an `X-Requested-With` header, a second CSRF layer beside `SameSite=Lax` (otherwise the API answers 403 with a message naming the header): the site's own scripts and Scalar's Try-it add it (Scalar through an experimental hook, so a Scalar update could stop that), and a request with no cookie, such as curl, needs nothing.
+A state-changing call (POST, PUT, PATCH or DELETE) that carries a cookie (the `AnonUserId` or sign-in cookie) must also send an `X-Requested-With` header, a second CSRF layer beside `SameSite=Lax` (otherwise the API answers 403 with a message naming the header): the site's own scripts and Scalar's Try-it add it (Scalar through an experimental hook, so a Scalar update could stop that), and a request without either cookie, such as curl, needs nothing.
 
 ### Running Tests
 
