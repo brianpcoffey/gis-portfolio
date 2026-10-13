@@ -5,15 +5,17 @@
 	ViewData["Title"] = "Address Standardization & Validation";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/addressstandardization.css" />
+@section Styles {
+	<link rel="stylesheet" href="~/css/gis.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/css/addressstandardization.css" asp-append-version="true" />
+}
 
 <div class="project-hero py-4 mb-4">
 	<div class="container">
 		<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
 			<div>
 				<h1 class="mb-1">
-					<i class="fa-solid fa-address-card me-2"></i>Address Standardization &amp; Validation
+					<i class="fa-solid fa-address-card me-2" aria-hidden="true"></i>Address Standardization &amp; Validation
 				</h1>
 				<p class="text-muted theme-text-muted mb-0">
 					Parse freeform addresses into structured components and validate them against ArcGIS geocoding.
@@ -21,16 +23,16 @@
 			</div>
 			<div class="d-flex flex-wrap align-items-center gap-2">
 				<span class="badge badge-gis fs-6">
-					<i class="fa-solid fa-satellite-dish me-1"></i>ArcGIS Geocoding
+					<i class="fa-solid fa-satellite-dish me-1" aria-hidden="true"></i>ArcGIS Geocoding
 				</span>
 				<span class="badge as-badge-nlp fs-6">
-					<i class="fa-solid fa-brain me-1"></i>NLP Parsing
+					<i class="fa-solid fa-brain me-1" aria-hidden="true"></i>NLP Parsing
 				</span>
 				<a class="btn btn-outline-accent btn-sm project-info-btn"
 				   href="/Projects/AddressStandardization/Details"
 				   aria-label="View technical details for Address Standardization"
 				   title="Technical Details">
-					<i class="fa-solid fa-circle-info"></i>
+					<i class="fa-solid fa-circle-info" aria-hidden="true"></i>
 				</a>
 			</div>
 		</div>
@@ -48,7 +50,7 @@
 
 				<!-- Alert area -->
 				<div id="asAlert" class="alert alert-warning alert-dismissible fade d-none mb-3" role="alert">
-					<i class="fa-solid fa-triangle-exclamation me-1"></i>
+					<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>
 					<span id="asAlertMsg"></span>
 					<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 				</div>
@@ -59,11 +61,11 @@
 						<!-- Textarea label row -->
 						<div class="d-flex align-items-center justify-content-between mb-1">
 							<label for="asRawAddress" class="form-label fw-semibold mb-0">
-								<i class="fa-solid fa-keyboard me-1 text-accent"></i>Raw Address
+								<i class="fa-solid fa-keyboard me-1 text-accent" aria-hidden="true"></i>Raw Address
 							</label>
 							<div id="asAnalyzingIndicator" class="as-analyzing-indicator d-none">
 								<span class="spinner-border spinner-border-sm text-accent me-1" role="status" aria-hidden="true"></span>
-								<small class="text-muted">Analyzing&hellip;</small>
+								<small class="theme-text-muted">Analyzing&hellip;</small>
 							</div>
 						</div>
 
@@ -76,16 +78,16 @@
 								  spellcheck="false"></textarea>
 
 						<div class="d-flex justify-content-between align-items-center mb-3">
-							<small id="asCharCount" class="text-muted">0 characters</small>
+							<small id="asCharCount" class="theme-text-muted">0 characters</small>
 						</div>
 
 						<!-- Action buttons -->
 						<div class="d-flex flex-wrap gap-2 mb-3">
 							<button id="asBtnParse" class="btn btn-outline-accent" disabled>
-								<i class="fa-solid fa-search me-1"></i>Parse Address
+								<i class="fa-solid fa-search me-1" aria-hidden="true"></i>Parse Address
 							</button>
 							<button id="asBtnValidate" class="btn btn-accent" disabled>
-								<i class="fa-solid fa-circle-check me-1"></i>Parse &amp; Validate
+								<i class="fa-solid fa-circle-check me-1" aria-hidden="true"></i>Parse &amp; Validate
 							</button>
 						</div>
 
@@ -97,8 +99,8 @@
 									data-bs-target="#asExamples"
 									aria-expanded="false"
 									aria-controls="asExamples">
-								<i class="fa-solid fa-lightbulb me-1"></i>Try an example address
-								<i class="fa-solid fa-chevron-down ms-1 as-chevron"></i>
+								<i class="fa-solid fa-lightbulb me-1" aria-hidden="true"></i>Try an example address
+								<i class="fa-solid fa-chevron-down ms-1 as-chevron" aria-hidden="true"></i>
 							</button>
 							<div class="collapse mt-2" id="asExamples">
 								<div class="list-group as-example-list">
@@ -106,31 +108,31 @@
 											class="list-group-item list-group-item-action as-example-item"
 											data-address="123 main st apt 4b los angeles ca 90001">
 										<span class="as-example-address">123 main st apt 4b los angeles ca 90001</span>
-										<small class="text-muted d-block">Full address, all components</small>
+										<small class="theme-text-muted d-block">Full address, all components</small>
 									</button>
 									<button type="button"
 											class="list-group-item list-group-item-action as-example-item"
 											data-address="456 oak ave chicago illinois">
 										<span class="as-example-address">456 oak ave chicago illinois</span>
-										<small class="text-muted d-block">No ZIP, full state name</small>
+										<small class="theme-text-muted d-block">No ZIP, full state name</small>
 									</button>
 									<button type="button"
 											class="list-group-item list-group-item-action as-example-item"
 											data-address="789 hwy 1 big sur ca">
 										<span class="as-example-address">789 hwy 1 big sur ca</span>
-										<small class="text-muted d-block">Highway suffix, no ZIP</small>
+										<small class="theme-text-muted d-block">Highway suffix, no ZIP</small>
 									</button>
 									<button type="button"
 											class="list-group-item list-group-item-action as-example-item"
 											data-address="1600 pennsylvania ave nw washington dc 20500">
 										<span class="as-example-address">1600 pennsylvania ave nw washington dc 20500</span>
-										<small class="text-muted d-block">Famous address</small>
+										<small class="theme-text-muted d-block">Famous address</small>
 									</button>
 									<button type="button"
 											class="list-group-item list-group-item-action as-example-item"
 											data-address="999 fake blvd nowhere xx 00000">
 										<span class="as-example-address">999 fake blvd nowhere xx 00000</span>
-										<small class="text-muted d-block">Invalid state (expect low score)</small>
+										<small class="theme-text-muted d-block">Invalid state (expect low score)</small>
 									</button>
 								</div>
 							</div>
@@ -149,8 +151,8 @@
 				<div class="card shadow-sm h-100 theme-card">
 					<div class="card-header theme-card-header d-flex align-items-center justify-content-between">
 						<div class="d-flex align-items-center gap-2">
-							<i class="fa-solid fa-code-branch text-accent"></i>
-							<strong>Parse Results</strong>
+							<i class="fa-solid fa-code-branch text-accent" aria-hidden="true"></i>
+							<h2 class="h6 mb-0">Parse Results</h2>
 						</div>
 						<div id="asParseSpinner" class="d-none">
 							<span class="spinner-border spinner-border-sm text-accent" role="status" aria-hidden="true"></span>
@@ -159,8 +161,8 @@
 					<div class="card-body">
 
 						<!-- Parse placeholder -->
-						<div id="asParsePlaceholder" class="text-center text-muted py-5">
-							<i class="fa-solid fa-signs-post fa-2x mb-3 d-block text-accent opacity-50"></i>
+						<div id="asParsePlaceholder" class="text-center theme-text-muted py-5">
+							<i class="fa-solid fa-signs-post fa-2x mb-3 d-block text-accent opacity-50" aria-hidden="true"></i>
 							<p class="mb-0">Enter an address above to see parsed components.</p>
 						</div>
 
@@ -175,7 +177,7 @@
 											class="btn btn-sm btn-outline-secondary as-copy-btn flex-shrink-0"
 											title="Copy to clipboard"
 											aria-label="Copy standardized address">
-										<i class="fa-regular fa-copy"></i>
+										<i class="fa-regular fa-copy" aria-hidden="true"></i>
 									</button>
 								</div>
 							</div>
@@ -185,8 +187,8 @@
 								<caption class="visually-hidden">Address components extracted from the parsed input</caption>
 								<thead>
 									<tr>
-										<th scope="col" class="text-muted fw-normal small">Component</th>
-										<th scope="col" class="text-muted fw-normal small">Extracted Value</th>
+										<th scope="col" class="theme-text-muted fw-normal small">Component</th>
+										<th scope="col" class="theme-text-muted fw-normal small">Extracted Value</th>
 									</tr>
 								</thead>
 								<tbody id="asComponentsBody"></tbody>
@@ -194,7 +196,7 @@
 
 							<!-- Parse confidence meter -->
 							<div class="mb-1 d-flex align-items-center justify-content-between">
-								<small class="text-muted text-uppercase fw-semibold" style="letter-spacing:.05em;">Parse Confidence</small>
+								<small class="theme-text-muted text-uppercase fw-semibold as-caps">Parse Confidence</small>
 								<small id="asConfidenceLabel" class="fw-semibold"></small>
 							</div>
 							<div class="as-confidence-chart-container mb-1">
@@ -211,8 +213,8 @@
 				<div class="card shadow-sm h-100 theme-card">
 					<div class="card-header theme-card-header d-flex align-items-center justify-content-between">
 						<div class="d-flex align-items-center gap-2">
-							<i class="fa-solid fa-shield-halved text-accent"></i>
-							<strong>Validation Results</strong>
+							<i class="fa-solid fa-shield-halved text-accent" aria-hidden="true"></i>
+							<h2 class="h6 mb-0">Validation Results</h2>
 						</div>
 						<div id="asValidateSpinner" class="d-none">
 							<span class="spinner-border spinner-border-sm text-accent" role="status" aria-hidden="true"></span>
@@ -221,8 +223,8 @@
 					<div class="card-body d-flex flex-column">
 
 						<!-- Validation placeholder -->
-						<div id="asValidatePlaceholder" class="text-center text-muted py-5 flex-grow-1 d-flex flex-column align-items-center justify-content-center">
-							<i class="fa-solid fa-shield-halved fa-2x mb-3 d-block text-accent opacity-50"></i>
+						<div id="asValidatePlaceholder" class="text-center theme-text-muted py-5 flex-grow-1 d-flex flex-column align-items-center justify-content-center">
+							<i class="fa-solid fa-shield-halved fa-2x mb-3 d-block text-accent opacity-50" aria-hidden="true"></i>
 							<p class="mb-0 small">Click <strong>Parse &amp; Validate</strong> to check this address against ArcGIS.</p>
 						</div>
 
@@ -238,27 +240,27 @@
 
 							<!-- Matched address -->
 							<div class="mb-2">
-								<div class="small text-muted text-uppercase fw-semibold mb-1" style="letter-spacing:.05em;">ArcGIS Matched Address</div>
+								<div class="small theme-text-muted text-uppercase fw-semibold mb-1 as-caps">ArcGIS Matched Address</div>
 								<div id="asMatchedAddress" class="fw-semibold"></div>
 							</div>
 
 							<!-- Fallback alert -->
 							<div id="asFallbackAlert" class="alert alert-info d-none py-2 px-3 small mb-2" role="alert">
-								<i class="fa-solid fa-circle-info me-1"></i>
+								<i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>
 								Full address could not be matched. Result is based on City, State, and ZIP only.
 							</div>
 
 							<!-- Unresolved alert -->
 							<div id="asUnresolvedAlert" class="alert alert-warning d-none py-2 px-3 small mb-2" role="alert">
-								<i class="fa-solid fa-triangle-exclamation me-1"></i>
+								<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>
 								Address could not be verified against ArcGIS. Check the parsed components for errors &mdash; the state abbreviation or ZIP may be invalid.
 							</div>
 
 							<!-- Score history sparkline -->
 							<div class="mt-auto pt-3 border-top">
 								<div class="d-flex align-items-center gap-2 mb-2">
-									<i class="fa-solid fa-chart-line text-accent"></i>
-									<small class="text-muted text-uppercase fw-semibold" style="letter-spacing:.05em;">Recent Scores</small>
+									<i class="fa-solid fa-chart-line text-accent" aria-hidden="true"></i>
+									<small class="theme-text-muted text-uppercase fw-semibold as-caps">Recent Scores</small>
 								</div>
 								<div class="as-sparkline-container">
 									<div id="as-sparkline"></div>
