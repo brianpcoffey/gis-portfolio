@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
+using Portfolio.Repositories.Diagnostics;
 
 namespace Portfolio.Services.Services;
 
@@ -1443,11 +1444,11 @@ public class UserProfileSeedService
             {
                 await tx.CommitAsync();
             }
-            _logger.LogDebug("Seed complete for user {UserId}", userId);
+            _logger.LogDebug("Seed complete for user {UserId}", LogRedaction.UserId(userId));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error seeding data for user {UserId}", userId);
+            _logger.LogError(ex, "Error seeding data for user {UserId}", LogRedaction.UserId(userId));
             if (tx != null)
             {
                 await tx.RollbackAsync();
