@@ -60,7 +60,8 @@ namespace Portfolio.Tests.Controllers
             // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => _controller.GetPlaceData(lat, lng, CancellationToken.None));
 
-            // Assert: the message the filter will put in the body is untouched.
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
             Assert.Equal($"{message} (Parameter '{paramName}')", ex.Message);
         }
 

@@ -214,7 +214,9 @@ namespace Portfolio.Tests.Controllers
         [Fact]
         public async Task SubmitAsync_CsvOverRowCap_PropagatesTheServiceMessage()
         {
-            // Arrange: the filter puts this message, unchanged, into the 400 { error } body.
+            // Arrange: the exception propagates from the action unchanged. The filter shows its message
+            // only when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET,
+            // so it gets the generic text.
             var file = BuildFile(128);
             _serviceMock
                 .Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))

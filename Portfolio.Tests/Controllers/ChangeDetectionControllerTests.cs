@@ -69,7 +69,8 @@ namespace Portfolio.Tests.Controllers
             // Act
             var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Detect(new DetectRequestDto(), CancellationToken.None));
 
-            // Assert: the message the filter will put in the body is untouched.
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
             Assert.Equal("Epoch raster length must equal width * height * bandCount. (Parameter 'request')", ex.Message);
         }
 
@@ -77,7 +78,9 @@ namespace Portfolio.Tests.Controllers
         public async Task ChangeDetect_NullRequest_Propagates()
         {
             // Arrange: ArgumentNullException derives from ArgumentException, so the same
-            // [BadRequestOnArgumentException] covers a ThrowIfNull in the service.
+            // [BadRequestOnArgumentException] handles it. The filter shows a message only when Portfolio
+            // code threw it; a BCL throw helper such as ArgumentNullException.ThrowIfNull gets the
+            // generic "The request was invalid." text instead.
             var service = new Mock<IChangeDetectionService>();
             service.Setup(s => s.DetectAsync(It.IsAny<DetectRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentNullException("request"));

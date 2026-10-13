@@ -119,7 +119,7 @@ public class BadRequestOnArgumentExceptionAttributeTests
     [Fact]
     public void ArgumentException_NeverThrown_HasNoOrigin_AndGetsTheGenericMessage()
     {
-        // Arrange: a null TargetSite counts as not ours (a faulted Task carries such an exception).
+        // Arrange: an exception that was never thrown has a null TargetSite, which counts as not ours.
         var (context, _) = NewContext(new ArgumentException("detail from nowhere"), typeof(SpatialClusterController));
 
         // Act
