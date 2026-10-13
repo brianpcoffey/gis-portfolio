@@ -32,11 +32,9 @@
 	</div>
 
 	<div class="network-shell">
-		<!-- ── Side Panel ─────────────────────────────────────────────── -->
 		<aside class="network-panel">
 			<div id="networkAlert" class="alert alert-danger alert-sm d-none py-2 px-3 mb-0 mx-3 mt-3" role="alert"></div>
 
-			<!-- Origin picker -->
 			<div class="panel-section">
 				<div class="panel-section-header">
 					<i class="fa-solid fa-location-dot text-accent me-1" aria-hidden="true"></i>
@@ -50,7 +48,6 @@
 				</div>
 			</div>
 
-			<!-- Destination (fixed) -->
 			<div class="panel-section">
 				<div class="panel-section-header">
 					<i class="fa-solid fa-flag-checkered text-success me-1" aria-hidden="true"></i>
@@ -63,7 +60,6 @@
 				</div>
 			</div>
 
-			<!-- Algorithm -->
 			<div class="panel-section">
 				<div class="panel-section-header">
 					<i class="fa-solid fa-microchip text-accent me-1" aria-hidden="true"></i>
@@ -90,7 +86,6 @@
 				</div>
 			</div>
 
-			<!-- Route button -->
 			<div class="panel-section pb-2">
 				<div class="panel-body">
 					<button id="networkRouteBtn" class="btn btn-accent w-100" disabled>
@@ -99,7 +94,6 @@
 				</div>
 			</div>
 
-			<!-- KPI cards -->
 			<div class="panel-section">
 				<div class="panel-section-header">
 					<i class="fa-solid fa-chart-bar text-accent me-1" aria-hidden="true"></i>
@@ -127,7 +121,6 @@
 				</div>
 			</div>
 
-			<!-- Route summary -->
 			<div class="panel-section flex-grow-1 d-flex flex-column">
 				<div class="panel-section-header">
 					<i class="fa-solid fa-list-ol text-accent me-1" aria-hidden="true"></i>
@@ -141,7 +134,6 @@
 				</div>
 			</div>
 
-			<!-- Service area -->
 			<div class="panel-section border-top pt-3">
 				<div class="panel-section-header">
 					<i class="fa-solid fa-circle-nodes text-accent me-1" aria-hidden="true"></i>
@@ -158,7 +150,6 @@
 				</div>
 			</div>
 
-			<!-- Native status -->
 			<div class="panel-footer">
 				<span id="nativeStatus" class="badge bg-secondary">Native: —</span>
 				<span id="loadingSpinner" class="d-none ms-2 text-muted small">
@@ -167,7 +158,6 @@
 			</div>
 		</aside>
 
-		<!-- ── Map ───────────────────────────────────────────────────── -->
 		<div class="network-map-container">
 			<div id="networkMap" class="network-map" role="application" aria-label="Route map"></div>
 			<div id="mapOverlayHint" class="map-click-hint">

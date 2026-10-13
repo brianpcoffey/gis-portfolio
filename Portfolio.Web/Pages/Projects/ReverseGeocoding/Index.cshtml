@@ -15,10 +15,8 @@
 
 <div class="reverse-geocoding-page">
 
-	<!-- MAIN CONTENT -->
 	<div class="container-fluid px-3 pb-5">
 
-		<!-- Error alert area -->
 		<div id="rgAlert" class="alert alert-warning alert-dismissible fade d-none mb-3 mx-0" role="alert">
 			<i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>
 			<span id="rgAlertMsg"></span>
@@ -27,16 +25,13 @@
 
 		<div class="row g-0 rg-layout">
 
-			<!-- MAP COLUMN -->
 			<div class="col-lg-8">
 				<div id="rgMapView" class="rg-map-container shadow-sm" data-map-label="Map: click to look up the address at a location"></div>
 			</div>
 
-			<!-- RIGHT PANEL -->
 			<div class="col-lg-4">
 				<div class="rg-result-panel">
 
-					<!-- COORDINATE DISPLAY -->
 					<div class="rg-coordinate-display p-3 border-bottom">
 						<div class="d-flex align-items-center gap-2 mb-1">
 							<i class="fa-solid fa-crosshairs text-accent" aria-hidden="true"></i>
@@ -47,7 +42,6 @@
 						</div>
 					</div>
 
-					<!-- MANUAL INPUT FORM -->
 					<div class="p-3 border-bottom">
 						<div class="d-flex align-items-center gap-2 mb-2">
 							<i class="fa-solid fa-keyboard text-accent" aria-hidden="true"></i>
@@ -72,14 +66,12 @@
 						</button>
 					</div>
 
-					<!-- RESULT AREA -->
 					<div id="rgResultArea" class="p-3 border-bottom">
 						<div id="rgPlaceholder" class="text-center theme-text-muted py-4">
 							<i class="fa-solid fa-map-pin fa-2x mb-2 d-block" aria-hidden="true"></i>
 							<small>Your result will appear here after clicking the map.</small>
 						</div>
 
-						<!-- Spinner (hidden by default) -->
 						<div id="rgSpinner" class="text-center py-4 d-none">
 							<div class="spinner-border text-accent" role="status">
 								<span class="visually-hidden">Looking up address…</span>
@@ -87,13 +79,11 @@
 							<div class="small theme-text-muted mt-2">Looking up address…</div>
 						</div>
 
-						<!-- 404 message (hidden by default) -->
 						<div id="rgNotFound" class="alert alert-secondary d-none" role="alert">
 							<i class="fa-solid fa-circle-xmark me-1" aria-hidden="true"></i>
 							No address found at this location. Try clicking a nearby point.
 						</div>
 
-						<!-- Result card (hidden by default) -->
 						<div id="rgResultCard" class="rg-result-card d-none">
 							<div class="d-flex align-items-start justify-content-between mb-2 gap-2">
 								<div id="rgMatchAddress" class="rg-match-address fw-semibold"></div>
@@ -145,7 +135,6 @@
 						</div>
 					</div>
 
-					<!-- RECENT LOOKUPS -->
 					<div class="p-3">
 						<div class="d-flex align-items-center gap-2 mb-2">
 							<i class="fa-solid fa-clock-rotate-left text-accent" aria-hidden="true"></i>
