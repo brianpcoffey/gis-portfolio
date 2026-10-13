@@ -18,7 +18,7 @@ function initSmoothScroll() {
             const targetId = this.getAttribute('href');
             if (targetId === '#') return;
 
-            // Skip dropdown toggles — they are handled by Bootstrap
+            // Skip dropdown toggles â€” they are handled by Bootstrap
             if (this.classList.contains('dropdown-toggle')) return;
 
             const target = document.querySelector(targetId);
@@ -27,10 +27,20 @@ function initSmoothScroll() {
                 const navHeight = document.querySelector('.navbar')?.offsetHeight || 0;
                 const targetPosition = target.getBoundingClientRect().top + window.scrollY - navHeight;
 
+                const reduceMotion = document.documentElement.dataset.motion === 'reduce';
                 window.scrollTo({
                     top: targetPosition,
-                    behavior: 'smooth'
+                    behavior: reduceMotion ? 'auto' : 'smooth'
                 });
+
+                // Move focus too, so keyboard and screen-reader users continue from
+                // the target rather than from the link they activated (WCAG 2.4.3).
+                if (!target.hasAttribute('tabindex') &&
+                    !target.matches('a,button,input,select,textarea,[tabindex]')) {
+                    target.setAttribute('tabindex', '-1');
+                }
+                target.focus({ preventScroll: true });
+                history.pushState(null, '', targetId);
 
                 // Close mobile menu if open
                 closeMobileMenu();
