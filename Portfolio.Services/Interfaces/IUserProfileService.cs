@@ -8,8 +8,8 @@ namespace Portfolio.Services.Interfaces
     public interface IUserProfileService
     {
         /// <summary>
-        /// Reads the current user's id from <c>HttpContext.Items["PortfolioIdentity"]</c>, set by the anonymous-identity
-        /// middleware or the Google sign-in event.
+        /// Reads the current user's id from <c>HttpContext.Items["PortfolioIdentity"]</c>, set by the
+        /// anonymous-identity middleware or the Google sign-in event.
         /// </summary>
         /// <returns>The current user's id, or <c>null</c> if none can be resolved.</returns>
         Guid? GetCurrentUserId();

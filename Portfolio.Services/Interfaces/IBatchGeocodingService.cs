@@ -23,7 +23,7 @@ namespace Portfolio.Services.Interfaces
         /// <exception cref="Portfolio.Services.Abstractions.BatchQueueFullException">The queue is at capacity.</exception>
         Task<string> EnqueueAsync(IFormFile file, CancellationToken ct = default);
 
-        /// <summary>Runs a queued job to a terminal status (Completed or Failed); called by the hosted worker.</summary>
+        /// <summary>Runs a queued job to a terminal status (Completed or Failed); the hosted worker calls it.</summary>
         Task ProcessJobAsync(Portfolio.Services.Abstractions.BatchWorkItem item, CancellationToken ct);
     }
 }

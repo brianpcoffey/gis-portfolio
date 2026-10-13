@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace Portfolio.Web.Middleware
 {
-    /// <summary>Emits security response headers on every response, including static files and error responses.</summary>
+    /// <summary>Emits security headers on every response, including static files and error responses.</summary>
     /// <remarks>
     /// Runs early in the pipeline so headers are present before any downstream middleware begins
     /// writing the response body.

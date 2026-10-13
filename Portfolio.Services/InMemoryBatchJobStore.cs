@@ -5,8 +5,9 @@ using Portfolio.Services.Abstractions;
 namespace Portfolio.Services;
 
 /// <summary>
-/// Thread-safe in-process job store over a <see cref="ConcurrentDictionary{TKey,TValue}"/>; like the Redis store, a job
-/// expires <see cref="JobTtl"/> after its last write, and expired jobs are pruned on writes and never returned by reads.
+/// Thread-safe in-process job store over a <see cref="ConcurrentDictionary{TKey,TValue}"/>; like the Redis store, a
+/// job expires <see cref="JobTtl"/> after its last write, and expired jobs are pruned on writes and never returned
+/// by reads.
 /// </summary>
 public sealed class InMemoryBatchJobStore : IBatchJobStore
 {

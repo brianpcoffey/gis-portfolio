@@ -16,7 +16,7 @@ namespace Portfolio.Services.Data
     {
         public const string NetworkName = "Redlands Substation — Feeders A and B";
 
-        /// <summary>Node id of the substation bus. Every feeder breaker leaves this node.</summary>
+        /// <summary>Node id of the substation bus, which every feeder breaker leaves.</summary>
         public const int SubstationNodeId = 1;
 
         private const double SubstationLatitude = 34.0421;
