@@ -7,18 +7,34 @@
     // Esri widget theme (light/dark, follows the site toggle) before the map exists.
     window.PortfolioEsri.loadTheme();
 
+    // How long the map gets, once the ArcGIS API script has loaded, to fetch its modules and become ready.
+    // The Dojo loader may never call the require errback when a module fetch fails, which would leave the
+    // wait below pending and the rest of the page unwired; this turns that into the normal failure path.
+    const MAP_READY_TIMEOUT_MS = 15000;
+
     // Resolves true once the map is ready, false when it could not be loaded (the ArcGIS API failed to
-    // load, or the view failed to start). The page does not depend on the map: the failure is shown in
-    // the map container and the caller wires everything else regardless.
+    // load, the view failed to start, or it was not ready within MAP_READY_TIMEOUT_MS). The page does not
+    // depend on the map: the failure is shown in the map container and the caller wires everything else
+    // regardless.
     async function initMap() {
         try {
             await window.PortfolioEsri.load();
             await new Promise((resolve, reject) => {
+                let timedOut = false;
+                const timer = setTimeout(() => {
+                    timedOut = true;
+                    reject(new Error("Map timed out"));
+                }, MAP_READY_TIMEOUT_MS);
+                const ready = () => { clearTimeout(timer); resolve(); };
+                const failed = (err) => { clearTimeout(timer); reject(err); };
                 require([
                     "esri/Map",
                     "esri/views/MapView",
                     "esri/layers/GraphicsLayer"
                 ], (Map, MapView, GraphicsLayer) => {
+                    // Modules arrived after the timeout: the error notice is up and the page is already
+                    // wired without a map, so do not build one into that container now.
+                    if (timedOut) return;
                     state.mapInstance = new Map({ basemap: "dark-gray-vector" });
                     state.graphicsLayer = new GraphicsLayer();
                     state.mapInstance.add(state.graphicsLayer);
@@ -31,13 +47,14 @@
                     });
 
                     state.mapView.when(() => {
+                        if (timedOut) return; // the view was given up on (and cleared from state) meanwhile
                         // ArcGIS nests its own role="application" surface inside the container; name that one.
                         const surface = state.mapView.container.querySelector(".esri-view-surface");
                         const label = document.getElementById("homeFinderMap")?.dataset.mapLabel;
                         if (surface && label) surface.setAttribute("aria-label", label);
-                        resolve();
-                    }, reject);
-                }, reject);
+                        ready();
+                    }, failed);
+                }, failed);
             });
             return true;
         } catch (err) {

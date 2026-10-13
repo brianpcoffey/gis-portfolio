@@ -7,6 +7,11 @@ let map, view, graphicsLayer, highlightLayer;
 
 const graphicsById = new Map(); // featureId => Graphic
 
+// How long the map gets, once the ArcGIS API script has loaded, to fetch its modules. The Dojo loader may
+// never call the require errback when a module fetch fails, which would leave init() pending and the rest
+// of the page unwired; the timeout turns that into the rejection app.js already reports.
+const MAP_READY_TIMEOUT_MS = 15000;
+
 let clickHandle = null;
 let hoverHandle = null;
 
@@ -72,6 +77,12 @@ export const MapManager = {
 
         return new Promise((resolve, reject) => {
 
+            let timedOut = false;
+            const timer = setTimeout(() => {
+                timedOut = true;
+                reject(new Error("Map timed out"));
+            }, MAP_READY_TIMEOUT_MS);
+
             window.require([
                 "esri/Map",
                 "esri/views/MapView",
@@ -80,6 +91,12 @@ export const MapManager = {
             ],
 
                 (EsriMap, EsriMapView, EsriGraphic, EsriGraphicsLayer) => {
+
+                    // Modules arrived after the timeout: the error notice is up and the page is already
+                    // wired without a map, so do not build one into that container now.
+                    if (timedOut) return;
+
+                    clearTimeout(timer);
 
                     EsriMapClass = EsriMap;
                     MapView = EsriMapView;
@@ -117,7 +134,13 @@ export const MapManager = {
 
                     resolve();
 
-                }, reject);
+                }, (err) => {
+
+                    clearTimeout(timer);
+
+                    reject(err);
+
+                });
         });
     },
 

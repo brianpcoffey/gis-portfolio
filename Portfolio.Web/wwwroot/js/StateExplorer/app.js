@@ -64,9 +64,9 @@ function renderSelectedFeature(state) {
 
 
 // The map is optional for everything else on the page: if the ArcGIS API cannot load (network
-// failure, or the SRI pin blocking a changed file) say so in the map container and carry on, so the
-// state search, saved states, comparison and collections still work (MapManager's zoom, hover and
-// basemap helpers do nothing without a view).
+// failure, the SRI pin blocking a changed file, or its modules not arriving within 15 s) say so in the
+// map container and carry on, so the state search, saved states, comparison and collections still
+// work (MapManager's zoom, hover and basemap helpers do nothing without a view).
 async function initMapOrReport() {
 
     try {
