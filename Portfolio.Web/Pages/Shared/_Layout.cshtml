@@ -184,6 +184,9 @@
     <script src="~/js/navigation.js" asp-append-version="true" defer></script>
     <script src="~/js/animations.js" asp-append-version="true" defer></script>
 
+    @* Warning: inline <script> blocks in a page's Scripts section run immediately, BEFORE the
+       deferred layout scripts above (bootstrap, PortfolioApi, showToast, PortfolioDom). Page inline
+       code that needs them must wait for DOMContentLoaded or be an external deferred script. *@
     @RenderSection("Scripts", required: false)
 </body>
 </html>
