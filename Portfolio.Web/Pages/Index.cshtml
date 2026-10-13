@@ -3,6 +3,85 @@
 @{
     Layout = "/Pages/Shared/_Layout.cshtml";
     ViewData["Title"] = "Home";
+
+    // Featured projects, in carousel order. Each is rendered twice by _ProjectCard:
+    // once as the real card and once as an inert copy that makes the CSS loop seamless.
+    var projects = new (string Id, string Icon, string Title, string Desc, string[] Stack,
+                        string Demo, string Details, string DetailsLabel)[]
+    {
+        ("state-explorer", "fa-map", "US State Explorer",
+            "Explore, compare, and analyze U.S. states with an interactive ArcGIS-powered dashboard and ASP.NET Core backend.",
+            new[] { "ArcGIS JS", "ASP.NET Core", "GeoJSON" },
+            "/Projects/StateExplorer/Index", "/Projects/StateExplorer/Details", "View technical details for US State Explorer"),
+        ("home-finder", "fa-house", "Redlands Smart Home Finder",
+            "GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.",
+            new[] { "ArcGIS JS", "ASP.NET Core", "PostgreSQL" },
+            "/Projects/HomeFinder/Index", "/Projects/HomeFinder/Details", "View technical details for Redlands Smart Home Finder"),
+        ("plant-ops", "fa-industry", "Plant Operations Dashboard",
+            "Industrial plant operations dashboard for a fiberglass ducting manufacturer. Shipment GIS routing, order management, inventory tracking with transaction audit logs, and a live revenue dashboard.",
+            new[] { "ASP.NET Core", "DataTables", "Esri GIS", "PostgreSQL" },
+            "/Projects/PlantOperationsDashboard/Index", "/Projects/PlantOperationsDashboard/Details", "View technical details for Plant Operations Dashboard"),
+        ("batch-geocoding", "fa-map-location-dot", "Batch Geocoding",
+            "Upload a CSV of addresses and geocode them in bulk via ArcGIS. View match rates, scores, and coordinates in an interactive DataTables results grid with export support.",
+            new[] { "ArcGIS Geocoding", "ASP.NET Core", "C#" },
+            "/Projects/BatchGeocoding/Index", "/Projects/BatchGeocoding/Details", "View technical details for Batch Geocoding"),
+        ("reverse-geocoding", "fa-map-pin", "Reverse Geocoding",
+            "Click anywhere on an interactive ArcGIS map to instantly discover the address or place at that location, with a history of recent lookups and manual coordinate entry.",
+            new[] { "ArcGIS Geocoding", "ASP.NET Core", "C#" },
+            "/Projects/ReverseGeocoding/Index", "/Projects/ReverseGeocoding/Details", "View technical details for Reverse Geocoding"),
+        ("address-std", "fa-address-card", "Address Standardization & Validation",
+            "Parse freeform addresses into structured components with NLP-style regex extraction, then validate and score them against ArcGIS geocoding with a confidence tier result.",
+            new[] { "ArcGIS Geocoding", "NLP Parsing", "ASP.NET Core" },
+            "/Projects/AddressStandardization/Index", "/Projects/AddressStandardization/Details", "View technical details for Address Standardization"),
+        ("geostream", "fa-satellite-dish", "Live Location Stream",
+            "Live-style telemetry processing that aggregates GPS events into spatial grid cells and flags high-speed anomalies through a native-backed stream kernel.",
+            new[] { "Telemetry", "ASP.NET Core", "C++20", "P/Invoke" },
+            "/Projects/GeoStream/Index", "/Projects/GeoStream/Details", "View technical details for Live Location Stream"),
+        ("geometry", "fa-draw-polygon", "Geometry Toolkit",
+            "Computational geometry demo for triangulation and polygon clipping with a clean ASP.NET Core API over a native C++ geometry kernel.",
+            new[] { "Geometry", "GIS", "C++20", "Razor Pages" },
+            "/Projects/Geometry/Index", "/Projects/Geometry/Details", "View technical details for Geometry Toolkit"),
+        ("terrain", "fa-mountain-sun", "Terrain Analyzer",
+            "Raster analysis interface for hillshade and heatmap generation over dense grids, backed by a native terrain kernel with a managed fallback.",
+            new[] { "Raster", "Terrain", "C++20", "ASP.NET Core" },
+            "/Projects/Terrain/Index", "/Projects/Terrain/Details", "View technical details for Terrain Analyzer"),
+        ("network", "fa-route", "Route Planner",
+            "Spatial graph analysis demo for shortest-path routing and service-area traversal over a native-backed network engine.",
+            new[] { "Routing", "Graphs", "C++20", "P/Invoke" },
+            "/Projects/Network/Index", "/Projects/Network/Details", "View technical details for Route Planner"),
+        ("clustering", "fa-fire", "Hotspot Clusterer",
+            "Density-based clustering (DBSCAN) that groups incident points into hotspots and separates them from noise, over a native-backed clustering kernel.",
+            new[] { "Clustering", "DBSCAN", "C++20", "P/Invoke" },
+            "/Projects/Clustering", "/Projects/Clustering/Details", "View technical details for Hotspot Clusterer"),
+        ("viewshed", "fa-eye", "Viewshed Analyzer",
+            "Line-of-sight visibility analysis over a terrain grid — place an observer and see what they can see, over a native-backed ray-casting kernel.",
+            new[] { "Viewshed", "Line-of-Sight", "C++20", "ASP.NET Core" },
+            "/Projects/Viewshed", "/Projects/Viewshed/Details", "View technical details for Viewshed Analyzer"),
+        ("overlay", "fa-shapes", "Spatial Overlay / Zone Tagger",
+            "Point-in-polygon spatial join that tags points with their containing zone and rolls the counts into a live choropleth, over a native-backed overlay kernel.",
+            new[] { "Spatial Join", "Point-in-Polygon", "C++20", "P/Invoke" },
+            "/Projects/Overlay", "/Projects/Overlay/Details", "View technical details for Spatial Overlay"),
+        ("cat-risk", "fa-fire-flame-curved", "Catastrophe Risk Analyzer",
+            "Insurance catastrophe model for wildfire exposure — ring accumulation, Monte Carlo event-loss simulation, and the exceedance probability curve.",
+            new[] { "Insurance", "Monte Carlo", "C++20", "P/Invoke" },
+            "/Projects/CatRisk", "/Projects/CatRisk/Details", "View technical details for Catastrophe Risk Analyzer"),
+        ("change-detection", "fa-satellite", "Raster Change Detection",
+            "Multitemporal satellite change detection — Change Vector Analysis, an automatic Otsu threshold, morphological speckle removal, and connected-component extraction.",
+            new[] { "Remote Sensing", "Canvas", "C++20", "P/Invoke" },
+            "/Projects/Change", "/Projects/Change/Details", "View technical details for Raster Change Detection"),
+        ("outage", "fa-bolt", "Outage Manager & Network Trace",
+            "Electric distribution outage management — fault tracing, isolation devices, and tie-switch restoration planning.",
+            new[] { "Utilities", "Graph Traversal", "C++20", "P/Invoke" },
+            "/Projects/Outage", "/Projects/Outage/Details", "View technical details for Outage Manager"),
+        ("response-coverage", "fa-truck-medical", "Emergency Response Coverage Optimizer",
+            "Fire station siting over a real street network — drive-time isochrones and p-median optimization scored on the NFPA 1710 standard.",
+            new[] { "Public Safety", "p-median", "C++20", "P/Invoke" },
+            "/Projects/Response", "/Projects/Response/Details", "View technical details for the Emergency Response Coverage Optimizer"),
+        ("fleet", "fa-truck-fast", "Fleet Route Optimizer",
+            "Capacitated vehicle routing with time windows over the real Redlands street network — savings construction plus 2-opt and Or-opt local search.",
+            new[] { "Logistics", "CVRPTW", "C++20", "Leaflet" },
+            "/Projects/Fleet", "/Projects/Fleet/Details", "View technical details for Fleet Route Optimizer")
+    };
 }
 
 <!-- Hero -->
@@ -98,771 +177,25 @@
 <!-- Featured Projects -->
 <section id="projects" class="projects-section py-5" role="region" aria-labelledby="projectsHeading">
     <div class="container">
-        <h2 id="projectsHeading" class="section-title text-center mb-5">Featured Projects</h2>
+        <h2 id="projectsHeading" class="section-title text-center mb-3">Featured Projects</h2>
 
-        <div class="projects-slider" role="region" aria-label="Project cards carousel">
+        <!-- Revealed by carousel.js; without script the carousel is just a marquee. -->
+        <div class="projects-controls text-center mb-3">
+            <button type="button" id="projectsPause" class="btn btn-outline-accent btn-sm" aria-pressed="false" aria-controls="projectsSlider" hidden>
+                <i class="fa-solid fa-pause" aria-hidden="true"></i>
+                <span>Pause carousel</span>
+            </button>
+        </div>
+
+        <div id="projectsSlider" class="projects-slider" role="region" aria-label="Project cards carousel">
             <div class="projects-track">
-                <!-- State Explorer -->
-                <article class="project-card" aria-labelledby="project-state-explorer">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-map fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-state-explorer" class="project-title">US State Explorer</h3>
-                        <p class="project-desc">Explore, compare, and analyze U.S. states with an interactive ArcGIS-powered dashboard and ASP.NET Core backend.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS JS</span>
-                            <span>ASP.NET Core</span>
-                            <span>GeoJSON</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/StateExplorer/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/StateExplorer/Details" aria-label="View technical details for US State Explorer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Home Finder -->
-                <article class="project-card" aria-labelledby="project-home-finder">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-house fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-home-finder" class="project-title">Redlands Smart Home Finder</h3>
-                        <p class="project-desc">GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS JS</span>
-                            <span>ASP.NET Core</span>
-                            <span>PostgreSQL</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/HomeFinder/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/HomeFinder/Details" aria-label="View technical details for Redlands Smart Home Finder" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Plant Operations Dashboard -->
-                <article class="project-card" aria-labelledby="project-plant-ops">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-industry fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-plant-ops" class="project-title">Plant Operations Dashboard</h3>
-                        <p class="project-desc">Industrial plant operations dashboard for a fiberglass ducting manufacturer. Shipment GIS routing, order management, inventory tracking with transaction audit logs, and a live revenue dashboard.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ASP.NET Core</span>
-                            <span>DataTables</span>
-                            <span>Esri GIS</span>
-                            <span>PostgreSQL</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/PlantOperationsDashboard/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/PlantOperationsDashboard/Details" aria-label="View technical details for Plant Operations Dashboard" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Batch Geocoding -->
-                <article class="project-card" aria-labelledby="project-batch-geocoding">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-map-location-dot fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-batch-geocoding" class="project-title">Batch Geocoding</h3>
-                        <p class="project-desc">Upload a CSV of addresses and geocode them in bulk via ArcGIS. View match rates, scores, and coordinates in an interactive DataTables results grid with export support.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS Geocoding</span>
-                            <span>ASP.NET Core</span>
-                            <span>C#</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/BatchGeocoding/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/BatchGeocoding/Details" aria-label="View technical details for Batch Geocoding" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Reverse Geocoding -->
-                <article class="project-card" aria-labelledby="project-reverse-geocoding">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-map-pin fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-reverse-geocoding" class="project-title">Reverse Geocoding</h3>
-                        <p class="project-desc">Click anywhere on an interactive ArcGIS map to instantly discover the address or place at that location, with a history of recent lookups and manual coordinate entry.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS Geocoding</span>
-                            <span>ASP.NET Core</span>
-                            <span>C#</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/ReverseGeocoding/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/ReverseGeocoding/Details" aria-label="View technical details for Reverse Geocoding" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Address Standardization -->
-                <article class="project-card" aria-labelledby="project-address-std">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-address-card fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-address-std" class="project-title">Address Standardization &amp; Validation</h3>
-                        <p class="project-desc">Parse freeform addresses into structured components with NLP-style regex extraction, then validate and score them against ArcGIS geocoding with a confidence tier result.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS Geocoding</span>
-                            <span>NLP Parsing</span>
-                            <span>ASP.NET Core</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/AddressStandardization/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/AddressStandardization/Details" aria-label="View technical details for Address Standardization" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Live Location Stream -->
-                <article class="project-card" aria-labelledby="project-geostream">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-satellite-dish fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-geostream" class="project-title">Live Location Stream</h3>
-                        <p class="project-desc">Live-style telemetry processing that aggregates GPS events into spatial grid cells and flags high-speed anomalies through a native-backed stream kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Telemetry</span>
-                            <span>ASP.NET Core</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/GeoStream/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/GeoStream/Details" aria-label="View technical details for Live Location Stream" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Geometry Toolkit -->
-                <article class="project-card" aria-labelledby="project-geometry">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-draw-polygon fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-geometry" class="project-title">Geometry Toolkit</h3>
-                        <p class="project-desc">Computational geometry demo for triangulation and polygon clipping with a clean ASP.NET Core API over a native C++ geometry kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Geometry</span>
-                            <span>GIS</span>
-                            <span>C++20</span>
-                            <span>Razor Pages</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Geometry/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Geometry/Details" aria-label="View technical details for Geometry Toolkit" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Terrain Analyzer -->
-                <article class="project-card" aria-labelledby="project-terrain">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-mountain-sun fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-terrain" class="project-title">Terrain Analyzer</h3>
-                        <p class="project-desc">Raster analysis interface for hillshade and heatmap generation over dense grids, backed by a native terrain kernel with a managed fallback.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Raster</span>
-                            <span>Terrain</span>
-                            <span>C++20</span>
-                            <span>ASP.NET Core</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Terrain/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Terrain/Details" aria-label="View technical details for Terrain Analyzer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Route Planner -->
-                <article class="project-card" aria-labelledby="project-network">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-route fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-network" class="project-title">Route Planner</h3>
-                        <p class="project-desc">Spatial graph analysis demo for shortest-path routing and service-area traversal over a native-backed network engine.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Routing</span>
-                            <span>Graphs</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Network/Index">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Network/Details" aria-label="View technical details for Route Planner" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Hotspot Clusterer -->
-                <article class="project-card" aria-labelledby="project-clustering">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-fire fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-clustering" class="project-title">Hotspot Clusterer</h3>
-                        <p class="project-desc">Density-based clustering (DBSCAN) that groups incident points into hotspots and separates them from noise, over a native-backed clustering kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Clustering</span>
-                            <span>DBSCAN</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Clustering">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Clustering/Details" aria-label="View technical details for Hotspot Clusterer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Viewshed Analyzer -->
-                <article class="project-card" aria-labelledby="project-viewshed">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-eye fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-viewshed" class="project-title">Viewshed Analyzer</h3>
-                        <p class="project-desc">Line-of-sight visibility analysis over a terrain grid — place an observer and see what they can see, over a native-backed ray-casting kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Viewshed</span>
-                            <span>Line-of-Sight</span>
-                            <span>C++20</span>
-                            <span>ASP.NET Core</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Viewshed">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Viewshed/Details" aria-label="View technical details for Viewshed Analyzer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Spatial Overlay / Zone Tagger -->
-                <article class="project-card" aria-labelledby="project-overlay">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-shapes fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-overlay" class="project-title">Spatial Overlay / Zone Tagger</h3>
-                        <p class="project-desc">Point-in-polygon spatial join that tags points with their containing zone and rolls the counts into a live choropleth, over a native-backed overlay kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Spatial Join</span>
-                            <span>Point-in-Polygon</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Overlay">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Overlay/Details" aria-label="View technical details for Spatial Overlay" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Catastrophe Risk Analyzer -->
-                <article class="project-card" aria-labelledby="project-cat-risk">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-fire-flame-curved fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-cat-risk" class="project-title">Catastrophe Risk Analyzer</h3>
-                        <p class="project-desc">Insurance catastrophe model for wildfire exposure — ring accumulation, Monte Carlo event-loss simulation, and the exceedance probability curve.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Insurance</span>
-                            <span>Monte Carlo</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/CatRisk">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/CatRisk/Details" aria-label="View technical details for Catastrophe Risk Analyzer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <!-- Raster Change Detection -->
-                <article class="project-card" aria-labelledby="project-change-detection">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-satellite fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-change-detection" class="project-title">Raster Change Detection</h3>
-                        <p class="project-desc">Multitemporal satellite change detection — Change Vector Analysis, an automatic Otsu threshold, morphological speckle removal, and connected-component extraction.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Remote Sensing</span>
-                            <span>Canvas</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Change">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Change/Details" aria-label="View technical details for Raster Change Detection" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <article class="project-card" aria-labelledby="project-outage">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-bolt fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-outage" class="project-title">Outage Manager &amp; Network Trace</h3>
-                        <p class="project-desc">Electric distribution outage management — fault tracing, isolation devices, and tie-switch restoration planning.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Utilities</span>
-                            <span>Graph Traversal</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Outage">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Outage/Details" aria-label="View technical details for Outage Manager" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <article class="project-card" aria-labelledby="project-response-coverage">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-truck-medical fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-response-coverage" class="project-title">Emergency Response Coverage Optimizer</h3>
-                        <p class="project-desc">Fire station siting over a real street network — drive-time isochrones and p-median optimization scored on the NFPA 1710 standard.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Public Safety</span>
-                            <span>p-median</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Response">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Response/Details" aria-label="View technical details for the Emergency Response Coverage Optimizer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <!-- Fleet Route Optimizer -->
-                <article class="project-card" aria-labelledby="project-fleet">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-truck-fast fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 id="project-fleet" class="project-title">Fleet Route Optimizer</h3>
-                        <p class="project-desc">Capacitated vehicle routing with time windows over the real Redlands street network — savings construction plus 2-opt and Or-opt local search.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Logistics</span>
-                            <span>CVRPTW</span>
-                            <span>C++20</span>
-                            <span>Leaflet</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Fleet">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Fleet/Details" aria-label="View technical details for Fleet Route Optimizer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Duplicates for seamless loop -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-map fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">US State Explorer</h3>
-                        <p class="project-desc">Explore, compare, and analyze U.S. states with an interactive ArcGIS-powered dashboard and ASP.NET Core backend.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS JS</span>
-                            <span>ASP.NET Core</span>
-                            <span>GeoJSON</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/StateExplorer/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/StateExplorer/Details" tabindex="-1" aria-label="View technical details for US State Explorer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-house fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Redlands Smart Home Finder</h3>
-                        <p class="project-desc">GIS-powered tool to discover and rank the top 10 homes in Redlands, CA based on weighted preferences and a composite scoring algorithm.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS JS</span>
-                            <span>ASP.NET Core</span>
-                            <span>PostgreSQL</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/HomeFinder/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/HomeFinder/Details" tabindex="-1" aria-label="View technical details for Redlands Smart Home Finder" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-industry fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Plant Operations Dashboard</h3>
-                        <p class="project-desc">Industrial plant operations dashboard for a fiberglass ducting manufacturer. Shipment GIS routing, order management, inventory tracking with transaction audit logs, and a live revenue dashboard.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ASP.NET Core</span>
-                            <span>DataTables</span>
-                            <span>Esri GIS</span>
-                            <span>PostgreSQL</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/PlantOperationsDashboard/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/PlantOperationsDashboard/Details" tabindex="-1" aria-label="View technical details for Plant Operations Dashboard" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-map-location-dot fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Batch Geocoding</h3>
-                        <p class="project-desc">Upload a CSV of addresses and geocode them in bulk via ArcGIS. View match rates, scores, and coordinates in an interactive DataTables results grid with export support.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS Geocoding</span>
-                            <span>ASP.NET Core</span>
-                            <span>C#</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/BatchGeocoding/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/BatchGeocoding/Details" tabindex="-1" aria-label="View technical details for Batch Geocoding" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-map-pin fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Reverse Geocoding</h3>
-                        <p class="project-desc">Click anywhere on an interactive ArcGIS map to instantly discover the address or place at that location, with a history of recent lookups and manual coordinate entry.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS Geocoding</span>
-                            <span>ASP.NET Core</span>
-                            <span>C#</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/ReverseGeocoding/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/ReverseGeocoding/Details" tabindex="-1" aria-label="View technical details for Reverse Geocoding" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-address-card fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Address Standardization &amp; Validation</h3>
-                        <p class="project-desc">Parse freeform addresses into structured components with NLP-style regex extraction, then validate and score them against ArcGIS geocoding with a confidence tier result.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>ArcGIS Geocoding</span>
-                            <span>NLP Parsing</span>
-                            <span>ASP.NET Core</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/AddressStandardization/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/AddressStandardization/Details" tabindex="-1" aria-label="View technical details for Address Standardization" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-satellite-dish fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Live Location Stream</h3>
-                        <p class="project-desc">Live-style telemetry processing that aggregates GPS events into spatial grid cells and flags high-speed anomalies through a native-backed stream kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Telemetry</span>
-                            <span>ASP.NET Core</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/GeoStream/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/GeoStream/Details" tabindex="-1" aria-label="View technical details for Live Location Stream" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-draw-polygon fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Geometry Toolkit</h3>
-                        <p class="project-desc">Computational geometry demo for triangulation and polygon clipping with a clean ASP.NET Core API over a native C++ geometry kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Geometry</span>
-                            <span>GIS</span>
-                            <span>C++20</span>
-                            <span>Razor Pages</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Geometry/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Geometry/Details" tabindex="-1" aria-label="View technical details for Geometry Toolkit" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-mountain-sun fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Terrain Analyzer</h3>
-                        <p class="project-desc">Raster analysis interface for hillshade and heatmap generation over dense grids, backed by a native terrain kernel with a managed fallback.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Raster</span>
-                            <span>Terrain</span>
-                            <span>C++20</span>
-                            <span>ASP.NET Core</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Terrain/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Terrain/Details" tabindex="-1" aria-label="View technical details for Terrain Analyzer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-route fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Route Planner</h3>
-                        <p class="project-desc">Spatial graph analysis demo for shortest-path routing and service-area traversal over a native-backed network engine.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Routing</span>
-                            <span>Graphs</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Network/Index" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Network/Details" tabindex="-1" aria-label="View technical details for Route Planner" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Hotspot Clusterer (duplicate) -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-fire fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Hotspot Clusterer</h3>
-                        <p class="project-desc">Density-based clustering (DBSCAN) that groups incident points into hotspots and separates them from noise, over a native-backed clustering kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Clustering</span>
-                            <span>DBSCAN</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Clustering" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Clustering/Details" tabindex="-1" aria-label="View technical details for Hotspot Clusterer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Viewshed Analyzer (duplicate) -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-eye fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Viewshed Analyzer</h3>
-                        <p class="project-desc">Line-of-sight visibility analysis over a terrain grid — place an observer and see what they can see, over a native-backed ray-casting kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Viewshed</span>
-                            <span>Line-of-Sight</span>
-                            <span>C++20</span>
-                            <span>ASP.NET Core</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Viewshed" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Viewshed/Details" tabindex="-1" aria-label="View technical details for Viewshed Analyzer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Spatial Overlay / Zone Tagger (duplicate) -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-shapes fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Spatial Overlay / Zone Tagger</h3>
-                        <p class="project-desc">Point-in-polygon spatial join that tags points with their containing zone and rolls the counts into a live choropleth, over a native-backed overlay kernel.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Spatial Join</span>
-                            <span>Point-in-Polygon</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Overlay" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Overlay/Details" tabindex="-1" aria-label="View technical details for Spatial Overlay" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-
-                <!-- Catastrophe Risk Analyzer (duplicate) -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-fire-flame-curved fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Catastrophe Risk Analyzer</h3>
-                        <p class="project-desc">Insurance catastrophe model for wildfire exposure — ring accumulation, Monte Carlo event-loss simulation, and the exceedance probability curve.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Insurance</span>
-                            <span>Monte Carlo</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/CatRisk" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/CatRisk/Details" tabindex="-1" aria-label="View technical details for Catastrophe Risk Analyzer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <!-- Raster Change Detection (duplicate) -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-satellite fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Raster Change Detection</h3>
-                        <p class="project-desc">Multitemporal satellite change detection — Change Vector Analysis, an automatic Otsu threshold, morphological speckle removal, and connected-component extraction.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Remote Sensing</span>
-                            <span>Canvas</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Change" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Change/Details" tabindex="-1" aria-label="View technical details for Raster Change Detection" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <!-- Outage Manager & Network Trace (duplicate) -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-bolt fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Outage Manager &amp; Network Trace</h3>
-                        <p class="project-desc">Electric distribution outage management — fault tracing, isolation devices, and tie-switch restoration planning.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Utilities</span>
-                            <span>Graph Traversal</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Outage" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Outage/Details" tabindex="-1" aria-label="View technical details for Outage Manager" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-truck-medical fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Emergency Response Coverage Optimizer</h3>
-                        <p class="project-desc">Fire station siting over a real street network — drive-time isochrones and p-median optimization scored on the NFPA 1710 standard.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Public Safety</span>
-                            <span>p-median</span>
-                            <span>C++20</span>
-                            <span>P/Invoke</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Response" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Response/Details" tabindex="-1" aria-label="View technical details for the Emergency Response Coverage Optimizer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
-                <!-- Fleet Route Optimizer (duplicate) -->
-                <article class="project-card" aria-hidden="true">
-                    <div class="project-image" aria-hidden="true">
-                        <i class="fa-solid fa-truck-fast fa-3x"></i>
-                    </div>
-                    <div class="project-info">
-                        <h3 class="project-title">Fleet Route Optimizer</h3>
-                        <p class="project-desc">Capacitated vehicle routing with time windows over the real Redlands street network — savings construction plus 2-opt and Or-opt local search.</p>
-                        <div class="project-stack" aria-hidden="true">
-                            <span>Logistics</span>
-                            <span>CVRPTW</span>
-                            <span>C++20</span>
-                            <span>Leaflet</span>
-                        </div>
-                        <div class="mt-3">
-                            <a class="btn btn-outline-accent btn-sm me-2" href="/Projects/Fleet" tabindex="-1">Demo</a>
-                            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="-1">GitHub</a>
-                            <a class="btn btn-outline-accent btn-sm" href="/Projects/Fleet/Details" tabindex="-1" aria-label="View technical details for Fleet Route Optimizer" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
-                        </div>
-                    </div>
-                </article>
+                @for (var pass = 0; pass < 2; pass++)
+                {
+                    foreach (var c in projects)
+                    {
+                        <partial name="_ProjectCard" model="(c.Id, c.Icon, c.Title, c.Desc, c.Stack, c.Demo, c.Details, c.DetailsLabel, pass == 1)" />
+                    }
+                }
             </div>
         </div>
 
@@ -976,11 +309,5 @@
 </section>
 
 @section Scripts {
-<script>
-    function copyEmailContact() 
-    {
-        navigator.clipboard.writeText('brianpcoffey99@gmail.com')
-            .then(() => alert('Email copied to clipboard!'));
-    }
-</script>
+<script src="~/js/carousel.js" asp-append-version="true"></script>
 }

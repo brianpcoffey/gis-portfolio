@@ -1,0 +1,27 @@
+@model (string Id, string Icon, string Title, string Desc, string[] Stack, string Demo, string Details, string DetailsLabel, bool IsCopy)
+@{
+    // One featured-project card. The home carousel renders every card twice (the CSS loop
+    // translates the track by exactly half its width), so IsCopy marks the second pass:
+    // no id, hidden from assistive tech, and inert so keyboard focus cannot enter it.
+}
+<article class="project-card" aria-labelledby="@(Model.IsCopy ? null : "project-" + Model.Id)"
+         aria-hidden="@(Model.IsCopy ? "true" : null)" inert="@Model.IsCopy">
+    <div class="project-image" aria-hidden="true">
+        <i class="fa-solid @Model.Icon fa-3x"></i>
+    </div>
+    <div class="project-info">
+        <h3 id="@(Model.IsCopy ? null : "project-" + Model.Id)" class="project-title">@Model.Title</h3>
+        <p class="project-desc">@Model.Desc</p>
+        <div class="project-stack" aria-hidden="true">
+            @foreach (var tech in Model.Stack)
+            {
+                <span>@tech</span>
+            }
+        </div>
+        <div class="mt-3">
+            <a class="btn btn-outline-accent btn-sm me-2" href="@Model.Demo" tabindex="@(Model.IsCopy ? "-1" : null)">Demo</a>
+            <a class="btn btn-accent btn-sm me-2" href="https://github.com/brianpcoffey/gis-portfolio" target="_blank" rel="noopener" tabindex="@(Model.IsCopy ? "-1" : null)">GitHub</a>
+            <a class="btn btn-outline-accent btn-sm" href="@Model.Details" tabindex="@(Model.IsCopy ? "-1" : null)" aria-label="@Model.DetailsLabel" title="Technical Details"><i class="fa-solid fa-circle-info"></i></a>
+        </div>
+    </div>
+</article>
