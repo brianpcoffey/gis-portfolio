@@ -69,7 +69,7 @@
             <div class="profile-card-body">
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">User ID</div>
-                    <div class="profile-detail-value"><code>@Model.UserId</code></div>
+                    <div class="profile-detail-value"><code>@(Model.UserId.ToString()[..8])&hellip;</code></div>
                 </div>
                 <div class="profile-detail-row">
                     <div class="profile-detail-label">Email</div>

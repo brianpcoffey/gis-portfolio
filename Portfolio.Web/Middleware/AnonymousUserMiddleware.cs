@@ -5,14 +5,19 @@ using Microsoft.Extensions.Logging;
 using Portfolio.Common.Constants;
 using Portfolio.Common.Models;
 using Portfolio.Repositories;
+using Portfolio.Repositories.Diagnostics;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 namespace Portfolio.Web.Middleware
 {
     /// <summary>
-    /// Ensures every visitor has a UserProfile identity stored in HttpContext.Items["AnonUserId"].
-    /// For Google-authenticated users the OnSignedIn event has already set the cookie and Items key.
-    /// For anonymous users this validates/reuses the AnonUserId cookie, or creates a new profile.
+    /// Ensures browser visitors have a UserProfile identity stored in HttpContext.Items["PortfolioIdentity"].
+    /// For Google-authenticated users the OnSignedIn event has already set the Items key.
+    /// For anonymous users this validates/reuses the AnonUserId cookie, or creates a new profile
+    /// (throttled per client address, and never for /api paths). A cookie that names a
+    /// Google-linked profile is deleted and gives no identity. Seed data is created at sign-in,
+    /// not here.
     /// </summary>
     public class AnonymousUserMiddleware
     {
@@ -21,6 +26,18 @@ namespace Portfolio.Web.Middleware
         private readonly ILogger<AnonymousUserMiddleware> _logger;
         private const string CookieName = "AnonUserId";
         private const string HttpContextItemKey = "PortfolioIdentity";
+
+        // New anonymous identities per client address per minute. An instance field: the
+        // middleware is constructed once per application, so this is app-wide state.
+        private const int NewIdentitiesPerMinute = 10;
+        private readonly PartitionedRateLimiter<string> _identityLimiter =
+            PartitionedRateLimiter.Create<string, string>(ip =>
+                RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = NewIdentitiesPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
 
         public AnonymousUserMiddleware(
             RequestDelegate next,
@@ -32,7 +49,7 @@ namespace Portfolio.Web.Middleware
             _logger = logger;
         }
 
-        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider, Portfolio.Services.Services.UserProfileSeedService seedService)
+        public async Task InvokeAsync(HttpContext context, PortfolioDbContext db, TimeProvider timeProvider)
         {
             // Only set anonymous identity if not already set by authentication
             if (context.Items.ContainsKey(HttpContextItemKey))
@@ -75,8 +92,24 @@ namespace Portfolio.Web.Middleware
             if (context.Request.Cookies.TryGetValue(CookieName, out var cookieValue) && Guid.TryParse(cookieValue, out userId))
             {
                 var profile = await db.UserProfiles.AsTracking().FirstOrDefaultAsync(p => p.UserId == userId);
+                if (profile != null &&
+                    await db.UserClaims.AsNoTracking().AnyAsync(c => c.UserId == userId && c.ClaimType == ProfileClaimTypes.GoogleId))
+                {
+                    // The anonymous cookie must never act as a Google-linked account: drop it and
+                    // continue with no identity (the next browser request gets a fresh one).
+                    context.Response.Cookies.Delete(CookieName);
+                    await _next(context);
+                    return;
+                }
+
                 if (profile == null)
                 {
+                    if (!TryAcquireNewIdentity(context))
+                    {
+                        await _next(context);
+                        return;
+                    }
+
                     profile = new UserProfile
                     {
                         UserId = userId,
@@ -102,7 +135,7 @@ namespace Portfolio.Web.Middleware
                 // No cookie present. Only create a new profile for browser requests — probes
                 // and API clients cannot store the cookie, so creating a profile for them
                 // would generate a new anonymous user on every probe request.
-                if (!acceptsHtml)
+                if (!acceptsHtml || !TryAcquireNewIdentity(context))
                 {
                     await _next(context);
                     return;
@@ -117,7 +150,6 @@ namespace Portfolio.Web.Middleware
                 };
                 db.UserProfiles.Add(profile);
                 await db.SaveChangesAsync();
-                await seedService.SeedForUserAsync(userId, context.RequestAborted);
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
@@ -133,13 +165,25 @@ namespace Portfolio.Web.Middleware
                 context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
                 _logger.LogInformation(
                     "Created anon profile and cookie for {UserId} (Scheme={Scheme})",
-                    userId,
+                    LogRedaction.UserId(userId),
                     context.Request.Scheme);
             }
 
             context.Items[HttpContextItemKey] = userId;
 
             await _next(context);
+        }
+
+        // Gate for both identity-creation paths. API paths never create an identity, and each
+        // client address may create NewIdentitiesPerMinute new ones per minute.
+        private bool TryAcquireNewIdentity(HttpContext context)
+        {
+            if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            using var lease = _identityLimiter.AttemptAcquire(ip);
+            return lease.IsAcquired;
         }
     }
 }

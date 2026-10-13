@@ -52,7 +52,7 @@ public class IdentityTests
     // ── Host: what a visit creates ───────────────────────────────────────────
 
     [Fact]
-    public async Task FreshAnonymousVisit_Today_SeedsRows()
+    public async Task FreshAnonymousVisit_InsertsOneProfileAndNoSeedRows()
     {
         // Arrange
         await using var f = new PortfolioAppFactory();
@@ -63,24 +63,55 @@ public class IdentityTests
         // Assert
         Assert.Equal(HttpStatusCode.OK, r.StatusCode);
         Assert.Equal(1, f.ProfileCount());
-        Assert.True(await WithDb(f, db => db.FiberClients.CountAsync(TestContext.Current.CancellationToken)) > 0);
+        // Flipped (WP-15, D-05): the characterisation asserted seeded fiber clients here.
+        Assert.Equal(0, await WithDb(f, db => db.FiberClients.CountAsync(TestContext.Current.CancellationToken)));
+        Assert.Equal(0, await WithDb(f, db => db.FiberMaterials.CountAsync(TestContext.Current.CancellationToken)));
+        Assert.Equal(0, await WithDb(f, db => db.Properties.CountAsync(TestContext.Current.CancellationToken)));
     }
 
     [Fact]
-    public async Task ApiRequest_WithHtmlAccept_AndNoCookie_Today_CreatesAProfile()
+    public async Task ApiRequest_WithHtmlAccept_AndNoCookie_CreatesNoProfile()
     {
         // Arrange
         await using var f = new PortfolioAppFactory();
 
         // Act
-        await Bare(f).SendAsync(Get("/api/v1/no-such-route", "text/html"), TestContext.Current.CancellationToken);
+        var r = await Bare(f).SendAsync(Get("/api/v1/no-such-route", "text/html"), TestContext.Current.CancellationToken);
 
         // Assert
+        Assert.Equal(0, f.ProfileCount());
+        Assert.Null(SetCookieFor(r));
+    }
+
+    [Fact]
+    public async Task CookieOfALinkedProfile_GetsNoIdentity_AndTheCookieIsDeleted()
+    {
+        // Arrange
+        await using var f = new PortfolioAppFactory();
+        var victim = Guid.NewGuid();
+        await WithDb(f, async db =>
+        {
+            db.UserProfiles.Add(new UserProfile { UserId = victim, CreatedDate = DateTime.UtcNow, LastActiveDate = DateTime.UtcNow });
+            db.UserClaims.Add(new UserClaim { UserId = victim, ClaimType = ProfileClaimTypes.GoogleId, ClaimValue = "g-victim" });
+            await db.SaveChangesAsync();
+            return 0;
+        });
+
+        // Act
+        var r = await Bare(f).SendAsync(Get("/api/v1/features/saved", "application/json", victim.ToString()), TestContext.Current.CancellationToken);
+
+        // Assert
+        // No identity, so the saved-features endpoint cannot act as the victim (409, as for any
+        // request without an identity).
+        Assert.Equal(HttpStatusCode.Conflict, r.StatusCode);
+        var deleted = SetCookieFor(r);
+        Assert.NotNull(deleted);
+        Assert.Contains("expires=", deleted, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(1, f.ProfileCount());
     }
 
     [Fact]
-    public async Task EleventhNewIdentity_Today_StillGetsACookie()
+    public async Task EleventhNewIdentity_FromOneAddress_GetsNoCookie()
     {
         // Arrange
         await using var f = new PortfolioAppFactory();
@@ -92,8 +123,10 @@ public class IdentityTests
             last = await c.SendAsync(Get("/Privacy", "text/html"), TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.NotNull(SetCookieFor(last!));
-        Assert.Equal(11, f.ProfileCount());
+        // Flipped (WP-15): the characterisation expected a cookie for the 11th as well.
+        Assert.Equal(HttpStatusCode.OK, last!.StatusCode);
+        Assert.Null(SetCookieFor(last));
+        Assert.Equal(10, f.ProfileCount());
     }
 
     // ── Service: sign-in merge over a real repository ────────────────────────
