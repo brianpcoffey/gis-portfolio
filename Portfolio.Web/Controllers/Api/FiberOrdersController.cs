@@ -48,6 +48,7 @@ namespace Portfolio.Web.Controllers.Api
         [RequestSizeLimit(65_536)]
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(409)]
         [ProducesResponseType(500)]
         public async Task<IActionResult> Create([FromBody] CreateFiberOrderDto dto, CancellationToken cancellationToken)
         {

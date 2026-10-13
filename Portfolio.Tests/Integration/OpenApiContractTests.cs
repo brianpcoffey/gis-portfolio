@@ -339,4 +339,21 @@ public class OpenApiContractTests
         // Assert
         GoldenAssert.Equal(Lines(ExpectedSchemas), actual);
     }
+
+    [Fact]
+    public async Task CreateFiberOrder_DocumentsTheConflictResponse()
+    {
+        // Arrange
+        using var doc = await FetchAsync();
+
+        // Act: 409 covers a request with no identity and an order number that could not be assigned after the retries.
+        var responses = doc.RootElement.GetProperty("paths").GetProperty("/api/v1/fiber/orders")
+            .GetProperty("post").GetProperty("responses");
+        var codes = responses.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal).ToList();
+
+        // Assert
+        Assert.Equal(["201", "400", "409", "500"], codes);
+        Assert.Equal("Conflict", responses.GetProperty("409").GetProperty("description").GetString());
+        Assert.Contains("#/components/schemas/ProblemDetails", responses.GetProperty("409").GetRawText(), StringComparison.Ordinal);
+    }
 }

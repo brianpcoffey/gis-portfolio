@@ -28,12 +28,12 @@ namespace Portfolio.Tests.Services
             _service = new FiberOrderService(_orderRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
         }
 
-        // Records every order handed to AddAsync (and gives it an id, as the database would).
+        // Records every order handed to TryAddAsync (and gives it an id, as the database would).
         private readonly List<FiberOrder> _added = new();
 
         private void CaptureAddedOrders() =>
             _orderRepoMock
-                .Setup(r => r.AddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
+                .Setup(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((FiberOrder o, CancellationToken _) =>
                 {
                     o.Id = 7;
@@ -123,7 +123,7 @@ namespace Portfolio.Tests.Services
                 ShipDate = dto.ShipDate
             };
             _orderRepoMock
-                .Setup(r => r.AddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
+                .Setup(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(created);
 
             // Act
@@ -133,7 +133,7 @@ namespace Portfolio.Tests.Services
             Assert.NotNull(result);
             Assert.Equal(42, result.Id);
             Assert.Equal("Acme", result.ClientName);
-            _orderRepoMock.Verify(r => r.AddAsync(
+            _orderRepoMock.Verify(r => r.TryAddAsync(
                 It.Is<FiberOrder>(o => o.UserId == _testUserId && o.ClientName == "Acme"),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -152,6 +152,87 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.Equal("ORD-20261013-0001", result.OrderNumber);
             Assert.Equal("ORD-20261013-0001", Assert.Single(_added).OrderNumber);
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenTheNumberWasTakenFirstByAnotherCreate_ReadsTheIssuedNumbersAgainAndRetries()
+        {
+            // Arrange: the first attempt is offered 0001, but a racing create has taken it by the time of the insert.
+            var offered = new List<string>();
+            _orderRepoMock
+                .SetupSequence(r => r.GetOrderNumbersAsync(_testUserId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<string>())
+                .ReturnsAsync(new List<string> { "ORD-20261013-0001" });
+            _orderRepoMock
+                .Setup(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((FiberOrder o, CancellationToken _) =>
+                {
+                    offered.Add(o.OrderNumber);
+                    if (offered.Count == 1) return null;
+                    o.Id = 7;
+                    return o;
+                });
+
+            // Act
+            var result = await _service.CreateAsync(NewOrderDto());
+
+            // Assert
+            Assert.Equal(["ORD-20261013-0001", "ORD-20261013-0002"], offered);
+            Assert.Equal("ORD-20261013-0002", result.OrderNumber);
+            Assert.Equal(7, result.Id);
+            _orderRepoMock.Verify(r => r.GetOrderNumbersAsync(
+                _testUserId, "ORD-20261013-", It.IsAny<CancellationToken>()), Times.Exactly(2));
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenOnlyTheThirdAttemptSucceeds_ReturnsThatOrder()
+        {
+            // Arrange
+            var attempts = 0;
+            _orderRepoMock
+                .Setup(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((FiberOrder o, CancellationToken _) => ++attempts < 3 ? null : o);
+
+            // Act
+            var result = await _service.CreateAsync(NewOrderDto());
+
+            // Assert
+            Assert.Equal(3, attempts);
+            Assert.Equal("ORD-20261013-0001", result.OrderNumber);
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenEveryAttemptLosesTheRace_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((FiberOrder?)null);
+
+            // Act
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateAsync(NewOrderDto()));
+
+            // Assert
+            Assert.Equal("Could not assign an order number. Please try again.", ex.Message);
+            _orderRepoMock.Verify(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+            _orderRepoMock.Verify(r => r.GetOrderNumbersAsync(
+                _testUserId, "ORD-20261013-", It.IsAny<CancellationToken>()), Times.Exactly(3));
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenTheRepositoryThrows_DoesNotRetry()
+        {
+            // Arrange
+            _orderRepoMock
+                .Setup(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new TimeoutException("db down"));
+
+            // Act
+            var ex = await Assert.ThrowsAsync<TimeoutException>(() => _service.CreateAsync(NewOrderDto()));
+
+            // Assert
+            Assert.Equal("db down", ex.Message);
+            _orderRepoMock.Verify(r => r.TryAddAsync(It.IsAny<FiberOrder>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]

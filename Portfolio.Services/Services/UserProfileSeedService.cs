@@ -115,7 +115,10 @@ public class UserProfileSeedService
         {
             var client = clients[order.ClientName];
             var productName = order.ProductName;
-            if (client != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && o.ClientName == client.Name && o.ProductName == productName, cancellationToken))
+            var orderNumber = order.OrderNumber;
+            // A user may have edited a demo order's client or product (PUT allows it); the number is still theirs,
+            // and the unique (user, order number) index would reject a second copy, so skip on either match.
+            if (client != null && !await _db.FiberOrders.AnyAsync(o => o.UserId == userId && (o.OrderNumber == orderNumber || (o.ClientName == client.Name && o.ProductName == productName)), cancellationToken))
             {
                 _db.FiberOrders.Add(order);
             }
