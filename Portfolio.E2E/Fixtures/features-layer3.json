@@ -1,0 +1,34 @@
+{
+  "displayFieldName": "STATE_NAME",
+  "fieldAliases": {
+    "OBJECTID": "OBJECTID",
+    "STATE_NAME": "State Name",
+    "STATE_ABBR": "State Abbreviation",
+    "POP2000": "Population 2000"
+  },
+  "geometryType": "esriGeometryPolygon",
+  "spatialReference": { "wkid": 4326, "latestWkid": 4326 },
+  "features": [
+    {
+      "attributes": { "OBJECTID": 1, "STATE_NAME": "Arizona", "STATE_ABBR": "AZ", "POP2000": 5130632 },
+      "geometry": {
+        "rings": [[[-114.8, 37.0], [-109.05, 37.0], [-109.05, 31.33], [-114.8, 31.33], [-114.8, 37.0]]],
+        "spatialReference": { "wkid": 4326 }
+      }
+    },
+    {
+      "attributes": { "OBJECTID": 2, "STATE_NAME": "California", "STATE_ABBR": "CA", "POP2000": 33871648 },
+      "geometry": {
+        "rings": [[[-124.4, 42.0], [-120.0, 42.0], [-114.1, 34.3], [-114.7, 32.7], [-117.1, 32.5], [-124.4, 42.0]]],
+        "spatialReference": { "wkid": 4326 }
+      }
+    },
+    {
+      "attributes": { "OBJECTID": 3, "STATE_NAME": "Nevada", "STATE_ABBR": "NV", "POP2000": 1998257 },
+      "geometry": {
+        "rings": [[[-120.0, 42.0], [-114.04, 42.0], [-114.04, 36.2], [-114.7, 35.0], [-120.0, 39.0], [-120.0, 42.0]]],
+        "spatialReference": { "wkid": 4326 }
+      }
+    }
+  ]
+}
