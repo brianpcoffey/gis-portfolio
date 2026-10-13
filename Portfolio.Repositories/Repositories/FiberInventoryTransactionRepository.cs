@@ -17,13 +17,4 @@ public class FiberInventoryTransactionRepository : IFiberInventoryTransactionRep
         return transaction;
     }
 
-    public async Task<List<FiberInventoryTransaction>> GetByMaterialAsync(int materialId, Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await _db.FiberInventoryTransactions
-            .AsNoTracking()
-            .Include(t => t.Material)
-            .Where(t => t.MaterialId == materialId && t.UserId == userId)
-            .OrderByDescending(t => t.TransactionDate)
-            .ToListAsync(cancellationToken);
-    }
 }

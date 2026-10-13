@@ -29,13 +29,13 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("At least one point is required.", nameof(request));
             if (request.Points.Count > MaxPoints)
                 throw new ArgumentException($"Clustering is limited to {MaxPoints} points.", nameof(request));
-            if (request.Epsilon <= 0 || double.IsNaN(request.Epsilon) || double.IsInfinity(request.Epsilon))
+            if (request.Epsilon <= 0 || !double.IsFinite(request.Epsilon))
                 throw new ArgumentException("Epsilon must be a finite value greater than zero.", nameof(request));
             if (request.MinPoints < 1)
                 throw new ArgumentException("MinPoints must be at least 1.", nameof(request));
             foreach (var point in request.Points)
             {
-                if (!IsFinite(point.X) || !IsFinite(point.Y))
+                if (!double.IsFinite(point.X) || !double.IsFinite(point.Y))
                     throw new ArgumentException("Point coordinates must be finite values.", nameof(request));
             }
 
@@ -173,7 +173,5 @@ namespace Portfolio.Services.Services
                 Points = clusteredPoints
             };
         }
-
-        private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
 }

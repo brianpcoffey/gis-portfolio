@@ -39,7 +39,7 @@ namespace Portfolio.Services.Services
             CancellationToken cancellationToken = default)
         {
             ValidateDimensions(width, height, nameof(width));
-            if (!IsFinite(noiseLevel) || noiseLevel < 0 || noiseLevel > MaxNoiseLevel)
+            if (!double.IsFinite(noiseLevel) || noiseLevel < 0 || noiseLevel > MaxNoiseLevel)
                 throw new ArgumentException($"Noise level must be between 0 and {MaxNoiseLevel}.", nameof(noiseLevel));
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -78,7 +78,7 @@ namespace Portfolio.Services.Services
                 mode = "otsu";
             if (mode != "otsu" && mode != "manual")
                 throw new ArgumentException("Threshold mode must be 'otsu' or 'manual'.", nameof(request));
-            if (mode == "manual" && (!IsFinite(request.ManualThreshold) || request.ManualThreshold < 0))
+            if (mode == "manual" && (!double.IsFinite(request.ManualThreshold) || request.ManualThreshold < 0))
                 throw new ArgumentException("Manual threshold must be a finite non-negative value.", nameof(request));
 
             var epochA = ToFiniteArray(request.EpochA, nameof(request));
@@ -187,7 +187,7 @@ namespace Portfolio.Services.Services
             var array = new double[values.Count];
             for (var i = 0; i < values.Count; i++)
             {
-                if (!IsFinite(values[i]))
+                if (!double.IsFinite(values[i]))
                     throw new ArgumentException("Raster values must be finite.", paramName);
                 array[i] = values[i];
             }
@@ -659,7 +659,5 @@ namespace Portfolio.Services.Services
                 BlobsBeforeFiltering = components.ComponentCount
             };
         }
-
-        private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
 }

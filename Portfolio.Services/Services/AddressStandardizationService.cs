@@ -72,10 +72,6 @@ namespace Portfolio.Services.Services
         // Token-level patterns used during parsing.
         private static readonly Regex ZipTokenPattern    = new(@"^\d{5}(-\d{4})?$", RegexOptions.Compiled);
         private static readonly Regex NormalizeSpaces    = new(@"\s+", RegexOptions.Compiled);
-        private static readonly Regex HouseNumberPattern = new(@"^(\d+)\s+", RegexOptions.Compiled);
-        private static readonly Regex UnitPattern        = new(@"\b(apt|suite|ste|unit|#)\s*\S+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex StateZipPattern    = new(@"\b([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\b", RegexOptions.Compiled);
-        private static readonly Regex ZipPattern         = new(@"\b(\d{5}(?:-\d{4})?)\b", RegexOptions.Compiled);
 
         // Unit designator keywords (case-insensitive token match).
         private static readonly HashSet<string> UnitKeywords = new(StringComparer.OrdinalIgnoreCase)

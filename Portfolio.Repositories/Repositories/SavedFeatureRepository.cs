@@ -26,13 +26,6 @@ namespace Portfolio.Repositories.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<SavedFeature?> GetByIdAsync(int id, Guid userId, CancellationToken cancellationToken = default)
-        {
-            return await _db.SavedFeatures
-                .Include(sf => sf.Collection)
-                .FirstOrDefaultAsync(sf => sf.Id == id && sf.UserId == userId, cancellationToken);
-        }
-
         public async Task<SavedFeature?> GetByLayerAndFeatureIdAsync(string layerId, string featureId, Guid userId, CancellationToken cancellationToken = default)
         {
             return await _db.SavedFeatures
@@ -68,9 +61,5 @@ namespace Portfolio.Repositories.Repositories
             return true;
         }
 
-        public async Task<bool> ExistsAsync(string layerId, string featureId, Guid userId, CancellationToken cancellationToken = default)
-        {
-            return await _db.SavedFeatures.AnyAsync(sf => sf.LayerId == layerId && sf.FeatureId == featureId && sf.UserId == userId, cancellationToken);
-        }
     }
 }

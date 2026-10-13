@@ -9,16 +9,13 @@ public class FiberShipmentService : IFiberShipmentService
 {
     private readonly IFiberShipmentRepository _shipmentRepo;
     private readonly IUserProfileService _userProfileService;
-    private readonly TimeProvider _timeProvider;
 
     public FiberShipmentService(
         IFiberShipmentRepository shipmentRepo,
-        IUserProfileService userProfileService,
-        TimeProvider timeProvider)
+        IUserProfileService userProfileService)
     {
         _shipmentRepo = shipmentRepo;
         _userProfileService = userProfileService;
-        _timeProvider = timeProvider;
     }
 
     // Write-side limits.

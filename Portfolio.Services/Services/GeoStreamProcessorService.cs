@@ -27,9 +27,9 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("At least one telemetry event is required.", nameof(request));
             if (request.Events.Count > MaxEventCount)
                 throw new ArgumentException($"Telemetry batches are limited to {MaxEventCount} events.", nameof(request));
-            if (request.GridSizeDegrees <= 0 || double.IsNaN(request.GridSizeDegrees) || double.IsInfinity(request.GridSizeDegrees))
+            if (request.GridSizeDegrees <= 0 || !double.IsFinite(request.GridSizeDegrees))
                 throw new ArgumentException("Grid size must be a finite value greater than zero.", nameof(request));
-            if (request.AnomalySpeedThresholdMetersPerSecond < 0 || double.IsNaN(request.AnomalySpeedThresholdMetersPerSecond) || double.IsInfinity(request.AnomalySpeedThresholdMetersPerSecond))
+            if (request.AnomalySpeedThresholdMetersPerSecond < 0 || !double.IsFinite(request.AnomalySpeedThresholdMetersPerSecond))
                 throw new ArgumentException("Anomaly speed threshold must be a finite non-negative value.", nameof(request));
             if (request.GridSizeDegrees < MinGridSizeDegrees)
                 throw new ArgumentException("Grid size must be at least 0.000001 degrees.", nameof(request));

@@ -16,18 +16,14 @@ namespace Portfolio.Web.Controllers.Api
     public class ProfileController : ControllerBase
     {
         private readonly IUserProfileService _profileService;
-        private readonly ILogger<ProfileController> _logger;
 
-        public ProfileController(IUserProfileService profileService, ILogger<ProfileController> logger)
+        public ProfileController(IUserProfileService profileService)
         {
             _profileService = profileService;
-            _logger = logger;
         }
 
-        #region Helper Methods
         private bool IsInvalidClaim(ClaimCreateDto claim) =>
             claim == null || string.IsNullOrWhiteSpace(claim.Type);
-        #endregion
 
         /// <summary>
         /// Gets the anonymous user profile and claims.

@@ -1,0 +1,56 @@
+@model Portfolio.Common.Models.ProjectHero
+@{
+    // Shared project-page header (FE-D07). The model is the ProjectHero record in Portfolio.Common:
+    //   <partial name="_ProjectHero" model='new ProjectHero("Batch Geocoding", "fa-solid fa-map-location-dot",
+    //       "Upload a CSV of addresses and geocode them in bulk via ArcGIS.",
+    //       new[] { new ProjectHeroBadge("fa-solid fa-satellite-dish", "ArcGIS Geocoding API") },
+    //       "/Projects/BatchGeocoding/Details")' />
+    //   Title        - the h1 text (also used in the details link's accessible name)
+    //   IconClass    - Font Awesome classes for the h1 icon, e.g. "fa-solid fa-industry"
+    //   Subtitle     - one-line description under the title
+    //   Badges       - zero or more ProjectHeroBadge(IconClass, Text) pills shown at the right; may be null
+    //   DetailsUrl   - the page's Details route; null/empty hides the info button
+    //   DetailsLabel - the button's tooltip; null/empty falls back to "Technical Details"
+    // Not adopted by any page yet; the project pages switch over in a later work package.
+    var detailsLabel = string.IsNullOrEmpty(Model.DetailsLabel) ? "Technical Details" : Model.DetailsLabel;
+}
+<div class="project-hero py-4 mb-4">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h1 class="mb-1">
+                    @if (!string.IsNullOrEmpty(Model.IconClass))
+                    {
+                        <i class="@Model.IconClass me-2"></i>@:@Model.Title
+                    }
+                    else
+                    {
+                        @Model.Title
+                    }
+                </h1>
+                @if (!string.IsNullOrEmpty(Model.Subtitle))
+                {
+                    <p class="text-muted theme-text-muted mb-0">@Model.Subtitle</p>
+                }
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                @if (Model.Badges is not null)
+                {
+                    foreach (var badge in Model.Badges)
+                    {
+                        <span class="badge badge-gis fs-6"><i class="@badge.IconClass me-1"></i>@badge.Text</span>
+                    }
+                }
+                @if (!string.IsNullOrEmpty(Model.DetailsUrl))
+                {
+                    <a class="btn btn-outline-accent btn-sm project-info-btn"
+                       href="@Model.DetailsUrl"
+                       aria-label="View technical details for @Model.Title"
+                       title="@detailsLabel">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

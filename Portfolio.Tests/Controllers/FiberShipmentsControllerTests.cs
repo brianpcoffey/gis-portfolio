@@ -17,8 +17,7 @@ namespace Portfolio.Tests.Controllers
         {
             _serviceMock = new Mock<IFiberShipmentService>();
             _controller  = new FiberShipmentsController(
-                _serviceMock.Object,
-                new Mock<ILogger<FiberShipmentsController>>().Object);
+                _serviceMock.Object);
         }
 
         // ── GetAll ──────────────────────────────────────────────────────

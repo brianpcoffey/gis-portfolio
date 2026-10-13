@@ -29,7 +29,7 @@ namespace Portfolio.Services.Services
             if (request.Elevation is null)
                 throw new ArgumentException("Elevation values are required.", nameof(request));
             ValidateRasterShape(request.Width, request.Height, request.Elevation.Count);
-            if (request.CellSize <= 0 || double.IsNaN(request.CellSize) || double.IsInfinity(request.CellSize))
+            if (request.CellSize <= 0 || !double.IsFinite(request.CellSize))
                 throw new ArgumentException("Cell size must be a finite value greater than zero.", nameof(request));
             if (!double.IsFinite(request.AzimuthDegrees) || !double.IsFinite(request.AltitudeDegrees))
                 throw new ArgumentException("Azimuth and altitude must be finite values.", nameof(request));
@@ -60,7 +60,7 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException($"Heatmaps are limited to {MaxHeatmapPoints} weighted points.", nameof(request));
             if (request.MinX >= request.MaxX || request.MinY >= request.MaxY)
                 throw new ArgumentException("Extent minimums must be less than maximums.", nameof(request));
-            if (request.Radius <= 0 || double.IsNaN(request.Radius) || double.IsInfinity(request.Radius))
+            if (request.Radius <= 0 || !double.IsFinite(request.Radius))
                 throw new ArgumentException("Heatmap radius must be a finite value greater than zero.", nameof(request));
             if ((long)request.Width * request.Height * request.Points.Count > MaxHeatmapWork)
                 throw new ArgumentException($"Heatmaps are limited to {MaxHeatmapWork} cell-point evaluations.", nameof(request));
