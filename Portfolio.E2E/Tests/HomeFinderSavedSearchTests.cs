@@ -7,12 +7,26 @@ namespace Portfolio.E2E.Tests;
 /// <summary>
 /// The Home Finder "Save Search" dialog for a signed-in visitor: a search ranks homes and plots them, the dialog opens
 /// with the suggested name selected, an empty name is refused in place, one Enter saves once, the saved search is listed,
-/// and Escape closes the dialog and gives focus back to the button that opened it.
+/// and Escape closes each dialog. Escape on "Save Search" gives focus back to the button that opened it; on "Saved Searches"
+/// it does not yet (a known issue: see <see cref="KnownIssues"/>).
 /// </summary>
 public sealed class HomeFinderSavedSearchTests(E2EHost host) : BrowserTestBase(host)
 {
     private const string SearchesPath = "/api/v1/homefinder/searches";
     private const string SearchName = "E2E weekend search";
+
+    private const string SavedSearchesFocus = "saved-searches-focus";
+
+    // App behaviour that is wrong today, so this suite can land before its fix (a separate pull request). Like the axe baseline
+    // and the layout suite's KnownOverflows it only shrinks: while an entry is listed the test asserts the behaviour as it is, and
+    // the day the app is fixed that assertion fails and says to delete the entry, after which the test asserts the right behaviour.
+    private static readonly Dictionary<string, string> KnownIssues = new()
+    {
+        [SavedSearchesFocus] =
+            "Escape on the Saved Searches dialog leaves focus on <body> instead of returning it to #btnLoadSearches. Bootstrap only " +
+            "restores focus to data-api triggers, and HomeFinder/app.js opens this dialog from script (a new bootstrap.Modal on each " +
+            "click); only the Save Search dialog moves focus back itself (saved-searches.js, in its hidden handler)."
+    };
 
     [E2EFact]
     public async Task SaveSearch_NamedAndConfirmedWithEnter_SavesOnceAndListsIt()
@@ -60,6 +74,7 @@ public sealed class HomeFinderSavedSearchTests(E2EHost host) : BrowserTestBase(h
         await Page.WaitForFunctionAsync("() => document.getElementById('savedSearchesModal').contains(document.activeElement)");
         await Page.Keyboard.PressAsync("Escape");
         await WaitForDialogToCloseAsync("savedSearchesModal");
+        await AssertFocusReturnedAsync(SavedSearchesFocus, "#btnLoadSearches");
 
         Session.AssertClean(ConsoleAllowList.ForPage(await EsriBaseUrlAsync()));
     }
@@ -108,6 +123,29 @@ public sealed class HomeFinderSavedSearchTests(E2EHost host) : BrowserTestBase(h
     // Bootstrap removes `show` when the hide transition has finished, then the page moves focus back in its hidden handler.
     private Task WaitForDialogToCloseAsync(string id) =>
         Page.WaitForFunctionAsync("id => !document.getElementById(id).classList.contains('show') && document.getElementById(id).style.display === 'none'", id);
+
+    // Focus is back on the button that opened the dialog, unless the app has a known issue with that (see KnownIssues): then the
+    // test pins what happens today (focus dropped to <body>), so fixing the app fails it until the entry is deleted.
+    private async Task AssertFocusReturnedAsync(string issue, string buttonSelector)
+    {
+        // The selector itself when the button has focus, otherwise the tag name of whatever has.
+        var active = await Page.EvaluateAsync<string>(
+            "selector => document.activeElement === document.querySelector(selector) ? selector : document.activeElement.tagName",
+            buttonSelector);
+        var returned = active == buttonSelector;
+
+        if (KnownIssues.TryGetValue(issue, out var reason))
+        {
+            Assert.False(
+                returned,
+                $"Focus now returns to {buttonSelector}, so the known issue '{issue}' is fixed: delete its entry from KnownIssues (it only shrinks). The entry said: {reason}");
+            Assert.True(active == "BODY", $"Known issue '{issue}': focus was expected to be dropped to BODY, but it is on {active}. {reason}");
+        }
+        else
+        {
+            Assert.True(returned, $"Escape should return focus to {buttonSelector}, but it is on {active}.");
+        }
+    }
 
     private ConcurrentQueue<string> CountSearchPosts()
     {
