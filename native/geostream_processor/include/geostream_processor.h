@@ -6,10 +6,11 @@
  * Public C ABI for the geospatial telemetry stream kernel: it bins a batch of position events
  * into a square lat/lon grid and reports per-cell counts, speed statistics and anomaly counts.
  *
- * The structs below are blittable and tightly packed (#pragma pack(8)); they mirror the C#
- * structs in Portfolio.Services/Native/GeoStreamNativeStructs.cs field for field, and the entry
- * point is declared in GeoStreamNativeInterop.cs. Change the header, those two files, the
- * source and the parity tests together.
+ * The structs below are blittable and naturally aligned (#pragma pack(8), so they carry padding
+ * where a field needs it); they mirror the C# structs in
+ * Portfolio.Services/Native/GeoStreamNativeStructs.cs field for field, and the entry point is
+ * declared in GeoStreamNativeInterop.cs. Change the header, those two files, the source and the
+ * parity tests together.
  *
  * Ownership and lifetime
  *   - The caller allocates every buffer (events, aggregates, options, result) and keeps
