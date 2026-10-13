@@ -32,7 +32,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Parses a raw freeform address string and returns structured, standardized address components.
         /// </summary>
         /// <param name="request">Request body containing the raw address string.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Structured address components including a standardized single-line output and parse confidence score.</returns>
         [HttpPost("parse")]
         [RequestSizeLimit(16_384)]
@@ -72,7 +71,6 @@ namespace Portfolio.Web.Controllers.Api
         /// including the matched address, confidence score, and confidence tier classification.
         /// </summary>
         /// <param name="request">Request body containing the raw address string.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Validation result with parsed components, ArcGIS matched address, score, and confidence tier.</returns>
         [HttpPost("validate")]
         [RequestSizeLimit(16_384)]

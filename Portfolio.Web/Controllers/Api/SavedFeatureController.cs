@@ -27,7 +27,6 @@ namespace Portfolio.Web.Controllers.Api
         /// <summary>
         /// Gets all saved features for the current user.
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>List of saved features.</returns>
         [HttpGet]
         [ProducesResponseType(typeof(List<SavedFeatureDto>), 200)]
@@ -42,7 +41,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Creates a new saved feature for the current user.
         /// </summary>
         /// <param name="dto">Feature data.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The created feature.</returns>
         [HttpPost]
         [RequestSizeLimit(1_065_536)]  // WP-08 GeometryJson cap + 64 KB
@@ -76,7 +74,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Deletes a saved feature by database ID or feature key.
         /// </summary>
         /// <param name="id">Feature database ID or feature key.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>No content if deleted, NotFound if not found.</returns>
         [HttpDelete("{id}")]
         [ProducesResponseType(204)]

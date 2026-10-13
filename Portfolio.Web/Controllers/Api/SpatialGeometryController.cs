@@ -35,7 +35,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Triangulates a point set for map visualization.
         /// </summary>
         /// <param name="request">Point set to triangulate.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Triangle mesh result.</returns>
         [HttpPost("triangulate")]
         [ProducesResponseType(typeof(TriangulationResultDto), 200)]
@@ -62,7 +61,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Clips polygon vertices to a bounding box.
         /// </summary>
         /// <param name="request">Polygon and bounding box request.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Clipped polygon operation result.</returns>
         [HttpPost("clip")]
         [ProducesResponseType(typeof(PolygonOperationResultDto), 200)]

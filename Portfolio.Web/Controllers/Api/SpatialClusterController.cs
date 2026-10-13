@@ -34,7 +34,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Clusters a set of points with DBSCAN, returning per-point cluster labels and hotspot summaries.
         /// </summary>
         /// <param name="request">Points plus epsilon and minimum-points parameters.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Cluster labels, cluster sizes, and noise count.</returns>
         [HttpPost("dbscan")]
         [ProducesResponseType(typeof(DbscanResultDto), 200)]

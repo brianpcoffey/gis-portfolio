@@ -63,7 +63,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Gets a user profile by internal ID.
         /// </summary>
         /// <param name="userId">The internal GUID user ID.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ProfileDto), 200)]
@@ -85,7 +84,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Gets a user profile by Google ID.
         /// </summary>
         /// <param name="googleId">The Google subject identifier.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("google/{googleId}")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ProfileDto), 200)]
@@ -143,7 +141,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Removes a claim for the current user.
         /// </summary>
         /// <param name="type">The claim type to remove.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         [HttpDelete("me/claims/{type}")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]
@@ -164,7 +161,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Deletes a user profile and all associated claims.
         /// </summary>
         /// <param name="userId">The internal GUID user ID.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         [HttpDelete("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]

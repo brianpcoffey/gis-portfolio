@@ -47,7 +47,6 @@ namespace Portfolio.Web.Controllers.Api
         /// The CSV must have columns: Id, Address, City, State, Zip.
         /// </summary>
         /// <param name="file">CSV file containing addresses to geocode.</param>
-        /// <param name="ct">Cancellation token.</param>
         /// <returns>Job ID and status polling URL.</returns>
         [HttpPost]
         [RequestSizeLimit(MaxUploadBytes)]
@@ -94,7 +93,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Poll this endpoint after receiving a 202 Accepted from POST.
         /// </summary>
         /// <param name="jobId">Opaque job identifier returned by the submit endpoint.</param>
-        /// <param name="ct">Cancellation token.</param>
         /// <returns>Job status, progress metrics, and results when completed.</returns>
         [HttpGet("{jobId}/status")]
         [ProducesResponseType(typeof(BatchJob), StatusCodes.Status200OK)]
@@ -111,7 +109,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Accepts a CSV file upload of addresses and returns geocoding results synchronously.
         /// </summary>
         /// <param name="file">CSV file containing addresses to geocode.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>List of geocoding results with match status, coordinates, and score.</returns>
         [HttpPost("sync")]
         [HttpPost("/api/batchgeocoding/sync")]
