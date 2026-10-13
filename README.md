@@ -8,13 +8,13 @@ A live, full-stack .NET 10 portfolio: 18 interactive demos, mostly GIS and spati
 
 **Try it:** [All projects](https://brianpcoffey.com/Projects) · [Home Finder](https://brianpcoffey.com/Projects/HomeFinder) · [Route Planner](https://brianpcoffey.com/Projects/Network) · [Fleet Route Optimizer](https://brianpcoffey.com/Projects/Fleet) · [US State Explorer](https://brianpcoffey.com/Projects/StateExplorer) · [API reference (Scalar)](https://brianpcoffey.com/scalar)
 
-[![Home page of brianpcoffey.com in the light theme: the hero with View Projects and Contact buttons](docs/media/readme/home-hero.png)](https://brianpcoffey.com)
-
 | Home Finder | Route Planner | US State Explorer |
 |:---:|:---:|:---:|
-| [![Home Finder: lowering the Max Price slider and running Find Homes ranks Redlands properties by weighted score, plots the top 10 as colored pins and lists them as cards; clicking the first card zooms the map to that home](docs/media/readme/home-finder.gif)](https://brianpcoffey.com/Projects/HomeFinder) | [![Route Planner: clicking the street network sets the origin at the nearest intersection, then A* and Dijkstra routes to Esri HQ are drawn, with Nodes Explored reading 657 for A* and 1,931 for Dijkstra](docs/media/readme/route-planner.gif)](https://brianpcoffey.com/Projects/Network) | [![US State Explorer: clicking Nebraska on the ArcGIS map highlights it and fills the State Details panel, then searching for Colorado selects it and zooms the map there](docs/media/readme/state-explorer.gif)](https://brianpcoffey.com/Projects/StateExplorer) |
+| [![Home Finder: lowering the Max Price slider and running Find Homes ranks Redlands properties by weighted score, plots the top-ranked homes as colored pins and lists them as cards; clicking the first card zooms the map to that home](docs/media/readme/home-finder.gif)](https://brianpcoffey.com/Projects/HomeFinder) | [![Route Planner: clicking the street network snaps the origin to the nearest intersection; A* draws the route to Esri HQ, then Dijkstra finds the same route while exploring more nodes](docs/media/readme/route-planner.gif)](https://brianpcoffey.com/Projects/Network) | [![US State Explorer: clicking Nebraska on the ArcGIS map highlights it and fills the State Details panel, then searching for Colorado selects it and zooms the map there](docs/media/readme/state-explorer.gif)](https://brianpcoffey.com/Projects/StateExplorer) |
 
-*Recorded on the live site, signed out, in the light theme; waits between steps are shortened. Each clip links to its demo.*
+*Recorded on the live site, signed out, in the light theme; waits between steps are shortened, and the yellow dot is the pointer. Each clip links to its demo.*
+
+[![Home page of brianpcoffey.com in the light theme: the hero with View Projects and Contact buttons](docs/media/readme/home-hero.png)](https://brianpcoffey.com)
 
 ## At a glance
 
@@ -388,7 +388,7 @@ Interactive ArcGIS feature exploration with anonymous saved-feature persistence 
 ---
 
 ### 🏠 Redlands Smart Home Finder
-[![Home Finder: lowering the Max Price slider and running Find Homes ranks Redlands properties by weighted score, plots the top 10 as colored pins and lists them as cards; clicking the first card zooms the map to that home](docs/media/readme/home-finder.gif)](https://brianpcoffey.com/Projects/HomeFinder)
+[![Home Finder: lowering the Max Price slider and running Find Homes ranks Redlands properties by weighted score, plots the top-ranked homes as colored pins and lists them as cards; clicking the first card zooms the map to that home](docs/media/readme/home-finder.gif)](https://brianpcoffey.com/Projects/HomeFinder)
 
 Property scoring API that ranks Redlands homes using weighted preferences and stores named searches per user. The scoring service is isolated from controller and repository concerns so the ranking algorithm can evolve without changing the API surface. A native C++ kernel accelerates the compute-intensive ranking math when the shared library is present; the managed C# fallback activates automatically when it is not.
 
@@ -501,7 +501,7 @@ Raster terrain analysis API that generates hillshade and heatmap outputs from de
 ---
 
 ### 🗺️ Route Planner
-[![Route Planner: clicking the street network sets the origin at the nearest intersection, then A* and Dijkstra routes to Esri HQ are drawn, with Nodes Explored reading 657 for A* and 1,931 for Dijkstra](docs/media/readme/route-planner.gif)](https://brianpcoffey.com/Projects/Network)
+[![Route Planner: clicking the street network snaps the origin to the nearest intersection; A* draws the route to Esri HQ, then Dijkstra finds the same route while exploring more nodes](docs/media/readme/route-planner.gif)](https://brianpcoffey.com/Projects/Network)
 
 Spatial graph routing API that computes shortest paths and service areas over a ~2,500-node / ~3,190-edge Redlands road network built from real OpenStreetMap data, rendered on a real Leaflet/OpenStreetMap map. Every node is an actual OSM point with true coordinates — real intersections plus curve vertices chosen by deviation-bounded (Douglas–Peucker) simplification, so no edge strays more than ~4 m from the true road — meaning both the network and computed routes trace the real shape of streets, ramps, and freeway curves on the base tiles. Coverage is dense across downtown Redlands and the area around Esri HQ. Supports Dijkstra and A* with a haversine heuristic; the native C++ engine accelerates Dijkstra when the shared library is present, while A* runs managed-only so the heuristic has full access to node coordinates at query time.
 
