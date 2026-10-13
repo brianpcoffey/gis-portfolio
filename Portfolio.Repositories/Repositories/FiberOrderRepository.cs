@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Portfolio.Common.Models;
 using Portfolio.Repositories.Interfaces;
+using Portfolio.Repositories.Mappings;
 
 namespace Portfolio.Repositories.Repositories;
 
@@ -33,12 +35,30 @@ public class FiberOrderRepository : IFiberOrderRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<FiberOrder> AddAsync(FiberOrder order, CancellationToken cancellationToken = default)
+    public async Task<FiberOrder?> TryAddAsync(FiberOrder order, CancellationToken cancellationToken = default)
     {
-        _db.FiberOrders.Add(order);
-        await _db.SaveChangesAsync(cancellationToken);
-        return order;
+        var entry = _db.FiberOrders.Add(order);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+            return order;
+        }
+        catch (DbUpdateException ex) when (IsOrderNumberClash(ex))
+        {
+            // Another create by the same user took this number first. Stop tracking the rejected row so a retry
+            // starts clean.
+            entry.State = EntityState.Detached;
+            return null;
+        }
     }
+
+    // Only the (user, order number) unique index counts as a clash; any other failure is a real error.
+    private static bool IsOrderNumberClash(DbUpdateException ex) =>
+        ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: FiberOrderMapping.OrderNumberIndexName
+        };
 
     public async Task<FiberOrder> UpdateAsync(FiberOrder order, CancellationToken cancellationToken = default)
     {
