@@ -15,7 +15,7 @@ namespace Portfolio.Web.Controllers.Api
     // No class-level [AllowAnonymous]: ASP.NET Core short-circuits authorization when
     // IAllowAnonymous appears anywhere in an endpoint's metadata, so a controller-level
     // one silently neutered the [Authorize] on every saved-search action below (ASP0026).
-    // The four genuinely public actions opt out individually instead.
+    // The two genuinely public actions (Search, GetProperty) opt out individually instead.
     [EnableRateLimiting("expensive")] // scoring re-runs a DB query + native compute per call
     [CpuBound]
     public class HomeFinderController : ControllerBase
@@ -45,20 +45,6 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(results);
         }
 
-        /// <summary>Backward-compatible alias for computing matching properties.</summary>
-        [AllowAnonymous]
-        [HttpPost("score")]
-        [RequestSizeLimit(16_384)]
-        [ApiExplorerSettings(IgnoreApi = true)]
-        [Obsolete("Use POST /api/v1/homefinder/search.")]
-        [ProducesResponseType(typeof(List<ScoredPropertyDto>), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(500)]
-        public Task<IActionResult> Score([FromBody] HomeSearchPreferencesDto prefs, CancellationToken cancellationToken)
-        {
-            return Search(prefs, cancellationToken);
-        }
-
         /// <summary>Get a single property by ID.</summary>
         [AllowAnonymous]
         [HttpGet("property/{id:int}")]
@@ -69,19 +55,6 @@ namespace Portfolio.Web.Controllers.Api
         {
             var property = await _scoring.GetPropertyByIdAsync(id, cancellationToken);
             return property is null ? NotFound() : Ok(property);
-        }
-
-        /// <summary>Backward-compatible alias for getting a single property by ID.</summary>
-        [AllowAnonymous]
-        [HttpGet("properties/{id:int}")]
-        [ApiExplorerSettings(IgnoreApi = true)]
-        [Obsolete("Use GET /api/v1/homefinder/property/{id}.")]
-        [ProducesResponseType(typeof(ScoredPropertyDto), 200)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public Task<IActionResult> GetPropertyLegacy(int id, CancellationToken cancellationToken)
-        {
-            return GetProperty(id, cancellationToken);
         }
 
         /// <summary>Save a new search to the user's profile.</summary>
