@@ -18,7 +18,8 @@ namespace Portfolio.Web.Infrastructure
             // Parse URI format: postgres://user:pass@host:port/db or postgresql://user:pass@host/db
             if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
             {
-                throw new ArgumentException($"Invalid connection string format: {connectionString}");
+                // Never echo the input: a malformed value can still carry the password.
+                throw new ArgumentException("Invalid connection string format.");
             }
 
             if (uri.Scheme is not ("postgres" or "postgresql"))
@@ -97,7 +98,8 @@ namespace Portfolio.Web.Infrastructure
             // Parse rediss:// or redis:// URI format (Upstash/Redis Cloud style)
             if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
             {
-                throw new ArgumentException($"Invalid Redis connection string format: {connectionString}");
+                // Never echo the input: a malformed value can still carry the password.
+                throw new ArgumentException("Invalid Redis connection string format.");
             }
 
             var useSsl = uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase);

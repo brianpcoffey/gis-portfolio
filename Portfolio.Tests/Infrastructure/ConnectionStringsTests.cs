@@ -77,16 +77,28 @@ namespace Portfolio.Tests.Infrastructure
         }
 
         [Fact]
-        public void ParsePostgres_Malformed_ThrowsAndMessageCurrentlyContainsRawString()
+        public void ParsePostgres_Malformed_ThrowsAndMessageDoesNotContainTheInput()
         {
-            // Pins CURRENT behaviour: the message echoes the raw input, which can leak a
-            // password. WP-14 changes this; its fix flips this assertion.
+            // WP-14 flipped this on purpose: the message used to echo the raw input, which can
+            // carry a password into logs and error responses.
             const string raw = "not a uri:secretpw";
 
             var ex = Assert.Throws<ArgumentException>(() => ConnectionStrings.ParsePostgres(raw));
 
-            Assert.Equal($"Invalid connection string format: {raw}", ex.Message);
-            Assert.Contains(raw, ex.Message);
+            Assert.Equal("Invalid connection string format.", ex.Message);
+            Assert.DoesNotContain("secretpw", ex.Message);
+            Assert.DoesNotContain(raw, ex.Message);
+        }
+
+        [Fact]
+        public void NormalizeRedis_Malformed_ThrowsAndMessageDoesNotContainTheInput()
+        {
+            const string raw = "redis://:secretpw@bad host";
+
+            var ex = Assert.Throws<ArgumentException>(() => ConnectionStrings.NormalizeRedis(raw));
+
+            Assert.Equal("Invalid Redis connection string format.", ex.Message);
+            Assert.DoesNotContain("secretpw", ex.Message);
         }
 
         // ---------- Redis ----------
