@@ -12,7 +12,7 @@ internal static class StartupMigrations
 
     // Migrating on startup is the right default: it keeps a fresh clone and any host without a
     // deploy step working with no extra configuration. On a free instance in production it is
-    // the wrong one: the container spins down when idle, so every cold start pays a round trip to
+    // the wrong one: the container spins down when idle, so every cold start pays round trips to
     // Neon to check the migration history before the first request, and that request is the one a
     // recruiter is waiting on. Two opt-in switches move that cost to deploy time:
     //   dotnet Portfolio.Web.dll --migrate   migrate, then exit without starting the web host
