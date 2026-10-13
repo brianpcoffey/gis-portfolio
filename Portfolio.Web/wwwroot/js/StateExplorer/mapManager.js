@@ -127,7 +127,6 @@ export const MapManager = {
         subscribe(state => {
             this.renderFeatures(state);
         });
-
     },
 
 
