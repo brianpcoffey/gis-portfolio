@@ -22,13 +22,6 @@ namespace Portfolio.Repositories.Repositories
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<SavedSearch?> GetByIdAsync(int id, Guid userId, CancellationToken cancellationToken = default)
-        {
-            return await _db.SavedSearches
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId, cancellationToken);
-        }
-
         /// <summary>
         /// Checks if the user already has a saved search with the given name (case-insensitive).
         /// </summary>
@@ -43,13 +36,6 @@ namespace Portfolio.Repositories.Repositories
         public async Task<SavedSearch> AddAsync(SavedSearch savedSearch, CancellationToken cancellationToken = default)
         {
             _db.SavedSearches.Add(savedSearch);
-            await _db.SaveChangesAsync(cancellationToken);
-            return savedSearch;
-        }
-
-        public async Task<SavedSearch> UpdateAsync(SavedSearch savedSearch, CancellationToken cancellationToken = default)
-        {
-            _db.SavedSearches.Update(savedSearch);
             await _db.SaveChangesAsync(cancellationToken);
             return savedSearch;
         }
