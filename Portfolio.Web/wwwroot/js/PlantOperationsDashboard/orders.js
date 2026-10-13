@@ -143,7 +143,7 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">${isEdit ? 'Save Changes' : 'Create Order'}</button>
+        <button type="submit" class="btn btn-accent">${isEdit ? 'Save Changes' : 'Create Order'}</button>
       </div>
       </form>
     </div>

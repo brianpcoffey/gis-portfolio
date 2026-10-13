@@ -103,7 +103,7 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">Update Status</button>
+        <button type="submit" class="btn btn-accent">Update Status</button>
       </div>
       </form>
     </div>
@@ -210,7 +210,7 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">${isEdit ? 'Update' : 'Create'}</button>
+        <button type="submit" class="btn btn-accent">${isEdit ? 'Update' : 'Create'}</button>
       </div>
       </form>
     </div>

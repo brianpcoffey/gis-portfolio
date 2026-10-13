@@ -19,11 +19,11 @@
     <div class="container">
         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div>
-                <h1 class="mb-1"><i class="fa-solid fa-industry me-2"></i>Plant Operations Dashboard</h1>
+                <h1 class="mb-1"><i class="fa-solid fa-industry me-2" aria-hidden="true"></i>Plant Operations Dashboard</h1>
                 <p class="text-muted theme-text-muted mb-0">Live operations, shipments, orders, and inventory for plant manufacturing.</p>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="badge badge-gis fs-6"><i class="fa-solid fa-network-wired me-1"></i>Fiber Order Management</span>
+                <span class="badge badge-gis fs-6"><i class="fa-solid fa-network-wired me-1" aria-hidden="true"></i>Fiber Order Management</span>
                 <a class="btn btn-outline-accent btn-sm project-info-btn"
                    href="/Projects/PlantOperationsDashboard/Details"
                    aria-label="View technical details for Plant Operations Dashboard"
@@ -50,7 +50,7 @@
         <div class="col-lg-4">
             <div class="card shadow-sm theme-card mb-3">
                 <div class="card-header theme-card-header d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-chart-line text-accent"></i>
+                    <i class="fa-solid fa-chart-line text-accent" aria-hidden="true"></i>
                     <h2 class="h6 fw-bold mb-0">Revenue Analytics</h2>
                 </div>
                 <div class="card-body theme-body">
@@ -66,7 +66,7 @@
         <div class="col-lg-4">
             <div class="card shadow-sm theme-card mb-3">
                 <div class="card-header theme-card-header d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-boxes-stacked text-accent"></i>
+                    <i class="fa-solid fa-boxes-stacked text-accent" aria-hidden="true"></i>
                     <h2 class="h6 fw-bold mb-0">Orders Analytics</h2>
                 </div>
                 <div class="card-body theme-body">
@@ -82,7 +82,7 @@
         <div class="col-lg-4">
             <div class="card shadow-sm theme-card mb-3">
                 <div class="card-header theme-card-header d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-warehouse text-accent"></i>
+                    <i class="fa-solid fa-warehouse text-accent" aria-hidden="true"></i>
                     <h2 class="h6 fw-bold mb-0">Inventory Analytics</h2>
                 </div>
                 <div class="card-body theme-body">
@@ -100,7 +100,7 @@
         <div class="col-12">
             <div class="card shadow-sm theme-card mb-3 plant-ops-tabs-card">
                 <div class="card-header theme-card-header d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-route text-accent"></i>
+                    <i class="fa-solid fa-route text-accent" aria-hidden="true"></i>
                     <h2 class="h6 fw-bold mb-0">Shipment GIS Map</h2>
                 </div>
                 <div class="card-body theme-body position-relative">
@@ -135,17 +135,17 @@
                     <ul class="nav nav-tabs card-header-tabs" id="ordersShipmentsTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#ordersTabPane" type="button" role="tab" aria-controls="ordersTabPane" aria-selected="true">
-                                <i class="fa-solid fa-boxes-stacked text-accent"></i> Orders
+                                <i class="fa-solid fa-boxes-stacked text-accent" aria-hidden="true"></i> Orders
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="shipments-tab" data-bs-toggle="tab" data-bs-target="#shipmentsTabPane" type="button" role="tab" aria-controls="shipmentsTabPane" aria-selected="false">
-                                <i class="fa-solid fa-truck-fast text-accent"></i> Shipments
+                                <i class="fa-solid fa-truck-fast text-accent" aria-hidden="true"></i> Shipments
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventoryTabPane" type="button" role="tab" aria-controls="inventoryTabPane" aria-selected="false">
-                                <i class="fa-solid fa-warehouse text-accent"></i> Inventory
+                                <i class="fa-solid fa-warehouse text-accent" aria-hidden="true"></i> Inventory
                             </button>
                         </li>
                     </ul>
@@ -154,7 +154,7 @@
                     <div class="tab-content" id="ordersShipmentsTabsContent">
                         <div class="tab-pane fade show active" id="ordersTabPane" role="tabpanel" aria-labelledby="orders-tab">
                             <div class="d-flex justify-content-end mb-2">
-                                <button class="btn btn-accent btn-sm theme-btn" id="btnNewOrder"><i class="fa-solid fa-plus me-1"></i>New Order</button>
+                                <button class="btn btn-accent btn-sm" id="btnNewOrder"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Order</button>
                             </div>
                             <div id="ordersTableError" class="alert alert-danger d-none py-2 px-3" role="alert"></div>
                             <div class="plant-ops-spinner spinner-border text-accent d-none" id="ordersTableSpinner" role="status" aria-label="Loading orders..."></div>
@@ -164,7 +164,7 @@
                         </div>
                         <div class="tab-pane fade" id="shipmentsTabPane" role="tabpanel" aria-labelledby="shipments-tab">
                             <div class="d-flex justify-content-end mb-2">
-                                <button class="btn btn-accent btn-sm theme-btn" id="btnNewShipment"><i class="fa-solid fa-plus me-1"></i>New Shipment</button>
+                                <button class="btn btn-accent btn-sm" id="btnNewShipment"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Shipment</button>
                             </div>
                             <div id="shipmentsTableError" class="alert alert-danger d-none py-2 px-3" role="alert"></div>
                             <div class="plant-ops-spinner spinner-border text-accent d-none" id="shipmentsTableSpinner" role="status" aria-label="Loading shipments..."></div>
@@ -174,7 +174,7 @@
                         </div>
                         <div class="tab-pane fade" id="inventoryTabPane" role="tabpanel" aria-labelledby="inventory-tab">
                             <div class="d-flex justify-content-end mb-2">
-                                <button class="btn btn-accent btn-sm theme-btn" id="btnNewMaterial"><i class="fa-solid fa-plus me-1"></i>New Material</button>
+                                <button class="btn btn-accent btn-sm" id="btnNewMaterial"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Material</button>
                             </div>
                             <div id="inventoryTableError" class="alert alert-danger d-none py-2 px-3" role="alert"></div>
                             <div class="plant-ops-spinner spinner-border text-accent d-none" id="inventoryTableSpinner" role="status" aria-label="Loading inventory..."></div>

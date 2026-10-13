@@ -108,7 +108,7 @@ function showMaterialDetailModal(material) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-accent theme-btn" data-action="receive" data-id="${Number(material.id)}">Receive Stock</button>
+        <button type="button" class="btn btn-accent" data-action="receive" data-id="${Number(material.id)}">Receive Stock</button>
       </div>
     </div>
   </div>
@@ -144,7 +144,7 @@ window.showReceiveStockModal = function (materialId) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">Receive</button>
+        <button type="submit" class="btn btn-accent">Receive</button>
       </div>
       </form>
     </div>
@@ -237,7 +237,7 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">${isEdit ? 'Update' : 'Create'}</button>
+        <button type="submit" class="btn btn-accent">${isEdit ? 'Update' : 'Create'}</button>
       </div>
       </form>
     </div>
