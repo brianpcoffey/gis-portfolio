@@ -38,7 +38,11 @@
     var steps = [[1e9, "B"], [1e6, "M"], [1e3, "K"]];
     for (var i = 0; i < steps.length; i++) {
       if (abs >= steps[i][0]) {
-        return sign + "$" + nf({ minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(abs / steps[i][0]) + steps[i][1];
+        var scaled = abs / steps[i][0];
+        var k = i;
+        // Round first; if that reaches 1000 of this unit, step up (999999 -> $1.0M, not $1,000.0K).
+        if (Math.round(scaled * 10) / 10 >= 1000 && i > 0) { k = i - 1; scaled = abs / steps[k][0]; }
+        return sign + "$" + nf({ minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(scaled) + steps[k][1];
       }
     }
     return sign + "$" + nf({ maximumFractionDigits: 0 }).format(abs);
