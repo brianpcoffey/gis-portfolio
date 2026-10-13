@@ -46,6 +46,9 @@
                 if (!trimmed) {
                     setNameInvalid(input, true);
                     input.focus();
+                    // Re-focusing the field that already has focus, and flipping aria-invalid, are not spoken
+                    // by most screen readers, so say the error through the live region as well.
+                    PortfolioUi.announce("Enter a name for the search.");
                     return;
                 }
                 result = trimmed;
