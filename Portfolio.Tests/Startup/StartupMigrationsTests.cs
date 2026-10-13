@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Portfolio.Repositories;
 using Portfolio.Tests.Repositories;
 using Portfolio.Web.Startup;
@@ -28,6 +29,30 @@ public class StartupMigrationsTests
         var builder = WebApplication.CreateSlimBuilder();
         builder.Services.AddDbContext<PortfolioDbContext>(o => o.UseInMemoryDatabase($"StartupMigrations_{Guid.NewGuid()}"));
         return builder.Build();
+    }
+
+    // Nothing listens on port 1, so the first statement against it fails fast; no real database is involved.
+    private const string UnreachablePostgres = "Host=127.0.0.1;Port=1;Database=x;Username=x;Password=x;Timeout=1";
+
+    private static WebApplication AppWithUnreachablePostgres()
+    {
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.Services.AddDbContext<PortfolioDbContext>(o => o.UseNpgsql(UnreachablePostgres));
+        return builder.Build();
+    }
+
+    // CapturingLogger keeps the formatted text only; these tests also need the exception that was logged.
+    private sealed class ExceptionCapturingLogger : ILogger
+    {
+        public List<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
+            Entries.Add((logLevel, formatter(state, exception), exception));
     }
 
     private static IConfiguration Config(string? runMigrationsOnStartup) =>
@@ -174,5 +199,48 @@ public class StartupMigrationsTests
         // Assert
         Assert.Null(exitCode);
         Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error && e.Message.StartsWith("Database migration failed.", StringComparison.Ordinal));
+    }
+
+    // The InMemory provider skips the dedupe pre-step (it is not relational), so these two use Npgsql against a server
+    // that is not there: the pending-migrations lookup the pre-step starts with is then the first thing to fail, and it
+    // must land in the same catch as a Migrate() failure.
+    [Fact]
+    public void Run_WithTheMigrateFlagAndAnUnreachableDatabase_LogsTheFailureAndExitsWithOne()
+    {
+        // Arrange
+        using var app = AppWithUnreachablePostgres();
+        var logger = new ExceptionCapturingLogger();
+
+        // Act
+        var exitCode = StartupMigrations.Run(app, ["--migrate"], Config(null), logger);
+
+        // Assert
+        Assert.Equal(1, exitCode);
+        var failure = Assert.Single(logger.Entries, e => e.Level == LogLevel.Error);
+        Assert.StartsWith("Database migration failed.", failure.Message, StringComparison.Ordinal);
+        Assert.IsAssignableFrom<NpgsqlException>(failure.Exception);
+        Assert.Contains("GetPendingMigrations", failure.Exception!.StackTrace, StringComparison.Ordinal);
+        Assert.DoesNotContain(logger.Entries, e => e.Message.Contains("Renumbered", StringComparison.Ordinal));
+        Assert.DoesNotContain(logger.Entries, e => e.Message.Contains("Database migration successful.", StringComparison.Ordinal));
+        Assert.DoesNotContain(logger.Entries, e => e.Message.Contains("Migration-only run complete", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Run_AtStartupWithAnUnreachableDatabase_LogsTheFailureAndContinuesToTheHost()
+    {
+        // Arrange
+        using var app = AppWithUnreachablePostgres();
+        var logger = new ExceptionCapturingLogger();
+
+        // Act
+        var exitCode = StartupMigrations.Run(app, [], Config(null), logger);
+
+        // Assert: tolerated, as for any other startup migration failure.
+        Assert.Null(exitCode);
+        var failure = Assert.Single(logger.Entries, e => e.Level == LogLevel.Error);
+        Assert.StartsWith("Database migration failed.", failure.Message, StringComparison.Ordinal);
+        Assert.IsAssignableFrom<NpgsqlException>(failure.Exception);
+        Assert.Contains("GetPendingMigrations", failure.Exception!.StackTrace, StringComparison.Ordinal);
+        Assert.DoesNotContain(logger.Entries, e => e.Message.Contains("Database migration successful.", StringComparison.Ordinal));
     }
 }
