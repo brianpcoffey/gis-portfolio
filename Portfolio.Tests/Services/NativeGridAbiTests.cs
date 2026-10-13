@@ -7,13 +7,18 @@ namespace Portfolio.Tests.Services
 {
     // ABI and parity tests for the two grid kernels (viewshed_kernel, raster_terrain_kernel).
     //
-    // Two kinds of test live here:
+    // Three kinds of test live here:
     //  * Service-level tests that run on every path (native present, native disabled, or no native
     //    library at all) and compare the service result with an independent managed reference. They
     //    pin the "native and managed are result-identical" contract for non-square grids, which
-    //    catches a width/height mix-up that a square-grid fixture cannot.
-    //  * Native-gated tests that drive the kernels directly and are reported as Skipped when the
-    //    library is absent (the normal clean-clone state), like NativeParityTests.
+    //    catches a width/height mix-up that a square-grid fixture cannot, and show that managed
+    //    validation turns away hostile dimensions and lengths before any bridge is reached.
+    //  * Native-gated bridge tests that drive the bridges directly and compare with the reference.
+    //  * Native-gated ABI tests that call the C entry points through the interop declarations and
+    //    check the documented status codes: the elevation length must equal width * height, and
+    //    dimensions are checked in 64 bits so a product that wraps a 32-bit int is refused.
+    // The native-gated tests are reported as Skipped when the library is absent (the normal
+    // clean-clone state), like NativeParityTests.
     //
     // The managed references below are deliberately duplicated rather than reused from the services:
     // they encode the contract the native kernels must honour, so they must not drift if a service
@@ -197,6 +202,413 @@ namespace Portfolio.Tests.Services
             Assert.Equal(expected.Count, native.Values.Count);
             for (var i = 0; i < expected.Count; i++)
                 Assert.Equal(expected[i], native.Values[i], 9);
+        }
+
+        // ---- Native-gated ABI: the C entry points called directly (see the headers for the contract) ----
+        //
+        // The calls below hand the kernels lengths and dimensions that a correct kernel must refuse
+        // BEFORE it touches either buffer. Every array is really as long as the length it is declared
+        // with (the kernel cannot detect a caller that lies about a length), so a kernel that
+        // wrongly accepted one of these inputs would read or write out of bounds rather than return.
+
+        private const int InvalidArgument = -1;
+        private const int ObserverOutsideGrid = -2;
+        private const int DegenerateExtent = -2;
+        private const byte Sentinel = 0xEE;
+
+        // Dimensions whose 32-bit product wraps to zero, a small positive number or a negative one.
+        public static TheoryData<int, int> WrappingDimensions => new()
+        {
+            { 65536, 65536 },            // 2^32      -> 0
+            { 65537, 65537 },            // 2^32 + .. -> 131073
+            { 46341, 46341 },            // just over int.MaxValue -> negative
+            { 3, 1_431_655_766 },        // 2^32 + 2  -> 2
+            { int.MaxValue, 2 },         // -> -2
+            { 2, int.MaxValue },
+            { int.MaxValue, int.MaxValue }, // -> 1
+        };
+
+        // Dimensions that are not positive, including a pair whose product is positive.
+        public static TheoryData<int, int> NonPositiveDimensions => new()
+        {
+            { 0, 4 },
+            { 4, 0 },
+            { -1, 4 },
+            { 4, -1 },
+            { -4, -4 },
+            { int.MinValue, int.MinValue },
+        };
+
+        // Declared element counts that disagree with a 4 x 4 grid.
+        public static TheoryData<int> MismatchedLengths => new() { -1, 0, 1, 15, 17, 32 };
+
+        private static int ViewshedCall(
+            double[]? elevation, int elevationLength, int width, int height,
+            byte[]? visibility, int outputLength,
+            double cellSize = 30, int observerX = 0, int observerY = 0)
+            => ViewshedNativeInterop.Compute(
+                elevation!, elevationLength, width, height, cellSize, observerX, observerY, 2.0, visibility!, outputLength);
+
+        private static int HillshadeCall(
+            double[]? elevation, int elevationLength, int width, int height,
+            byte[]? intensities, int outputLength, double cellSize = 30)
+            => RasterTerrainNativeInterop.GenerateHillshade(
+                elevation!, elevationLength, width, height, cellSize, 315, 45, intensities!, outputLength);
+
+        private static int HeatmapCall(
+            WeightedPointNative[]? points, int pointCount, RasterExtentNative extent, int width, int height,
+            double[]? values, int outputLength, double radius = 0.7)
+            => RasterTerrainNativeInterop.GenerateHeatmap(
+                points!, pointCount, in extent, width, height, radius, values!, outputLength);
+
+        private static byte[] Filled(int length) => Enumerable.Repeat(Sentinel, Math.Max(length, 1)).ToArray();
+
+        private static readonly RasterExtentNative UnitExtent = new() { MinX = 0, MinY = 0, MaxX = 1, MaxY = 1 };
+
+        private static WeightedPointNative[] OnePoint() => [new WeightedPointNative { X = 0.5, Y = 0.5, Weight = 1 }];
+
+        [Fact]
+        public void NativeViewshed_Abi_ValidInput_ReturnsVisibleCountAndMatchesReference()
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            var request = ViewshedRequest(37, 23, observerX: 5, observerY: 17);
+            var elevation = request.Elevation.ToArray();
+            var visibility = new byte[37 * 23];
+
+            var status = ViewshedCall(elevation, elevation.Length, 37, 23, visibility, visibility.Length, observerX: 5, observerY: 17);
+
+            var expected = ReferenceViewshed(request);
+            Assert.Equal(expected.Count(v => v == 1), status);
+            Assert.Equal(expected.ToArray(), visibility);
+        }
+
+        [Fact]
+        public void NativeViewshed_Abi_OutputBufferLargerThanTheGrid_WritesOnlyTheGrid()
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            var request = ViewshedRequest(9, 5, observerX: 4, observerY: 2);
+            var elevation = request.Elevation.ToArray();
+            var visibility = Filled(45 + 16);
+
+            var status = ViewshedCall(elevation, elevation.Length, 9, 5, visibility, visibility.Length, observerX: 4, observerY: 2);
+
+            Assert.True(status > 0);
+            Assert.Equal(ReferenceViewshed(request).ToArray(), visibility[..45]);
+            Assert.All(visibility[45..], b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [MemberData(nameof(MismatchedLengths))]
+        public void NativeViewshed_Abi_ElevationLengthThatIsNotWidthTimesHeight_IsRejected(int elevationLength)
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            var elevation = new double[Math.Max(elevationLength, 1)];
+            var visibility = Filled(16);
+
+            var status = ViewshedCall(elevation, elevationLength, 4, 4, visibility, visibility.Length);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(visibility, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Fact]
+        public void NativeViewshed_Abi_OutputBufferSmallerThanTheGrid_IsRejected()
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            var elevation = new double[16];
+            var visibility = Filled(15);
+
+            var status = ViewshedCall(elevation, 16, 4, 4, visibility, 15);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(visibility, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [MemberData(nameof(WrappingDimensions))]
+        public void NativeViewshed_Abi_DimensionsWhoseProductOverflowsInt_AreRejected(int width, int height)
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            // Declare the lengths a 32-bit multiply would have produced, which is what an unguarded
+            // `outputLength < width * height` check is fooled by.
+            var wrapped = unchecked(width * height);
+            var elevation = new double[Math.Max(wrapped, 1)];
+            var visibility = Filled(wrapped);
+
+            var status = ViewshedCall(elevation, wrapped, width, height, visibility, wrapped);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(visibility, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [MemberData(nameof(NonPositiveDimensions))]
+        public void NativeViewshed_Abi_NonPositiveDimensions_AreRejected(int width, int height)
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            var elevation = new double[16];
+            var visibility = Filled(16);
+
+            var status = ViewshedCall(elevation, 16, width, height, visibility, 16);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(visibility, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(-30.0)]
+        public void NativeViewshed_Abi_NonPositiveCellSize_IsRejected(double cellSize)
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+
+            Assert.Equal(InvalidArgument, ViewshedCall(new double[16], 16, 4, 4, Filled(16), 16, cellSize: cellSize));
+        }
+
+        [Fact]
+        public void NativeViewshed_Abi_NullBuffers_AreRejected()
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+
+            Assert.Equal(InvalidArgument, ViewshedCall(null, 16, 4, 4, Filled(16), 16));
+            Assert.Equal(InvalidArgument, ViewshedCall(new double[16], 16, 4, 4, null, 16));
+        }
+
+        [Theory]
+        [InlineData(-1, 0)]
+        [InlineData(4, 0)]
+        [InlineData(0, -1)]
+        [InlineData(0, 4)]
+        public void NativeViewshed_Abi_ObserverOutsideTheGrid_ReportsItsOwnStatus(int observerX, int observerY)
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            var visibility = Filled(16);
+
+            var status = ViewshedCall(new double[16], 16, 4, 4, visibility, 16, observerX: observerX, observerY: observerY);
+
+            Assert.Equal(ObserverOutsideGrid, status);
+            Assert.All(visibility, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Fact]
+        public void NativeViewshed_Bridge_RequestWhoseElevationCountDisagreesWithTheGrid_IsDeclined()
+        {
+            Assert.SkipUnless(ViewshedNativeBridge.IsAvailable, SkipReason);
+            var request = ViewshedRequest(4, 4, observerX: 0, observerY: 0);
+            request.Elevation.RemoveAt(request.Elevation.Count - 1);   // 15 values for a 4 x 4 grid
+
+            // The bridge turns the kernel's status into an exception, TryCompute logs it and reports
+            // "not handled" so the caller falls back to managed code. Nothing is read past the array.
+            Assert.False(ViewshedNativeBridge.TryCompute(request, NullLogger.Instance, out var result));
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void NativeHillshade_Abi_ValidInput_MatchesReference()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var request = HillshadeRequest(41, 29);
+            var elevation = request.Elevation.ToArray();
+            var intensities = new byte[41 * 29];
+
+            var status = HillshadeCall(elevation, elevation.Length, 41, 29, intensities, intensities.Length);
+
+            Assert.Equal(0, status);
+            Assert.Equal(ReferenceHillshade(request).ToArray(), intensities);
+        }
+
+        [Fact]
+        public void NativeHillshade_Abi_OutputBufferLargerThanTheGrid_WritesOnlyTheGrid()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var request = HillshadeRequest(9, 5);
+            var elevation = request.Elevation.ToArray();
+            var intensities = Filled(45 + 16);
+
+            var status = HillshadeCall(elevation, elevation.Length, 9, 5, intensities, intensities.Length);
+
+            Assert.Equal(0, status);
+            Assert.Equal(ReferenceHillshade(request).ToArray(), intensities[..45]);
+            Assert.All(intensities[45..], b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [MemberData(nameof(MismatchedLengths))]
+        public void NativeHillshade_Abi_ElevationLengthThatIsNotWidthTimesHeight_IsRejected(int elevationLength)
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var elevation = new double[Math.Max(elevationLength, 1)];
+            var intensities = Filled(16);
+
+            var status = HillshadeCall(elevation, elevationLength, 4, 4, intensities, intensities.Length);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(intensities, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Fact]
+        public void NativeHillshade_Abi_OutputBufferSmallerThanTheGrid_IsRejected()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var intensities = Filled(15);
+
+            var status = HillshadeCall(new double[16], 16, 4, 4, intensities, 15);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(intensities, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [MemberData(nameof(WrappingDimensions))]
+        public void NativeHillshade_Abi_DimensionsWhoseProductOverflowsInt_AreRejected(int width, int height)
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var wrapped = unchecked(width * height);
+            var elevation = new double[Math.Max(wrapped, 1)];
+            var intensities = Filled(wrapped);
+
+            var status = HillshadeCall(elevation, wrapped, width, height, intensities, wrapped);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(intensities, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [MemberData(nameof(NonPositiveDimensions))]
+        public void NativeHillshade_Abi_NonPositiveDimensions_AreRejected(int width, int height)
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var intensities = Filled(16);
+
+            var status = HillshadeCall(new double[16], 16, width, height, intensities, 16);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(intensities, b => Assert.Equal(Sentinel, b));
+        }
+
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(-30.0)]
+        public void NativeHillshade_Abi_NonPositiveCellSize_IsRejected(double cellSize)
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+
+            Assert.Equal(InvalidArgument, HillshadeCall(new double[16], 16, 4, 4, Filled(16), 16, cellSize));
+        }
+
+        [Fact]
+        public void NativeHillshade_Abi_NullBuffers_AreRejected()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+
+            Assert.Equal(InvalidArgument, HillshadeCall(null, 16, 4, 4, Filled(16), 16));
+            Assert.Equal(InvalidArgument, HillshadeCall(new double[16], 16, 4, 4, null, 16));
+        }
+
+        [Fact]
+        public void NativeHillshade_Bridge_RequestWhoseElevationCountDisagreesWithTheGrid_Throws()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var request = HillshadeRequest(4, 4);
+            request.Elevation.RemoveAt(request.Elevation.Count - 1);   // 15 values for a 4 x 4 grid
+
+            var ex = Assert.Throws<InvalidOperationException>(() => RasterTerrainNativeBridge.GenerateHillshade(request));
+            Assert.Contains("-1", ex.Message);
+        }
+
+        [Fact]
+        public void NativeHeatmap_Abi_ValidInput_MatchesReference()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var request = HeatmapRequest(33, 21);
+            var points = request.Points.Select(p => new WeightedPointNative { X = p.X, Y = p.Y, Weight = p.Weight }).ToArray();
+            var extent = new RasterExtentNative { MinX = request.MinX, MinY = request.MinY, MaxX = request.MaxX, MaxY = request.MaxY };
+            var values = new double[33 * 21];
+
+            var status = HeatmapCall(points, points.Length, extent, 33, 21, values, values.Length, request.Radius);
+
+            Assert.Equal(0, status);
+            var expected = ReferenceHeatmap(request);
+            for (var i = 0; i < expected.Count; i++)
+                Assert.Equal(expected[i], values[i], 9);
+        }
+
+        [Fact]
+        public void NativeHeatmap_Abi_OutputBufferLargerThanTheGrid_WritesOnlyTheGrid()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var values = Enumerable.Repeat(-7.0, 12 + 5).ToArray();
+
+            var status = HeatmapCall(OnePoint(), 1, UnitExtent, 4, 3, values, values.Length);
+
+            Assert.Equal(0, status);
+            Assert.All(values[..12], v => Assert.InRange(v, 0.0, 1.0));
+            Assert.All(values[12..], v => Assert.Equal(-7.0, v));
+        }
+
+        [Fact]
+        public void NativeHeatmap_Abi_OutputBufferSmallerThanTheGrid_IsRejected()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var values = Enumerable.Repeat(-7.0, 11).ToArray();
+
+            var status = HeatmapCall(OnePoint(), 1, UnitExtent, 4, 3, values, 11);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(values, v => Assert.Equal(-7.0, v));
+        }
+
+        [Theory]
+        [MemberData(nameof(WrappingDimensions))]
+        public void NativeHeatmap_Abi_DimensionsWhoseProductOverflowsInt_AreRejected(int width, int height)
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var wrapped = unchecked(width * height);
+            var values = Enumerable.Repeat(-7.0, Math.Max(wrapped, 1)).ToArray();
+
+            var status = HeatmapCall(OnePoint(), 1, UnitExtent, width, height, values, wrapped);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(values, v => Assert.Equal(-7.0, v));
+        }
+
+        [Theory]
+        [MemberData(nameof(NonPositiveDimensions))]
+        public void NativeHeatmap_Abi_NonPositiveDimensions_AreRejected(int width, int height)
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var values = Enumerable.Repeat(-7.0, 16).ToArray();
+
+            var status = HeatmapCall(OnePoint(), 1, UnitExtent, width, height, values, 16);
+
+            Assert.Equal(InvalidArgument, status);
+            Assert.All(values, v => Assert.Equal(-7.0, v));
+        }
+
+        [Fact]
+        public void NativeHeatmap_Abi_InvalidScalarsAndPointers_AreRejectedWithTheirOwnStatus()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var values = new double[12];
+            var inverted = new RasterExtentNative { MinX = 1, MinY = 0, MaxX = 0, MaxY = 1 };
+
+            Assert.Equal(InvalidArgument, HeatmapCall(OnePoint(), -1, UnitExtent, 4, 3, values, 12));
+            Assert.Equal(InvalidArgument, HeatmapCall(OnePoint(), 1, UnitExtent, 4, 3, values, 12, radius: 0));
+            Assert.Equal(InvalidArgument, HeatmapCall(null, 1, UnitExtent, 4, 3, values, 12));
+            Assert.Equal(InvalidArgument, HeatmapCall(OnePoint(), 1, UnitExtent, 4, 3, null, 12));
+            Assert.Equal(DegenerateExtent, HeatmapCall(OnePoint(), 1, inverted, 4, 3, values, 12));
+        }
+
+        [Fact]
+        public void NativeHeatmap_Abi_ZeroPoints_ProducesAnAllZeroGrid()
+        {
+            Assert.SkipUnless(RasterTerrainNativeBridge.IsAvailable, SkipReason);
+            var values = Enumerable.Repeat(-7.0, 12).ToArray();
+
+            var status = HeatmapCall([], 0, UnitExtent, 4, 3, values, 12);
+
+            Assert.Equal(0, status);
+            Assert.All(values, v => Assert.Equal(0.0, v));
         }
 
         // ---- Fixtures ----

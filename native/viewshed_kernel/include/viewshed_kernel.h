@@ -11,14 +11,43 @@
 extern "C"
 {
 	// Computes a line-of-sight viewshed over an elevation grid from an observer cell.
-	// `elevation` is row-major (width * height). The observer sits at
+	// `elevation` is row-major: cell (x, y) is elevation[y * width + x]. The observer sits at
 	// (observerX, observerY) at elevation[cell] + observerHeight. Every cell is
 	// tested by walking the ray from the observer and tracking the maximum vertical
 	// angle: a cell is visible when its own angle meets or exceeds the running
 	// maximum. Writes 1 (visible) or 0 (hidden) per cell into `visibility`.
-	// Returns the number of visible cells (>= 0) on success, negative on error.
+	//
+	// Parameters. Every length and count is in ELEMENTS, not bytes.
+	//   elevation        in   Non-null. `elevationLength` doubles, row-major. The kernel only reads it.
+	//   elevationLength  in   Number of doubles readable at `elevation`. Must equal width * height
+	//                         exactly, the same rule the managed service enforces.
+	//   width, height    in   Grid size in cells. Both must be > 0, and width * height must fit in a
+	//                         32-bit int (it is formed in 64 bits, so it cannot overflow).
+	//   cellSize         in   Edge length of one cell, in the same unit as the elevations. Must be > 0.
+	//   observerX/Y      in   Observer cell: 0 <= observerX < width and 0 <= observerY < height.
+	//   observerHeight   in   Height above the observer cell's elevation, same unit as the elevations.
+	//   visibility       out  Non-null, caller-allocated, same row-major layout, one byte per cell.
+	//   outputLength     in   Number of bytes writable at `visibility`. Must be >= width * height;
+	//                         exactly width * height bytes are written.
+	//
+	// Preconditions the kernel cannot check: `elevation` really holds `elevationLength` readable
+	// doubles and `visibility` really holds `outputLength` writable bytes, and every double is
+	// finite. The library is built with fast-math, so NaN and infinity are not detected; the
+	// managed service rejects them before any call.
+	//
+	// Ownership: the caller owns both buffers for the duration of the call. The kernel keeps no
+	// pointer past its return, allocates nothing the caller must free, and never lets a C++
+	// exception cross the boundary.
+	//
+	// Returns the number of visible cells (>= 0) on success, otherwise a negative status:
+	//    -1  invalid argument: null pointer; width or height <= 0; width * height larger than
+	//        INT_MAX; cellSize <= 0; elevationLength != width * height; outputLength < width * height
+	//    -2  observer cell outside the grid
+	//   -99  internal exception
+	// Statuses -1 and -2 are returned before anything is written, so `visibility` is left untouched.
 	VIEWSHED_API int Viewshed_Compute(
 		const double* elevation,
+		int elevationLength,
 		int width,
 		int height,
 		double cellSize,
