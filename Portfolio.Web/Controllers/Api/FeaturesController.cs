@@ -44,6 +44,14 @@ namespace Portfolio.Web.Controllers.Api
             if (string.IsNullOrWhiteSpace(layerId))
                 return BadRequest(new { error = "layerId is required." });
 
+            // The id is spliced into an upstream URL path, so accept only a short numeric layer id
+            // (dot-segments such as ".." would otherwise be normalised away by the URI parser).
+            if (!IsValidLayerId(layerId))
+                return BadRequest(new { error = "layerId must be 1 to 3 digits." });
+
+            if (!IsValidBbox(bbox))
+                return BadRequest(new { error = "bbox must be four comma-separated numbers: minX,minY,maxX,maxY." });
+
             try
             {
                 var features = await _arcGisService.QueryFeaturesAsync(layerId, bbox, cancellationToken);
@@ -60,6 +68,22 @@ namespace Portfolio.Web.Controllers.Api
                     Extensions = { ["retryAfterSeconds"] = 30 }
                 });
             }
+        }
+
+        // ASCII digits only, and \z (not $) so a trailing newline does not slip through.
+        private static bool IsValidLayerId(string layerId) =>
+            System.Text.RegularExpressions.Regex.IsMatch(layerId, @"^[0-9]{1,3}\z");
+
+        // null or empty means "no bbox filter". Otherwise exactly four finite numbers.
+        private static bool IsValidBbox(string? bbox)
+        {
+            if (string.IsNullOrEmpty(bbox))
+                return true;
+
+            var parts = bbox.Split(',');
+            return parts.Length == 4 && parts.All(p =>
+                double.TryParse(p, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var v) && double.IsFinite(v));
         }
     }
 }
