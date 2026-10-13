@@ -34,6 +34,9 @@ public sealed class BoundedBatchJobQueue : IBatchJobQueue
     public bool TryEnqueue(BatchWorkItem item) => _channel.Writer.TryWrite(item);
 
     /// <inheritdoc/>
+    public bool TryDequeue(out BatchWorkItem? item) => _channel.Reader.TryRead(out item);
+
+    /// <inheritdoc/>
     public IAsyncEnumerable<BatchWorkItem> ReadAllAsync(CancellationToken ct) =>
         _channel.Reader.ReadAllAsync(ct);
 }

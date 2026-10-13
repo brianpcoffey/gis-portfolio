@@ -359,6 +359,87 @@ namespace Portfolio.Tests.Services
             Assert.Equal(BatchGeocodingWorker.WorkerCount, handler.MaxConcurrent);
         }
 
+        private static BatchWorkItem MakeItem(string id) =>
+            new(new BatchJob { JobId = id, Status = BatchJobStatus.Queued, FileName = id + ".csv" }, []);
+
+        private (BatchGeocodingWorker Worker, Mock<IBatchGeocodingService> Service, Mock<IBatchJobStore> Store) BuildWorker()
+        {
+            var service = new Mock<IBatchGeocodingService>();
+            var store   = new Mock<IBatchJobStore>();
+            var provider = new ServiceCollection()
+                .AddSingleton(service.Object)
+                .AddSingleton(store.Object)
+                .BuildServiceProvider();
+            var worker = new BatchGeocodingWorker(
+                _queue, provider.GetRequiredService<IServiceScopeFactory>(), NullLogger<BatchGeocodingWorker>.Instance);
+            _workers.Add(worker);
+            return (worker, service, store);
+        }
+
+        // A cancellation that is not the host stopping must fail that job only; if it escaped
+        // RunAsync the default BackgroundServiceExceptionBehavior.StopHost would stop the host.
+        [Fact]
+        public async Task Worker_NonHostCancellation_DoesNotStopTheLoop()
+        {
+            // Arrange
+            var (worker, service, _) = BuildWorker();
+            var second = new TaskCompletionSource();
+            service.Setup(s => s.ProcessJobAsync(It.Is<BatchWorkItem>(i => i.Job.JobId == "a"), It.IsAny<CancellationToken>()))
+                   .ThrowsAsync(new OperationCanceledException("upstream timeout"));
+            service.Setup(s => s.ProcessJobAsync(It.Is<BatchWorkItem>(i => i.Job.JobId == "b"), It.IsAny<CancellationToken>()))
+                   .Returns(() => { second.SetResult(); return Task.CompletedTask; });
+
+            // Act
+            await worker.StartAsync(CancellationToken.None);
+            _queue.TryEnqueue(MakeItem("a"));
+            _queue.TryEnqueue(MakeItem("b"));
+            var finished = await Task.WhenAny(second.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+
+            // Assert
+            Assert.Same(second.Task, finished);
+            Assert.False(worker.ExecuteTask!.IsCompleted);
+        }
+
+        // On shutdown, jobs still waiting in the queue will never run: they are marked Failed.
+        [Fact]
+        public async Task Worker_Stopped_MarksStillQueuedJobsFailed()
+        {
+            // Arrange: both loops are busy with blocking jobs, so c and d stay queued.
+            var (worker, service, store) = BuildWorker();
+            var started = 0;
+            var bothBusy = new TaskCompletionSource();
+            service.Setup(s => s.ProcessJobAsync(It.IsAny<BatchWorkItem>(), It.IsAny<CancellationToken>()))
+                   .Returns<BatchWorkItem, CancellationToken>(async (_, ct) =>
+                   {
+                       if (Interlocked.Increment(ref started) == BatchGeocodingWorker.WorkerCount)
+                           bothBusy.SetResult();
+                       await Task.Delay(Timeout.Infinite, ct);
+                   });
+            var updated = new List<BatchJob>();
+            store.Setup(s => s.UpdateAsync(It.IsAny<BatchJob>(), It.IsAny<CancellationToken>()))
+                 .Returns<BatchJob, CancellationToken>((j, _) => { lock (updated) updated.Add(j); return Task.CompletedTask; });
+            await worker.StartAsync(CancellationToken.None);
+            _queue.TryEnqueue(MakeItem("a"));
+            _queue.TryEnqueue(MakeItem("b"));
+            await bothBusy.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            _queue.TryEnqueue(MakeItem("c"));
+            _queue.TryEnqueue(MakeItem("d"));
+
+            // Act
+            await worker.StopAsync(CancellationToken.None);
+
+            // Assert
+            lock (updated)
+            {
+                Assert.Equal(["c", "d"], updated.Select(j => j.JobId).OrderBy(x => x));
+                Assert.All(updated, j =>
+                {
+                    Assert.Equal(BatchJobStatus.Failed, j.Status);
+                    Assert.NotNull(j.CompletedAt);
+                });
+            }
+        }
+
         // ── Fake HTTP handlers ───────────────────────────────────────────────
 
         private sealed class BlockingHandler : HttpMessageHandler

@@ -32,6 +32,9 @@ public interface IBatchJobQueue
     /// <summary>Adds <paramref name="item"/> to the queue; returns <c>false</c> when the queue is full.</summary>
     bool TryEnqueue(BatchWorkItem item);
 
+    /// <summary>Removes and returns the next queued job without waiting; <c>false</c> when the queue is empty.</summary>
+    bool TryDequeue(out BatchWorkItem? item);
+
     /// <summary>Yields queued jobs as they arrive until <paramref name="ct"/> is cancelled.</summary>
     IAsyncEnumerable<BatchWorkItem> ReadAllAsync(CancellationToken ct);
 }

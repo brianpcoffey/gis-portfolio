@@ -1,3 +1,4 @@
+using Portfolio.Common.Models;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 
@@ -39,14 +40,15 @@ public sealed class BatchGeocodingWorker : BackgroundService
             {
                 try
                 {
-                    using var scope = _scopeFactory.CreateScope();
+                    await using var scope = _scopeFactory.CreateAsyncScope();
                     var service = scope.ServiceProvider.GetRequiredService<IBatchGeocodingService>();
                     await service.ProcessJobAsync(item, stoppingToken);
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (Exception ex) when (!(ex is OperationCanceledException && stoppingToken.IsCancellationRequested))
                 {
                     // ProcessJobAsync records its own failures; this keeps the worker loop alive
-                    // if the final store write itself fails.
+                    // if the final store write itself fails, or if a cancellation that was not the
+                    // host stopping escapes (it would otherwise stop the host).
                     _logger.LogError(ex, "Batch job {JobId} could not be finalized.", item.Job.JobId);
                 }
             }
@@ -54,6 +56,29 @@ public sealed class BatchGeocodingWorker : BackgroundService
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             // Host shutdown.
+        }
+
+        await FailQueuedJobsAsync();
+    }
+
+    // Best-effort on shutdown: jobs still queued will never run, so mark them Failed rather than
+    // leaving them Queued in the store until its TTL.
+    private async Task FailQueuedJobsAsync()
+    {
+        while (_queue.TryDequeue(out var item) && item is not null)
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var store = scope.ServiceProvider.GetRequiredService<IBatchJobStore>();
+                item.Job.Status = BatchJobStatus.Failed;
+                item.Job.CompletedAt = DateTimeOffset.UtcNow;
+                await store.UpdateAsync(item.Job, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Queued batch job {JobId} could not be marked Failed on shutdown.", item.Job.JobId);
+            }
         }
     }
 }
