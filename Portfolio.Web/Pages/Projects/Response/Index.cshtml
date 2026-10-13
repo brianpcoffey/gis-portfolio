@@ -25,7 +25,7 @@
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><h2 class="h6 mb-0">Coverage Controls</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Coverage Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
 							<label for="responseStations" class="form-label small">
@@ -66,9 +66,9 @@
 							<input class="form-check-input" type="checkbox" id="responseShowIsochrone" checked />
 							<label class="form-check-label small" for="responseShowIsochrone">Paint isochrone bands when a station is clicked</label>
 						</div>
-						<button id="responseOptimizeBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Optimize Stations</button>
-						<button id="responseIsochroneBtn" class="btn btn-outline-accent"><i class="fa-solid fa-clock me-1"></i>Show Isochrone</button>
-						<button id="responseResetBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Reset to Existing</button>
+						<button id="responseOptimizeBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1" aria-hidden="true"></i>Optimize Stations</button>
+						<button id="responseIsochroneBtn" class="btn btn-outline-accent"><i class="fa-solid fa-clock me-1" aria-hidden="true"></i>Show Isochrone</button>
+						<button id="responseResetBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i>Reset to Existing</button>
 						<div>
 							<div id="responseStationHeading" class="small text-muted theme-text-muted mb-2">Chosen stations</div>
 							<div id="responseStationList" class="result-list" role="region" aria-labelledby="responseStationHeading"></div>
@@ -79,7 +79,7 @@
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-shield-halved text-accent"></i><h2 class="h6 mb-0">Coverage Performance</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-shield-halved text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Coverage Performance</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="responseKpiP90" class="kpi-value">&ndash;</div><div class="kpi-label">p90 Response</div></div></div>
@@ -91,12 +91,12 @@
 						<div id="responseComparison" class="alert alert-secondary py-2 px-3 small mb-3 d-none"></div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-location-dot me-1"></i>Demand and districting &mdash; circle size is call volume, colour is response time. Click any station marker, or press a station in the list, to paint its drive-time bands. The map pans with the arrow keys and zooms with + and &minus;.
+							<i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>Demand and districting &mdash; circle size is call volume, colour is response time. Click any station marker, or press a station in the list, to paint its drive-time bands. The map pans with the arrow keys and zooms with + and &minus;.
 						</div>
 						<div id="responseMap" class="spatial-map-panel mb-4" style="min-height: 460px;" role="application" aria-label="Redlands response coverage map"></div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-chart-column me-1"></i>Response-time distribution &mdash; call volume per one-minute bin. The outline is today's stations, the bars are the optimized siting.
+							<i class="fa-solid fa-chart-column me-1" aria-hidden="true"></i>Response-time distribution &mdash; call volume per one-minute bin. The outline is today's stations, the bars are the optimized siting.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
 							<svg id="responseHistogramSvg" role="img" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 640px;" aria-label="Response-time histogram"></svg>

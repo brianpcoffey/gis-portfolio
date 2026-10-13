@@ -24,7 +24,7 @@
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><h2 class="h6 mb-0">Detection Controls</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Detection Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
 							<label for="changeSize" class="form-label small">Scene size</label>
@@ -65,8 +65,8 @@
 							<label for="changeMinArea" class="form-label small">Minimum blob area (px)</label>
 							<input id="changeMinArea" class="form-control" type="number" min="0" max="5000" step="1" value="12" />
 						</div>
-						<button id="changeRunBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Detect Changes</button>
-						<button id="changeSceneBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>New Scene</button>
+						<button id="changeRunBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1" aria-hidden="true"></i>Detect Changes</button>
+						<button id="changeSceneBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i>New Scene</button>
 						<div>
 							<div class="small text-muted theme-text-muted mb-2">Detections &mdash; click a row to highlight it on the mask</div>
 							<div id="changeBlobList" class="result-list" role="region" aria-label="Detections"></div>
@@ -77,7 +77,7 @@
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-satellite-dish text-accent"></i><h2 class="h6 mb-0">Multitemporal Stack</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-satellite-dish text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Multitemporal Stack</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="changeKpiDetections" class="kpi-value">&ndash;</div><div class="kpi-label">Detections</div></div></div>
@@ -87,7 +87,7 @@
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-left-right me-1"></i>Before / after swipe &mdash; drag the divider or use the slider below. False-colour composite (NIR, Red, Green): healthy vegetation reads red.
+							<i class="fa-solid fa-left-right me-1" aria-hidden="true"></i>Before / after swipe &mdash; drag the divider or use the slider below. False-colour composite (NIR, Red, Green): healthy vegetation reads red.
 						</div>
 						<div class="spatial-map-panel d-flex flex-column align-items-center justify-content-center p-3 mb-4">
 							<div id="changeSwipeStage" class="change-swipe-stage">
@@ -104,14 +104,14 @@
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-object-group me-1"></i>Change mask over epoch B &mdash; solid boxes are detections, dashed boxes are planted ground truth.
+							<i class="fa-solid fa-object-group me-1" aria-hidden="true"></i>Change mask over epoch B &mdash; solid boxes are detections, dashed boxes are planted ground truth.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3 mb-4">
 							<canvas id="changeMaskCanvas" class="change-mask-canvas" role="img" aria-label="Detected change mask with detection and ground-truth bounding boxes"></canvas>
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-chart-simple me-1"></i>CVA magnitude histogram &mdash; the vertical line is the chosen threshold. Raise the noise and watch it move.
+							<i class="fa-solid fa-chart-simple me-1" aria-hidden="true"></i>CVA magnitude histogram &mdash; the vertical line is the chosen threshold. Raise the noise and watch it move.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
 							<svg id="changeHistogramSvg" role="img" viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" class="w-100 change-histogram-svg" aria-label="Change vector analysis magnitude histogram with the Otsu threshold marked"></svg>

@@ -23,7 +23,7 @@
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><h2 class="h6 mb-0">Analysis Controls</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Analysis Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
 							<label for="catRadius" class="form-label small">Ring radius (km)</label>
@@ -46,8 +46,8 @@
 								<option value="5000" selected>5,000 events</option>
 							</select>
 						</div>
-						<button id="catRunBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Run Analysis</button>
-						<button id="catReloadBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Reload Book</button>
+						<button id="catRunBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1" aria-hidden="true"></i>Run Analysis</button>
+						<button id="catReloadBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i>Reload Book</button>
 						<div>
 							<div class="small text-muted theme-text-muted mb-2">Exposure by community</div>
 							<div id="catCommunityTable"></div>
@@ -58,7 +58,7 @@
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-chart-area text-accent"></i><h2 class="h6 mb-0">Portfolio Risk</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-chart-area text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Portfolio Risk</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="catKpiTiv" class="kpi-value">&ndash;</div><div class="kpi-label">Total Insured Value</div></div></div>
@@ -68,14 +68,14 @@
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-location-dot me-1"></i>Exposure map &mdash; marker size is TIV, colour is site hazard. Rings above the concentration limit are outlined.
+							<i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>Exposure map &mdash; marker size is TIV, colour is site hazard. Rings above the concentration limit are outlined.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3 mb-4">
 							<svg id="catExposureSvg" role="img" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 560px; aspect-ratio: 1;" aria-label="Wildfire exposure map of the policy book"></svg>
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-chart-line me-1"></i>Occurrence exceedance probability curve &mdash; loss against return period, log scale.
+							<i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Occurrence exceedance probability curve &mdash; loss against return period, log scale.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
 							<svg id="catCurveSvg" role="img" viewBox="0 0 100 62" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 620px;" aria-label="Occurrence exceedance probability curve"></svg>

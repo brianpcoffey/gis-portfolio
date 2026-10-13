@@ -25,7 +25,7 @@
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><h2 class="h6 mb-0">Fleet Controls</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Fleet Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
 							<label for="fleetPreset" class="form-label small">Scenario</label>
@@ -56,8 +56,8 @@
 							</label>
 							<input id="fleetIterations" class="form-range" type="range" min="100" max="5000" step="100" value="1000" />
 						</div>
-						<button id="fleetOptimizeBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1"></i>Optimize</button>
-						<button id="fleetResetBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1"></i>Reset Scenario</button>
+						<button id="fleetOptimizeBtn" class="btn btn-accent"><i class="fa-solid fa-play me-1" aria-hidden="true"></i>Optimize</button>
+						<button id="fleetResetBtn" class="btn btn-outline-accent"><i class="fa-solid fa-arrows-rotate me-1" aria-hidden="true"></i>Reset Scenario</button>
 						<div>
 							<div class="small text-muted theme-text-muted mb-2">Routes</div>
 							<div id="fleetRouteList" class="result-list" tabindex="0" role="region" aria-label="Routes"></div>
@@ -68,7 +68,7 @@
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-map-location-dot text-accent"></i><h2 class="h6 mb-0">Dispatch Plan</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-map-location-dot text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Dispatch Plan</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="fleetKpiVehicles" class="kpi-value">&ndash;</div><div class="kpi-label">Vehicles Used</div></div></div>
@@ -78,19 +78,19 @@
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-location-dot me-1"></i>Routes follow real streets. The depot is the square marker; stops are numbered in visit order and coloured by vehicle. Unserved stops are grey. The map pans with the arrow keys and zooms with + and &minus;.
+							<i class="fa-solid fa-location-dot me-1" aria-hidden="true"></i>Routes follow real streets. The depot is the square marker; stops are numbered in visit order and coloured by vehicle. Unserved stops are grey. The map pans with the arrow keys and zooms with + and &minus;.
 						</div>
 						<div id="fleetMap" class="spatial-map-panel mb-4" style="min-height: 460px;" role="application" aria-label="Fleet route map"></div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-chart-line me-1"></i>Convergence &mdash; objective (distance plus a fixed cost per vehicle) after construction and after each local-search pass.
+							<i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Convergence &mdash; objective (distance plus a fixed cost per vehicle) after construction and after each local-search pass.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3 mb-4">
 							<svg id="fleetConvergenceSvg" role="img" viewBox="0 0 100 46" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 620px;" aria-label="Objective convergence chart"></svg>
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-bars-staggered me-1"></i>Schedule &mdash; one bar per vehicle across the shift. The light band behind each block is the customer's time window; the block is the actual arrival and service.
+							<i class="fa-solid fa-bars-staggered me-1" aria-hidden="true"></i>Schedule &mdash; one bar per vehicle across the shift. The light band behind each block is the customer's time window; the block is the actual arrival and service.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
 							<svg id="fleetScheduleSvg" role="img" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet" class="w-100" style="max-width: 660px;" aria-label="Vehicle schedule timeline"></svg>

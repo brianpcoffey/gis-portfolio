@@ -23,7 +23,7 @@
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><h2 class="h6 mb-0">Outage Controls</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Outage Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div>
 							<label for="outageFeeder" class="form-label small">Feeder filter</label>
@@ -40,14 +40,14 @@
 							</select>
 							<div class="form-text">The keyboard equivalent of clicking a conductor on the diagram.</div>
 						</div>
-						<button id="outagePlaceBtn" class="btn btn-accent" disabled><i class="fa-solid fa-bolt me-1"></i>Place Fault</button>
+						<button id="outagePlaceBtn" class="btn btn-accent" disabled><i class="fa-solid fa-bolt me-1" aria-hidden="true"></i>Place Fault</button>
 						<div>
 							<label for="outageRepair" class="form-label small">Assumed repair time (minutes)</label>
 							<input id="outageRepair" class="form-control" type="number" min="0" max="1440" step="15" value="180" />
 							<div class="form-text">Used only for the SAIDI estimate &mdash; it is an assumption, not a measurement.</div>
 						</div>
-						<button id="outageRestoreBtn" class="btn btn-accent" disabled><i class="fa-solid fa-plug-circle-bolt me-1"></i>Propose Restoration</button>
-						<button id="outageClearBtn" class="btn btn-outline-accent"><i class="fa-solid fa-rotate-left me-1"></i>Clear Fault</button>
+						<button id="outageRestoreBtn" class="btn btn-accent" disabled><i class="fa-solid fa-plug-circle-bolt me-1" aria-hidden="true"></i>Propose Restoration</button>
+						<button id="outageClearBtn" class="btn btn-outline-accent"><i class="fa-solid fa-rotate-left me-1" aria-hidden="true"></i>Clear Fault</button>
 
 						<div>
 							<div class="small text-muted theme-text-muted mb-2">Device legend</div>
@@ -67,7 +67,7 @@
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-bolt-lightning text-accent"></i><h2 class="h6 mb-0">Single-Line Diagram</h2></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-bolt-lightning text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Single-Line Diagram</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-3"><div class="kpi-card text-center"><div id="outageKpiAffected" class="kpi-value">&ndash;</div><div class="kpi-label">Customers Affected</div></div></div>
@@ -77,7 +77,7 @@
 						</div>
 
 						<div class="mb-2 small text-muted theme-text-muted">
-							<i class="fa-solid fa-hand-pointer me-1"></i>Click any conductor to place a fault. De-energized sections turn red, the upstream path to the substation turns blue, isolation devices get an amber halo, and restored sections turn green.
+							<i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>Click any conductor to place a fault. De-energized sections turn red, the upstream path to the substation turns blue, isolation devices get an amber halo, and restored sections turn green.
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3" style="position: relative;">
 							@* role="group", not "img": role="img" would prune the diagram's children from the
