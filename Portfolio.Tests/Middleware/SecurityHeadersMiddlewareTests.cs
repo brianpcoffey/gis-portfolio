@@ -112,7 +112,7 @@ namespace Portfolio.Tests.Middleware
         }
 
         [Fact]
-        public async Task InvokeAsync_NonceIs16RandomBytesAndUniquePerRequest()
+        public async Task InvokeAsync_NonceIs32LowercaseHexCharsAndUniquePerRequest()
         {
             // Act
             var (first, _) = await RunAsync();
@@ -121,7 +121,8 @@ namespace Portfolio.Tests.Middleware
             // Assert
             var a = (string)first.Items["csp-nonce"]!;
             var b = (string)second.Items["csp-nonce"]!;
-            Assert.Equal(16, Convert.FromBase64String(a).Length);
+            Assert.Matches("^[0-9a-f]{32}$", a);
+            Assert.Matches("^[0-9a-f]{32}$", b);
             Assert.NotEqual(a, b);
         }
 

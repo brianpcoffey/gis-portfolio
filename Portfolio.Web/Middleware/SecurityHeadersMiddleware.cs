@@ -45,7 +45,9 @@ namespace Portfolio.Web.Middleware
 
             // Full script/style policy, Report-Only (findings-security 2.4). The nonce is stamped
             // onto every <script>/<style> by CspNonceTagHelper.
-            var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+            // Lowercase hex (128 bits): valid CSP nonce characters that Razor never HTML-encodes,
+            // so the header value and the rendered attribute are byte-identical (base64 '+' became &#x2B;).
+            var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
             context.Items[NonceItemKey] = nonce;
             headers["Content-Security-Policy-Report-Only"] = BuildReportOnlyPolicy(nonce);
             headers["Reporting-Endpoints"] = "csp=\"/csp-report\"";

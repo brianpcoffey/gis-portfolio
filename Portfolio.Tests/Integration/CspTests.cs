@@ -64,11 +64,16 @@ public class CspTests
         Assert.Equal(EnforcedCsp, r.Headers.GetValues("Content-Security-Policy").Single());
         var policy = r.Headers.GetValues("Content-Security-Policy-Report-Only").Single();
         var nonce = Regex.Match(policy, @"script-src 'self' 'nonce-([^']+)'").Groups[1].Value;
-        Assert.Equal(16, Convert.FromBase64String(nonce).Length);
+        Assert.Matches("^[0-9a-f]{32}$", nonce);
 
         var tags = Regex.Matches(html, @"<(script|style)\b[^>]*>", RegexOptions.IgnoreCase).Select(m => m.Value).ToList();
         Assert.NotEmpty(tags);
-        Assert.All(tags, t => Assert.Contains($"nonce=\"{nonce}\"", t, StringComparison.Ordinal));
+        Assert.All(tags, t =>
+        {
+            var attr = Regex.Match(t, "nonce=\"([^\"]*)\"");
+            Assert.True(attr.Success, t);
+            Assert.Equal(nonce, System.Net.WebUtility.HtmlDecode(attr.Groups[1].Value));
+        });
     }
 
     [Fact]
