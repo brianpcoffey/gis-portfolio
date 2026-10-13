@@ -283,29 +283,35 @@ namespace Portfolio.Services.Services.ChangeDetection
                     if (mask[index] == 0)
                         continue;
 
-                    var neighbourCount = CollectNeighbourLabels(provisional, x, y, width, neighbours);
-                    if (neighbourCount == 0)
-                    {
-                        var fresh = parent.Count;
-                        parent.Add(fresh);
-                        provisional[index] = fresh;
-                        continue;
-                    }
-
-                    var smallest = neighbours[0];
-                    for (var n = 1; n < neighbourCount; n++)
-                    {
-                        if (neighbours[n] < smallest)
-                            smallest = neighbours[n];
-                    }
-
-                    provisional[index] = smallest;
-                    for (var n = 0; n < neighbourCount; n++)
-                        UnionLabels(parent, smallest, neighbours[n]);
+                    provisional[index] = AssignLabel(provisional, parent, neighbours, x, y, width);
                 }
             }
 
             return provisional;
+        }
+
+        // Label for the pixel at (x, y): fresh if no labelled neighbour, else the smallest neighbour
+        // label, with every neighbour label unioned into it.
+        private static int AssignLabel(int[] provisional, List<int> parent, int[] neighbours, int x, int y, int width)
+        {
+            var neighbourCount = CollectNeighbourLabels(provisional, x, y, width, neighbours);
+            if (neighbourCount == 0)
+            {
+                var fresh = parent.Count;
+                parent.Add(fresh);
+                return fresh;
+            }
+
+            var smallest = neighbours[0];
+            for (var n = 1; n < neighbourCount; n++)
+            {
+                if (neighbours[n] < smallest)
+                    smallest = neighbours[n];
+            }
+
+            for (var n = 0; n < neighbourCount; n++)
+                UnionLabels(parent, smallest, neighbours[n]);
+            return smallest;
         }
 
         // Non-zero labels of the already-visited 8-connected neighbours (NW, N, NE, W), in that order.
