@@ -23,9 +23,12 @@
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.16.15" />
-    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Moq" Version="4.21.0" />
+    <!-- Held on xunit.v3 3.x: 4.x runs on Microsoft.Testing.Platform 2, which drops the VSTest
+         `dotnet test` mode this repo's coverage pipeline (coverlet.collector + coverlet.runsettings)
+         depends on. Moving to 4.x is a planned migration, not a patch bump. -->
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
   </ItemGroup>
