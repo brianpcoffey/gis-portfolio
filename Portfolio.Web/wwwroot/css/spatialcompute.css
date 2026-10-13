@@ -178,8 +178,8 @@
 }
 
 .spatial-compute-page .geo-cell-anomaly {
-    border-color: var(--status-danger-fill);
-    background: var(--status-danger-soft);
+    border-color: rgba(var(--status-danger-rgb), 0.45);
+    background: rgba(var(--status-danger-rgb), 0.06);
 }
 
 .spatial-compute-page .geo-cell-anomaly strong {
