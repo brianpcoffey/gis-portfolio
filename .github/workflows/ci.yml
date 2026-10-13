@@ -195,6 +195,89 @@ jobs:
         run: dotnet test Portfolio.Tests --no-build -c Debug --logger "console;verbosity=normal"
 
   # ---------------------------------------------------------------------------
+  # The migrations and the order-number index against a real PostgreSQL server.
+  #
+  # The EF InMemory provider the rest of the suite runs on executes no SQL and enforces no index, so only a
+  # real server can show that every migration applies, that the pre-migration dedupe lets the unique
+  # (user, order number) index be created over legacy duplicates, and that two concurrent order creates both
+  # succeed through the retry. PostgresMigrationTests skip when PORTFOLIO_PG_TEST is unset (the test job above,
+  # and any local run); this job sets it. Not a deploy prerequisite.
+  #
+  # The server is a service container that exists for this job only, on an ephemeral runner, so its password is
+  # throwaway and not a secret. The tests create and drop databases of their own through it.
+  # ---------------------------------------------------------------------------
+  pg-migrations:
+    name: Postgres migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    services:
+      postgres:
+        # postgres:17 resolved 2026-10-13 (manifest list digest, from the registry's Docker-Content-Digest).
+        # Refresh it by hand, as the Dockerfile's digests are.
+        image: postgres:17@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        # The job's steps wait until this reports healthy.
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # An Npgsql connection string for the server above. Npgsql reads the password from PGPASSWORD when the
+      # string has none.
+      PORTFOLIO_PG_TEST: Host=localhost;Port=5432;Database=ci;Username=ci
+      PGPASSWORD: ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Portfolio.Tests
+
+      - name: Build (warnings are errors)
+        run: dotnet build Portfolio.Tests --no-restore -c Release
+
+      - name: Test against PostgreSQL
+        run: >
+          dotnet test Portfolio.Tests --no-build -c Release
+          --filter "FullyQualifiedName~PostgresMigrationTests"
+          --logger "trx;LogFileName=pg-migrations.trx"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults/pg
+
+      # A skipped test counts as passing, and a filter that matches nothing can still exit 0, so a misspelt
+      # variable or filter would leave this job green without testing anything. Fail unless the tests ran.
+      - name: Require that every Postgres test ran and passed
+        run: |
+          python3 -I - <<'PY'
+          import re
+          import sys
+          text = open("TestResults/pg/pg-migrations.trx", encoding="utf-8-sig").read()
+          counters = {k: int(v) for k, v in re.findall(r'(\w+)="(\d+)"', re.search(r"<Counters [^>]*", text).group(0))}
+          print(counters)
+          if counters["total"] == 0 or counters["executed"] != counters["total"] or counters["passed"] != counters["total"]:
+              print("::error::PostgresMigrationTests must all run and pass; skipped or missing tests do not count.")
+              sys.exit(1)
+          PY
+
+  # ---------------------------------------------------------------------------
   # The production image. Adding Portfolio.Benchmarks to the solution once broke
   # this build and nothing caught it until a deploy failed.
   # ---------------------------------------------------------------------------
