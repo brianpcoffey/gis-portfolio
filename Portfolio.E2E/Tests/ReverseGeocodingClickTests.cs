@@ -22,11 +22,15 @@ public sealed class ReverseGeocodingClickTests(E2EHost host) : BrowserTestBase(h
 {
     private const string ReversePath = "/api/v1/geocoding/reverse";
 
-    // The one uncaught page error this scenario tolerates, and only here: from the second map click on, the page reports an
-    // unhandled promise rejection, "AbortError" with the reason "Aborted" and no stack (observed on ArcGIS 4.29 with answers
-    // that arrive at once and with answers 2 s apart, in most runs, with no console error). It does not stop the lookups or
-    // the card. It is a finding for a follow-up, not an expectation: when it stops happening this test still passes.
+    // The one uncaught page error this scenario tolerates, and only here, and at most once per run. It is an unhandled promise
+    // rejection that Playwright reports as "AbortError: f" (the ArcGIS API's own abort error, with a minified message), and it
+    // is a real bug in the page, not noise: the map view's built-in click popup is still looking up the features under the click
+    // when the page resets its marker (graphicsLayer.removeAll in placeMarker) and opens its own popup (updateMarkerPopup), which
+    // cancels that lookup. Unmodified, three runs in a row each gave exactly one. It does not stop the lookups or the card.
+    // PR #76 (EN-05a) turns the view's popup off (popupEnabled: false), which removes it: once that has merged, delete this
+    // tolerance (the constants and the two assertions that use them) so that any page error fails the test.
     private const string KnownPageError = "AbortError";
+    private const int KnownPageErrorLimit = 1;
 
     // The centre, then three points below it. Clicks on the same spot in quick succession read as a double click (zoom), so each
     // later click is well away from the one before; every click still gets its own coordinates and its own answer. Each point is
@@ -78,9 +82,13 @@ public sealed class ReverseGeocodingClickTests(E2EHost host) : BrowserTestBase(h
 
         Assert.Equal(ClickOffsets.Length, lookups.Count);
         Assert.Empty(Session.UnexpectedConsoleErrors(ConsoleAllowList.ForPage(await Page.EvaluateAsync<string?>("() => window.PortfolioEsri?.baseUrl ?? null"))));
-        // Every other page error fails the test; the one tolerated here is described below. Requests to hosts the policy does
-        // not know are checked when the session is disposed.
-        Assert.All(Session.PageErrors, error => Assert.StartsWith(KnownPageError, error, StringComparison.Ordinal));
+        // Every other page error fails the test; the one tolerated here is described above, and only once. Requests to hosts the
+        // policy does not know are checked when the session is disposed.
+        var pageErrors = Session.PageErrors;
+        Assert.All(pageErrors, error => Assert.StartsWith(KnownPageError, error, StringComparison.Ordinal));
+        Assert.True(
+            pageErrors.Count <= KnownPageErrorLimit,
+            $"Expected at most {KnownPageErrorLimit} {KnownPageError} page error, got {pageErrors.Count}:{Environment.NewLine}  - {string.Join(Environment.NewLine + "  - ", pageErrors)}");
     }
 
     // A different answer for every point, so a card that was not updated cannot pass for one that was.
