@@ -10,8 +10,8 @@
  *  - All helpers are file-scoped (anonymous namespace) to avoid symbol
  *    pollution and allow aggressive inlining.
  *  - ScorePropertyBatch iterates a plain for-loop over contiguous structs,
- *    which leaves the compiler free to vectorise it under AVX2; the measured
- *    speedup over managed code is small (native/README.md).
+ *    which leaves the compiler free to vectorise it under AVX2; measured,
+ *    it is no faster than the managed path (native/README.md).
  *  - LoanTermMonths and AnnualInterestRate are constexpr to match the C#
  *    constants and allow compile-time evaluation where possible.
  */

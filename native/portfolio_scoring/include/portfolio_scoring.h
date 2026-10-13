@@ -135,7 +135,7 @@ PS_API void ScoreProperty(
  * elements.  The same `prefs` pointer is shared across all rows.
  *
  * A plain loop over contiguous structs; the build enables AVX2, so the compiler
- * may vectorise it. The measured gain over the managed path is small
+ * may vectorise it. Measured, it is no faster than the managed path
  * (native/README.md).
  */
 PS_API void ScorePropertyBatch(
