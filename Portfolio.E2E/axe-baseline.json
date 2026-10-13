@@ -1,0 +1,394 @@
+{
+  "about": "Accessibility findings the site already has (axe, tags wcag2a/wcag2aa/wcag21a/wcag21aa). Shrink-only: a finding missing from this file fails the accessibility suite, and so does a line here that no longer occurs. Fix the page in its own PR, then delete the lines. See Portfolio.E2E/Tests/AccessibilityTests.cs.",
+  "pages": {
+    "/": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Accessibility": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "p > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      },
+      "1280-light": {
+        "link-in-text-block": [
+          "p > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      },
+      "360-light": {
+        "link-in-text-block": [
+          "p > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      }
+    },
+    "/Account/Profile": {
+      "1280-dark": {
+        "link-in-text-block": [
+          ".form-text > a[href$=\"Accessibility\"]"
+        ]
+      },
+      "1280-light": {
+        "link-in-text-block": [
+          ".form-text > a[href$=\"Accessibility\"]"
+        ]
+      },
+      "360-light": {
+        "link-in-text-block": [
+          ".form-text > a[href$=\"Accessibility\"]"
+        ]
+      }
+    },
+    "/Login": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Privacy": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/AddressStandardization": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/AddressStandardization/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/BatchGeocoding": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/BatchGeocoding/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/CatRisk": {
+      "1280-dark": {
+        "scrollable-region-focusable": [
+          "#catSummary"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          "#catSummary"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          "#catSummary"
+        ]
+      }
+    },
+    "/Projects/CatRisk/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(6) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ],
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      }
+    },
+    "/Projects/Change": {
+      "1280-dark": {
+        "scrollable-region-focusable": [
+          "#changeSummary"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          "#changeSummary"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          "#changeSummary"
+        ]
+      }
+    },
+    "/Projects/Change/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(6) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ],
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      }
+    },
+    "/Projects/Clustering": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Clustering/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(4) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      },
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Fleet": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Fleet/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(5) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ],
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      }
+    },
+    "/Projects/GeoStream": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/GeoStream/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Geometry": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Geometry/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/HomeFinder": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/HomeFinder/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(4) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      },
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Network": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Network/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Outage": {
+      "1280-dark": {
+        "scrollable-region-focusable": [
+          "#outageSummary"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          "#outageSummary"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          "#outageSummary"
+        ]
+      }
+    },
+    "/Projects/Outage/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(6) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ],
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      }
+    },
+    "/Projects/Overlay": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Overlay/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(4) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      },
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/PlantOperationsDashboard": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/PlantOperationsDashboard/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Response": {
+      "1280-dark": {
+        "scrollable-region-focusable": [
+          "#responseSummary"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          "#responseSummary"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          "#responseSummary"
+        ]
+      }
+    },
+    "/Projects/Response/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(7) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ],
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "1280-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      },
+      "360-light": {
+        "scrollable-region-focusable": [
+          ".table-responsive"
+        ]
+      }
+    },
+    "/Projects/ReverseGeocoding": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/ReverseGeocoding/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/StateExplorer": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "#collectionsSignInHint > a"
+        ]
+      },
+      "1280-light": {
+        "link-in-text-block": [
+          "#collectionsSignInHint > a"
+        ]
+      },
+      "360-light": {
+        "link-in-text-block": [
+          "#collectionsSignInHint > a"
+        ]
+      }
+    },
+    "/Projects/StateExplorer/Details": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Terrain": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Terrain/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(6) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      },
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Viewshed": {
+      "1280-dark": {},
+      "1280-light": {},
+      "360-light": {}
+    },
+    "/Projects/Viewshed/Details": {
+      "1280-dark": {
+        "link-in-text-block": [
+          "li:nth-child(4) > a[target=\"_blank\"][rel=\"noopener\"]"
+        ]
+      },
+      "1280-light": {},
+      "360-light": {}
+    }
+  }
+}
