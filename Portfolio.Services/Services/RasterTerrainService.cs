@@ -9,6 +9,9 @@ namespace Portfolio.Services.Services
     {
         private const int MaxRasterCells = 250000;
         private const int MaxHeatmapPoints = 10000;
+        private const int MaxDimension = 512;
+        private const long MaxHeatmapWork = 25_000_000;
+        private const int CancellationCheckInterval = 1024;
         private readonly ILogger<RasterTerrainService> _logger;
 
         public RasterTerrainService(ILogger<RasterTerrainService> logger)
@@ -28,6 +31,13 @@ namespace Portfolio.Services.Services
             ValidateRasterShape(request.Width, request.Height, request.Elevation.Count);
             if (request.CellSize <= 0 || double.IsNaN(request.CellSize) || double.IsInfinity(request.CellSize))
                 throw new ArgumentException("Cell size must be a finite value greater than zero.", nameof(request));
+            if (!double.IsFinite(request.AzimuthDegrees) || !double.IsFinite(request.AltitudeDegrees))
+                throw new ArgumentException("Azimuth and altitude must be finite values.", nameof(request));
+            foreach (var value in request.Elevation)
+            {
+                if (!double.IsFinite(value))
+                    throw new ArgumentException("Elevation values must be finite.", nameof(request));
+            }
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -52,6 +62,9 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException("Extent minimums must be less than maximums.", nameof(request));
             if (request.Radius <= 0 || double.IsNaN(request.Radius) || double.IsInfinity(request.Radius))
                 throw new ArgumentException("Heatmap radius must be a finite value greater than zero.", nameof(request));
+            if ((long)request.Width * request.Height * request.Points.Count > MaxHeatmapWork)
+                throw new ArgumentException($"Heatmaps are limited to {MaxHeatmapWork} cell-point evaluations.", nameof(request));
+            ValidateHeatmapValues(request);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -61,17 +74,36 @@ namespace Portfolio.Services.Services
             return Task.FromResult(NormalizeHeatmap(GenerateHeatmapManaged(request, cancellationToken)));
         }
 
+        private static void ValidateHeatmapValues(HeatmapRequestDto request)
+        {
+            if (!double.IsFinite(request.MinX) || !double.IsFinite(request.MaxX) ||
+                !double.IsFinite(request.MinY) || !double.IsFinite(request.MaxY))
+                throw new ArgumentException("Heatmap extent must be finite values.", nameof(request));
+            foreach (var point in request.Points)
+            {
+                if (!double.IsFinite(point.X) || !double.IsFinite(point.Y) || !double.IsFinite(point.Weight))
+                    throw new ArgumentException("Heatmap point coordinates and weights must be finite values.", nameof(request));
+            }
+        }
+
         private static RasterHillshadeResultDto GenerateHillshadeManaged(RasterHillshadeRequestDto request, CancellationToken cancellationToken)
         {
             var output = new byte[request.Width * request.Height];
             var azimuth = DegreesToRadians(360.0 - request.AzimuthDegrees + 90.0);
             var altitude = DegreesToRadians(request.AltitudeDegrees);
+            var cellsSinceCheck = 0;
 
             for (var y = 0; y < request.Height; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (var x = 0; x < request.Width; x++)
                 {
+                    if (++cellsSinceCheck >= CancellationCheckInterval)
+                    {
+                        cellsSinceCheck = 0;
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+
                     var dzdx = Sample(request, x + 1, y) - Sample(request, x - 1, y);
                     var dzdy = Sample(request, x, y + 1) - Sample(request, x, y - 1);
                     var slope = Math.Atan(Math.Sqrt(dzdx * dzdx + dzdy * dzdy) / (2.0 * request.CellSize));
@@ -97,6 +129,7 @@ namespace Portfolio.Services.Services
             var max = 0.0;
             var xStep = (request.MaxX - request.MinX) / request.Width;
             var yStep = (request.MaxY - request.MinY) / request.Height;
+            var cellsSinceCheck = 0;
 
             for (var y = 0; y < request.Height; y++)
             {
@@ -104,6 +137,12 @@ namespace Portfolio.Services.Services
                 var py = request.MinY + (y + 0.5) * yStep;
                 for (var x = 0; x < request.Width; x++)
                 {
+                    if (++cellsSinceCheck >= CancellationCheckInterval)
+                    {
+                        cellsSinceCheck = 0;
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+
                     var px = request.MinX + (x + 0.5) * xStep;
                     var value = 0.0;
                     foreach (var point in request.Points)
@@ -148,6 +187,8 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException($"Raster operations are limited to {MaxRasterCells} cells.");
             if (valueCount != width * height)
                 throw new ArgumentException("Elevation value count must equal width multiplied by height.");
+            if (width > MaxDimension || height > MaxDimension)
+                throw new ArgumentException($"Raster width and height are each limited to {MaxDimension} cells.");
         }
 
         private static double Sample(RasterHillshadeRequestDto request, int x, int y)

@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Repositories.Interfaces;
 using Portfolio.Services.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace Portfolio.Services.Services
 {
@@ -27,6 +29,15 @@ namespace Portfolio.Services.Services
                 ?? throw new ArgumentNullException(nameof(timeProvider));
             _logger = logger
                 ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        // The colour is written into inline CSS by the client, so only #RRGGBB is accepted.
+        private static readonly Regex HexColor = new(@"^#[0-9a-fA-F]{6}$", RegexOptions.Compiled);
+
+        private static void ValidateColor(string color, string paramName)
+        {
+            if (!HexColor.IsMatch(color))
+                throw new ArgumentException("Color must be a hex value like #6c757d.", paramName);
         }
 
         private Guid CurrentUserId =>
@@ -56,6 +67,8 @@ namespace Portfolio.Services.Services
 
             if (string.IsNullOrWhiteSpace(dto.Name))
                 throw new ArgumentException("Collection name is required.", nameof(dto));
+            if (!string.IsNullOrWhiteSpace(dto.Color))
+                ValidateColor(dto.Color.Trim(), nameof(dto));
 
             var ownerId = CurrentUserId;
             var name = dto.Name.Trim();
@@ -72,7 +85,7 @@ namespace Portfolio.Services.Services
             };
 
 var created = await _repository.AddAsync(entity, cancellationToken);
-_logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", created.Id, ownerId);
+_logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", created.Id, LogRedaction.UserId(ownerId));
             return MapToDto(created);
         }
 
@@ -82,7 +95,6 @@ _logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", 
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(dto);
-
             var ownerId = CurrentUserId;
             var entity = await _repository.GetByIdAsync(id, ownerId, cancellationToken)
                 ?? throw new KeyNotFoundException($"Collection {id} not found.");
@@ -99,11 +111,16 @@ _logger.LogInformation("Collection {CollectionId} created for owner {OwnerId}", 
             }
 
             if (!string.IsNullOrWhiteSpace(dto.Color))
-                entity.Color = dto.Color.Trim();
+            {
+                var color = dto.Color.Trim();
+                if (!string.Equals(color, entity.Color, StringComparison.Ordinal))
+                    ValidateColor(color, nameof(dto));
+                entity.Color = color;
+            }
 
 entity.LastModified = _timeProvider.GetUtcNow().UtcDateTime;
 var updated = await _repository.UpdateAsync(entity, cancellationToken);
-_logger.LogInformation("Collection {CollectionId} updated for owner {OwnerId}", id, ownerId);
+_logger.LogInformation("Collection {CollectionId} updated for owner {OwnerId}", id, LogRedaction.UserId(ownerId));
             return MapToDto(updated);
         }
 
@@ -114,9 +131,9 @@ _logger.LogInformation("Collection {CollectionId} updated for owner {OwnerId}", 
 var ownerId = CurrentUserId;
 var deleted = await _repository.DeleteAsync(id, ownerId, cancellationToken);
 if (deleted)
-    _logger.LogInformation("Collection {CollectionId} deleted for owner {OwnerId}", id, ownerId);
+    _logger.LogInformation("Collection {CollectionId} deleted for owner {OwnerId}", id, LogRedaction.UserId(ownerId));
 else
-    _logger.LogWarning("Collection {CollectionId} not found for owner {OwnerId} during delete", id, ownerId);
+    _logger.LogWarning("Collection {CollectionId} not found for owner {OwnerId} during delete", id, LogRedaction.UserId(ownerId));
 return deleted;
         }
 

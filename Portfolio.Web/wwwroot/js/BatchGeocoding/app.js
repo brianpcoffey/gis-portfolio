@@ -282,9 +282,9 @@
             data: rows,
             columns: [
                 { title: "#",                width: "40px" },
-                { title: "Original Address"  },
+                { title: "Original Address", render: $.fn.dataTable.render.text() },
                 { title: "Status",           width: "100px" },
-                { title: "Matched Address"   },
+                { title: "Matched Address", render: $.fn.dataTable.render.text() },
                 { title: "Score",            width: "110px", orderable: false },
                 { title: "Lat",              width: "90px"  },
                 { title: "Lng",              width: "90px"  }

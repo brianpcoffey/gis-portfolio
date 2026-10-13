@@ -177,5 +177,97 @@ namespace Portfolio.Tests.Services
 
             Assert.False(result);
         }
+
+        // ── Persistence limits: values exactly at the boundary are accepted ──
+
+        private void SetupSavedFeatureAdd()
+        {
+            _repoMock
+                .Setup(r => r.GetByLayerAndFeatureIdAsync(It.IsAny<string>(), It.IsAny<string>(), _testUserId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SavedFeature?)null);
+            _repoMock
+                .Setup(r => r.AddAsync(It.IsAny<SavedFeature>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((SavedFeature f, CancellationToken _) => { f.Id = 1; return f; });
+        }
+
+        [Fact]
+        public async Task CreateAsync_AcceptsFieldsAtMaximumLength()
+        {
+            SetupSavedFeatureAdd();
+            var dto = new CreateSavedFeatureDto
+            {
+                LayerId = new string('l', 64),
+                FeatureId = new string('f', 64),
+                Name = new string('n', 200),
+                Description = new string('d', 2000),
+                GeometryJson = new string('g', 1_000_000)
+            };
+
+            var result = await _service.CreateAsync(dto);
+
+            Assert.Equal(1, result.Id);
+            Assert.Equal(1_000_000, result.GeometryJson!.Length);
+        }
+
+        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
+
+        [Fact]
+        public async Task CreateAsync_RejectsLayerIdOverLimit()
+        {
+            var dto = new CreateSavedFeatureDto { LayerId = new string('l', 65), FeatureId = "1", Name = "n", GeometryJson = "{}" };
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("LayerId must be 64 characters or fewer.", ex.Message);
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsFeatureIdOverLimit()
+        {
+            var dto = new CreateSavedFeatureDto { LayerId = "3", FeatureId = new string('f', 65), Name = "n", GeometryJson = "{}" };
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("FeatureId must be 64 characters or fewer.", ex.Message);
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsNameOverLimit()
+        {
+            var dto = new CreateSavedFeatureDto { LayerId = "3", FeatureId = "1", Name = new string('n', 201), GeometryJson = "{}" };
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("Name must be 200 characters or fewer.", ex.Message);
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsDescriptionOverLimit()
+        {
+            var dto = new CreateSavedFeatureDto { LayerId = "3", FeatureId = "1", Name = "n", GeometryJson = "{}", Description = new string('d', 2001) };
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("Description must be 2000 characters or fewer.", ex.Message);
+        }
+
+        [Fact]
+        public async Task CreateAsync_RejectsGeometryJsonOverLimit()
+        {
+            var dto = new CreateSavedFeatureDto { LayerId = "3", FeatureId = "1", Name = "n", GeometryJson = new string('g', 1_000_001) };
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _service.CreateAsync(dto));
+            Assert.StartsWith("GeometryJson must be 1000000 characters or fewer.", ex.Message);
+            _repoMock.Verify(r => r.AddAsync(It.IsAny<SavedFeature>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Logs_NeverContainTheRawUserId()
+        {
+            var logger = new Repositories.CapturingLogger<SavedFeatureService>();
+            var service = new SavedFeatureService(_repoMock.Object, _collectionRepoMock.Object, _userProfileServiceMock.Object, TimeProvider.System, logger);
+            SetupSavedFeatureAdd();
+            _repoMock.Setup(r => r.DeleteAsync(It.IsAny<int>(), _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _repoMock.Setup(r => r.GetByFeatureKeyAsync("k", _testUserId, It.IsAny<CancellationToken>())).ReturnsAsync((SavedFeature?)null);
+
+            await service.CreateAsync(new CreateSavedFeatureDto { LayerId = "3", FeatureId = "1", Name = "n", GeometryJson = "{}" });
+            await service.DeleteByDbIdAsync(7);
+            await service.DeleteByFeatureKeyAsync("k");
+
+            Assert.Equal(3, logger.Entries.Count);
+            Assert.Contains(Portfolio.Repositories.Diagnostics.LogRedaction.UserId(_testUserId), logger.All);
+            Assert.DoesNotContain(_testUserId.ToString(), logger.All, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

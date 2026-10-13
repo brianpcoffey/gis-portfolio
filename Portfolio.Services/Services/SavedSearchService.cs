@@ -8,6 +8,11 @@ namespace Portfolio.Services.Services
 {
     public class SavedSearchService : ISavedSearchService
     {
+        // Write-side limits; the name and joined-ID limits match the column sizes.
+        private const int MaxNameLength = 200;
+        private const int MaxPropertyIds = 50;
+        private const int MaxJoinedIdsLength = 500;
+
         private readonly ISavedSearchRepository _repo;
         private readonly TimeProvider _timeProvider;
 
@@ -29,6 +34,17 @@ namespace Portfolio.Services.Services
 
             var name = dto.Name.Trim();
 
+            if (name.Length > MaxNameLength)
+                throw new ArgumentException($"Name must be {MaxNameLength} characters or fewer.", nameof(dto));
+
+            var propertyIds = dto.PropertyIds ?? Array.Empty<int>();
+            if (propertyIds.Length > MaxPropertyIds)
+                throw new ArgumentException($"No more than {MaxPropertyIds} property IDs can be saved.", nameof(dto));
+
+            var joinedIds = string.Join(",", propertyIds);
+            if (joinedIds.Length > MaxJoinedIdsLength)
+                throw new ArgumentException("The property IDs are too long to save.", nameof(dto));
+
             var duplicate = await _repo.ExistsByNameAsync(userId, name, cancellationToken);
             if (duplicate)
                 throw new InvalidOperationException($"A saved search with the name '{name}' already exists.");
@@ -38,7 +54,7 @@ namespace Portfolio.Services.Services
                 UserId = userId,
                 Name = name,
                 PreferencesJson = JsonSerializer.Serialize(dto.Preferences),
-                TopPropertyIds = string.Join(",", dto.PropertyIds ?? Array.Empty<int>()),
+                TopPropertyIds = joinedIds,
                 CreatedAt = _timeProvider.GetUtcNow().UtcDateTime
             };
 
