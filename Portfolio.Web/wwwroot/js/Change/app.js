@@ -175,6 +175,10 @@
             return;
         }
 
+        // The size select and noise slider stay live while Detect runs (they are only aria-disabled),
+        // so a scene change can land first. Its result then belongs to a scene that is gone.
+        var seq = sceneSeq;
+
         runExclusive(runBtn, [sceneBtn, sizeSelect], {
             request: function () {
                 return apiPost(window.PortfolioApi.routes.spatialCompute.change.detect, {
@@ -190,11 +194,13 @@
                 });
             },
             render: function (result) {
+                if (seq !== sceneSeq) { return; }
                 detection = result;
                 selectedBlobId = 0;
                 render();
             },
             summary: function (result) {
+                if (seq !== sceneSeq) { return ""; }
                 return "Detection complete: " + result.blobs.length + " changes found, " +
                     kpiRecovered.textContent + " ground-truth changes recovered.";
             }
