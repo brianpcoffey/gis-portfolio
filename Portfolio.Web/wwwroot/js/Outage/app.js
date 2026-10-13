@@ -113,7 +113,9 @@
     }
 
     function placeFault(elementId) {
-        if (!network) { return; }
+        // A diagram click while a request is pending is dropped by runExclusive; bail out before the
+        // side effects below, so the select never shows a fault that was not placed.
+        if (!network || pending) { return; }
         restoration = null;
         faultSelect.value = String(elementId);
         placeBtn.disabled = false;
