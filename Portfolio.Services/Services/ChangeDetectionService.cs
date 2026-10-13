@@ -240,6 +240,41 @@ namespace Portfolio.Services.Services
 
         // ── Result shaping ──────────────────────────────────────────────────────
 
+        // Returns null when the component is below the minimum blob area.
+        private static ChangeBlobDto? TryBuildBlob(
+            DetectRequestDto request,
+            ChangeComponentResult components,
+            int c,
+            double maxMagnitude)
+        {
+            if (components.Areas[c] < request.MinBlobArea)
+                return null;
+
+            var mean = c < components.MeanMagnitude.Length ? components.MeanMagnitude[c] : 0;
+            var confidence = mean / maxMagnitude;
+            if (confidence < 0) confidence = 0;
+            if (confidence > 1) confidence = 1;
+
+            return new ChangeBlobDto
+            {
+                Area = components.Areas[c],
+                CentroidX = c < components.CentroidX.Length ? components.CentroidX[c] : 0,
+                CentroidY = c < components.CentroidY.Length ? components.CentroidY[c] : 0,
+                MeanMagnitude = mean,
+                Confidence = confidence,
+                MinX = c < components.MinX.Length ? components.MinX[c] : 0,
+                MinY = c < components.MinY.Length ? components.MinY[c] : 0,
+                MaxX = c < components.MaxX.Length ? components.MaxX[c] : 0,
+                MaxY = c < components.MaxY.Length ? components.MaxY[c] : 0
+            };
+        }
+
+        private static int CompareBlobs(ChangeBlobDto a, ChangeBlobDto b)
+        {
+            var byArea = b.Area.CompareTo(a.Area);
+            return byArea != 0 ? byArea : b.MeanMagnitude.CompareTo(a.MeanMagnitude);
+        }
+
         private static DetectResultDto BuildResult(
             DetectRequestDto request,
             string mode,
@@ -267,34 +302,14 @@ namespace Portfolio.Services.Services
                 // Never index native output past what the caller allocated.
                 if (c >= components.Areas.Length)
                     break;
-                if (components.Areas[c] < request.MinBlobArea)
-                    continue;
 
-                var mean = c < components.MeanMagnitude.Length ? components.MeanMagnitude[c] : 0;
-                var confidence = mean / maxMagnitude;
-                if (confidence < 0) confidence = 0;
-                if (confidence > 1) confidence = 1;
-
-                blobs.Add(new ChangeBlobDto
-                {
-                    Area = components.Areas[c],
-                    CentroidX = c < components.CentroidX.Length ? components.CentroidX[c] : 0,
-                    CentroidY = c < components.CentroidY.Length ? components.CentroidY[c] : 0,
-                    MeanMagnitude = mean,
-                    Confidence = confidence,
-                    MinX = c < components.MinX.Length ? components.MinX[c] : 0,
-                    MinY = c < components.MinY.Length ? components.MinY[c] : 0,
-                    MaxX = c < components.MaxX.Length ? components.MaxX[c] : 0,
-                    MaxY = c < components.MaxY.Length ? components.MaxY[c] : 0
-                });
+                var blob = TryBuildBlob(request, components, c, maxMagnitude);
+                if (blob != null)
+                    blobs.Add(blob);
             }
 
             // Rank by area descending, then by mean magnitude so ties are deterministic.
-            blobs.Sort((a, b) =>
-            {
-                var byArea = b.Area.CompareTo(a.Area);
-                return byArea != 0 ? byArea : b.MeanMagnitude.CompareTo(a.MeanMagnitude);
-            });
+            blobs.Sort(CompareBlobs);
             for (var i = 0; i < blobs.Count; i++)
                 blobs[i].Id = i + 1;
 
