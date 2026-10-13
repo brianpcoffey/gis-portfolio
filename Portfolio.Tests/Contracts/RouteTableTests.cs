@@ -10,11 +10,12 @@ namespace Portfolio.Tests.Contracts;
 /// <summary>Guards "public routes don't change" with a golden list of every controller action endpoint.</summary>
 /// <remarks>
 /// Each entry is "VERB /path" (the API-version segment is shown as v1), taken from the real endpoint
-/// table. The list has 78 entries: the 77 versioned routes, three of which are hidden from OpenAPI
-/// (the Home Finder aliases homefinder/score and homefinder/properties/{id}, and the live
-/// geocoding/batch/sync the demo calls), plus the version-neutral POST /csp-report (WP-20). The
-/// unversioned alias POST /api/batchgeocoding/sync was removed (it had answered 404 since API
-/// versioning began requiring a URL version). Page endpoints are not listed. Every route string in
+/// table. The list has 76 entries: the 75 versioned routes, one of which is hidden from OpenAPI
+/// (the live geocoding/batch/sync the demo calls), plus the version-neutral POST /csp-report
+/// (WP-20). The unversioned alias POST /api/batchgeocoding/sync was removed (it had answered 404
+/// since API versioning began requiring a URL version), and so were the obsolete Home Finder
+/// aliases POST homefinder/score and GET homefinder/properties/{id} (the site calls search and
+/// property). Page endpoints are not listed. Every route string in
 /// wwwroot/js/api-config.js must also resolve to a controller route.
 /// </remarks>
 public class RouteTableTests
@@ -45,7 +46,6 @@ public class RouteTableTests
         GET /api/v1/fleet/scenario
         GET /api/v1/geocoding/batch/{jobId}/status
         GET /api/v1/geocoding/reverse
-        GET /api/v1/homefinder/properties/{id:int}
         GET /api/v1/homefinder/property/{id:int}
         GET /api/v1/homefinder/searches
         GET /api/v1/homefinder/searches/{id:int}
@@ -75,7 +75,6 @@ public class RouteTableTests
         POST /api/v1/geometry/clip
         POST /api/v1/geometry/triangulate
         POST /api/v1/geostream/events
-        POST /api/v1/homefinder/score
         POST /api/v1/homefinder/search
         POST /api/v1/homefinder/searches
         POST /api/v1/network/route
@@ -120,7 +119,7 @@ public class RouteTableTests
         var expected = Expected.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
         // Act & Assert
-        Assert.Equal(78, expected.Count);
+        Assert.Equal(76, expected.Count);
         GoldenAssert.Equal(expected, ActionRoutes(f));
     }
 

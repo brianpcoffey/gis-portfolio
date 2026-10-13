@@ -350,5 +350,3 @@ namespace Portfolio.Tests.Controllers
         }
     }
 }
-
-#pragma warning restore CS0618

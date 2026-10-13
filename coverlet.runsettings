@@ -19,7 +19,7 @@
           <Exclude>[*]*.Migrations.*,[Portfolio.Benchmarks]*</Exclude>
 
           <!-- Compiler-generated Razor page classes and record boilerplate. -->
-          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <ExcludeByAttribute>GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
 
           <SkipAutoProps>true</SkipAutoProps>
           <IncludeTestAssembly>false</IncludeTestAssembly>

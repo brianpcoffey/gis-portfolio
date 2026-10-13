@@ -106,9 +106,7 @@ namespace Portfolio.Tests.Controllers
         [Theory]
         // Public demo surface — no user data, explicitly anonymous.
         [InlineData(nameof(HomeFinderController.Search), false)]
-        [InlineData(nameof(HomeFinderController.Score), false)]
         [InlineData(nameof(HomeFinderController.GetProperty), false)]
-        [InlineData(nameof(HomeFinderController.GetPropertyLegacy), false)]
         // User-scoped saved searches — must actually require authentication.
         [InlineData(nameof(HomeFinderController.SaveSearch), true)]
         [InlineData(nameof(HomeFinderController.GetSearches), true)]
