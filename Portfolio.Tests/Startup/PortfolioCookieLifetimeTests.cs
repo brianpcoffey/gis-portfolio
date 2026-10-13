@@ -65,14 +65,43 @@ public class PortfolioCookieLifetimeTests
     }
 
     [Fact]
-    public async Task ValidatePrincipal_PrincipalWithoutAuthTime_IsAccepted()
+    public async Task ValidatePrincipal_PrincipalWithoutAuthTime_IsAcceptedStampedAndRenewed()
     {
         var (ctx, auth) = Validate(Principal(null));
 
         await Events().ValidatePrincipal(ctx);
 
         Assert.NotNull(ctx.Principal);
+        Assert.Equal(Now.ToUnixTimeSeconds().ToString(), ctx.Principal!.FindFirstValue(PortfolioCookieEvents.AuthTimeClaimType));
+        Assert.Equal("g-1", ctx.Principal.FindFirstValue(ClaimTypes.NameIdentifier));
+        Assert.True(ctx.ShouldRenew);
         auth.Verify(a => a.SignOutAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<AuthenticationProperties>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ValidatePrincipal_StampedLegacyPrincipal_IsRejected24HoursLater()
+    {
+        var clock = new FakeTimeProvider(Now);
+        var events = new PortfolioCookieEvents(clock);
+        var (first, _) = Validate(Principal(null));
+        await events.ValidatePrincipal(first);
+
+        clock.Advance(TimeSpan.FromHours(24) + TimeSpan.FromSeconds(1));
+        var (later, auth) = Validate(first.Principal!);
+        await events.ValidatePrincipal(later);
+
+        Assert.Null(later.Principal);
+        auth.Verify(a => a.SignOutAsync(It.IsAny<HttpContext>(), Scheme.Name, It.IsAny<AuthenticationProperties>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidatePrincipal_PrincipalWithValidAuthTime_IsNotRenewed()
+    {
+        var (ctx, _) = Validate(Principal(Unix(TimeSpan.FromHours(1))));
+
+        await Events().ValidatePrincipal(ctx);
+
+        Assert.False(ctx.ShouldRenew);
     }
 
     [Fact]

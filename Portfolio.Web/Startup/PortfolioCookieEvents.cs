@@ -52,19 +52,39 @@ internal sealed class PortfolioCookieEvents : CookieAuthenticationEvents
 
     // -------------------------------------------------------
     // Enforce the absolute lifetime. Cookies issued before auth_time existed
-    // have no claim; they are left to expire on their 8 h sliding window so
-    // existing sessions are not killed by the deploy. A present but
-    // unparseable claim is rejected.
+    // have no claim; they are not killed by the deploy, but are stamped with
+    // the current time and renewed, so the 24 h cap starts at their first
+    // validation instead of sliding forever. A present but unparseable claim
+    // is rejected.
     // -------------------------------------------------------
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
-        var raw = context.Principal?.FindFirstValue(AuthTimeClaimType);
-        if (raw is null)
+        if (context.Principal is null)
+        {
+            await base.ValidatePrincipal(context);
             return;
+        }
+
+        var raw = context.Principal.FindFirstValue(AuthTimeClaimType);
+        if (raw is null)
+        {
+            var stamped = new ClaimsPrincipal(context.Principal.Identities.Select(i => i.Clone()));
+            stamped.Identities.First().AddClaim(new Claim(
+                AuthTimeClaimType,
+                _time.GetUtcNow().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ClaimValueTypes.Integer64));
+            context.ReplacePrincipal(stamped);
+            context.ShouldRenew = true;
+            await base.ValidatePrincipal(context);
+            return;
+        }
 
         if (long.TryParse(raw, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seconds)
             && _time.GetUtcNow() - DateTimeOffset.FromUnixTimeSeconds(seconds) <= AbsoluteLifetime)
+        {
+            await base.ValidatePrincipal(context);
             return;
+        }
 
         context.RejectPrincipal();
         await context.HttpContext.SignOutAsync(context.Scheme.Name);
