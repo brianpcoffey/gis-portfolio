@@ -34,7 +34,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Computes the set of cells visible from an observer position over an elevation grid.
         /// </summary>
         /// <param name="request">Elevation grid, observer position, and observer height.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Per-cell visibility flags plus a visible-cell count.</returns>
         [HttpPost("compute")]
         [ProducesResponseType(typeof(ViewshedResultDto), 200)]

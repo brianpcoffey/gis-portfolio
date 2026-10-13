@@ -1,0 +1,86 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
+using Portfolio.Web.Middleware;
+using Scalar.AspNetCore;
+
+namespace Portfolio.Web.Startup;
+
+internal static class Pipeline
+{
+    // --------------------------
+    // Middleware
+    // --------------------------
+    internal static WebApplication UsePortfolioPipeline(this WebApplication app)
+    {
+        // Apply X-Forwarded-For / X-Forwarded-Proto from Render's TLS-terminating proxy.
+        // Must be first so every downstream middleware sees the correct scheme and IP.
+        // Options are registered by AddPortfolioForwardedHeaders.
+        app.UseForwardedHeaders();
+
+        // Emit security headers on every response (before static files / endpoints run).
+        app.UseMiddleware<SecurityHeadersMiddleware>();
+
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseExceptionHandler("/Error");
+            app.UseHsts();
+        }
+
+        // Only redirect to HTTPS in development; Render handles TLS externally and
+        // the container only binds to HTTP, so redirecting here would produce a redirect loop.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
+        app.UseStaticFiles();
+        app.UseRouting();
+
+        // Rate limiting runs after routing (so per-endpoint policies resolve) but before the
+        // endpoints. Static files (served above) are intentionally not rate-limited.
+        app.UseRateLimiter();
+
+        app.UseSession();
+
+        // Global exception handler — returns RFC 7807 ProblemDetails for all unhandled exceptions.
+        app.UseMiddleware<ApiExceptionMiddleware>();
+
+        app.UseMiddleware<AnonymousUserMiddleware>();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+        return app;
+    }
+
+    internal static WebApplication MapPortfolioEndpoints(this WebApplication app)
+    {
+        // --------------------------
+        // OpenAPI / Scalar API reference
+        // --------------------------
+
+        // OpenAPI & Scalar UI are intentionally available in production for public API documentation.
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+
+        // --------------------------
+        // Health check endpoints (probed by Kubernetes; anonymous)
+        // --------------------------
+        // Liveness: process is up. Run NO checks so a transient DB blip never restarts the pod.
+        // Probes hit these frequently from the kubelet, so they opt out of rate limiting.
+        app.MapHealthChecks("/health/live", new HealthCheckOptions
+        {
+            Predicate = _ => false
+        }).DisableRateLimiting();
+        // Readiness: only receive traffic once dependency checks tagged "ready" pass.
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("ready")
+        }).DisableRateLimiting();
+
+        // --------------------------
+        // Map endpoints
+        // --------------------------
+        app.MapControllers();
+        app.MapRazorPages();
+        return app;
+    }
+}

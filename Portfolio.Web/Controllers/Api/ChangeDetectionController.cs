@@ -39,7 +39,6 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="width">Raster width in pixels, up to 512.</param>
         /// <param name="height">Raster height in pixels, up to 512.</param>
         /// <param name="noise">Gaussian noise standard deviation applied to both epochs.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Both epochs, band names, and the ground-truth change boxes.</returns>
         [HttpGet("scene")]
         [ProducesResponseType(typeof(ChangeSceneDto), 200)]
@@ -68,7 +67,6 @@ namespace Portfolio.Web.Controllers.Api
         /// ranked detections.
         /// </summary>
         /// <param name="request">Both epochs plus threshold, morphology, and filtering settings.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>CVA magnitude, change mask, histogram, and ranked change blobs.</returns>
         [HttpPost("detect")]
         [ProducesResponseType(typeof(DetectResultDto), 200)]

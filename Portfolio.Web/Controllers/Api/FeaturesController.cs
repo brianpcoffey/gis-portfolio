@@ -32,7 +32,6 @@ namespace Portfolio.Web.Controllers.Api
         /// </summary>
         /// <param name="layerId">Layer identifier.</param>
         /// <param name="bbox">Bounding box filter (optional).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>List of features.</returns>
         [HttpGet]
         [ProducesResponseType(typeof(List<FeatureDto>), 200)]

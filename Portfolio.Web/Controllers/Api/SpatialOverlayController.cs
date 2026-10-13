@@ -34,7 +34,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Tags each point with the first zone that contains it and rolls up per-zone counts.
         /// </summary>
         /// <param name="request">Points and candidate zone polygons.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Tagged points plus per-zone summaries and an unassigned tally.</returns>
         [HttpPost("spatial-join")]
         [ProducesResponseType(typeof(SpatialJoinResultDto), 200)]

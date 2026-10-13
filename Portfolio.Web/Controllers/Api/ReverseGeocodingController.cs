@@ -31,7 +31,6 @@ namespace Portfolio.Web.Controllers.Api
         /// </summary>
         /// <param name="lat">WGS84 latitude (-90 to 90).</param>
         /// <param name="lng">WGS84 longitude (-180 to 180).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Structured place data including address components and location type.</returns>
         [HttpGet]
         [ProducesResponseType(typeof(ReverseGeocodingResultDto), StatusCodes.Status200OK)]

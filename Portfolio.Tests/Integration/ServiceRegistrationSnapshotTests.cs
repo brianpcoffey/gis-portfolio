@@ -6,9 +6,8 @@ namespace Portfolio.Tests.Integration;
 /// Golden list of the DI registrations Program.cs makes for application types: sorted
 /// "ServiceType | Lifetime | ImplementationType" for Portfolio.* plus IBatchJobStore,
 /// IDistributedCache, TimeProvider and IMemoryCache. "(factory)" is a registration made through a
-/// factory delegate (the typed HttpClient registrations). The duplicate geocoding entries are
-/// today's behaviour: each AddScoped is followed by an AddHttpClient of the same interface, and the
-/// later (transient, typed-client) descriptor is the one that wins.
+/// factory delegate (the typed HttpClient registrations); each geocoding interface has exactly that one.
+/// IMemoryCache is registered by the framework, not by Program.cs.
 /// </summary>
 public class ServiceRegistrationSnapshotTests
 {
@@ -16,7 +15,6 @@ public class ServiceRegistrationSnapshotTests
         Microsoft.Extensions.Caching.Distributed.IDistributedCache | Singleton | Microsoft.Extensions.Caching.Distributed.MemoryDistributedCache
         Microsoft.Extensions.Caching.Memory.IMemoryCache | Singleton | Microsoft.Extensions.Caching.Memory.MemoryCache
         Portfolio.Repositories.Interfaces.ICollectionRepository | Scoped | Portfolio.Repositories.Repositories.CollectionRepository
-        Portfolio.Repositories.Interfaces.IFiberClientRepository | Scoped | Portfolio.Repositories.Repositories.FiberClientRepository
         Portfolio.Repositories.Interfaces.IFiberInventoryTransactionRepository | Scoped | Portfolio.Repositories.Repositories.FiberInventoryTransactionRepository
         Portfolio.Repositories.Interfaces.IFiberMaterialRepository | Scoped | Portfolio.Repositories.Repositories.FiberMaterialRepository
         Portfolio.Repositories.Interfaces.IFiberOrderRepository | Scoped | Portfolio.Repositories.Repositories.FiberOrderRepository
@@ -27,10 +25,8 @@ public class ServiceRegistrationSnapshotTests
         Portfolio.Repositories.Interfaces.IUserProfileRepository | Scoped | Portfolio.Repositories.Repositories.UserProfileRepository
         Portfolio.Repositories.PortfolioDbContext | Scoped | Portfolio.Repositories.PortfolioDbContext
         Portfolio.Services.Abstractions.IBatchJobStore | Singleton | Portfolio.Services.InMemoryBatchJobStore
-        Portfolio.Services.Interfaces.IAddressStandardizationService | Scoped | Portfolio.Services.Services.AddressStandardizationService
         Portfolio.Services.Interfaces.IAddressStandardizationService | Transient | (factory)
         Portfolio.Services.Interfaces.IArcGisService | Transient | (factory)
-        Portfolio.Services.Interfaces.IBatchGeocodingService | Scoped | Portfolio.Services.Services.BatchGeocodingService
         Portfolio.Services.Interfaces.IBatchGeocodingService | Transient | (factory)
         Portfolio.Services.Interfaces.ICatRiskService | Scoped | Portfolio.Services.Services.CatRiskService
         Portfolio.Services.Interfaces.IChangeDetectionService | Scoped | Portfolio.Services.Services.ChangeDetectionService
@@ -45,7 +41,6 @@ public class ServiceRegistrationSnapshotTests
         Portfolio.Services.Interfaces.IOutageTraceService | Scoped | Portfolio.Services.Services.OutageTraceService
         Portfolio.Services.Interfaces.IRasterTerrainService | Scoped | Portfolio.Services.Services.RasterTerrainService
         Portfolio.Services.Interfaces.IResponseCoverageService | Scoped | Portfolio.Services.Services.ResponseCoverageService
-        Portfolio.Services.Interfaces.IReverseGeocodingService | Scoped | Portfolio.Services.Services.ReverseGeocodingService
         Portfolio.Services.Interfaces.IReverseGeocodingService | Transient | (factory)
         Portfolio.Services.Interfaces.ISavedFeatureService | Scoped | Portfolio.Services.Services.SavedFeatureService
         Portfolio.Services.Interfaces.ISavedSearchService | Scoped | Portfolio.Services.Services.SavedSearchService

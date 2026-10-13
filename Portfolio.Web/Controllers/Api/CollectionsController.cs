@@ -41,7 +41,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Gets a collection by its ID.
         /// </summary>
         /// <param name="id">Collection ID.</param>
-        /// <param name="cancellationToken">Cancellation token for the request.</param>
         /// <returns>The collection.</returns>
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(CollectionDto), 200)]
@@ -58,7 +57,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Creates a new collection.
         /// </summary>
         /// <param name="dto">Collection data.</param>
-        /// <param name="cancellationToken">Cancellation token for the request.</param>
         /// <returns>The created collection.</returns>
         [HttpPost]
         [RequestSizeLimit(4_096)]
@@ -89,7 +87,6 @@ namespace Portfolio.Web.Controllers.Api
         /// </summary>
         /// <param name="id">Collection ID.</param>
         /// <param name="dto">Update data.</param>
-        /// <param name="cancellationToken">Cancellation token for the request.</param>
         /// <returns>The updated collection.</returns>
         [HttpPut("{id:int}")]
         [RequestSizeLimit(4_096)]
@@ -114,7 +111,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Deletes a collection by its ID.
         /// </summary>
         /// <param name="id">Collection ID.</param>
-        /// <param name="cancellationToken">Cancellation token for the request.</param>
         /// <returns>No content if deleted, NotFound if not found.</returns>
         [HttpDelete("{id:int}")]
         [ProducesResponseType(204)]
