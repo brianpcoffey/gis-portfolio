@@ -12,7 +12,7 @@ namespace Portfolio.Tests.Services
     //
     // Like NativeParityTests, the tests that call a native entry point report Skipped when the
     // library is absent (the normal clean-clone state) and become real assertions when the kernels
-    // are built (see native/README.md). The reference implementations below are deliberately
+    // are built (see "Building the kernels" in README.md). The reference implementations below are deliberately
     // duplicated rather than reused from the services: they encode the contract the native kernels
     // must honour, so they must not drift if a service is refactored.
     public class NativeScoringStreamClusterAbiTests

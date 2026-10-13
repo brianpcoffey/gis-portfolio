@@ -13,7 +13,7 @@ namespace Portfolio.Tests.Integration;
 
 /// <summary>
 /// Pins the "expensive" policy (15 requests per minute per client key) on a cheap, anonymous, DB-free
-/// endpoint, and today's X-Forwarded-For partitioning semantics (findings-security 4.2).
+/// endpoint, and the X-Forwarded-For partitioning of the test host's configuration (every proxy trusted, one hop).
 /// </summary>
 /// <remarks>
 /// ForwardedHeaders is configured with the defaults (ForwardLimit 1) and no trusted-proxy list, so

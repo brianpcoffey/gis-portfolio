@@ -22,7 +22,7 @@
 // Cyclomatic (McCabe, 1 + decision points), counted on syntax:
 //   if, ?:, while, do, for, foreach, case label (each, not default), switch-expression arm (not a trailing
 //   bare `_`), catch, &&, ||, ??, ??=, ?. , pattern `and`/`or`
-//   (CA1502 uses the IOperation tree; see the calibration notes in findings-complexity.md for differences.)
+//   (CA1502 uses the IOperation tree, so a few constructs count differently; calibrate against a CA1502 build log.)
 //
 // Cognitive (SonarSource spec, as implemented by sonar-dotnet):
 //   +1+nesting : if (not else-if), ?:, switch statement, switch expression, for, foreach, while, do, catch

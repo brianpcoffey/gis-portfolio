@@ -47,8 +47,8 @@
  *  -99  GEOSTREAM_ERR_EXCEPTION         a C++ exception was caught at the boundary (for example
  *                                       std::bad_alloc)
  *
- * This kernel reports a too-small buffer as -2 (docs/agent-context.md section 5 lists -3 for that
- * in general); the value is fixed by the existing C# bridge, so it is documented as it is.
+ * This kernel reports a too-small buffer as -2 (the other kernels use -3 for that); the value is
+ * fixed by the existing C# bridge, so it is documented as it is.
  */
 #define GEOSTREAM_OK 0
 #define GEOSTREAM_ERR_INVALID_ARGUMENT (-1)

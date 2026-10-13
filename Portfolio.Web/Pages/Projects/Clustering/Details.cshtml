@@ -50,7 +50,7 @@
 			<li><strong>Service:</strong> <code>SpatialClusterService</code> validates input, dispatches to <code>SpatialClusterNativeBridge</code>, and assembles the labelled result shared by both paths.</li>
 			<li><strong>Native bridge:</strong> <code>SpatialClusterNativeBridge</code> marshals a contiguous point array and a preallocated label buffer into C++ and reads the returned cluster count.</li>
 			<li><strong>C++ library:</strong> <code>native/spatial_cluster_kernel</code> exposes <code>Cluster_RunDbscan</code>, returning the cluster count and writing one label per point.</li>
-			<li><strong>Why C++ here:</strong> DBSCAN's inner region-query loop is a tight numeric distance kernel over contiguous memory — measured at 0.94× against the managed path (8 × 5,000 points; see <a href="https://github.com/brianpcoffey/gis-portfolio/blob/main/native/README.md#measured-speedup" target="_blank" rel="noopener">native/README.md</a>).</li>
+			<li><strong>Why C++ here:</strong> DBSCAN's inner region-query loop is a tight numeric distance kernel over contiguous memory — measured at 0.94× against the managed path (8 × 5,000 points; see <a href="https://github.com/brianpcoffey/gis-portfolio#measured-speedup" target="_blank" rel="noopener">the README</a>).</li>
 			<li><strong>Managed fallback:</strong> <code>SpatialClusterService</code> reproduces the identical algorithm in C#, so the workflow is correct with no native library present.</li>
 		</ul>
 	</section>

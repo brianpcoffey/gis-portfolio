@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Portfolio.Tests.Contracts;
 
 /// <summary>
-/// Guards the identity rule in agent-context section 6: every public controller action carries
+/// Guards the identity rule: every public controller action carries
 /// [Authorize(Policy = "Authenticated")] or [AllowAnonymous], at the action or the class level,
 /// and "Authenticated" is the only policy named.
 /// </summary>

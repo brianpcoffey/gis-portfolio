@@ -154,7 +154,7 @@ PS_API int32_t Scoring_AbiVersion(void);
 
 /*
  * Status codes returned by ScoreProperty and ScorePropertyBatch
- * (docs/agent-context.md section 5; -2, "not found", does not apply here).
+ * (the codes the other kernels use; -2, "not found", does not apply here).
  *
  *    0  PS_OK                    success
  *   -1  PS_ERR_INVALID_ARGUMENT  a null pointer that is needed, or a negative count or length
@@ -208,7 +208,7 @@ PS_API int32_t ScoreProperty(
  *
  * A plain loop over contiguous structs; the build enables AVX2, so the compiler
  * may vectorise it. Measured, it is no faster than the managed path
- * (native/README.md).
+ * (root README.md, "Measured speedup").
  */
 PS_API int32_t ScorePropertyBatch(
 	const PropertyInputNative*    properties,

@@ -96,7 +96,186 @@ Native wins where the inner loop is flat, branch-free, and allocation-free, and 
 
 > **Production deliberately runs the managed fallback for all thirteen.** The container build compiles no native code and the UI correctly reports "Native: No". For a coin-flip speedup, shipping the kernels would cost a C++ toolchain in the build image, compile time on every deploy, and a second binary per kernel that can silently diverge from the managed one — which two of them did. The kernels earn their place as an interop and architecture demonstration with a verified-identical fallback, not as a deployment dependency.
 
-Full per-workload results, methodology, the superseded ad-hoc figures, and what shipping natively would require: **[`native/README.md`](native/README.md)**.
+The complete results, methodology, superseded figures, build steps and the cost of shipping natively follow.
+
+### Measured speedup
+
+All thirteen kernels are measured by `Portfolio.Benchmarks`, a console harness in this
+solution. It runs itself twice as a child process — once with `PORTFOLIO_DISABLE_NATIVE=0`
+and once with `=1` — because each bridge probes its shared library exactly once in a static
+constructor, so a single process can only ever measure one path.
+
+**Methodology.** 3 warmup iterations discarded, then 9 timed iterations, reporting the
+**median** with min and max alongside it. Both children are pinned to one performance core at
+high priority. Every workload folds its result into a deterministic checksum, and the two
+paths' checksums are compared; a row whose checksums disagree is a correctness defect and its
+speedup means nothing.
+
+Measured on 20 logical cores, .NET 10.0.9, Windows 11 (the two rows marked † were re-measured later, on
+.NET 10.0.12; see the reading notes):
+
+| Kernel | Workload | Native median | Managed median | Speedup | Native min–max | Managed min–max | Parity |
+|---|---|---:|---:|---:|---:|---:|---|
+| `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 108 ms | 107 ms | 0.99x | 98.4 ms–112 ms | 79.3 ms–117 ms | exact |
+| `geostream_processor` † | parse + filter + grid aggregate, 40 x 10,000 events | 80.4 ms | 33.1 ms | 0.41x | 65.4 ms–103 ms | 31.2 ms–113 ms | exact |
+| `spatial_geometry_kernel` | fan triangulation, 400 x 5,000 vertices | 188 ms | 70.2 ms | 0.37x | 170 ms–192 ms | 66.0 ms–86.4 ms | exact |
+| `spatial_geometry_kernel` | bounding-box clip, 400 x 5,000-vertex polygon | 81.5 ms | 62.5 ms | 0.77x | 75.4 ms–93.3 ms | 61.1 ms–63.1 ms | exact |
+| `raster_terrain_kernel` | hillshade, 20 x 500x500 elevation grid | 196 ms | 164 ms | 0.83x | 183 ms–202 ms | 156 ms–185 ms | exact |
+| `raster_terrain_kernel` † | Gaussian heatmap, 2 x 500x500 over 100 points | 218 ms | 278 ms | **1.28x** | 215 ms–230 ms | 275 ms–293 ms | exact |
+| `spatial_graph_engine` | one-to-all Dijkstra, 40 x (2,530 nodes / 3,187 edges) | 33.2 ms | 15.0 ms | 0.45x | 27.1 ms–48.2 ms | 12.2 ms–46.3 ms | exact |
+| `spatial_graph_engine` | 40x40 cost matrix over the same network, 10 builds | 63.1 ms | 82.9 ms | **1.31x** | 62.2 ms–71.7 ms | 82.4 ms–89.7 ms | exact |
+| `spatial_cluster_kernel` | DBSCAN, 8 x 5,000 points, eps 0.16 / minPts 6 | 186 ms | 175 ms | 0.94x | 183 ms–191 ms | 165 ms–182 ms | exact |
+| `viewshed_kernel` | line-of-sight viewshed, 3 x 500x500 grid | 232 ms | 227 ms | 0.98x | 223 ms–243 ms | 226 ms–229 ms | exact |
+| `spatial_overlay_kernel` | point-in-polygon join, 30 x 10,000 points x 48 zones | 156 ms | 297 ms | **1.90x** | 155 ms–169 ms | 295 ms–308 ms | exact |
+| `cat_risk_kernel` | ring accumulation, 20 x 900 locations, 3 km | 106 ms | 97.3 ms | 0.92x | 103 ms–110 ms | 96.9 ms–102 ms | exact |
+| `cat_risk_kernel` | Monte Carlo loss simulation, 900 x 5,000 events | 49.3 ms | 50.3 ms | **1.02x** | 47.1 ms–55.1 ms | 49.0 ms–54.7 ms | exact |
+| `change_detection_kernel` | CVA + Otsu + open + components, 512x512x4 | 15.0 ms | 14.8 ms | 0.99x | 10.2 ms–22.9 ms | 10.3 ms–20.4 ms | exact |
+| `network_trace_kernel` | downstream trace sweep, 267 elements x 266 faults | 16.8 ms | 17.0 ms | **1.01x** | 10.6 ms–23.9 ms | 16.5 ms–25.1 ms | exact |
+| `network_trace_kernel` | trace + restoration plan, 266 faults | 20.2 ms | 29.8 ms | **1.48x** | 20.0 ms–42.8 ms | 12.1 ms–48.0 ms | exact |
+| `facility_location_kernel` | p-median 1,400x64, p=8, weighted mean, 10 solves | 22.7 ms | 34.8 ms | **1.53x** | 21.1 ms–24.8 ms | 34.3 ms–43.4 ms | exact |
+| `facility_location_kernel` | p-median 1,400x64, p=8, weighted p90 | 138 ms | 228 ms | **1.66x** | 137 ms–144 ms | 228 ms–229 ms | exact |
+| `facility_location_kernel` | shipped scenario 450x24, p=4, p90, 4 solves | 22.4 ms | 38.8 ms | **1.73x** | 22.2 ms–22.8 ms | 38.7 ms–39.4 ms | exact |
+| `vrp_solver_kernel` | CVRPTW solve, 120 stops, 10 vehicles, 8 solves | 24.7 ms | 55.9 ms | **2.26x** | 24.1 ms–27.5 ms | 54.1 ms–62.5 ms | exact |
+| `vrp_solver_kernel` | CVRPTW solve, shipped "fullday" preset, 40 stops, 30 solves | 10.9 ms | 20.9 ms | **1.92x** | 10.6 ms–11.4 ms | 20.5 ms–23.4 ms | exact |
+
+**Totals and the tie band.** Speedup is the managed median over the native median. Across the 21 workloads native is a clear win (≥ 1.15×) on **9**, a clear loss (≤ 0.85×) on **5**, and within the ±15% tie band — indistinguishable — on **7**; the full range is 0.37×–2.26×. The Parity column reads `exact` on all 21 rows: the two paths' checksums agree.
+
+Reading notes:
+
+- The `p-median` and `CVRPTW` rows time the **solver stage only**, using the duration the
+  service itself reports (`SolveMs`). The road-network distance-matrix build that precedes
+  them is `spatial_graph_engine` work and would otherwise dominate the row.
+- Several workloads are a burst of full-size calls rather than one large call, because the
+  services cap their inputs (10,000 telemetry events, 5,000 geometry points, 250,000 raster
+  cells, 25,000,000 heatmap cell-point evaluations). Those caps are production guardrails, so
+  the per-call marshalling is counted — it is part of what a caller actually pays.
+- The Gaussian heatmap row (†) was re-measured on 2026-10-13 after the service gained its
+  25,000,000 cell-point request limit. The row it replaces (one call, 500x500 over 200 points,
+  1.22x) is a request the service now rejects. The workload is now two calls of 500x500 over 100
+  points: the same 50,000,000 cell-point evaluations, but the output is marshalled and normalized
+  twice. A second full run measured a noisier managed path (1.54x); the first run, with the
+  tighter spread and the lower speedup, is the one published.
+- The geostream row (†) was re-measured on 2026-10-13 after the kernel stopped being built with
+  `/fp:fast`. The fast-math build compiled the cell-index division as a multiplication by
+  `1 / grid`, so a coordinate on a cell boundary could land one cell away from the managed path
+  (longitude -128.4 at a 0.1 degree grid: cell 515 managed, 516 native). Three runs of each build,
+  alternating: fast-math 0.59x, 0.40x, 0.38x; precise 0.39x, 0.44x, 0.41x (the middle one is
+  published). The two builds' native times overlap, so the change itself is not measurable; what
+  moved is the managed median (54.9 ms in the earlier 0.59x run, 33.1–34.9 ms in five of these
+  six). The row is still a clear loss, and the 9 / 5 / 7 split and the 0.37x–2.26x range are
+  unchanged. Every other row is as previously published, measured on .NET 10.0.9.
+- `portfolio_scoring` is the only native-backed service whose public entry point reads from a
+  repository. The harness supplies a fixed-seed in-memory one; every other kernel runs on an
+  in-repo deterministic dataset reached through its public API.
+- Where the two spreads overlap, read the row as "no measurable difference" rather than as the
+ratio of the medians. The one-to-all Dijkstra row is the clearest case: native spans
+27.1–48.2 ms and managed 12.2–46.3 ms, and across runs its managed median has landed anywhere
+between 15 ms and 44 ms. That row is dominated by allocation and scheduling noise, not by the
+choice of implementation, and no honest speedup can be read off it. It is left in the table
+rather than dropped, because a benchmark that only reports the rows that resolve cleanly is
+not a benchmark.
+
+#### The parity check found two real bugs — both now fixed
+
+The harness checksums every result and compares the two paths, and on its first run two
+workloads disagreed. Neither was a rounding artefact; both were genuine defects in the native
+kernels that every previous ad-hoc benchmark had missed, because nothing had ever compared the
+two implementations.
+
+- **`spatial_geometry_kernel`, bounding-box clip.** The managed fallback implements
+  Sutherland–Hodgman clipping; `Geometry_ClipToBoundingBox` in C++ called `std::clamp` on each
+  vertex independently — which is not polygon clipping at all. For a 5,000-vertex star clipped
+  to a box, managed returned a 2,549-vertex polygon and native returned 5,000 vertices squashed
+  onto the box edges. It never emitted a true edge/box intersection point, never emitted a box
+  corner, and returned a degenerate full-size polygon for a subject lying entirely outside the
+  box instead of an empty one. The kernel now runs the same Sutherland–Hodgman passes as the
+  managed path, in the same order, with the same intersection formulas.
+- **`viewshed_kernel`, line-of-sight.** The ray walk rounded sample coordinates with
+  `Math.Round` in C# (banker's, half-to-even) and `std::lround` in C++ (half away from zero),
+  so any ray whose sample landed exactly on `.5` walked a different cell — 43 cells out of
+  250,000 on a 500×500 grid. Both sides now use an explicit half-up rule rather than relying on
+  either language's default.
+
+All twenty-one workloads now agree exactly. `Portfolio.Tests/Services/NativeParityTests.cs`
+locks both contracts: those tests drive the native kernels directly, no-op when the shared
+libraries are absent, and were confirmed to fail against the pre-fix kernel rather than passing
+vacuously.
+
+The wider lesson is about test design, not C++. The managed contract was thoroughly tested —
+including a test asserting that clipping emits the box corner that naive clamping drops — and
+the native kernel violated it for as long as it existed, because every test drove the service,
+and the service prefers native only when a shared library is present, which in CI it never is.
+
+#### Superseded numbers
+
+Earlier revisions of the native documentation published single timed runs after one warmup, measured ad hoc
+and by different methods per kernel. Those figures are withdrawn in favour of the table above.
+Best-of-N and single-shot both reward a lucky run, and they systematically flatter whichever
+path has the higher variance — the previously published 1.66× for `spatial_graph_engine` was
+exactly that artifact. Where the new data disagrees with the old, the new number stands:
+`facility_location_kernel` weighted mean 2.23× → 1.53×, `spatial_graph_engine` Dijkstra
+1.66× → 0.45× (a noise-dominated row, see above), `change_detection_kernel` pipeline 1.24× → 0.99×, and
+`cat_risk_kernel` ring accumulation 1.09× → **0.92×**, which reverses the direction of the result. The 0.87× figure
+for a 4,603-element trace could not be reproduced at all: no public API yields a network that
+size, and the shipped one has 267 elements.
+
+#### Running the benchmarks
+
+```powershell
+dotnet run --project Portfolio.Benchmarks -c Release
+```
+
+That is the whole thing. The command builds both children, runs every workload on both paths,
+and prints the markdown table above plus the parity verdict. It takes a few minutes.
+
+The benchmark project copies the built kernels out of `Portfolio.Services/bin/Debug/net10.0`
+into its own output directory, so build the native libraries first (see [Building the kernels](#building-the-kernels)) — otherwise the
+"native" child silently runs managed code and every row reads 1.00×. The harness reports which
+workloads that happened to.
+
+`--run` executes the workloads in the current process and emits JSON only; the parent uses it
+for the two children, and it is also how you measure one path by hand:
+
+```powershell
+$env:PORTFOLIO_DISABLE_NATIVE = "1"; dotnet run --project Portfolio.Benchmarks -c Release -- --run
+```
+
+`--diag` prints the raw results behind the parity checksums for the workloads that disagree,
+so a mismatch can be diffed rather than guessed at.
+
+`Portfolio.Benchmarks` is deliberately outside the test suite and outside CI: it is a
+measurement tool, and a timing assertion in CI is a flaky test waiting to happen.
+
+### Building the kernels
+
+Each kernel is an independent CMake project (there is no top-level `native/CMakeLists.txt`), so it is configured and built from its own directory. Requirements: CMake 3.25 or newer, and a C++20 compiler — MSVC from VS 2022 17.x on Windows, GCC 12 or Clang 15 on Linux and macOS. A kernel directory holds `CMakeLists.txt`, `include/<kernel>.h` (the exported C ABI — keep it in sync with the matching `NativeInterop`/`NativeStructs` in `Portfolio.Services`) and `src/<kernel>.cpp` (`portfolio_scoring`'s source is `scoring_kernel.cpp`).
+
+**Windows (Visual Studio)** — from the repo root, example: the scoring kernel:
+
+```powershell
+cmake -B build/native/portfolio_scoring -S native/portfolio_scoring -G "Visual Studio 17 2022" -A x64
+cmake --build build/native/portfolio_scoring --config Release
+```
+
+The post-build step copies the built library (e.g. `portfolio_scoring.dll`) into **two** directories: `DOTNET_OUTPUT_DIR` (default `Portfolio.Services/bin/Debug/net10.0/`, where `Portfolio.Services` itself resolves the library) and `WEB_OUTPUT_DIR` (default `Portfolio.Web/bin/Debug/net10.0/`, where the ASP.NET host actually loads from at runtime). Both are needed: the bridges probe `DllImportSearchPath.AssemblyDirectory`, which at runtime is the *web host's* output directory, so copying only to `Portfolio.Services/bin` builds cleanly and still leaves every page reporting "Native: No". `Portfolio.Tests` is deliberately not a copy target — a default test run exercises the managed fallback, and the CI `native-parity` job stages the built kernels into the test output itself. To target another directory (e.g. a publish folder), pass `-DDOTNET_OUTPUT_DIR="Portfolio.Web\bin\Release\net10.0\publish"` to the configure step.
+
+**Linux / macOS:**
+
+```bash
+cmake -B build/native/portfolio_scoring -S native/portfolio_scoring -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native/portfolio_scoring
+cp build/native/portfolio_scoring/portfolio_scoring.so Portfolio.Services/bin/Debug/net10.0/
+```
+
+Swap `portfolio_scoring` for any other directory under `native/` to build the rest (the CI `native-parity` job loops over all thirteen). Each bridge calls `NativeLibrary.TryLoad("<kernel_name>")`; the runtime resolves the library first from the directory containing `Portfolio.Services.dll` (`DllImportSearchPath.AssemblyDirectory`), then from the standard OS library paths. If a library is not found the bridge logs a warning and the service falls back to its managed C# implementation, so any subset of the kernels can be built and shipped.
+
+**After pulling a change to a kernel's C ABI, rebuild all kernels** (or delete the copies under `Portfolio.Services/bin` and `Portfolio.Web/bin`, and wherever else you staged them). A kernel whose exported signatures change keeps its export names, so an old build would still load and be called with the new argument list. The kernels whose ABI has changed therefore export a version function — `Viewshed_AbiVersion`, `Raster_AbiVersion` and `Scoring_AbiVersion`, all returning 2 (the `*_ABI_VERSION` macro in the kernel's header, mirrored by `ExpectedAbiVersion` in `Portfolio.Services/Native/*NativeInterop.cs`) — and the bridge refuses a library that reports another version or none: it logs a warning naming the library and the service runs its managed path. That makes a stale library harmless; it does not make it work. When you change an exported signature or struct layout, bump the version in the header and the interop file together, and give the kernel a version function if it has none yet.
+
+### What shipping natively would require
+
+The repository `Dockerfile` deliberately does not ship the kernels: it contains no CMake stage and copies no native libraries, so every kernel runs its managed fallback in the deployed container and the UI correctly reports "Native: No". That is a decision taken on the measurements above, not an omission. Native wins 9 of the 21 workloads (at a ±15% threshold), loses 5, and is indistinguishable on 7. Shipping it would mean compiling thirteen CMake projects on every deploy, carrying a C++ toolchain in the build image, and maintaining a second binary per kernel that can silently diverge from the managed one — which two of them did, until the parity check caught it. That is a real cost for a coin-flip speedup.
+
+If a workload ever justifies it, add a CMake build stage to the `Dockerfile` and one copy line per kernel after the `dotnet publish` stage, for example `COPY --from=build /src/build/native/vrp_solver_kernel/vrp_solver_kernel.so /app/publish/`. The candidates would be the kernels that actually win — `vrp_solver_kernel` (2.26×), `spatial_overlay_kernel` (1.90×) and `facility_location_kernel` (1.73×) — and even then only if the request volume made the difference matter.
 
 ---
 
@@ -326,7 +505,7 @@ Property-insurance catastrophe model for wildfire exposure. Answers the three qu
 - **Monte Carlo event-loss simulation** — a 5,000-event stochastic wildfire catalog against ~900 insured locations (4.5M site-event evaluations). Intensity decays linearly from the epicenter, scales by site hazard, maps through a `1 − e^(−α·i)` vulnerability curve to a mean damage ratio, then applies a percentage deductible and a limit
 - **OEP curve, AAL, and PML** — exceedance rate is the summed frequency of every event exceeding a loss level, so sorting by loss and accumulating rate yields the curve directly. Benchmark losses are interpolated log-linearly at 10/25/50/100/250/500 years; PML is the 250-year loss
 - Deterministic synthetic book across six San Bernardino / Riverside wildland-urban-interface communities, generated from a fixed-seed LCG with terrain-driven site hazard — no database, no persistence
-- **Benchmarked against its own managed fallback, bit-identical results.** Both workloads sit around parity and ring accumulation measures *below* 1.0 — the bounding-box reject short-circuits most iterations, which defeats vectorisation on both sides. Current figures: [benchmark table](native/README.md#measured-speedup)
+- **Benchmarked against its own managed fallback, bit-identical results.** Both workloads sit around parity and ring accumulation measures *below* 1.0 — the bounding-box reject short-circuits most iterations, which defeats vectorisation on both sides. Current figures: [benchmark table](#measured-speedup)
 - Self-contained SVG throughout — an exposure map (marker size = TIV, colour = site hazard) and a log-scale EP curve, both theme-aware
 
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
@@ -343,7 +522,7 @@ Two satellite passes over the same ground, weeks apart — what changed? The cla
 - **Morphological open** — erode then dilate with a 3×3 structuring element to kill speckle. With `n > 1` iterations that is erode×n *then* dilate×n, one open with an n-scaled element
 - **Connected components** — two-pass union-find with path compression over a flat parent array, 8-connectivity, accumulating area, centroid, mean magnitude and bounding box in the second sweep
 - **Scored against ground truth** — four changes are planted in the synthetic epoch B (a subdivision, a burn scar, a reservoir drawdown, a solar array), so the page reports "4 of 4 recovered" rather than just drawing a picture
-- **Benchmarked against its own managed fallback, bit-identical results.** End to end it lands within noise of the managed path — most of the pipeline short-circuits per pixel — though the per-stage split is more interesting than the total. Current figures: [benchmark table](native/README.md#measured-speedup)
+- **Benchmarked against its own managed fallback, bit-identical results.** End to end it lands within noise of the managed path — most of the pipeline short-circuits per pixel — though the per-stage split is more interesting than the total. Current figures: [benchmark table](#measured-speedup)
 - Every raster is drawn to a `<canvas>` via `ImageData`, not to 65,536 DOM nodes; a pointer-drag before/after swipe over a false-colour NIR/Red/Green composite, and an SVG histogram with the threshold marked
 
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Canvas, SVG
@@ -360,7 +539,7 @@ Electric distribution outage management — the flagship GIS application in util
 - **Tie-switch restoration** — a managed search over every normally-open tie, each candidate evaluated by a native connectivity sweep, rejecting any plan that would backfeed into the fault. Emits an ordered switching plan and an estimated SAIDI-minutes-avoided figure
 - **Directed storage, undirected energization** — `from`/`to` record nominal radial flow so upstream and downstream have meaning, but a closed tie backfeeds against that direction, so energization is pure connectivity. Tracing it directionally would report a successful backfeed as reaching nobody
 - Deterministic synthetic circuit over Redlands: one substation, two radial feeders (267 elements, 2,495 customers), 22 fused laterals, three reclosers, seven sectionalizing switches, one normally-open tie — no database, no persistence
-- **Benchmarked against its own managed fallback, byte-identical results** (integer traversal, so the checksums match exactly rather than approximately). The measured gain is modest and run-to-run variance is wide: three P/Invoke calls per trace each re-marshal the whole element array, so marshalling eats more of the gain as the circuit grows. Current figures: [benchmark table](native/README.md#measured-speedup). The Details page carries the table and the explanation
+- **Benchmarked against its own managed fallback, byte-identical results** (integer traversal, so the checksums match exactly rather than approximately). The measured gain is modest and run-to-run variance is wide: three P/Invoke calls per trace each re-marshal the whole element array, so marshalling eats more of the gain as the circuit grows. Current figures: [benchmark table](#measured-speedup). The Details page carries the table and the explanation
 - Self-contained SVG single-line diagram — click a conductor to fault it, hover any element for its label, device type, state and customer count
 
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, SVG
@@ -378,7 +557,7 @@ Public-safety deployment analysis over the real Redlands street network. Answers
 - **Weighted p90, done correctly** — demand points are ordered by response time and call volume is accumulated until it crosses 90% of the total. It is *not* the p90 of the unweighted list; a single heavy neighbourhood can set it alone, which is exactly what the standard is written to capture
 - **Baseline versus optimized, side by side** — today's two stations reach 76.4% of call volume within four minutes and fail NFPA 1710 at a p90 of 4.68 minutes; four optimized stations reach 94.1% at a p90 of 2.42 minutes and pass. That comparison is the whole point of the page
 - 450 clustered demand points and 24 candidate sites, all snapped to real network nodes so the matrix has no unreachable pairs; generated from a fixed-seed LCG with no database
-- **Benchmarked against its own managed fallback: consistently ~1.5×–1.75×** depending on objective and instance size, with identical chosen stations, assignments, and statistics. The weighted-mean objective gains most (a flat arithmetic loop); the p90 objective spends its time sorting, which compresses the ratio. Current figures: [benchmark table](native/README.md#measured-speedup)
+- **Benchmarked against its own managed fallback: consistently ~1.5×–1.75×** depending on objective and instance size, with identical chosen stations, assignments, and statistics. The weighted-mean objective gains most (a flat arithmetic loop); the p90 objective spends its time sorting, which compresses the ratio. Current figures: [benchmark table](#measured-speedup)
 - Leaflet map with call-volume-scaled demand circles, an assignment starburst that makes the districting legible, clickable isochrone painting, and a theme-aware SVG response-time histogram overlaying today's distribution against the optimized one
 
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Leaflet, SVG
@@ -396,7 +575,7 @@ Last-mile dispatch planning as an actual optimization problem rather than a shor
 - **A fixed cost per vehicle** in the objective, which is what makes the solver choose four trucks over five. Three calibrated presets: 2 of 3 vans on loose windows, 4 of 5 trucks on a full day, all 6 trucks once the windows narrow to an hour
 - **Real road geometry** — one `(n+1)²` road-distance matrix built server-side, then every solved leg expanded back into a street-following polyline via A*. Distance becomes travel minutes *outside* the graph search, because A*'s haversine heuristic is admissible only while edge costs are kilometres
 - Client sends the scenario (~2 KB), not the graph (~425 KB) — deliberately unlike the older Route Planner page
-- **Benchmarked against its own managed fallback: ~2.3× at 120 stops, bit-identical solutions — the largest verified win of the thirteen kernels**, and one of the few rows whose spread does not overlap the managed path at all. The first version was 1.7× *slower* until three scratch buffers were hoisted out of the move evaluator; the Details page explains what changed and why there is no SIMD in it. Current figures: [benchmark table](native/README.md#measured-speedup)
+- **Benchmarked against its own managed fallback: ~2.3× at 120 stops, bit-identical solutions — the largest verified win of the thirteen kernels**, and one of the few rows whose spread does not overlap the managed path at all. The first version was 1.7× *slower* until three scratch buffers were hoisted out of the move evaluator; the Details page explains what changed and why there is no SIMD in it. Current figures: [benchmark table](#measured-speedup)
 
 **Stack:** ASP.NET Core, C++20/CMake, P/Invoke, Leaflet, SVG
 
@@ -423,6 +602,12 @@ Last-mile dispatch planning as an actual optimization problem rather than a shor
 | Database Hosting | Neon.tech PostgreSQL |
 | Containerization | Docker (multi-stage build), Docker Compose (local dev with Redis) |
 | Orchestration | Kubernetes manifests (Deployment, Service, HPA, ConfigMap, Secret) |
+
+### Frontend styles
+
+Bootstrap 5.3 supplies the grid, components and native color modes (`data-bs-theme`); a small layered set of stylesheets in `Portfolio.Web/wwwroot/css/` adds the palette, theming and page styles. `_Layout.cshtml` loads the global ones in this order: Bootstrap and Font Awesome (vendor), then `base.css` (palette tokens and base elements — every later file consumes its variables), `utilities.css` (intentionally empty of rules; kept so the link keeps resolving), `site.css` (shared component styles), `layout.css` (header, nav, footer, hero, project grids), `components.css` (shared components plus dark-mode theming for Bootstrap and DataTables) and `preferences.css` (user display and accessibility preferences: text scale, contrast, motion, underline, readable font, focus ring). Page stylesheets (e.g. `gis.css`, `spatialcompute.css`, `homefinder.css`) and vendor CSS such as DataTables link from each page's `Styles` section, which renders after the globals.
+
+Tokens live in `base.css`: never hard-code palette colors, use `var(--text)`, `var(--surface)`, `var(--accent)`; dark mode is `body.dark-mode { --var: … }`. Leaflet and Esri basemap tiles stay light in both themes, so marks drawn over them use the theme-independent `--map-series-1…8` / `--map-muted` tokens, declared once in `:root` and never redefined in dark mode, while charts and SVG panels on the page surface use the theme-aware `--chart-1…8`. Page-specific rules are scoped under a page class, and `preferences.css` neutralizes every transition and animation when the user (or the OS) asks for reduced motion.
 
 ---
 
@@ -553,19 +738,30 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.ym
 The base `docker/docker-compose.yml` defines the `portfolio` app and a `redis:7-alpine` sidecar with a health check. The override injects `DATABASE_URL` and sets `Redis__ConnectionString=redis:6379,abortConnect=false`.
 
 ### Kubernetes (manifests in `k8s/`)
-See [`k8s/README.md`](k8s/README.md) for full deploy order. Quick reference:
+
+Prerequisites: `kubectl` configured for your cluster, and the Docker image built and pushed to a registry. Apply the manifests in this order:
+
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
-cp k8s/secret.example.yaml k8s/secret.yaml   # gitignored; fill in real values first
+cp k8s/secret.example.yaml k8s/secret.yaml   # gitignored; fill in real values, then:
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/networkpolicy.yaml
 kubectl apply -f k8s/redis.yaml
+# Set the real image tag first: edit `image: portfolio:REPLACE_ME` in k8s/deployment.yaml,
+# or run `kubectl -n portfolio set image deployment/portfolio portfolio=<registry>/portfolio:<tag>` after applying.
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/hpa.yaml
 ```
-The HPA scales between 2 and 10 replicas based on CPU (70%) and memory (80%) utilization. All replicas share geocoding cache and job state via Redis.
+
+- **Network policies:** they assume an ingress controller in a namespace named `ingress-nginx` and CoreDNS in `kube-system` (NodeLocal DNSCache needs an extra egress rule); adjust for your cluster.
+- **Redis connection string** for the in-cluster Redis: `Redis__ConnectionString=redis:6379,password=<REDIS_PASSWORD>,abortConnect=false` (`k8s/secret.example.yaml` carries it as a placeholder).
+- **Scaling:** the HPA scales between 2 and 10 replicas on CPU (70%) and memory (80%) utilization. Geocoding cache and job state are shared via Redis, so every replica serves any request correctly.
+- **Health endpoints:** `GET /health/live` is liveness — it runs no checks, so a transient database blip never restarts the pod. `GET /health/ready` is readiness — it runs the checks tagged `ready`, and there is exactly one, `database` (`DatabaseReadyHealthCheck`, an EF Core `CanConnectAsync` against PostgreSQL, with the result cached for 10 seconds so probes do not wake a serverless database). Redis is not part of the readiness check. Both endpoints are anonymous and exempt from rate limiting.
+- **Secrets:** `k8s/secret.example.yaml` contains only placeholder values; the real `k8s/secret.yaml` is gitignored. Never commit real credentials. In production use [Sealed Secrets](https://sealed-secrets.netlify.app/) or [External Secrets Operator](https://external-secrets.io/) to inject secrets from a vault (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault, etc.).
+- **Data Protection keys:** with `PersistKeysToStackExchangeRedis` (configured in `Portfolio.Web/Startup/InfrastructureRegistration.cs`), all pods share a single key ring stored in Redis under the `DataProtection-Keys` key. The `/app/DataProtection-Keys` volume mount in `deployment.yaml` uses `emptyDir` intentionally — it is not the source of truth for key storage.
+- **In-cluster vs managed Redis:** `k8s/redis.yaml` is suitable for staging and demo environments. For production, replace it with a managed service — Upstash (serverless, free tier), AWS ElastiCache, Azure Cache for Redis or Google Cloud Memorystore.
 
 ---
 

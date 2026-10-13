@@ -39,11 +39,11 @@ namespace Portfolio.Web.Middleware
             //   base-uri 'self'        — blocks <base> tag injection
             //   object-src 'none'      — blocks plugin/embedded-object vectors
             // The full script/style policy is emitted below in Report-Only mode; it replaces
-            // this header only after the soak period (findings-security 2.7).
+            // this header only after the Report-Only soak period.
             headers["Content-Security-Policy"] =
                 "frame-ancestors 'none'; base-uri 'self'; object-src 'none'";
 
-            // Full script/style policy, Report-Only (findings-security 2.4). The nonce is stamped
+            // Full script/style policy, Report-Only. The nonce is stamped
             // onto every <script>/<style> by CspNonceTagHelper.
             // Lowercase hex (128 bits): valid CSP nonce characters that Razor never HTML-encodes,
             // so the header value and the rendered attribute are byte-identical (base64 '+' became &#x2B;).
