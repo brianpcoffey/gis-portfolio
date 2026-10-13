@@ -44,9 +44,12 @@ extern "C"
 	//                         exactly width * height bytes are written.
 	//
 	// Preconditions the kernel cannot check: `elevation` really holds `elevationLength` readable
-	// doubles and `visibility` really holds `outputLength` writable bytes, and every double is
-	// finite. The library is built with fast-math, so NaN and infinity are not detected; the
-	// managed service rejects them before any call.
+	// doubles and `visibility` really holds `outputLength` writable bytes.
+	//
+	// The kernel does not check that the doubles are finite. The library is built with fast-math,
+	// so NaN and infinity are not detected; the managed service rejects them before any call.
+	// Passing one directly is memory-safe (no index is computed from a double), but the results
+	// are unspecified.
 	//
 	// Ownership: the caller owns both buffers for the duration of the call. The kernel keeps no
 	// pointer past its return, allocates nothing the caller must free, and never lets a C++

@@ -51,8 +51,11 @@ struct RasterExtentNative
 //       -99  internal exception
 //     Statuses -1 and -2 are returned before anything is written to an output buffer.
 //   * Preconditions the kernel cannot check: each pointer really addresses the number of elements
-//     its paired length claims, and every double is finite. The library is built with fast-math,
+//     its paired length claims.
+//   * The kernel does not check that the doubles are finite. The library is built with fast-math,
 //     so NaN and infinity are not detected; the managed service rejects them before any call.
+//     Passing one directly is memory-safe (no index is computed from a double), but the results
+//     are unspecified.
 extern "C"
 {
 	// Returns RASTER_ABI_VERSION. Takes no arguments and touches no memory.
