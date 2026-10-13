@@ -16,18 +16,20 @@ namespace Portfolio.Services.Native
         internal static bool IsAvailable => _available;
 
         // Caller MUST check IsAvailable before calling.
+        // Throws InvalidOperationException if the kernel reports a non-zero status.
         internal static ScoreOutputNative ScoreProperty(
             Property p,
             HomeSearchPreferencesDto prefs)
         {
             var propNative = MapProperty(p);
             var prefsNative = MapPreferences(prefs);
-            NativeScoringInterop.ScoreProperty(in propNative, in prefsNative, out var result);
+            ThrowIfFailed(NativeScoringInterop.ScoreProperty(in propNative, in prefsNative, out var result, 1));
             return result;
         }
 
         // Returns a parallel array of ScoreOutputNative with the same element count.
         // Caller MUST check IsAvailable before calling.
+        // Throws InvalidOperationException if the kernel reports a non-zero status.
         internal static ScoreOutputNative[] ScorePropertyBatch(
             IReadOnlyList<Property> properties,
             HomeSearchPreferencesDto prefs)
@@ -40,8 +42,34 @@ namespace Portfolio.Services.Native
             for (var i = 0; i < count; i++)
                 inputs[i] = MapProperty(properties[i]);
 
-            NativeScoringInterop.ScorePropertyBatch(inputs, count, in prefsNative, outputs);
+            ThrowIfFailed(NativeScoringInterop.ScorePropertyBatch(inputs, count, in prefsNative, outputs, outputs.Length));
             return outputs;
+        }
+
+        // Native status codes (portfolio_scoring.h): -1 invalid argument, -3 output buffer too small,
+        // -99 C++ exception caught at the native boundary. The arrays are sized from the property count
+        // here, so none of them can occur for well-formed input; they mean a bug, and are surfaced as an
+        // InvalidOperationException rather than a value. That is the exception type
+        // NativeKernelLoader.IsNativeInvocationException classifies as a native failure, so a caller
+        // with a managed fallback can catch it and fall back, as the other bridges' Try... wrappers do.
+        // HomeScoringService, the only production caller, has no such wrapper today (the managed
+        // scoring path sits inline in GetTopPropertiesAsync), so a native failure there propagates.
+        // internal so the status mapping can be tested without provoking a real native failure.
+        internal static void ThrowIfFailed(int status)
+        {
+            if (status != 0)
+                throw new InvalidOperationException($"Native scoring kernel failed with status {status} ({DescribeStatus(status)}).");
+        }
+
+        private static string DescribeStatus(int status)
+        {
+            return status switch
+            {
+                -1 => "invalid argument",
+                -3 => "output buffer too small",
+                -99 => "native exception",
+                _ => "unknown"
+            };
         }
 
         internal static void LogAvailability(ILogger logger)

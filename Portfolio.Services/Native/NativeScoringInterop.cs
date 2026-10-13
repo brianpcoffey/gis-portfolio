@@ -13,32 +13,41 @@ namespace Portfolio.Services.Native
         // Portfolio.Services.dll regardless of working directory.
         private const string LibName = "portfolio_scoring";
 
+        // Both entry points return a status code (portfolio_scoring.h): 0 on success, otherwise
+        // -1 invalid argument (null pointer, negative count or length),
+        // -3 output buffer smaller than the records to write, or -99 native exception.
+        // NativeScoringBridge turns a non-zero status into an InvalidOperationException.
+
         /// <summary>
         /// Scores a single property, writing one <see cref="ScoreOutputNative"/> to <paramref name="result"/>.
+        /// <paramref name="outputLength"/> is the capacity of <paramref name="result"/> in records (1 here).
         /// </summary>
         [DllImport(LibName,
             EntryPoint = "ScoreProperty",
             CallingConvention = CallingConvention.Cdecl)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory
                                    | DllImportSearchPath.ApplicationDirectory)]
-        internal static extern void ScoreProperty(
+        internal static extern int ScoreProperty(
             in PropertyInputNative property,
             in PreferencesInputNative prefs,
-            out ScoreOutputNative result);
+            out ScoreOutputNative result,
+            int outputLength);
 
         /// <summary>
-        /// Scores <paramref name="count"/> properties in one native call; <paramref name="properties"/> and
-        /// <paramref name="scores"/> must each have at least <paramref name="count"/> elements.
+        /// Scores <paramref name="count"/> properties in one native call; <paramref name="properties"/> must have
+        /// at least <paramref name="count"/> elements, and <paramref name="scores"/> at least
+        /// <paramref name="outputLength"/>, which must be at least <paramref name="count"/>.
         /// </summary>
         [DllImport(LibName,
             EntryPoint = "ScorePropertyBatch",
             CallingConvention = CallingConvention.Cdecl)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory
                                    | DllImportSearchPath.ApplicationDirectory)]
-        internal static extern void ScorePropertyBatch(
+        internal static extern int ScorePropertyBatch(
             [In] PropertyInputNative[] properties,
             int count,
             in PreferencesInputNative prefs,
-            [Out] ScoreOutputNative[] scores);
+            [Out] ScoreOutputNative[] scores,
+            int outputLength);
     }
 }

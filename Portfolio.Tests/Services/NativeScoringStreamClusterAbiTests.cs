@@ -1,5 +1,8 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging.Abstractions;
 using Portfolio.Common.DTOs;
+using Portfolio.Common.Models;
 using Portfolio.Services.Native;
 using Portfolio.Services.Services;
 
@@ -544,6 +547,281 @@ namespace Portfolio.Tests.Services
             Assert.Equal(1, clusterCount);
             Assert.All(labels!.Take(4000), label => Assert.Equal(0, label));
             Assert.Equal(Noise, labels![4000]);
+        }
+
+        // ---------------------------------------------------------------------------------------
+        // scoring: status codes, output length and wrapping integer arithmetic. ScoreProperty and
+        // ScorePropertyBatch used to return void, take no output length and have no try/catch.
+        // ---------------------------------------------------------------------------------------
+
+        private static PropertyInputNative ScoringProperty() => new()
+        {
+            Price = 650_000,
+            PropertyTax = 8_500,
+            HoaFee = 200,
+            Utilities = 150,
+            LotSqft = 2_400,
+            Bedrooms = 4,
+            Bathrooms = 2,
+            CommuteMin = 25,
+            SchoolRating = 80,
+            Walkability = 70,
+            TransitAccess = 60,
+            CrimeScore = 20,
+            FutureAppreciation = 70,
+            ResalePotential = 65,
+            RoofCondition = 85,
+            AcCondition = 80,
+            PlumbingCondition = 90,
+            ElectricalCondition = 88,
+            LastRenovationYear = 2021,
+            AmenitiesScore = 75,
+            FloodRisk = 10,
+            NoiseLevel = 30,
+            Latitude = 34.05,
+            Longitude = -117.18
+        };
+
+        private static PreferencesInputNative ScoringPrefs() => new()
+        {
+            MaxPrice = 800_000,
+            MaxMonthlyBudget = 4_500,
+            MinBedrooms = 3,
+            MinSqft = 1_800,
+            MaxCommuteMin = 45,
+            WAffordability = 0.20,
+            WNeighborhood = 0.15,
+            WSize = 0.10,
+            WAppreciation = 0.10,
+            WCondition = 0.10,
+            WCommute = 0.10,
+            WAmenities = 0.10,
+            WTaxUtilities = 0.05,
+            WResale = 0.05,
+            WEnvironment = 0.05,
+            CurrentYear = 2026
+        };
+
+        private static ScoreOutputNative Sentinel() => new() { Composite = -7.0, Size = -7.0 };
+
+        private static ScoreOutputNative[] SentinelBuffer(int length)
+        {
+            var buffer = new ScoreOutputNative[length];
+            Array.Fill(buffer, Sentinel());
+            return buffer;
+        }
+
+        [Fact]
+        public void NativeScoring_BatchAndSingle_ReturnOkAndAgree()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var first = ScoringProperty();
+            var second = first with { Price = 500_000, Bedrooms = 2 };
+            var prefs = ScoringPrefs();
+            var scores = new ScoreOutputNative[2];
+
+            AssertStatus(0, () => NativeScoringInterop.ScorePropertyBatch([first, second], 2, in prefs, scores, 2));
+
+            var single = new ScoreOutputNative();
+            AssertStatus(0, () => NativeScoringInterop.ScoreProperty(in first, in prefs, out single, 1));
+            Assert.Equal(single.Composite, scores[0].Composite, 9);
+            Assert.NotEqual(scores[0].Composite, scores[1].Composite);
+        }
+
+        [Fact]
+        public void NativeScoring_BatchInvalidArguments_ReturnMinusOneWithoutThrowing()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var inputs = new[] { ScoringProperty(), ScoringProperty() };
+            var prefs = ScoringPrefs();
+            var scores = SentinelBuffer(2);
+
+            AssertStatus(-1, () => RawScorePropertyBatch(null!, 2, in prefs, scores, 2));
+            AssertStatus(-1, () => RawScorePropertyBatch(inputs, 2, in prefs, null!, 2));
+            AssertStatus(-1, () => RawScorePropertyBatch(inputs, 2, in Unsafe.NullRef<PreferencesInputNative>(), scores, 2));
+            AssertStatus(-1, () => RawScorePropertyBatch(inputs, -1, in prefs, scores, 2));
+            AssertStatus(-1, () => RawScorePropertyBatch(inputs, 2, in prefs, scores, -1));
+
+            Assert.All(scores, s => Assert.Equal(Sentinel().Composite, s.Composite));
+        }
+
+        [Fact]
+        public void NativeScoring_BatchOutputLengthBelowCount_ReturnsMinusThreeAndWritesNothing()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var inputs = new[] { ScoringProperty(), ScoringProperty(), ScoringProperty() };
+            var prefs = ScoringPrefs();
+            var scores = SentinelBuffer(4);
+
+            // The array really has room for 4 records; the declared length is what the kernel must obey.
+            AssertStatus(-3, () => RawScorePropertyBatch(inputs, 3, in prefs, scores, 2));
+            AssertStatus(-3, () => RawScorePropertyBatch(inputs, 3, in prefs, scores, 0));
+
+            Assert.All(scores, s => Assert.Equal(Sentinel().Composite, s.Composite));
+        }
+
+        [Fact]
+        public void NativeScoring_BatchWritesExactlyCountRecords()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var inputs = new[] { ScoringProperty(), ScoringProperty() };
+            var prefs = ScoringPrefs();
+            var scores = SentinelBuffer(4);
+
+            AssertStatus(0, () => RawScorePropertyBatch(inputs, 2, in prefs, scores, 4));
+
+            Assert.NotEqual(Sentinel().Composite, scores[0].Composite);
+            Assert.NotEqual(Sentinel().Composite, scores[1].Composite);
+            Assert.Equal(Sentinel().Composite, scores[2].Composite);
+            Assert.Equal(Sentinel().Composite, scores[3].Composite);
+        }
+
+        [Fact]
+        public void NativeScoring_EmptyBatch_SucceedsEvenWithNullPointers()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            AssertStatus(0, () => NativeScoringInterop.ScorePropertyBatch(null!, 0, in Unsafe.NullRef<PreferencesInputNative>(), null!, 0));
+            AssertStatus(0, () => NativeScoringInterop.ScorePropertyBatch([], 0, in Unsafe.NullRef<PreferencesInputNative>(), [], 0));
+        }
+
+        [Fact]
+        public void NativeScoring_SingleInvalidArguments_ReturnStatusWithoutThrowing()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var property = ScoringProperty();
+            var prefs = ScoringPrefs();
+
+            AssertStatus(-1, () => NativeScoringInterop.ScoreProperty(in Unsafe.NullRef<PropertyInputNative>(), in prefs, out _, 1));
+            AssertStatus(-1, () => NativeScoringInterop.ScoreProperty(in property, in Unsafe.NullRef<PreferencesInputNative>(), out _, 1));
+            AssertStatus(-1, () => NativeScoringInterop.ScoreProperty(in property, in prefs, out _, -1));
+            AssertStatus(-3, () => NativeScoringInterop.ScoreProperty(in property, in prefs, out _, 0));
+        }
+
+        // A null `out` cannot be spelled through the managed declaration, which takes a reference, so
+        // this reaches the entry point through a test-only declaration that takes the output as a pointer.
+        [Fact]
+        public void NativeScoring_SingleNullOutput_ReturnsMinusOne()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var property = ScoringProperty();
+            var prefs = ScoringPrefs();
+
+            AssertStatus(-1, () => RawScoreProperty(in property, in prefs, IntPtr.Zero, 1));
+        }
+
+        // Test-only declaration of the batch entry point with [In, Out] on the scores array, so a record the
+        // kernel does not write keeps the value the test gave it. NativeScoringInterop declares the array
+        // [Out] only, which hands back zeroed records for the ones the kernel leaves alone (observed), so
+        // it cannot show whether the kernel wrote past `count` or declined to write; the tests that look
+        // for that use this declaration.
+        [DllImport("portfolio_scoring", EntryPoint = "ScorePropertyBatch", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int RawScorePropertyBatch([In] PropertyInputNative[] properties, int count, in PreferencesInputNative prefs, [In, Out] ScoreOutputNative[] scores, int outputLength);
+
+        [DllImport("portfolio_scoring", EntryPoint = "ScoreProperty", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int RawScoreProperty(in PropertyInputNative property, in PreferencesInputNative prefs, IntPtr output, int outputLength);
+
+        // Managed restatements of the two sub-scores that use int arithmetic. C# integer arithmetic is
+        // unchecked by default and wraps; the kernel used raw int arithmetic, where overflow is undefined.
+        private static double ManagedSizeScore(PropertyInputNative p, PreferencesInputNative prefs)
+        {
+            var ratio = prefs.MinSqft > 0 ? p.LotSqft / prefs.MinSqft : 1.0;
+            var bonus = unchecked(p.Bedrooms - prefs.MinBedrooms) * 10.0;
+            return Math.Clamp(Math.Min(ratio * 50, 100) + bonus, 0, 100);
+        }
+
+        private static double ManagedConditionScore(PropertyInputNative p, PreferencesInputNative prefs)
+        {
+            var average = (p.RoofCondition + p.AcCondition + p.PlumbingCondition + p.ElectricalCondition) / 4.0;
+            var recencyBonus = p.LastRenovationYear > 0
+                ? unchecked(Math.Max(0, 10 - (prefs.CurrentYear - p.LastRenovationYear))) * 2.0
+                : 0.0;
+            return Math.Clamp(average + recencyBonus, 0, 100);
+        }
+
+        public static TheoryData<int, int> BedroomExtremes => new()
+        {
+            { int.MaxValue, -1 },
+            { int.MinValue, 1 },
+            { int.MinValue, int.MaxValue },
+            { int.MaxValue, int.MinValue },
+            { 3, 3 },
+            { 0, 100 }
+        };
+
+        [Theory]
+        [MemberData(nameof(BedroomExtremes))]
+        public void NativeScoring_BedroomDifferenceOverflow_WrapsLikeUncheckedCSharp(int bedrooms, int minBedrooms)
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var property = ScoringProperty() with { Bedrooms = bedrooms };
+            var prefs = ScoringPrefs() with { MinBedrooms = minBedrooms };
+            var scores = new ScoreOutputNative[1];
+
+            AssertStatus(0, () => NativeScoringInterop.ScorePropertyBatch([property], 1, in prefs, scores, 1));
+
+            Assert.Equal(ManagedSizeScore(property, prefs), scores[0].Size, 9);
+        }
+
+        public static TheoryData<int, int> RenovationYearExtremes => new()
+        {
+            { int.MinValue, int.MaxValue },
+            { int.MaxValue, 1 },
+            { int.MinValue, 1 },
+            { 0, int.MaxValue },
+            { 2026, 2021 },
+            { 2026, 1 }
+        };
+
+        [Theory]
+        [MemberData(nameof(RenovationYearExtremes))]
+        public void NativeScoring_RenovationYearOverflow_WrapsLikeUncheckedCSharp(int currentYear, int lastRenovationYear)
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var property = ScoringProperty() with { LastRenovationYear = lastRenovationYear };
+            var prefs = ScoringPrefs() with { CurrentYear = currentYear };
+            var scores = new ScoreOutputNative[1];
+
+            AssertStatus(0, () => NativeScoringInterop.ScorePropertyBatch([property], 1, in prefs, scores, 1));
+
+            Assert.Equal(ManagedConditionScore(property, prefs), scores[0].Condition, 9);
+        }
+
+        [Fact]
+        public void ScoringBridge_EmptyBatch_ReturnsEmptyArray()
+        {
+            Assert.SkipUnless(NativeScoringBridge.IsAvailable, "native library not loaded");
+
+            var outputs = NativeScoringBridge.ScorePropertyBatch(new List<Property>(), new HomeSearchPreferencesDto());
+
+            Assert.Empty(outputs);
+        }
+
+        [Theory]
+        [InlineData(-1, "invalid argument")]
+        [InlineData(-3, "output buffer too small")]
+        [InlineData(-99, "native exception")]
+        [InlineData(7, "unknown")]
+        public void ScoringBridge_NonZeroStatus_ThrowsAClassifiedNativeFailure(int status, string reason)
+        {
+            var thrown = Assert.Throws<InvalidOperationException>(() => NativeScoringBridge.ThrowIfFailed(status));
+
+            Assert.Contains($"status {status} ({reason})", thrown.Message);
+            Assert.True(NativeKernelLoader.IsNativeInvocationException(thrown));
+        }
+
+        [Fact]
+        public void ScoringBridge_ZeroStatus_DoesNotThrow()
+        {
+            NativeScoringBridge.ThrowIfFailed(0);
         }
     }
 }
