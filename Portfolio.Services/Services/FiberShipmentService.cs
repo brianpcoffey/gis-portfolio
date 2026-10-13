@@ -35,6 +35,19 @@ public class FiberShipmentService : IFiberShipmentService
     {
         ArgumentNullException.ThrowIfNull(dto);
 
+        ValidateTextLengths(dto);
+
+        ValidateStatus(dto.Status, nameof(dto));
+
+        if (!double.IsFinite(dto.OriginLat) || !double.IsFinite(dto.OriginLng)
+            || !double.IsFinite(dto.DestinationLat) || !double.IsFinite(dto.DestinationLng))
+            throw new ArgumentException("Coordinates must be finite numbers.", nameof(dto));
+
+        ValidateRoute(dto);
+    }
+
+    private static void ValidateTextLengths(FiberShipmentDto dto)
+    {
         if (dto.TrackingNumber?.Length > MaxTextLength)
             throw new ArgumentException($"TrackingNumber must be {MaxTextLength} characters or fewer.", nameof(dto));
         if (dto.CarrierName?.Length > MaxTextLength)
@@ -43,13 +56,10 @@ public class FiberShipmentService : IFiberShipmentService
             throw new ArgumentException($"DestinationCity must be {MaxTextLength} characters or fewer.", nameof(dto));
         if (dto.DestinationState?.Length > MaxStateLength)
             throw new ArgumentException($"DestinationState must be {MaxStateLength} characters or fewer.", nameof(dto));
+    }
 
-        ValidateStatus(dto.Status, nameof(dto));
-
-        if (!double.IsFinite(dto.OriginLat) || !double.IsFinite(dto.OriginLng)
-            || !double.IsFinite(dto.DestinationLat) || !double.IsFinite(dto.DestinationLng))
-            throw new ArgumentException("Coordinates must be finite numbers.", nameof(dto));
-
+    private static void ValidateRoute(FiberShipmentDto dto)
+    {
         if (dto.Route is { Count: > MaxRoutePoints })
             throw new ArgumentException($"Route can have at most {MaxRoutePoints} points.", nameof(dto));
         if (dto.Route is not null && dto.Route.Any(p => p is null || !double.IsFinite(p.Lat) || !double.IsFinite(p.Lng)))

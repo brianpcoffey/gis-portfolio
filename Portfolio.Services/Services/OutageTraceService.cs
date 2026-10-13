@@ -90,22 +90,7 @@ namespace Portfolio.Services.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
-            ValidateNetwork(request.Elements, request.SourceNodeId, nameof(request));
-            if (!ContainsElement(request.Elements, request.FaultElementId))
-                throw new ArgumentException("The faulted element was not found in the network.", nameof(request));
-
-            var isolationDevices = request.IsolationDeviceIds ?? [];
-            if (isolationDevices.Count > MaxOverrides)
-                throw new ArgumentException($"Switching plans are limited to {MaxOverrides} device operations.", nameof(request));
-            foreach (var deviceId in isolationDevices)
-            {
-                if (!ContainsElement(request.Elements, deviceId))
-                    throw new ArgumentException("An isolation device was not found in the network.", nameof(request));
-            }
-
-            if (!double.IsFinite(request.AssumedRepairMinutes)
-                || request.AssumedRepairMinutes < 0 || request.AssumedRepairMinutes > MaxRepairMinutes)
-                throw new ArgumentException($"Assumed repair minutes must be between 0 and {MaxRepairMinutes}.", nameof(request));
+            var isolationDevices = ValidateRestoreRequest(request);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -189,6 +174,29 @@ namespace Portfolio.Services.Services
         }
 
         // ── Validation ──────────────────────────────────────────────────────────
+
+        // Validates a restoration request and returns the (possibly empty) isolation device list.
+        private static List<int> ValidateRestoreRequest(RestoreRequestDto request)
+        {
+            ValidateNetwork(request.Elements, request.SourceNodeId, nameof(request));
+            if (!ContainsElement(request.Elements, request.FaultElementId))
+                throw new ArgumentException("The faulted element was not found in the network.", nameof(request));
+
+            var isolationDevices = request.IsolationDeviceIds ?? [];
+            if (isolationDevices.Count > MaxOverrides)
+                throw new ArgumentException($"Switching plans are limited to {MaxOverrides} device operations.", nameof(request));
+            foreach (var deviceId in isolationDevices)
+            {
+                if (!ContainsElement(request.Elements, deviceId))
+                    throw new ArgumentException("An isolation device was not found in the network.", nameof(request));
+            }
+
+            if (!double.IsFinite(request.AssumedRepairMinutes)
+                || request.AssumedRepairMinutes < 0 || request.AssumedRepairMinutes > MaxRepairMinutes)
+                throw new ArgumentException($"Assumed repair minutes must be between 0 and {MaxRepairMinutes}.", nameof(request));
+
+            return isolationDevices;
+        }
 
         private static void ValidateNetwork(List<NetworkElementDto> elements, int sourceNodeId, string paramName)
         {
@@ -353,6 +361,19 @@ namespace Portfolio.Services.Services
 
             // Upstream: the first protective device between the fault and the source.
             var reachedBy = Sweep(elements, adjacency, sourceNodeId, faultIndex, null);
+            AddUpstreamProtectiveDevice(elements, reachedBy, faultIndex, devices);
+
+            AddDownstreamSwitchFrontier(elements, adjacency, faultIndex, devices);
+
+            return [.. devices];
+        }
+
+        private static void AddUpstreamProtectiveDevice(
+            List<NetworkElementDto> elements,
+            Dictionary<int, int> reachedBy,
+            int faultIndex,
+            List<int> devices)
+        {
             var node = elements[faultIndex].FromNodeId;
             while (reachedBy.TryGetValue(node, out var index) && index >= 0)
             {
@@ -363,9 +384,16 @@ namespace Portfolio.Services.Services
                 }
                 node = OtherEnd(elements[index], node);
             }
+        }
 
-            // Downstream: the frontier of closed switches. Traversal stops at each one, so
-            // only the switches that actually bound the de-energized section are returned.
+        // Downstream: the frontier of closed switches. Traversal stops at each one, so
+        // only the switches that actually bound the de-energized section are returned.
+        private static void AddDownstreamSwitchFrontier(
+            List<NetworkElementDto> elements,
+            Dictionary<int, List<int>> adjacency,
+            int faultIndex,
+            List<int> devices)
+        {
             var seenElement = new bool[elements.Count];
             seenElement[faultIndex] = true;
             var visitedNodes = new HashSet<int> { elements[faultIndex].ToNodeId };
@@ -397,8 +425,6 @@ namespace Portfolio.Services.Services
                         queue.Add(next);
                 }
             }
-
-            return [.. devices];
         }
 
         private static (int[] Energized, int Served) EnergizedManaged(
@@ -406,6 +432,28 @@ namespace Portfolio.Services.Services
             int sourceNodeId,
             int[] overrideIds,
             int[] overrideStates)
+        {
+            var open = ApplyOverrides(elements, overrideIds, overrideStates);
+            var adjacency = BuildAdjacency(elements);
+            var visitedNodes = ReachableNodes(elements, adjacency, open, sourceNodeId);
+
+            var energized = new List<int>();
+            var served = 0;
+            for (var i = 0; i < elements.Count; i++)
+            {
+                if (open[i])
+                    continue;
+                if (!visitedNodes.Contains(elements[i].FromNodeId) && !visitedNodes.Contains(elements[i].ToNodeId))
+                    continue;
+
+                energized.Add(elements[i].Id);
+                served += elements[i].CustomerCount;
+            }
+
+            return ([.. energized], served);
+        }
+
+        private static bool[] ApplyOverrides(List<NetworkElementDto> elements, int[] overrideIds, int[] overrideStates)
         {
             var open = new bool[elements.Count];
             for (var i = 0; i < elements.Count; i++)
@@ -419,7 +467,16 @@ namespace Portfolio.Services.Services
                 open[index] = overrideStates[o] != 0;
             }
 
-            var adjacency = BuildAdjacency(elements);
+            return open;
+        }
+
+        // Breadth-first walk over closed elements; returns every node reached from the source.
+        private static HashSet<int> ReachableNodes(
+            List<NetworkElementDto> elements,
+            Dictionary<int, List<int>> adjacency,
+            bool[] open,
+            int sourceNodeId)
+        {
             var visitedNodes = new HashSet<int> { sourceNodeId };
             var queue = new List<int> { sourceNodeId };
 
@@ -439,20 +496,7 @@ namespace Portfolio.Services.Services
                 }
             }
 
-            var energized = new List<int>();
-            var served = 0;
-            for (var i = 0; i < elements.Count; i++)
-            {
-                if (open[i])
-                    continue;
-                if (!visitedNodes.Contains(elements[i].FromNodeId) && !visitedNodes.Contains(elements[i].ToNodeId))
-                    continue;
-
-                energized.Add(elements[i].Id);
-                served += elements[i].CustomerCount;
-            }
-
-            return ([.. energized], served);
+            return visitedNodes;
         }
 
         // ── Result shaping ──────────────────────────────────────────────────────
