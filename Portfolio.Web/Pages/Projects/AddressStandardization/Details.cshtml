@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Address Standardization & Validation – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-address-card me-2"></i>Address Standardization &amp; Validation – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-address-card me-2" aria-hidden="true"></i>Address Standardization &amp; Validation – Technical Details</h1>
 		<a href="/Projects/AddressStandardization" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Address Standardization demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Parse freeform address text into normalized components, then validate the result through ArcGIS forward geocoding.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
 			The front end is a Razor Page enhanced by <code>wwwroot/js/AddressStandardization/app.js</code>. It provides two workflows: parse-only for deterministic normalization and validate for ArcGIS-backed candidate scoring.
@@ -39,7 +37,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>AddressStandardizationController</code> is versioned at <code>/api/v1/addresses</code> and is <code>[AllowAnonymous]</code>.</li>
@@ -51,7 +49,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
 			<li><strong>Service boundary:</strong> <code>AddressStandardizationService</code> owns normalization, suffix expansion, component extraction, state validation, confidence scoring, ArcGIS validation, and fallback logic.</li>
@@ -62,7 +60,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<p>
 			This workflow is computational and integration-focused; it does not persist parsed addresses to PostgreSQL. That keeps the service stateless and appropriate for public validation calls.
@@ -75,7 +73,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Hosting:</strong> Runs as part of the same Render-hosted ASP.NET Core application as the other portfolio APIs.</li>
@@ -87,7 +85,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Regex-based parsing:</strong> Keeps the implementation transparent and dependency-light, but does not match the coverage of a specialized address parsing library.</li>
@@ -97,7 +95,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>How would you separate deterministic parsing confidence from geocoder match confidence?</li>

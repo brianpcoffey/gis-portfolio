@@ -27,7 +27,7 @@
 }
 
 .profile-back-link:hover {
-    color: var(--accent);
+    color: var(--accent-text);
 }
 
 /* --- Section cards --- */
@@ -73,27 +73,19 @@
 
 /* --- Danger zone variant --- */
 .profile-card--danger {
-    border-color: #e53e3e;
+    border-color: var(--status-danger-fill);
 }
 
 .profile-card--danger .profile-card-header {
-    border-bottom-color: rgba(229, 62, 62, 0.25);
+    border-bottom-color: rgba(var(--status-danger-rgb), 0.25);
 }
 
 .profile-card--danger .profile-card-header h5 {
-    color: #fc8181;
-}
-
-body:not(.dark-mode) .profile-card--danger .profile-card-header h5 {
-    color: #c53030;
+    color: var(--status-danger-text);
 }
 
 .profile-card--danger .header-icon {
-    color: #fc8181;
-}
-
-body:not(.dark-mode) .profile-card--danger .header-icon {
-    color: #c53030;
+    color: var(--status-danger-text);
 }
 
 .profile-card--danger .form-text {
@@ -122,13 +114,13 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
     object-fit: cover;
     border: 3px solid var(--surface);
     outline: 2px solid var(--accent);
-    box-shadow: 0 2px 10px rgba(56, 161, 105, 0.25);
+    box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.25);
     transition: box-shadow var(--transition);
     flex-shrink: 0;
 }
 
 .profile-avatar-lg:hover {
-    box-shadow: 0 4px 16px rgba(56, 161, 105, 0.4);
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.4);
 }
 
 .profile-avatar-placeholder {
@@ -202,7 +194,7 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
 
 .profile-detail-value code {
     background-color: var(--background);
-    color: var(--accent);
+    color: var(--accent-text);
     padding: 0.15rem 0.5rem;
     border-radius: 4px;
     font-size: 0.82rem;
@@ -232,10 +224,10 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
     opacity: 0.7;
 }
 
+/* The keyboard focus ring comes from preferences.css (.form-control:focus-visible);
+   this rule only tints the border and must not clear the outline. */
 .profile-card .form-control:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.2);
-    outline: none;
+    border-color: var(--focus-ring);
 }
 
 .profile-card .form-text {
@@ -252,48 +244,37 @@ body:not(.dark-mode) .profile-card--danger .header-icon {
 }
 
 .profile-card .btn-outline-danger {
-    color: #fc8181;
-    border-color: #fc8181;
+    color: var(--status-danger-text);
+    border-color: var(--status-danger-text);
     border-radius: 8px;
     padding: 0.55rem 1.5rem;
     font-size: 0.9rem;
     transition: all var(--transition);
 }
 
-body:not(.dark-mode) .profile-card .btn-outline-danger {
-    color: #c53030;
-    border-color: #c53030;
-}
-
 .profile-card .btn-outline-danger:hover {
-    background-color: #e53e3e;
-    border-color: #e53e3e;
+    background-color: var(--status-danger-fill);
+    border-color: var(--status-danger-fill);
     color: #fff;
 }
 
 /* --- Success alert --- */
 .profile-alert {
-    background-color: rgba(56, 161, 105, 0.12);
-    color: var(--accent);
-    border: 1px solid rgba(56, 161, 105, 0.3);
+    background-color: var(--status-success-soft);
+    color: var(--status-success-text);
+    border: 1px solid rgba(var(--status-success-rgb), 0.3);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
     font-weight: 500;
 }
 
-body.dark-mode .profile-alert {
-    background-color: rgba(56, 161, 105, 0.15);
-    color: var(--accent-light);
-    border-color: rgba(72, 187, 120, 0.3);
-}
-
 .profile-alert .btn-close {
-    filter: invert(0.5);
+    opacity: 0.75;
 }
 
 body.dark-mode .profile-alert .btn-close {
-    filter: invert(0.8);
+    filter: invert(1) grayscale(1);
 }
 
 /* --- Badge --- */

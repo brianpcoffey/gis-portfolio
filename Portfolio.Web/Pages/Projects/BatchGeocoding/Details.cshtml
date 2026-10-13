@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Batch Geocoding – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-map-location-dot me-2"></i>Batch Geocoding – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-map-location-dot me-2" aria-hidden="true"></i>Batch Geocoding – Technical Details</h1>
 		<a href="/Projects/BatchGeocoding" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Batch Geocoding demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Bulk geocode CSV address files into match status, matched address, score, latitude, and longitude fields using ArcGIS <code>findAddressCandidates</code>.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
 			The UI is a Razor Page backed by <code>wwwroot/js/BatchGeocoding/app.js</code>. It keeps state in page-level JavaScript rather than a SPA framework: selected file, progress metrics, and result rows are managed in the browser and reflected into Bootstrap cards and a DataTables grid.
@@ -39,7 +37,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>BatchGeocodingController</code> is a versioned API controller at <code>/api/v1/geocoding/batch</code> and is intentionally <code>[AllowAnonymous]</code>.</li>
@@ -50,7 +48,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
 			<li><strong>Service boundary:</strong> <code>BatchGeocodingService</code> owns CSV parsing, job creation, pipeline orchestration, ArcGIS calls, cache lookup, match scoring, and DTO mapping.</li>
@@ -61,7 +59,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<p>
 			Batch geocoding is primarily external-service and cache driven. It does not persist each geocoded row to PostgreSQL; instead, job snapshots are stored through <code>IBatchJobStore</code> and result cache entries use <code>IDistributedCache</code>.
@@ -74,7 +72,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Current hosting:</strong> The application is deployed on Render with configuration injected through environment variables.</li>
@@ -85,7 +83,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Channels over unbounded tasks:</strong> Bounded channels make throughput predictable and prevent large uploads from creating unbounded concurrent ArcGIS calls.</li>
@@ -95,7 +93,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>How would you set concurrency limits against a third-party geocoding API with variable latency and quotas?</li>

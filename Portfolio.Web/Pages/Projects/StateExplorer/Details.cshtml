@@ -5,17 +5,15 @@
 	ViewData["Title"] = "US State Explorer – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-map me-2"></i>US State Explorer – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-map me-2" aria-hidden="true"></i>US State Explorer – Technical Details</h1>
 		<a href="/Projects/StateExplorer" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to US State Explorer demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Explore ArcGIS state feature data, save selected map features, attach notes, and organize saved features into collections.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
 			The front end is a Razor Page that delegates rich map behavior to focused JavaScript modules under <code>wwwroot/js/StateExplorer</code>. This keeps the page server-rendered while allowing map, search, saved-feature, and collection interactions to evolve independently.
@@ -40,19 +38,19 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Feature query API:</strong> <code>FeaturesController</code> exposes <code>GET /api/v1/features?layerId={layerId}&amp;bbox={bbox}</code> as an anonymous ArcGIS feature proxy with circuit-breaker protection.</li>
 			<li><strong>Saved feature API:</strong> <code>SavedFeaturesController</code> exposes <code>/api/v1/features/saved</code> for anonymous per-user saved-feature CRUD.</li>
 			<li><strong>Collections API:</strong> <code>CollectionsController</code> exposes authenticated collection CRUD under <code>/api/v1/collections</code>.</li>
-			<li><strong>Identity model:</strong> Anonymous saved-feature ownership comes from <code>AnonUserId</code> in <code>HttpContext.Items</code>; authenticated collections use the <code>Authenticated</code> policy.</li>
+			<li><strong>Identity model:</strong> Anonymous saved-feature ownership comes from <code>PortfolioIdentity</code> in <code>HttpContext.Items</code>; authenticated collections use the <code>Authenticated</code> policy.</li>
 			<li><strong>Validation and errors:</strong> Controllers validate trivial request shape, translate service exceptions to 400/404/409, and return DTOs rather than EF entities.</li>
 			<li><strong>Security:</strong> The ArcGIS proxy URL-encodes caller-supplied query parts and prevents direct persistence based on client-supplied owner ids.</li>
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
 			<li><strong>ArcGIS service:</strong> <code>ArcGisService</code> builds outbound ArcGIS requests, deserializes feature data, and uses typed <code>HttpClient</code> resilience policies.</li>
@@ -63,7 +61,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<ul>
 			<li><strong>Repository pattern:</strong> <code>SavedFeatureRepository</code> and <code>CollectionRepository</code> own EF Core queries, eager loading, owner filtering, and <code>SaveChangesAsync</code>.</li>
@@ -74,7 +72,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Hosting:</strong> Render hosts the .NET app; PostgreSQL, Google OAuth settings, and optional Redis settings are supplied by configuration.</li>
@@ -86,7 +84,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Anonymous identity:</strong> Lowers friction for saved features, but requires careful separation from authenticated collection ownership.</li>
@@ -96,7 +94,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>How do anonymous and authenticated identities coexist without leaking data across users?</li>

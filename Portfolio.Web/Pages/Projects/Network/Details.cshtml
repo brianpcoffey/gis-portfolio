@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Route Planner – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-route me-2"></i>Route Planner – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-route me-2" aria-hidden="true"></i>Route Planner – Technical Details</h1>
 		<a href="/Projects/Network" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Route Planner demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Interactive GIS routing demo that computes shortest paths from any Redlands street intersection to Esri HQ and visualises the result on a real Leaflet/OpenStreetMap map.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<ul>
 			<li><strong>Page:</strong> <code>Pages/Projects/Network/Index.cshtml</code> renders a full-viewport two-column shell: a routing panel and a Leaflet map canvas.</li>
@@ -42,7 +40,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>SpatialNetworkController</code>, versioned <code>/api/v1/network</code>, <code>[AllowAnonymous]</code>.</li>
@@ -54,7 +52,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
 			<li><strong>Service:</strong> <code>SpatialGraphService</code> owns graph validation, algorithm dispatch, and metric enrichment.</li>
@@ -66,7 +64,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<ul>
 			<li><strong>Current implementation:</strong> No database or repository layer. The ~2,500-node Redlands graph is built once and cached in-memory from <code>RedlandsRoadNetwork</code>, then served on every <code>GET /graph</code> request (microseconds).</li>
@@ -76,7 +74,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Map tiles:</strong> OpenStreetMap tiles load from the public CDN — no API key or billing required for portfolio use.</li>
@@ -87,7 +85,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Client-owned graph:</strong> The client fetches the full ~2,500-node / ~3,190-edge graph once and submits it with each route request. At this scale the JSON payload is ~435 KB — comfortably under the 4 MB request cap. At city scale (millions of edges) the graph would live server-side and the API would accept only start/end node ids.</li>
@@ -99,7 +97,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>Why is A* optimal when using the haversine heuristic? What makes a heuristic admissible?</li>
