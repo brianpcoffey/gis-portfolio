@@ -69,7 +69,7 @@ namespace Portfolio.Web.Areas.Account.Pages
             Picture = await _profileService.GetClaimAsync(ProfileClaimTypes.Picture, cancellationToken);
             GoogleId = await _profileService.GetClaimAsync(ProfileClaimTypes.GoogleId, cancellationToken);
 
-            // Load editable display name (may be null — user hasn't set one yet)
+            // Load editable display name (may be null â€” user hasn't set one yet)
             DisplayName = await _profileService.GetClaimAsync(ProfileClaimTypes.DisplayName, cancellationToken);
         }
     }

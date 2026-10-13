@@ -1,11 +1,10 @@
 /**
  * navigation.js
- * Handles smooth scrolling, sticky navbar, and mobile menu
+ * Handles smooth scrolling, navbar height, and mobile menu
  */
 
 document.addEventListener('DOMContentLoaded', function () {
     initSmoothScroll();
-    initStickyNavbar();
     initNavHeight();
     initMobileMenu();
 });
@@ -50,22 +49,6 @@ function initSmoothScroll() {
                 closeMobileMenu();
             }
         });
-    });
-}
-
-/**
- * Add/remove class to navbar on scroll for styling
- */
-function initStickyNavbar() {
-    const navbar = document.getElementById('mainNav');
-    if (!navbar) return;
-
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 100) {
-            navbar.classList.add('navbar-scrolled');
-        } else {
-            navbar.classList.remove('navbar-scrolled');
-        }
     });
 }
 
