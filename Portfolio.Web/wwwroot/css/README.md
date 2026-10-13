@@ -8,15 +8,30 @@ portfolio's palette, theming, and page-specific styles on top.
 
 Every page loads the **global** stylesheets from `_Layout.cshtml`, in this order:
 
-1. `bootstrap.min.css`, Font Awesome, DataTables (vendor)
-2. `site.css` — entry point; `@import`s `base.css` then `utilities.css`, then adds shared component styles
-3. `layout.css` — header / nav / footer / hero / project grids
-4. `components.css` — shared components + dark-mode theming for Bootstrap/DataTables
-5. `preferences.css` — accessibility + theme preferences, and site-wide animations
+1. `bootstrap.min.css`, Font Awesome (vendor)
+2. `base.css` — palette tokens and base elements; every later file consumes its variables
+3. `utilities.css` — shared helpers
+4. `site.css` — shared component styles (linked, not `@import`ed, so each file gets its own version hash)
+5. `layout.css` — header / nav / footer / hero / project grids
+6. `components.css` — shared components + dark-mode theming for Bootstrap/DataTables
+7. `preferences.css` — accessibility + theme preferences, and site-wide animations
 
-Individual project pages then link their **page-specific** stylesheet(s) in the page
-markup (after the global ones), e.g. `homefinder.css`, `network.css`,
-`plantoperationsdashboard.css`. `gis.css` is the shared base for all `/Projects/*` pages.
+Individual pages then link their **page-specific** stylesheet(s), and any vendor CSS such
+as DataTables, in their `Styles` section, which renders after the global ones:
+
+| Stylesheet | Pages |
+|---|---|
+| `gis.css` | Shared base for the `/Projects/<Name>` demo pages (all except Network) |
+| `spatialcompute.css` | The native-kernel demos: CatRisk, Change, Clustering, Fleet, Geometry, GeoStream, Outage, Overlay, Response, Terrain, Viewshed |
+| `change.css` | Change |
+| `addressstandardization.css` | AddressStandardization |
+| `batchgeocoding.css` | BatchGeocoding |
+| `homefinder.css` | HomeFinder |
+| `network.css` | Network (Route Planner) |
+| `plantoperationsdashboard.css` | PlantOperationsDashboard |
+| `reversegeocoding.css` | ReverseGeocoding |
+| `stateexplorer.css` | StateExplorer |
+| `profile.css` | Account/Profile |
 
 ## Single sources of truth
 

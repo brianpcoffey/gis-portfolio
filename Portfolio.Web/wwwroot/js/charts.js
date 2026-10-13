@@ -15,6 +15,14 @@
     return out;
   }
 
+  // --map-series-1..8: the light series colours for marks drawn over basemap tiles, which stay light
+  // in both themes (so, unlike palette(), the result does not change with the theme).
+  function mapPalette(n) {
+    var out = [], count = n === undefined ? 8 : n;
+    for (var i = 0; i < count; i++) { out.push(token("map-series-" + ((i % 8) + 1))); }
+    return out;
+  }
+
   // 'success'|'danger'|'warning'|'info' -> resolved --status-*-fill
   function status(kind) { return token("status-" + kind + "-fill"); }
 
@@ -93,20 +101,21 @@
     return function () { s = (s * 48271) % 2147483647; return s / 2147483647; };
   }
 
-  // legend(container, [{ label, color }]) — swatch + text, built with DOM (no innerHTML).
-  function legend(container, items) {
-    container.replaceChildren();
-    container.classList.add("legend");
+  // legend(list, [{ label, color }]) — fills a <ul class="legend"> with
+  // <li><span class="legend__swatch"/> label</li> per components.css. The colour goes
+  // through --swatch via setProperty (CSP-safe), so tokens like "var(--text-muted)" work.
+  function legend(list, items) {
+    list.replaceChildren();
+    list.classList.add("legend");
     items.forEach(function (it) {
-      var row = document.createElement("span");
-      row.className = "legend-item";
+      var row = document.createElement("li");
       var sw = document.createElement("span");
-      sw.className = "legend-swatch";
+      sw.className = "legend__swatch";
       sw.setAttribute("aria-hidden", "true");
-      sw.style.backgroundColor = it.color;
+      sw.style.setProperty("--swatch", it.color);
       row.appendChild(sw);
       row.appendChild(document.createTextNode(it.label));
-      container.appendChild(row);
+      list.appendChild(row);
     });
   }
 
@@ -129,7 +138,7 @@
   }
 
   g.PortfolioCharts = {
-    token: token, palette: palette, status: status, onThemeChange: onThemeChange,
+    token: token, palette: palette, mapPalette: mapPalette, status: status, onThemeChange: onThemeChange,
     svg: svg, scale: scale, ticks: ticks, mix: mix, rng: rng, legend: legend, describe: describe
   };
 }(window));

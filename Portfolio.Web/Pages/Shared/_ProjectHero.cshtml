@@ -11,7 +11,7 @@
     //   Badges       - zero or more ProjectHeroBadge(IconClass, Text) pills shown at the right; may be null
     //   DetailsUrl   - the page's Details route; null/empty hides the info button
     //   DetailsLabel - the button's tooltip; null/empty falls back to "Technical Details"
-    // Not adopted by any page yet; the project pages switch over in a later work package.
+    // Used by the /Projects/<Name> demo pages except AddressStandardization, Network and PlantOperationsDashboard.
     var detailsLabel = string.IsNullOrEmpty(Model.DetailsLabel) ? "Technical Details" : Model.DetailsLabel;
 }
 <div class="project-hero py-4 mb-4">

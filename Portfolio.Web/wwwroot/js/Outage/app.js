@@ -1,8 +1,13 @@
 // Outage Manager & Network Trace Page — self-contained IIFE, no ES module syntax.
+// Depends on the deferred shared modules: PortfolioUi, PortfolioFormat, PortfolioCharts, PortfolioDom.
 (function () {
     "use strict";
 
-    var SVGNS = "http://www.w3.org/2000/svg";
+    var charts = window.PortfolioCharts;
+    var fmt = window.PortfolioFormat;
+    var ui = window.PortfolioUi;
+    var el = window.PortfolioDom.el;
+    var svgEl = charts.svg.el;
 
     // Mirrors Portfolio.Common.DTOs.DeviceTypes. The wire format is an int, so the
     // names live in exactly two places and this is the second one.
@@ -17,16 +22,23 @@
     };
 
     var DEVICE_NAMES = ["Conductor", "Switch", "Fuse", "Recloser", "Breaker", "Tie switch", "Transformer"];
-    var DEVICE_COLORS = ["#868e96", "#7048e8", "#f59f00", "#1098ad", "#e8590c", "#0ca678", "#4c6ef5"];
+    // Theme tokens as `var()` strings: they are used as SVG attributes and CSS custom
+    // properties, so they follow the light/dark switch without a redraw.
+    var DEVICE_COLORS = [
+        "var(--text-muted)", "var(--chart-4)", "var(--chart-2)", "var(--chart-5)",
+        "var(--chart-8)", "var(--chart-3)", "var(--chart-1)"
+    ];
 
-    var COLOR_OUT = "#e03131";
-    var COLOR_UPSTREAM = "#1c7ed6";
-    var COLOR_ISOLATE = "#f59f00";
-    var COLOR_RESTORED = "#2f9e44";
+    var COLOR_OUT = "var(--status-danger-fill)";
+    var COLOR_UPSTREAM = "var(--status-info-fill)";
+    var COLOR_ISOLATE = "var(--chart-7)";
+    var COLOR_RESTORED = "var(--status-success-fill)";
 
     // Cache DOM nodes up front.
-    var alertBox = document.getElementById("outageAlert");
+    var alertBox = ui.inlineAlert(document.getElementById("outageAlert"));
     var feederSelect = document.getElementById("outageFeeder");
+    var faultSelect = document.getElementById("outageFault");
+    var placeBtn = document.getElementById("outagePlaceBtn");
     var repairInput = document.getElementById("outageRepair");
     var restoreBtn = document.getElementById("outageRestoreBtn");
     var clearBtn = document.getElementById("outageClearBtn");
@@ -36,6 +48,7 @@
     var svg = document.getElementById("outageSvg");
     var tooltip = document.getElementById("outageTooltip");
     var panel = svg.parentNode;
+    var resultsPanel = svg.closest(".card");
     var kpiAffected = document.getElementById("outageKpiAffected");
     var kpiPercent = document.getElementById("outageKpiPercent");
     var kpiIsolation = document.getElementById("outageKpiIsolation");
@@ -47,10 +60,21 @@
     var elementsById = {};
     var trace = null;
     var restoration = null;
+    var pending = false;
 
     restoreBtn.addEventListener("click", proposeRestoration);
     clearBtn.addEventListener("click", clearFault);
-    feederSelect.addEventListener("change", draw);
+    placeBtn.addEventListener("click", function () {
+        var id = parseInt(faultSelect.value, 10);
+        if (!isNaN(id)) { placeFault(id); }
+    });
+    faultSelect.addEventListener("change", function () {
+        placeBtn.disabled = faultSelect.value === "";
+    });
+    feederSelect.addEventListener("change", function () {
+        populateFaultOptions();
+        draw();
+    });
     svg.addEventListener("mouseleave", hideTooltip);
 
     buildLegend();
@@ -58,68 +82,120 @@
 
     // ── Data ────────────────────────────────────────────────────────────────
 
+    // Runs `opts` through PortfolioUi.runAction on `trigger`, holding the other buttons busy too.
+    // Diagram clicks are not buttons, so a pending flag stops a second request starting mid-flight.
+    function runExclusive(trigger, held, opts) {
+        if (pending) { return Promise.resolve(); }
+        pending = true;
+        var release = ui.busy({ buttons: held.filter(function (b) { return b !== trigger; }) });
+        opts.trigger = trigger;
+        opts.alert = alertBox;
+        opts.region = resultsPanel;
+        return ui.runAction(opts).then(function (r) { release(); pending = false; return r; });
+    }
+
     function loadNetwork() {
-        hideAlert();
-        setBusy(true);
-        apiGet(window.PortfolioApi.routes.spatialCompute.outage.network)
-            .then(function (result) {
+        runExclusive(clearBtn, [placeBtn, restoreBtn], {
+            request: function () { return apiGet(window.PortfolioApi.routes.spatialCompute.outage.network); },
+            render: function (result) {
                 network = result;
                 elementsById = {};
                 network.elements.forEach(function (e) { elementsById[e.id] = e; });
                 projection = buildProjection(network.elements);
+                populateFaultOptions();
                 clearFault();
-            })
-            .catch(function (err) { showAlert(err.message || "Failed to load the distribution network."); })
-            .finally(function () { setBusy(false); });
+            }
+            // No summary: this runs once on page load, not because the visitor asked for it.
+        });
     }
 
     function placeFault(elementId) {
-        if (!network) { return; }
-
-        hideAlert();
-        setBusy(true);
+        // A diagram click while a request is pending is dropped by runExclusive; bail out before the
+        // side effects below, so the select never shows a fault that was not placed.
+        if (!network || pending) { return; }
         restoration = null;
+        faultSelect.value = String(elementId);
+        placeBtn.disabled = false;
 
-        apiPost(window.PortfolioApi.routes.spatialCompute.outage.trace, {
-            elements: network.elements,
-            sourceNodeId: network.sourceNodeId,
-            faultElementId: elementId
-        })
-            .then(function (result) {
+        runExclusive(placeBtn, [clearBtn, restoreBtn], {
+            request: function () {
+                return apiPost(window.PortfolioApi.routes.spatialCompute.outage.trace, {
+                    elements: network.elements,
+                    sourceNodeId: network.sourceNodeId,
+                    faultElementId: elementId
+                });
+            },
+            render: function (result) {
                 trace = result;
                 restoreBtn.disabled = false;
                 render();
-            })
-            .catch(function (err) { showAlert(err.message || "The fault trace failed."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: function (result) {
+                return "Fault placed on " + labelOf(result.faultElementId) + ": " +
+                    fmt.number(result.customersAffected) + " customers affected (" +
+                    fmt.percent(result.percentAffected) + " of the system), " +
+                    result.isolationDeviceIds.length + " isolation devices.";
+            }
+        });
     }
 
     function proposeRestoration() {
         if (!trace) { return; }
 
-        hideAlert();
-        setBusy(true);
-
-        apiPost(window.PortfolioApi.routes.spatialCompute.outage.restore, {
-            elements: network.elements,
-            sourceNodeId: network.sourceNodeId,
-            faultElementId: trace.faultElementId,
-            isolationDeviceIds: trace.isolationDeviceIds,
-            assumedRepairMinutes: parseFloat(repairInput.value) || 0
-        })
-            .then(function (result) {
+        runExclusive(restoreBtn, [placeBtn, clearBtn], {
+            request: function () {
+                return apiPost(window.PortfolioApi.routes.spatialCompute.outage.restore, {
+                    elements: network.elements,
+                    sourceNodeId: network.sourceNodeId,
+                    faultElementId: trace.faultElementId,
+                    isolationDeviceIds: trace.isolationDeviceIds,
+                    assumedRepairMinutes: parseFloat(repairInput.value) || 0
+                });
+            },
+            render: function (result) {
                 restoration = result;
                 render();
-            })
-            .catch(function (err) { showAlert(err.message || "The restoration search failed."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: function (result) {
+                return "Restoration search complete: " + fmt.number(result.customersRestored) +
+                    " customers restored, " + fmt.number(result.customersStillOut) + " still out.";
+            }
+        });
     }
 
     function clearFault() {
         trace = null;
         restoration = null;
         restoreBtn.disabled = true;
+        faultSelect.value = "";
+        placeBtn.disabled = true;
         render();
+    }
+
+    // Fault location list (FE-A06): the keyboard / switch-access equivalent of clicking a
+    // conductor on the diagram. Options are grouped by feeder and follow the feeder filter.
+    function populateFaultOptions() {
+        var previous = faultSelect.value;
+        var feeder = feederSelect.value;
+        var groups = [];
+        var byFeeder = {};
+
+        (network ? network.elements : []).forEach(function (e) {
+            if (feeder !== "" && e.feederName !== feeder && e.feederName !== "Tie") { return; }
+            var group = byFeeder[e.feederName];
+            if (!group) {
+                group = el("optgroup", { label: e.feederName });
+                byFeeder[e.feederName] = group;
+                groups.push(group);
+            }
+            var text = e.deviceType === DEVICE.CONDUCTOR ? e.label : e.label + " (" + DEVICE_NAMES[e.deviceType] + ")";
+            group.appendChild(el("option", { value: e.id, text: text }));
+        });
+
+        var placeholder = el("option", { value: "", text: "Select a conductor…" });
+        faultSelect.replaceChildren.apply(faultSelect, [placeholder].concat(groups));
+        faultSelect.value = previous && faultSelect.querySelector('option[value="' + previous + '"]') ? previous : "";
+        placeBtn.disabled = faultSelect.value === "";
     }
 
     // ── Rendering ───────────────────────────────────────────────────────────
@@ -133,28 +209,30 @@
 
     function renderKpis() {
         kpiAffected.textContent = trace ? String(trace.customersAffected) : "–";
-        kpiPercent.textContent = trace ? trace.percentAffected.toFixed(1) + "%" : "–";
+        kpiPercent.textContent = trace ? fmt.percent(trace.percentAffected) : "–";
         kpiIsolation.textContent = trace ? String(trace.isolationDeviceIds.length) : "–";
         kpiRestored.textContent = restoration ? String(restoration.customersRestored) : "–";
     }
 
     function renderPlan() {
         if (!restoration || restoration.plan.length === 0) {
-            planList.innerHTML = '<li class="geo-cell-item">' +
-                (trace ? "Run the restoration search to build a switching plan."
-                       : "Click a conductor on the diagram to place a fault.") + "</li>";
+            planList.replaceChildren(el("li", {
+                class: "geo-cell-item",
+                text: trace ? "Run the restoration search to build a switching plan."
+                            : "Click a conductor on the diagram, or choose a fault location, to place a fault."
+            }));
             return;
         }
 
-        planList.innerHTML = restoration.plan.map(function (step) {
-            var color = step.action === "CLOSE" ? COLOR_RESTORED : COLOR_ISOLATE;
-            return '<li class="geo-cell-item">' +
-                '<div class="d-flex align-items-center justify-content-between">' +
-                "<strong>" + escapeHtml(step.label) + "</strong>" +
-                '<span class="badge" style="background:' + color + ';">' + escapeHtml(step.action) + "</span>" +
-                "</div>" +
-                '<div class="geo-cell-meta">element #' + step.elementId + "</div></li>";
-        }).join("");
+        var items = restoration.plan.map(function (step) {
+            var closing = step.action === "CLOSE";
+            return el("li", { class: "geo-cell-item" },
+                el("div", { class: "d-flex align-items-center justify-content-between" },
+                    el("strong", { text: step.label }),
+                    el("span", { class: "badge " + (closing ? "text-bg-success" : "text-bg-warning"), text: step.action })),
+                el("div", { class: "geo-cell-meta", text: "element #" + step.elementId }));
+        });
+        planList.replaceChildren.apply(planList, items);
     }
 
     function renderSummary() {
@@ -194,12 +272,11 @@
     }
 
     function buildLegend() {
-        legendBox.innerHTML = DEVICE_NAMES.map(function (name, index) {
-            return '<span class="d-inline-flex align-items-center gap-1 small">' +
-                '<span style="width:0.7rem;height:0.7rem;border-radius:2px;background:' +
-                DEVICE_COLORS[index] + ';display:inline-block;"></span>' +
-                escapeHtml(name) + "</span>";
-        }).join("");
+        legendBox.replaceChildren.apply(legendBox, DEVICE_NAMES.map(function (name, index) {
+            var swatch = el("span", { class: "legend__swatch", "aria-hidden": "true" });
+            swatch.style.setProperty("--swatch", DEVICE_COLORS[index]);
+            return el("span", { class: "d-inline-flex align-items-center gap-1 small" }, swatch, name);
+        }));
     }
 
     // ── Projection ──────────────────────────────────────────────────────────
@@ -252,7 +329,7 @@
     // ── Single-line diagram ─────────────────────────────────────────────────
 
     function draw() {
-        svg.innerHTML = "";
+        charts.svg.clear(svg);
         hideTooltip();
         if (!network || !projection) { return; }
 
@@ -274,6 +351,12 @@
         });
 
         drawSubstation();
+
+        charts.describe(svg, "Single-line diagram of " + network.elements.length + " network elements." +
+            (trace ? " Fault on " + labelOf(trace.faultElementId) + "; " + trace.customersAffected +
+                " customers affected." : " No fault placed.") +
+            (restoration ? " " + restoration.customersRestored + " customers restored." : "") +
+            " Use the Fault location list to place a fault from the keyboard.");
     }
 
     function styleFor(element, downstream, upstream, isolation, energized) {
@@ -310,15 +393,13 @@
         var y2 = projectY(element.toLatitude);
         var opacity = dimmed ? 0.1 : style.opacity;
 
-        var line = document.createElementNS(SVGNS, "line");
-        line.setAttribute("x1", x1.toFixed(2));
-        line.setAttribute("y1", y1.toFixed(2));
-        line.setAttribute("x2", x2.toFixed(2));
-        line.setAttribute("y2", y2.toFixed(2));
-        line.setAttribute("stroke", style.stroke);
-        line.setAttribute("stroke-width", String(style.width));
-        line.setAttribute("stroke-opacity", String(opacity));
-        line.setAttribute("stroke-linecap", "round");
+        var line = svgEl("line", {
+            x1: x1.toFixed(2), y1: y1.toFixed(2), x2: x2.toFixed(2), y2: y2.toFixed(2),
+            stroke: style.stroke,
+            "stroke-width": String(style.width),
+            "stroke-opacity": String(opacity),
+            "stroke-linecap": "round"
+        });
         if (style.dashed) {
             line.setAttribute("stroke-dasharray", "1.2 0.9");
         }
@@ -328,31 +409,22 @@
             drawGlyph(element, (x1 + x2) / 2, (y1 + y2) / 2, style, opacity);
         }
 
-        // A wide transparent overlay gives the thin conductors a usable hit area.
-        var hit = document.createElementNS(SVGNS, "line");
-        hit.setAttribute("x1", x1.toFixed(2));
-        hit.setAttribute("y1", y1.toFixed(2));
-        hit.setAttribute("x2", x2.toFixed(2));
-        hit.setAttribute("y2", y2.toFixed(2));
-        hit.setAttribute("stroke", "transparent");
-        hit.setAttribute("stroke-width", "1.8");
-        hit.setAttribute("stroke-linecap", "round");
+        // A wide transparent overlay gives the thin conductors a usable pointer hit area.
+        // It is the pointer path only (FE-A06): the keyboard / assistive-tech path is the
+        // Fault location list, so these ~260 lines are out of the tab order and hidden from
+        // the accessibility tree rather than being 260 undersized controls.
+        var hit = svgEl("line", {
+            x1: x1.toFixed(2), y1: y1.toFixed(2), x2: x2.toFixed(2), y2: y2.toFixed(2),
+            stroke: "transparent",
+            "stroke-width": "1.8",
+            "stroke-linecap": "round"
+        });
         hit.style.cursor = dimmed ? "default" : "pointer";
         hit.addEventListener("mousemove", function (evt) { showTooltip(evt, element); });
         if (!dimmed) {
-            // The hit target is the only way to place a fault, so it has to be a real
-            // control: named, focusable, and answering to Enter and Space. Space is
-            // prevented so activating a segment does not scroll the page.
-            hit.setAttribute("role", "button");
-            hit.setAttribute("tabindex", "0");
-            hit.setAttribute("aria-label", "Place fault on " +
-                DEVICE_NAMES[element.deviceType] + " " + element.label);
+            hit.setAttribute("tabindex", "-1");
+            hit.setAttribute("aria-hidden", "true");
             hit.addEventListener("click", function () { placeFault(element.id); });
-            hit.addEventListener("keydown", function (evt) {
-                if (evt.key !== "Enter" && evt.key !== " " && evt.key !== "Spacebar") { return; }
-                evt.preventDefault();
-                placeFault(element.id);
-            });
         }
         svg.appendChild(hit);
     }
@@ -362,25 +434,20 @@
         var node;
 
         if (element.deviceType === DEVICE.RECLOSER) {
-            node = document.createElementNS(SVGNS, "circle");
-            node.setAttribute("cx", cx.toFixed(2));
-            node.setAttribute("cy", cy.toFixed(2));
-            node.setAttribute("r", "1.05");
+            node = svgEl("circle", { cx: cx.toFixed(2), cy: cy.toFixed(2), r: "1.05" });
         } else if (element.deviceType === DEVICE.TRANSFORMER) {
-            node = document.createElementNS(SVGNS, "polygon");
-            node.setAttribute("points",
-                (cx).toFixed(2) + "," + (cy - 0.95).toFixed(2) + " " +
-                (cx - 0.9).toFixed(2) + "," + (cy + 0.8).toFixed(2) + " " +
-                (cx + 0.9).toFixed(2) + "," + (cy + 0.8).toFixed(2));
+            node = svgEl("polygon", {
+                points: (cx).toFixed(2) + "," + (cy - 0.95).toFixed(2) + " " +
+                    (cx - 0.9).toFixed(2) + "," + (cy + 0.8).toFixed(2) + " " +
+                    (cx + 0.9).toFixed(2) + "," + (cy + 0.8).toFixed(2)
+            });
         } else {
             var half = element.deviceType === DEVICE.BREAKER ? 1.15
                 : element.deviceType === DEVICE.FUSE ? 0.6 : 0.85;
-            node = document.createElementNS(SVGNS, "rect");
-            node.setAttribute("x", (cx - half).toFixed(2));
-            node.setAttribute("y", (cy - 0.85).toFixed(2));
-            node.setAttribute("width", (half * 2).toFixed(2));
-            node.setAttribute("height", "1.7");
-            node.setAttribute("rx", "0.15");
+            node = svgEl("rect", {
+                x: (cx - half).toFixed(2), y: (cy - 0.85).toFixed(2),
+                width: (half * 2).toFixed(2), height: "1.7", rx: "0.15"
+            });
         }
 
         // A normally-open point is drawn hollow: it is a device that is deliberately
@@ -397,15 +464,10 @@
         svg.appendChild(node);
 
         if (style.halo) {
-            var halo = document.createElementNS(SVGNS, "circle");
-            halo.setAttribute("cx", cx.toFixed(2));
-            halo.setAttribute("cy", cy.toFixed(2));
-            halo.setAttribute("r", "2.2");
-            halo.setAttribute("fill", "none");
-            halo.setAttribute("stroke", style.halo);
-            halo.setAttribute("stroke-width", "0.35");
-            halo.setAttribute("opacity", String(opacity));
-            svg.appendChild(halo);
+            svg.appendChild(svgEl("circle", {
+                cx: cx.toFixed(2), cy: cy.toFixed(2), r: "2.2", fill: "none",
+                stroke: style.halo, "stroke-width": "0.35", opacity: String(opacity)
+            }));
         }
     }
 
@@ -421,25 +483,12 @@
         var cx = projectX(source.lon);
         var cy = projectY(source.lat);
 
-        var box = document.createElementNS(SVGNS, "rect");
-        box.setAttribute("x", (cx - 1.8).toFixed(2));
-        box.setAttribute("y", (cy - 1.8).toFixed(2));
-        box.setAttribute("width", "3.6");
-        box.setAttribute("height", "3.6");
-        box.setAttribute("rx", "0.4");
-        box.setAttribute("fill", "var(--surface)");
-        box.setAttribute("stroke", "var(--text)");
-        box.setAttribute("stroke-width", "0.35");
-        svg.appendChild(box);
+        svg.appendChild(svgEl("rect", {
+            x: (cx - 1.8).toFixed(2), y: (cy - 1.8).toFixed(2), width: "3.6", height: "3.6", rx: "0.4",
+            fill: "var(--surface)", stroke: "var(--text)", "stroke-width": "0.35"
+        }));
 
-        var label = document.createElementNS(SVGNS, "text");
-        label.setAttribute("x", cx.toFixed(2));
-        label.setAttribute("y", (cy + 4.4).toFixed(2));
-        label.setAttribute("font-size", "2.4");
-        label.setAttribute("text-anchor", "middle");
-        label.setAttribute("fill", "var(--text-muted)");
-        label.textContent = "SUB";
-        svg.appendChild(label);
+        charts.svg.text(svg, cx, cy + 4.4, "SUB", { size: 2.4, anchor: "middle" });
     }
 
     // ── Tooltip ─────────────────────────────────────────────────────────────
@@ -448,10 +497,13 @@
         var bounds = panel.getBoundingClientRect();
         var state = element.isOpen ? "open" : "closed";
 
-        tooltip.innerHTML = "<strong>" + escapeHtml(element.label) + "</strong><br />" +
-            escapeHtml(DEVICE_NAMES[element.deviceType]) + " · " + state + "<br />" +
+        tooltip.replaceChildren(
+            el("strong", { text: element.label }),
+            document.createElement("br"),
+            DEVICE_NAMES[element.deviceType] + " · " + state,
+            document.createElement("br"),
             element.customerCount + " customer" + (element.customerCount === 1 ? "" : "s") +
-            " · " + escapeHtml(element.feederName);
+                " · " + element.feederName);
 
         tooltip.style.left = (evt.clientX - bounds.left + 14) + "px";
         tooltip.style.top = (evt.clientY - bounds.top + 14) + "px";
@@ -468,26 +520,5 @@
         var set = {};
         (ids || []).forEach(function (id) { set[id] = true; });
         return set;
-    }
-
-    function setBusy(busy) {
-        clearBtn.disabled = busy;
-        restoreBtn.disabled = busy || !trace;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
-    }
-
-    function escapeHtml(text) {
-        var div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
     }
 }());

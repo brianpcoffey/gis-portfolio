@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Fleet Route Optimizer – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-truck-fast me-2"></i>Fleet Route Optimizer – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-truck-fast me-2" aria-hidden="true"></i>Fleet Route Optimizer – Technical Details</h1>
 		<a href="/Projects/Fleet" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Fleet Route Optimizer demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Answer the question a dispatcher actually has at 6am — I have 40 deliveries, five trucks, a load limit and a delivery window on every drop, and drivers who go home at 4pm. Which truck does what, in what order?</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Algorithm</h2>
 		<ul>
 			<li><strong>Distance matrix:</strong> The depot and every stop snap to the nearest road node, then a single <code>(n+1)²</code> road-distance matrix is built by <code>Graph_ComputeDistanceMatrix</code>, which constructs the adjacency structure once and runs <em>n+1</em> Dijkstras over it. Doing this as <em>n+1</em> separate shortest-path calls would rebuild 6,374 adjacency entries every time.</li>
@@ -40,7 +38,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Endpoints:</strong> <code>GET /api/v1/fleet/scenario?preset=fullday</code> and <code>POST /api/v1/fleet/optimize</code>.</li>
@@ -53,7 +51,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Native Boundary</h2>
 		<ul>
 			<li><strong>Kernel:</strong> <code>vrp_solver_kernel</code>, a C++20 shared library exposing a single export, <code>Vrp_SolveCvrptw</code>, through a stable C ABI with <code>#pragma pack(push, 8)</code> structs and status-code returns.</li>
@@ -82,7 +80,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Scenario in, routes out:</strong> The client never sees the road graph. Sending the scenario instead of the network cut the request from roughly 425 KB to about 2 KB and moved snapping, matrix construction and leg expansion to the server where they belong. It also means the client cannot desynchronise from the network the server actually routed on.</li>
@@ -95,7 +93,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>CVRPTW is NP-hard. What does that actually mean for a dispatcher who needs an answer in 30 seconds, and how do you decide when to stop searching?</li>

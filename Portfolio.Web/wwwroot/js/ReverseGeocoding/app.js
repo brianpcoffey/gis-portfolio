@@ -9,6 +9,11 @@
     var HISTORY_KEY = "rg_recent_lookups";
     var MAX_HISTORY = 5;
     var API_BASE = window.PortfolioApi.routes.geocoding.reverse;
+    var announce = window.PortfolioUi.announce;
+    var fmt = function (v) { return window.PortfolioFormat.number(v, { decimals: 5 }); };
+
+    // Esri widget theme (light/dark) before the map exists.
+    window.PortfolioEsri.loadTheme();
 
     // ── State ──────────────────────────────────────────────────────────────────
     var currentResult = null;
@@ -84,15 +89,16 @@
             item.className = "rg-lookup-item";
             item.setAttribute("role", "button");
             item.setAttribute("tabindex", "0");
+            item.setAttribute("aria-label", "Show lookup: " + (entry.dto.matchedAddress || "Unknown address"));
             item.innerHTML =
                 '<div class="rg-lookup-address">' + PortfolioDom.escapeHtml(entry.dto.matchedAddress || "Unknown address") + "</div>" +
-                '<div class="rg-lookup-coords">Lat: ' + entry.lat.toFixed(6) + "  Lng: " + entry.lng.toFixed(6) + "</div>";
+                '<div class="rg-lookup-coords">Lat: ' + fmt(entry.lat) + "  Lng: " + fmt(entry.lng) + "</div>";
 
             item.addEventListener("click", function () {
                 onHistoryItemClick(entry);
             });
             item.addEventListener("keydown", function (e) {
-                if (e.key === "Enter" || e.key === " ") onHistoryItemClick(entry);
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onHistoryItemClick(entry); }
             });
 
             // Mark first (most recent) as active
@@ -139,10 +145,10 @@
 
     function updateCoordinateDisplay(lat, lng) {
         coordinateReadout.textContent =
-            "Lat: " + lat.toFixed(6) + "   Lng: " + lng.toFixed(6);
-        coordinateReadout.classList.remove("text-muted");
-        latInput.value = lat.toFixed(6);
-        lngInput.value = lng.toFixed(6);
+            "Lat: " + fmt(lat) + "   Lng: " + fmt(lng);
+        coordinateReadout.classList.remove("theme-text-muted");
+        latInput.value = lat.toFixed(5);
+        lngInput.value = lng.toFixed(5);
     }
 
     function getLocationTypeBadgeClass(locType) {
@@ -161,7 +167,9 @@
 
         var ltClass = getLocationTypeBadgeClass(dto.locationType);
         locationTypeBadge.className = "badge rg-location-type-badge " + ltClass;
-        locationTypeBadge.innerHTML = '<i class="fa-solid fa-map-pin me-1"></i>' + PortfolioDom.escapeHtml(dto.locationType || "Unknown");
+        locationTypeBadge.replaceChildren(
+            PortfolioDom.el("i", { class: "fa-solid fa-map-pin me-1", "aria-hidden": "true" }),
+            dto.locationType || "Unknown");
 
         houseNumber.textContent = dto.houseNumber || "—";
         street.textContent = dto.street || "—";
@@ -169,8 +177,8 @@
         region.textContent = dto.region || "—";
         postal.textContent = dto.postalCode || "—";
         country.textContent = dto.countryCode || "—";
-        resultLat.textContent = lat.toFixed(6);
-        resultLng.textContent = lng.toFixed(6);
+        resultLat.textContent = fmt(lat);
+        resultLng.textContent = fmt(lng);
 
         showState("result");
     }
@@ -181,9 +189,8 @@
 
         graphicsLayer.removeAll();
 
-        // Get accent color from CSS custom property
-        var accentColor = getComputedStyle(document.documentElement)
-            .getPropertyValue("--accent").trim() || "#38a169";
+        // Marker colours come from the theme tokens (resolved, since the map needs concrete values)
+        var accentColor = window.PortfolioCharts.token("accent");
 
         var point = { type: "point", longitude: lng, latitude: lat, spatialReference: { wkid: 4326 } };
 
@@ -191,7 +198,7 @@
             type: "simple-marker",
             color: accentColor,
             size: "14px",
-            outline: { color: "#fff", width: 2 }
+            outline: { color: window.PortfolioCharts.token("on-dark"), width: 2 }
         };
 
         var graphic = new GraphicClass({ geometry: point, symbol: symbol });
@@ -214,7 +221,7 @@
     function fetchReverseGeocode(lat, lng) {
         hideAlert();
         showState("loading");
-        lookupBtn.disabled = true;
+        var done = window.PortfolioUi.busy({ buttons: [lookupBtn], region: document.getElementById("rgResultArea") });
 
         var url = API_BASE + "?lat=" + encodeURIComponent(lat) + "&lng=" + encodeURIComponent(lng);
 
@@ -224,14 +231,17 @@
                     return response.json().then(function (dto) {
                         renderResult(dto, lat, lng);
                         updateMarkerPopup(dto);
+                        announce("Address found: " + (dto.matchedAddress || "unknown address") + ".");
                     });
                 } else if (response.status === 400) {
                     return response.json().then(function (body) {
                         showState("placeholder");
                         showAlert(body.error || "Bad request.");
+                        announce(body.error || "Bad request.");
                     });
                 } else if (response.status === 404) {
                     showState("notfound");
+                    announce("No address found at this location.");
                 } else {
                     showState("placeholder");
                     if (window.showToast) {
@@ -246,7 +256,7 @@
                 }
             })
             .finally(function () {
-                lookupBtn.disabled = false;
+                done();
             });
     }
 
@@ -295,7 +305,7 @@
     }
 
     // ── ArcGIS Map initialization ──────────────────────────────────────────────
-    window.require(
+    window.PortfolioEsri.load().then(function () { window.require(
         [
             "esri/Map",
             "esri/views/MapView",
@@ -345,9 +355,16 @@
                 fetchReverseGeocode(lat, lng);
             });
 
+            // ArcGIS nests its own role="application" surface in the container; name that one.
+            mapView.when(function () {
+                var surface = mapView.container.querySelector(".esri-view-surface");
+                var label = document.getElementById("rgMapView").getAttribute("data-map-label");
+                if (surface && label) surface.setAttribute("aria-label", label);
+            });
+
             // Restore history on load
             renderHistory(loadHistory());
         }
-    );
+    ); });
 
 }());

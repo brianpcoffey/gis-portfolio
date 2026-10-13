@@ -5,11 +5,18 @@
 // DOM nodes, which is a layout cost the browser cannot absorb. Everything raster here is
 // drawn to a <canvas> via ImageData instead; only the histogram, which has 128 elements,
 // is SVG.
+// Depends on the deferred shared modules: PortfolioUi, PortfolioFormat, PortfolioCharts, PortfolioDom.
 (function () {
     "use strict";
 
-    var SVGNS = "http://www.w3.org/2000/svg";
     var MASK_DISPLAY_SIZE = 512;
+    var charts = window.PortfolioCharts;
+    var fmt = window.PortfolioFormat;
+    var ui = window.PortfolioUi;
+
+    // Bounding-box colours for the mask canvas. The canvas is painted onto an always-dark,
+    // desaturated raster in both themes, so the bright colours are fixed rather than tokens.
+    var BOX_COLORS = { truth: "#4dabf7", detected: "#51cf66", selected: "#ffd43b" };
 
     // Band indices in the stack. The composite is NIR/Red/Green — the standard
     // vegetation-forward false-colour composite, in which healthy vegetation reads red.
@@ -21,7 +28,7 @@
     var DISPLAY_GAIN = 255 / 0.6;
 
     // Cache DOM nodes up front.
-    var alertBox = document.getElementById("changeAlert");
+    var alertBox = ui.inlineAlert(document.getElementById("changeAlert"));
     var sizeSelect = document.getElementById("changeSize");
     var noiseInput = document.getElementById("changeNoise");
     var noiseValue = document.getElementById("changeNoiseValue");
@@ -36,6 +43,7 @@
     var blobList = document.getElementById("changeBlobList");
     var summary = document.getElementById("changeSummary");
     var swipeStage = document.getElementById("changeSwipeStage");
+    var resultsPanel = swipeStage.closest(".card");
     var swipeRange = document.getElementById("changeSwipeRange");
     var canvasA = document.getElementById("changeCanvasA");
     var canvasB = document.getElementById("changeCanvasB");
@@ -53,6 +61,7 @@
     var selectedBlobId = 0;
     var swipeFraction = 0.5;
     var dragging = false;
+    var sceneSeq = 0;
 
     runBtn.addEventListener("click", run);
     sceneBtn.addEventListener("click", loadScene);
@@ -115,21 +124,32 @@
     }
 
     syncThresholdMode();
-    loadScene();
+    loadScene(true);
 
     // ── Data ────────────────────────────────────────────────────────────────
 
-    function loadScene() {
-        hideAlert();
-        setBusy(true);
+    // Holds the other controls busy while `opts` runs through PortfolioUi.runAction on `trigger`.
+    function runExclusive(trigger, held, opts) {
+        var release = ui.busy({ buttons: held });
+        opts.trigger = trigger;
+        opts.alert = alertBox;
+        opts.region = resultsPanel;
+        return ui.runAction(opts).then(function (r) { release(); return r; });
+    }
 
+    // `onLoad === true` is the page-load call: it renders but does not announce. The listeners pass an
+    // event, which is not `true`, so a visitor's own New Scene / size / noise change is still announced.
+    function loadScene(onLoad) {
         var size = parseInt(sizeSelect.value, 10);
         var noise = parseFloat(noiseInput.value);
         var route = window.PortfolioApi.routes.spatialCompute.change.scene +
             "?width=" + size + "&height=" + size + "&noise=" + noise;
+        var seq = ++sceneSeq;
 
-        apiGet(route)
-            .then(function (result) {
+        runExclusive(sceneBtn, [runBtn, sizeSelect], {
+            request: function () { return apiGet(route); },
+            render: function (result) {
+                if (seq !== sceneSeq) { return; }
                 scene = result;
                 detection = null;
                 selectedBlobId = 0;
@@ -145,45 +165,57 @@
                     noiseLevel: scene.noiseLevel,
                     plantedChanges: scene.groundTruth.length
                 }, null, 2);
-            })
-            .catch(function (err) { showAlert(err.message || "Failed to build the scene."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: onLoad === true ? undefined : function (result) {
+                return "Scene ready: " + result.width + " by " + result.height + " pixels, " +
+                    result.groundTruth.length + " planted changes.";
+            }
+        });
     }
 
     function run() {
         if (!scene) {
-            showAlert("The scene has not loaded yet.");
+            alertBox.show("The scene has not loaded yet.");
             return;
         }
 
-        hideAlert();
-        setBusy(true);
+        // The size select and noise slider stay live while Detect runs (they are only aria-disabled),
+        // so a scene change can land first. Its result then belongs to a scene that is gone.
+        var seq = sceneSeq;
 
-        apiPost(window.PortfolioApi.routes.spatialCompute.change.detect, {
-            width: scene.width,
-            height: scene.height,
-            bandCount: scene.bandCount,
-            epochA: scene.epochA,
-            epochB: scene.epochB,
-            thresholdMode: modeManual.checked ? "manual" : "otsu",
-            manualThreshold: parseFloat(manualInput.value),
-            openIterations: parseInt(openInput.value, 10),
-            minBlobArea: parseInt(minAreaInput.value, 10)
-        })
-            .then(function (result) {
+        runExclusive(runBtn, [sceneBtn, sizeSelect], {
+            request: function () {
+                return apiPost(window.PortfolioApi.routes.spatialCompute.change.detect, {
+                    width: scene.width,
+                    height: scene.height,
+                    bandCount: scene.bandCount,
+                    epochA: scene.epochA,
+                    epochB: scene.epochB,
+                    thresholdMode: modeManual.checked ? "manual" : "otsu",
+                    manualThreshold: parseFloat(manualInput.value),
+                    openIterations: parseInt(openInput.value, 10),
+                    minBlobArea: parseInt(minAreaInput.value, 10)
+                });
+            },
+            render: function (result) {
+                if (seq !== sceneSeq) { return; }
                 detection = result;
                 selectedBlobId = 0;
                 render();
-            })
-            .catch(function (err) { showAlert(err.message || "Detection failed."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: function (result) {
+                if (seq !== sceneSeq) { return ""; }
+                return "Detection complete: " + result.blobs.length + " changes found, " +
+                    kpiRecovered.textContent + " ground-truth changes recovered.";
+            }
+        });
     }
 
     function render() {
         var recovered = scoreAgainstGroundTruth();
 
         kpiDetections.textContent = detection.blobs.length;
-        kpiArea.textContent = detection.changedPercent.toFixed(2) + "%";
+        kpiArea.textContent = fmt.percent(detection.changedPercent);
         kpiThreshold.textContent = detection.threshold.toFixed(3);
         kpiRecovered.textContent = recovered + " of " + scene.groundTruth.length;
 
@@ -333,11 +365,14 @@
         offContext.putImageData(image, 0, 0);
         context.drawImage(offscreen, 0, 0, MASK_DISPLAY_SIZE, MASK_DISPLAY_SIZE);
 
+        charts.describe(maskCanvas, "Change mask over epoch B. " + scene.groundTruth.length + " planted ground-truth boxes" +
+            (detection ? " and " + detection.blobs.length + " detections." : "; no detection has been run yet."));
+
         var scale = MASK_DISPLAY_SIZE / width;
 
         // Ground truth first, so detections draw on top of it.
         context.setLineDash([6, 4]);
-        context.strokeStyle = "#4dabf7";
+        context.strokeStyle = BOX_COLORS.truth;
         context.lineWidth = 2;
         scene.groundTruth.forEach(function (box) {
             strokeBox(context, box, scale);
@@ -350,11 +385,11 @@
         context.font = "14px sans-serif";
         detection.blobs.forEach(function (blob) {
             var selected = blob.id === selectedBlobId;
-            context.strokeStyle = selected ? "#ffd43b" : "#51cf66";
+            context.strokeStyle = selected ? BOX_COLORS.selected : BOX_COLORS.detected;
             context.lineWidth = selected ? 3 : 2;
             strokeBox(context, blob, scale);
 
-            context.fillStyle = selected ? "#ffd43b" : "#51cf66";
+            context.fillStyle = selected ? BOX_COLORS.selected : BOX_COLORS.detected;
             context.fillText(String(blob.id), blob.minX * scale + 3, Math.max(14, blob.minY * scale - 3));
         });
     }
@@ -370,17 +405,18 @@
     // ── Otsu histogram ──────────────────────────────────────────────────────
 
     function drawHistogram() {
-        histogramSvg.innerHTML = "";
+        charts.svg.clear(histogramSvg);
 
         var left = 8, right = 97, top = 4, bottom = 44;
 
-        appendLine(histogramSvg, left, top, left, bottom, "var(--text-muted)", 0.3);
-        appendLine(histogramSvg, left, bottom, right, bottom, "var(--text-muted)", 0.3);
-        appendText(histogramSvg, (left + right) / 2, 53, "CVA magnitude", 2.6, "middle", "var(--text-muted)");
+        charts.svg.line(histogramSvg, left, top, left, bottom, { width: 0.3 });
+        charts.svg.line(histogramSvg, left, bottom, right, bottom, { width: 0.3 });
+        charts.svg.text(histogramSvg, (left + right) / 2, 53, "CVA magnitude", { size: 2.6, anchor: "middle" });
 
         if (!detection || !detection.histogram || detection.histogram.length === 0) {
-            appendText(histogramSvg, (left + right) / 2, (top + bottom) / 2,
-                "Run a detection to build the histogram", 3, "middle", "var(--text-muted)");
+            charts.svg.text(histogramSvg, (left + right) / 2, (top + bottom) / 2,
+                "Run a detection to build the histogram", { size: 3, anchor: "middle" });
+            charts.describe(histogramSvg, "Change vector analysis magnitude histogram. No detection has been run yet.");
             return;
         }
 
@@ -400,13 +436,13 @@
         for (i = 0; i < bins.length; i++) {
             if (bins[i] <= 0) { continue; }
             var barHeight = (Math.log(1 + bins[i]) / logMax) * (bottom - top);
-            var rect = document.createElementNS(SVGNS, "rect");
-            rect.setAttribute("x", (left + i * barWidth).toFixed(3));
-            rect.setAttribute("y", (bottom - barHeight).toFixed(3));
-            rect.setAttribute("width", Math.max(barWidth * 0.9, 0.15).toFixed(3));
-            rect.setAttribute("height", barHeight.toFixed(3));
-            rect.setAttribute("fill", "var(--primary-light)");
-            histogramSvg.appendChild(rect);
+            histogramSvg.appendChild(charts.svg.el("rect", {
+                x: (left + i * barWidth).toFixed(3),
+                y: (bottom - barHeight).toFixed(3),
+                width: Math.max(barWidth * 0.9, 0.15).toFixed(3),
+                height: barHeight.toFixed(3),
+                fill: "var(--chart-series)"
+            }));
         }
 
         var span = detection.histogramMax - detection.histogramMin;
@@ -414,45 +450,27 @@
             var t = (detection.threshold - detection.histogramMin) / span;
             t = Math.max(0, Math.min(1, t));
             var x = left + t * (right - left);
-            var line = appendLine(histogramSvg, x, top, x, bottom, "#e03131", 0.45);
+            var line = charts.svg.line(histogramSvg, x, top, x, bottom, { stroke: "var(--status-danger-fill)", width: 0.45 });
             line.setAttribute("stroke-dasharray", "1.6 1.2");
-            appendText(histogramSvg, Math.min(x + 1, right - 12), top + 3,
-                detection.thresholdMode + " " + detection.threshold.toFixed(3), 2.4, "start", "#e03131");
+            charts.svg.text(histogramSvg, Math.min(x + 1, right - 12), top + 3,
+                detection.thresholdMode + " " + detection.threshold.toFixed(3),
+                { size: 2.4, anchor: "start", fill: "var(--status-danger-text)" });
         }
 
-        appendText(histogramSvg, left, bottom + 3.6, detection.histogramMin.toFixed(2), 2.2, "start", "var(--text-muted)");
-        appendText(histogramSvg, right, bottom + 3.6, detection.histogramMax.toFixed(2), 2.2, "end", "var(--text-muted)");
-    }
+        charts.svg.text(histogramSvg, left, bottom + 3.6, detection.histogramMin.toFixed(2), { size: 2.2, anchor: "start" });
+        charts.svg.text(histogramSvg, right, bottom + 3.6, detection.histogramMax.toFixed(2), { size: 2.2, anchor: "end" });
 
-    function appendLine(svg, x1, y1, x2, y2, stroke, width) {
-        var line = document.createElementNS(SVGNS, "line");
-        line.setAttribute("x1", x1.toFixed(2));
-        line.setAttribute("y1", y1.toFixed(2));
-        line.setAttribute("x2", x2.toFixed(2));
-        line.setAttribute("y2", y2.toFixed(2));
-        line.setAttribute("stroke", stroke);
-        line.setAttribute("stroke-width", String(width));
-        svg.appendChild(line);
-        return line;
-    }
-
-    function appendText(svg, x, y, content, size, anchor, fill) {
-        var text = document.createElementNS(SVGNS, "text");
-        text.setAttribute("x", x.toFixed(2));
-        text.setAttribute("y", y.toFixed(2));
-        text.setAttribute("font-size", String(size));
-        text.setAttribute("text-anchor", anchor);
-        text.setAttribute("fill", fill);
-        text.textContent = content;
-        svg.appendChild(text);
-        return text;
+        charts.describe(histogramSvg, "Change vector analysis magnitude histogram on a log count axis, " +
+            detection.histogramMin.toFixed(2) + " to " + detection.histogramMax.toFixed(2) + ". The " +
+            detection.thresholdMode + " threshold is " + detection.threshold.toFixed(3) + ".");
     }
 
     // ── Detection list ──────────────────────────────────────────────────────
 
     function renderBlobList() {
+        var el = window.PortfolioDom.el;
         if (!detection || detection.blobs.length === 0) {
-            blobList.innerHTML = '<div class="geo-cell-meta">No detections yet.</div>';
+            blobList.replaceChildren(el("div", { class: "geo-cell-meta", text: "No detections yet." }));
             return;
         }
 
@@ -460,21 +478,24 @@
             var label = groundTruthLabelFor(blob);
             var percent = Math.round(blob.confidence * 100);
             var selected = blob.id === selectedBlobId;
-            return '<div class="geo-cell-item' + (selected ? " geo-cell-anomaly" : "") +
-                '" data-blob-id="' + blob.id + '" style="cursor:pointer;"' +
-                ' role="button" tabindex="0" aria-pressed="' + (selected ? "true" : "false") + '">' +
-                '<div class="d-flex align-items-center justify-content-between">' +
-                '<strong>#' + blob.id + " " + escapeHtml(label) + "</strong>" +
-                "<span>" + blob.area + " px</span></div>" +
-                '<div class="geo-cell-meta">centroid (' + blob.centroidX.toFixed(1) + ", " +
-                blob.centroidY.toFixed(1) + ") &middot; mean magnitude " + blob.meanMagnitude.toFixed(3) + "</div>" +
-                '<div class="progress mt-1" style="height:4px;" role="progressbar" aria-label="Relative confidence" ' +
-                'aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100">' +
-                '<div class="progress-bar" style="width:' + percent + '%;background:var(--accent);"></div></div>' +
-                '<div class="geo-cell-meta">relative confidence ' + percent + "%</div></div>";
-        }).join("");
+            var bar = el("div", { class: "progress-bar" });
+            bar.style.width = percent + "%";
+            return el("div", {
+                    class: "geo-cell-item change-blob-row" + (selected ? " geo-cell-anomaly" : ""),
+                    "data-blob-id": blob.id, role: "button", tabindex: "0", "aria-pressed": selected ? "true" : "false"
+                },
+                el("div", { class: "d-flex align-items-center justify-content-between" },
+                    el("strong", { text: "#" + blob.id + " " + label }),
+                    el("span", { text: blob.area + " px" })),
+                el("div", { class: "geo-cell-meta",
+                    text: "centroid (" + blob.centroidX.toFixed(1) + ", " + blob.centroidY.toFixed(1) +
+                        ") · mean magnitude " + blob.meanMagnitude.toFixed(3) }),
+                el("div", { class: "progress mt-1 change-blob-confidence", role: "progressbar", "aria-label": "Relative confidence",
+                    "aria-valuenow": percent, "aria-valuemin": "0", "aria-valuemax": "100" }, bar),
+                el("div", { class: "geo-cell-meta", text: "relative confidence " + percent + "%" }));
+        });
 
-        blobList.innerHTML = rows;
+        blobList.replaceChildren.apply(blobList, rows);
     }
 
     // Names a detection after the planted change it landed in, so hits and false positives
@@ -506,27 +527,5 @@
     function round(value, digits) {
         var factor = Math.pow(10, digits);
         return Math.round(value * factor) / factor;
-    }
-
-    function setBusy(busy) {
-        runBtn.disabled = busy;
-        sceneBtn.disabled = busy;
-        sizeSelect.disabled = busy;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
-    }
-
-    function escapeHtml(text) {
-        var div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
     }
 }());

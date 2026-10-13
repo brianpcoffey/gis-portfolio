@@ -123,6 +123,19 @@ body.dark-mode .form-control {
 }
 
 /* ======================================
+   Busy Buttons
+   ====================================== */
+/* PortfolioUi.busy swaps `disabled` for aria-disabled="true" + .is-busy so a button keeps focus while its
+   request runs; nothing else dims it, so it would look clickable. Same dimming Bootstrap gives :disabled.
+   Specificity is (0,2,0): a page rule for aria-disabled on its own terms (State Explorer's signed-out
+   "+ New", .state-explorer-page .btn[aria-disabled="true"]) is more specific and keeps its own cursor. */
+.btn.is-busy,
+.btn[aria-disabled="true"] {
+    opacity: var(--bs-btn-disabled-opacity, 0.65);
+    cursor: progress;
+}
+
+/* ======================================
    Toasts (shared slide in / out; showToast in toasts.js adds the classes)
    ====================================== */
 .toast:not(.fade) {
@@ -157,7 +170,7 @@ body.dark-mode .project-hero {
 }
 
 /* ======================================
-   Panel (additive; nothing uses it yet)
+   Panel (used by the 18 project Details pages)
    One surface/border/radius/shadow for result and control panels.
    ====================================== */
 .panel {

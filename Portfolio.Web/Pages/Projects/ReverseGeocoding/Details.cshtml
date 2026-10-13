@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Reverse Geocoding – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-map-pin me-2"></i>Reverse Geocoding – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-map-pin me-2" aria-hidden="true"></i>Reverse Geocoding – Technical Details</h1>
 		<a href="/Projects/ReverseGeocoding" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Reverse Geocoding demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Resolve WGS84 latitude/longitude input into structured address and place metadata using ArcGIS <code>reverseGeocode</code>.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
 			The front end uses a Razor Page with <code>wwwroot/js/ReverseGeocoding/app.js</code> and ArcGIS JavaScript SDK map interactions. State is intentionally lightweight: the selected coordinate, current lookup result, and recent lookup history are managed in browser JavaScript.
@@ -39,7 +37,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>ReverseGeocodingController</code> is versioned at <code>/api/v1/geocoding/reverse</code> and is <code>[AllowAnonymous]</code>.</li>
@@ -50,7 +48,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Business Logic</h2>
 		<ul>
 			<li><strong>Service boundary:</strong> <code>ReverseGeocodingService</code> owns coordinate validation, grid snapping, cache key creation, ArcGIS request construction, response handling, and DTO mapping.</li>
@@ -61,7 +59,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Data Access Layer</h2>
 		<p>
 			Reverse geocoding does not require relational persistence. Its state is cache-oriented because the expensive operation is an upstream geospatial lookup, not an internal database query.
@@ -74,7 +72,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Hosting:</strong> Deployed with the main Portfolio application on Render; configuration is provided through <code>appsettings</code> and environment variables.</li>
@@ -86,7 +84,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Grid-snapped cache:</strong> Improves latency and reduces ArcGIS calls, but may return a nearby address instead of a unique result for every raw coordinate.</li>
@@ -96,7 +94,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>How would you choose grid resolution for urban, rural, and parcel-level workflows?</li>

@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Viewshed Analyzer – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-eye me-2"></i>Viewshed Analyzer – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-eye me-2" aria-hidden="true"></i>Viewshed Analyzer – Technical Details</h1>
 		<a href="/Projects/Viewshed" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to Viewshed Analyzer demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Compute the viewshed — the set of terrain cells visible from an observer — over a dense elevation grid, and render it as a visibility map.</li>
@@ -26,7 +24,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Algorithm</h2>
 		<ul>
 			<li><strong>Ray-casting viewshed:</strong> For every target cell a ray is walked from the observer; the maximum vertical angle to intervening terrain is tracked, and the target is visible only if its own angle clears that running maximum.</li>
@@ -36,7 +34,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Controller:</strong> <code>ViewshedController</code> is versioned at <code>/api/v1/viewshed</code> and allows anonymous demo access.</li>
@@ -46,7 +44,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Native Boundary</h2>
 		<ul>
 			<li><strong>Service:</strong> <code>ViewshedService</code> validates the request and dispatches to <code>ViewshedNativeBridge</code> when the kernel is present.</li>
@@ -57,7 +55,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Ray-per-cell over sweep:</strong> The R2 ray method is easy to reason about and parallelize; a sweep-line/reference-plane method would be faster but harder to demonstrate.</li>
@@ -67,7 +65,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>How does observer height change coverage, and why is it non-linear over rough terrain?</li>

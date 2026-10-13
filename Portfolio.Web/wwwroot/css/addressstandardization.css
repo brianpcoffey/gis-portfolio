@@ -1,20 +1,24 @@
 ﻿/* ======================================================
    Address Standardization Page Styles
-   All colors use CSS custom properties from base.css.
-   All selectors scoped under .address-standardization-page.
+   Colours come from the tokens in base.css; dark mode follows the tokens, and the shared
+   dark-mode rules live in components.css. The hero badge below is the one rule that is not
+   scoped, because the badge sits in .project-hero, outside .address-standardization-page.
    ====================================================== */
 
-
-/* â”€â”€ NLP badge variant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.address-standardization-page .as-badge-nlp {
+/* -- NLP badge variant (in the hero, so unscoped) ------------------ */
+.as-badge-nlp {
     background-color: var(--primary-light);
-    color: #fff;
+    color: var(--on-dark);
     border-radius: 20px;
     padding: 0.4em 0.9em;
     font-weight: 600;
 }
 
-/* â”€â”€ Input Zone â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+body.dark-mode .as-badge-nlp {
+    border: 1px solid var(--on-dark-muted);
+}
+
+/* -- Input Zone ---------------------------------------------------- */
 .address-standardization-page .as-input-zone {
     max-width: 780px;
     margin-left: auto;
@@ -27,18 +31,21 @@
     resize: vertical;
     background: var(--background);
     color: var(--text);
-    border-color: var(--border);
-    transition: border-color var(--transition), box-shadow var(--transition);
+    border-color: var(--input-border);
+    transition: border-color var(--transition);
 }
 
 .address-standardization-page .as-textarea:focus {
     background: var(--surface);
     color: var(--text);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 0.2rem rgba(56, 161, 105, 0.2);
 }
 
-/* â”€â”€ Analyzing Indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Small-caps style section labels */
+.address-standardization-page .as-caps {
+    letter-spacing: 0.05em;
+}
+
+/* -- Analyzing Indicator ------------------------------------------- */
 .address-standardization-page .as-analyzing-indicator {
     opacity: 0;
     transition: opacity 0.25s ease;
@@ -48,7 +55,7 @@
     opacity: 1;
 }
 
-/* â”€â”€ Chevron toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Chevron toggle ------------------------------------------------ */
 .address-standardization-page .as-chevron {
     transition: transform 0.2s ease;
     font-size: 0.75em;
@@ -59,7 +66,7 @@
     transform: rotate(180deg);
 }
 
-/* â”€â”€ Example list items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Example list items -------------------------------------------- */
 .address-standardization-page .as-example-list {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -87,7 +94,7 @@
     font-weight: 600;
 }
 
-/* â”€â”€ Mailing label card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Mailing label card -------------------------------------------- */
 .address-standardization-page .as-mailing-label-card {
     background: var(--background);
     border: 1px solid var(--border);
@@ -107,17 +114,17 @@
 
 .address-standardization-page .as-copy-btn {
     color: var(--text-muted);
-    border-color: var(--border);
+    border-color: var(--input-border);
     background: transparent;
     transition: color var(--transition), border-color var(--transition);
 }
 
 .address-standardization-page .as-copy-btn:hover {
-    color: var(--accent);
-    border-color: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent-text);
 }
 
-/* â”€â”€ Component table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Component table ----------------------------------------------- */
 .address-standardization-page .as-component-table {
     font-size: 0.875rem;
     border-color: var(--border);
@@ -126,6 +133,7 @@
 .address-standardization-page .as-component-table thead th {
     border-bottom-color: var(--border);
     background: transparent;
+    color: var(--text);
     padding-bottom: 0.35rem;
 }
 
@@ -137,6 +145,7 @@
     padding-top: 0.35rem;
     padding-bottom: 0.35rem;
     color: var(--text);
+    border-color: var(--border);
     vertical-align: middle;
 }
 
@@ -149,7 +158,7 @@
     width: 40%;
 }
 
-/* â”€â”€ Confidence chart container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Confidence chart container ------------------------------------ */
 .address-standardization-page .as-confidence-chart-container {
     height: 28px;
     position: relative;
@@ -163,37 +172,38 @@
     overflow: hidden;
 }
 
-/* â”€â”€ Tier badge card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Tier badge card (status tokens; text is contrast-safe in both themes) */
 .address-standardization-page .as-tier-badge-card {
     border: 2px solid transparent;
     transition: background var(--transition), border-color var(--transition);
 }
 
 .address-standardization-page .as-tier-badge-card.tier-high {
-    background: rgba(56, 161, 105, 0.12);
-    border-color: rgba(56, 161, 105, 0.4);
-    color: #276749;
+    background: var(--status-success-soft);
+    border-color: rgba(var(--status-success-rgb), 0.4);
+    color: var(--status-success-text);
 }
 
 .address-standardization-page .as-tier-badge-card.tier-medium {
-    background: rgba(214, 158, 46, 0.12);
-    border-color: rgba(214, 158, 46, 0.4);
-    color: #975a16;
+    background: var(--status-warning-soft);
+    border-color: rgba(var(--status-warning-rgb), 0.4);
+    color: var(--status-warning-text);
 }
 
+/* Low is the caution orange, distinct from Medium's amber (same colours as before the token move) */
 .address-standardization-page .as-tier-badge-card.tier-low {
-    background: rgba(237, 137, 54, 0.12);
-    border-color: rgba(237, 137, 54, 0.4);
-    color: #9c4221;
+    background: var(--status-caution-soft);
+    border-color: var(--status-caution-border);
+    color: var(--status-caution-text);
 }
 
 .address-standardization-page .as-tier-badge-card.tier-unresolved {
-    background: rgba(229, 62, 62, 0.12);
-    border-color: rgba(229, 62, 62, 0.4);
-    color: #9b2c2c;
+    background: var(--status-danger-soft);
+    border-color: rgba(var(--status-danger-rgb), 0.4);
+    color: var(--status-danger-text);
 }
 
-/* â”€â”€ Sparkline container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Sparkline container ------------------------------------------- */
 .address-standardization-page .as-sparkline-container {
     height: 60px;
     width: 100%;
@@ -225,175 +235,25 @@
     opacity: 1;
 }
 
-/* â”€â”€ Accent button variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.address-standardization-page .btn-accent {
-    background-color: var(--accent-on-fill);
-    border-color: var(--accent-on-fill);
-    color: #fff;
-    transition: background-color var(--transition), border-color var(--transition);
-}
-
-.address-standardization-page .btn-accent:hover,
-.address-standardization-page .btn-accent:focus {
-    background-color: var(--accent-on-fill-h);
-    border-color: var(--accent-on-fill-h);
-    color: #fff;
-}
-
-.address-standardization-page .btn-accent:disabled {
-    opacity: 0.55;
-}
-
-.address-standardization-page .btn-outline-accent {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: transparent;
-    transition: background-color var(--transition), color var(--transition);
-}
-
-.address-standardization-page .btn-outline-accent:hover,
-.address-standardization-page .btn-outline-accent:focus {
-    background-color: var(--accent-on-fill);
-    color: #fff;
-}
-
-.address-standardization-page .btn-outline-accent:disabled {
-    opacity: 0.55;
-}
-
-/* â”€â”€ text-accent utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- text-accent: contrast-safe accent text (FE-A09 T6) ------------ */
 .address-standardization-page .text-accent {
-    color: var(--accent) !important;
+    color: var(--accent-text) !important;
 }
 
-/* â”€â”€ Dark mode overrides â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .address-standardization-page .as-textarea {
-    background: var(--background);
-    color: var(--text);
-    border-color: var(--border);
-}
-
-body.dark-mode .address-standardization-page .as-textarea:focus {
-    background: var(--surface);
-    color: var(--text);
-}
-
-body.dark-mode .address-standardization-page .as-mailing-label-card {
-    background: var(--background);
-    border-color: var(--border);
-}
-
-body.dark-mode .address-standardization-page .as-example-item {
-    background: var(--background);
-    color: var(--text);
-    border-color: var(--border);
+/* -- Dark mode: only what the shared tokens do not already cover ---- */
+body.dark-mode .address-standardization-page .as-textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
 }
 
 body.dark-mode .address-standardization-page .as-example-item:hover {
     background: var(--surface);
 }
 
-body.dark-mode .address-standardization-page .as-component-table tbody td,
-body.dark-mode .address-standardization-page .as-component-table thead th {
-    color: var(--text);
-    border-color: var(--border);
+@media (prefers-reduced-motion: reduce) {
+    .address-standardization-page .as-analyzing-indicator,
+    .address-standardization-page .as-chevron,
+    .address-standardization-page .as-sparkline-tooltip {
+        transition: none;
+    }
 }
-
-body.dark-mode .address-standardization-page .as-component-table tbody td:first-child {
-    color: var(--text-muted);
-}
-
-body.dark-mode .address-standardization-page .as-tier-badge-card.tier-high {
-    background: rgba(56, 161, 105, 0.2);
-    border-color: rgba(56, 161, 105, 0.5);
-    color: #9ae6b4;
-}
-
-body.dark-mode .address-standardization-page .as-tier-badge-card.tier-medium {
-    background: rgba(214, 158, 46, 0.2);
-    border-color: rgba(214, 158, 46, 0.5);
-    color: #fbd38d;
-}
-
-body.dark-mode .address-standardization-page .as-tier-badge-card.tier-low {
-    background: rgba(237, 137, 54, 0.2);
-    border-color: rgba(237, 137, 54, 0.5);
-    color: #fbd38d;
-}
-
-body.dark-mode .address-standardization-page .as-tier-badge-card.tier-unresolved {
-    background: rgba(229, 62, 62, 0.2);
-    border-color: rgba(229, 62, 62, 0.5);
-    color: #feb2b2;
-}
-
-body.dark-mode .address-standardization-page .as-sparkline-tooltip {
-    background: var(--surface);
-    border-color: var(--border);
-    color: var(--text);
-}
-
-/* â”€â”€ Dark mode: placeholders and input-group-text â”€â”€â”€â”€â”€ */
-body.dark-mode .address-standardization-page .as-textarea::placeholder,
-body.dark-mode .address-standardization-page input::placeholder {
-    color: var(--text-muted);
-    opacity: 1;
-}
-
-body.dark-mode .address-standardization-page .input-group-text {
-    background-color: var(--surface);
-    color: var(--text);
-    border-color: var(--border);
-}
-
-body.dark-mode .address-standardization-page .as-badge-nlp {
-    background-color: var(--primary-light);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-/* â”€â”€ Dark mode: form labels and text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .address-standardization-page .form-label {
-    color: var(--text) !important;
-}
-
-body.dark-mode .address-standardization-page .text-muted {
-    color: var(--text-muted) !important;
-}
-
-body.dark-mode .address-standardization-page strong {
-    color: var(--text) !important;
-}
-
-/* â”€â”€ Dark mode: border-top divider (sparkline section) â”€â”€ */
-body.dark-mode .address-standardization-page .border-top {
-    border-top-color: var(--border) !important;
-}
-
-/* â”€â”€ Dark mode: btn-close (dismiss alerts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .address-standardization-page .btn-close {
-    filter: invert(1) grayscale(1);
-}
-
-/* â”€â”€ Dark mode: copy button (btn-outline-secondary) â”€â”€â”€ */
-body.dark-mode .address-standardization-page .btn-outline-secondary {
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-    background: transparent !important;
-}
-
-body.dark-mode .address-standardization-page .btn-outline-secondary:hover,
-body.dark-mode .address-standardization-page .btn-outline-secondary:focus {
-    background-color: var(--border) !important;
-    color: var(--text) !important;
-}
-
-/* â”€â”€ Dark mode: matched address text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .address-standardization-page #asMatchedAddress {
-    color: var(--text) !important;
-}
-
-/* â”€â”€ Dark mode: confidence label â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-body.dark-mode .address-standardization-page #asConfidenceLabel {
-    color: var(--text) !important;
-}
-

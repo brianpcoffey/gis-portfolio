@@ -5,24 +5,26 @@
 	ViewData["Title"] = "Route Planner — Redlands";
 }
 
-<link rel="stylesheet" href="~/css/network.css" asp-append-version="true" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-	  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+@section Styles {
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+		  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+	<link rel="stylesheet" href="~/css/network.css" asp-append-version="true" />
+}
 
 <div class="network-page">
 	<div class="network-hero py-3 mb-0">
 		<div class="container-fluid px-4">
 			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
 				<div>
-					<h1 class="mb-1 h3"><i class="fa-solid fa-route me-2 text-accent"></i>Route Planner — Redlands, CA</h1>
+					<h1 class="mb-1 h3"><i class="fa-solid fa-route me-2 text-accent" aria-hidden="true"></i>Route Planner — Redlands, CA</h1>
 					<p class="text-muted theme-text-muted mb-0 small">
 						Click any intersection to route to <strong>Esri HQ</strong> using Dijkstra or A* over a real street network.
 					</p>
 				</div>
 				<div class="d-flex align-items-center gap-2">
-					<span class="badge badge-gis fs-6"><i class="fa-solid fa-diagram-project me-1"></i>Spatial Graph Engine</span>
-					<a class="btn btn-outline-accent btn-sm" href="/Projects/Network/Details" aria-label="Technical details" title="Technical Details">
-						<i class="fa-solid fa-circle-info"></i>
+					<span class="badge badge-gis fs-6"><i class="fa-solid fa-diagram-project me-1" aria-hidden="true"></i>Spatial Graph Engine</span>
+					<a class="btn btn-outline-accent btn-sm" href="/Projects/Network/Details" aria-label="View technical details for Route Planner" title="Technical Details">
+						<i class="fa-solid fa-circle-info" aria-hidden="true"></i>
 					</a>
 				</div>
 			</div>
@@ -37,8 +39,8 @@
 			<!-- Origin picker -->
 			<div class="panel-section">
 				<div class="panel-section-header">
-					<i class="fa-solid fa-location-dot text-accent me-1"></i>
-					<span class="fw-semibold small" id="networkStartLabel">Origin</span>
+					<i class="fa-solid fa-location-dot text-accent me-1" aria-hidden="true"></i>
+					<h2 class="h6 fw-semibold" id="networkStartLabel">Origin</h2>
 				</div>
 				<div class="panel-body">
 					<select id="networkStart" class="form-select form-select-sm" aria-labelledby="networkStartLabel">
@@ -51,12 +53,12 @@
 			<!-- Destination (fixed) -->
 			<div class="panel-section">
 				<div class="panel-section-header">
-					<i class="fa-solid fa-flag-checkered text-success me-1"></i>
-					<span class="fw-semibold small">Destination</span>
+					<i class="fa-solid fa-flag-checkered text-success me-1" aria-hidden="true"></i>
+					<h2 class="h6 fw-semibold">Destination</h2>
 				</div>
 				<div class="panel-body">
 					<div class="destination-chip">
-						<i class="fa-solid fa-building me-1"></i>Esri HQ — 380 New York St
+						<i class="fa-solid fa-building me-1" aria-hidden="true"></i>Esri HQ — 380 New York St
 					</div>
 				</div>
 			</div>
@@ -64,8 +66,8 @@
 			<!-- Algorithm -->
 			<div class="panel-section">
 				<div class="panel-section-header">
-					<i class="fa-solid fa-microchip text-accent me-1"></i>
-					<span class="fw-semibold small">Algorithm</span>
+					<i class="fa-solid fa-microchip text-accent me-1" aria-hidden="true"></i>
+					<h2 class="h6 fw-semibold">Algorithm</h2>
 				</div>
 				<div class="panel-body">
 					<div class="btn-group w-100" role="group" aria-label="Algorithm selection">
@@ -92,7 +94,7 @@
 			<div class="panel-section pb-2">
 				<div class="panel-body">
 					<button id="networkRouteBtn" class="btn btn-accent w-100" disabled>
-						<i class="fa-solid fa-location-arrow me-1"></i>Find Route
+						<i class="fa-solid fa-location-arrow me-1" aria-hidden="true"></i>Find Route
 					</button>
 				</div>
 			</div>
@@ -100,8 +102,8 @@
 			<!-- KPI cards -->
 			<div class="panel-section">
 				<div class="panel-section-header">
-					<i class="fa-solid fa-chart-bar text-accent me-1"></i>
-					<span class="fw-semibold small">Route Metrics</span>
+					<i class="fa-solid fa-chart-bar text-accent me-1" aria-hidden="true"></i>
+					<h2 class="h6 fw-semibold">Route Metrics</h2>
 				</div>
 				<div class="panel-body">
 					<div class="kpi-grid">
@@ -128,11 +130,13 @@
 			<!-- Route summary -->
 			<div class="panel-section flex-grow-1 d-flex flex-column">
 				<div class="panel-section-header">
-					<i class="fa-solid fa-list-ol text-accent me-1"></i>
-					<span class="fw-semibold small">Turn-by-Turn</span>
+					<i class="fa-solid fa-list-ol text-accent me-1" aria-hidden="true"></i>
+					<h2 class="h6 fw-semibold">Turn-by-Turn</h2>
 				</div>
 				<div class="panel-body flex-grow-1">
-					<ol id="routeSteps" class="route-steps-list d-none"></ol>
+					<div id="routeStepsRegion" class="route-steps-region d-none" tabindex="0" role="region" aria-label="Turn-by-turn directions">
+						<ol id="routeSteps" class="route-steps-list"></ol>
+					</div>
 					<p id="routeStepsEmpty" class="hint-text">Select an origin and compute a route.</p>
 				</div>
 			</div>
@@ -140,15 +144,15 @@
 			<!-- Service area -->
 			<div class="panel-section border-top pt-3">
 				<div class="panel-section-header">
-					<i class="fa-solid fa-circle-nodes text-accent me-1"></i>
-					<span class="fw-semibold small">Service Area</span>
+					<i class="fa-solid fa-circle-nodes text-accent me-1" aria-hidden="true"></i>
+					<h2 class="h6 fw-semibold">Service Area</h2>
 				</div>
 				<div class="panel-body">
 					<div class="d-flex align-items-center gap-2">
 						<label for="networkMaxCost" class="form-label small mb-0 text-nowrap">Max km</label>
-						<input id="networkMaxCost" class="form-control form-control-sm" type="number" min="0.1" step="0.1" value="1.5" style="max-width:90px;" />
+						<input id="networkMaxCost" class="form-control form-control-sm network-max-cost" type="number" min="0.1" step="0.1" value="1.5" />
 						<button id="networkServiceAreaBtn" class="btn btn-outline-accent btn-sm" disabled>
-							<i class="fa-solid fa-circle-dot me-1"></i>Compute
+							<i class="fa-solid fa-circle-dot me-1" aria-hidden="true"></i>Compute
 						</button>
 					</div>
 				</div>
@@ -156,9 +160,9 @@
 
 			<!-- Native status -->
 			<div class="panel-footer">
-				<span id="nativeStatus" class="badge bg-secondary" role="status">Native: —</span>
+				<span id="nativeStatus" class="badge bg-secondary">Native: —</span>
 				<span id="loadingSpinner" class="d-none ms-2 text-muted small">
-					<i class="fa-solid fa-spinner fa-spin me-1"></i>Computing…
+					<i class="fa-solid fa-spinner fa-spin me-1" aria-hidden="true"></i>Computing…
 				</span>
 			</div>
 		</aside>
@@ -167,7 +171,7 @@
 		<div class="network-map-container">
 			<div id="networkMap" class="network-map" role="application" aria-label="Route map"></div>
 			<div id="mapOverlayHint" class="map-click-hint">
-				<i class="fa-solid fa-hand-pointer me-1"></i>Click a node to set origin
+				<i class="fa-solid fa-hand-pointer me-1" aria-hidden="true"></i>Click a node to set origin
 			</div>
 		</div>
 	</div>
@@ -176,6 +180,7 @@
 @section Scripts {
 	<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 		integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+	<script defer src="~/js/leaflet-setup.js" asp-append-version="true"></script>
 	<script defer src="~/js/Network/app.js" asp-append-version="true"></script>
 }
 

@@ -4,6 +4,7 @@
 :root {
     --primary: #1a365d;
     --primary-light: #2c5282;
+    --primary-rgb: 26, 54, 93;
     --accent: #38a169;
     --accent-light: #48bb78;
     --background: #f7fafc;
@@ -67,6 +68,14 @@
     --status-warning-soft: rgba(var(--status-warning-rgb), var(--status-soft-alpha));
     --status-info-soft: rgba(var(--status-info-rgb), var(--status-soft-alpha));
 
+    /* Caution: the orange between warning (amber) and danger (red). Address Standardization's
+       Low-confidence tier uses it so Low and Medium stay distinct. Soft tint and border carry
+       their own alpha (0.12 / 0.4 light, 0.2 / 0.5 dark). */
+    --status-caution-text: #9c4221;
+    --status-caution-rgb: 237, 137, 54;
+    --status-caution-soft: rgba(var(--status-caution-rgb), 0.12);
+    --status-caution-border: rgba(var(--status-caution-rgb), 0.4);
+
     --chart-1: #2563eb;
     --chart-2: #c2410c;
     --chart-3: #15803d;
@@ -76,6 +85,21 @@
     --chart-7: #a16207;
     --chart-8: #4f46e5;
     --chart-series: #2c5282;
+
+    /* Marks drawn over basemap tiles (Leaflet / Esri). The tiles stay light in both
+       themes, so these are declared here only and never redefined in body.dark-mode:
+       --map-series-1..8 equal the light --chart-1..8, --map-muted is the neutral for
+       nodes, edges and unselected outlines. Read them with PortfolioCharts.mapPalette()
+       / token("map-muted"); charts and SVG panels on the page surface keep --chart-*. */
+    --map-series-1: #2563eb;
+    --map-series-2: #c2410c;
+    --map-series-3: #15803d;
+    --map-series-4: #9333ea;
+    --map-series-5: #0f766e;
+    --map-series-6: #be123c;
+    --map-series-7: #a16207;
+    --map-series-8: #4f46e5;
+    --map-muted: #5a6a7d;
 
     --on-dark: #ffffff;
     --on-dark-muted: rgba(255, 255, 255, 0.9);
@@ -105,6 +129,15 @@ body.dark-mode {
     --status-warning-text: #f6c26b;
     --status-info-text: #90cdf4;
     --status-soft-alpha: 0.18;
+    /* A custom property resolves where it is declared, so the :root --status-*-soft above keep the
+       light alpha; they are declared again here so dark mode gets the 0.18 tint. */
+    --status-success-soft: rgba(var(--status-success-rgb), var(--status-soft-alpha));
+    --status-danger-soft: rgba(var(--status-danger-rgb), var(--status-soft-alpha));
+    --status-warning-soft: rgba(var(--status-warning-rgb), var(--status-soft-alpha));
+    --status-info-soft: rgba(var(--status-info-rgb), var(--status-soft-alpha));
+    --status-caution-text: #fbd38d;
+    --status-caution-soft: rgba(var(--status-caution-rgb), 0.2);
+    --status-caution-border: rgba(var(--status-caution-rgb), 0.5);
 
     --chart-1: #60a5fa;
     --chart-2: #fb923c;

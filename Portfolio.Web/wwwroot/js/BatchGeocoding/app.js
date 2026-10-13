@@ -29,6 +29,8 @@
     var kpiUnmatched         = document.getElementById("kpiUnmatched");
     var summaryText          = document.getElementById("summaryText");
     var filterBtns           = document.querySelectorAll(".filter-btn");
+    var fmt                  = window.PortfolioFormat;
+    var announce             = window.PortfolioUi.announce;
 
     // ── CSV helpers ─────────────────────────────────────────────────────────
 
@@ -63,9 +65,9 @@
     }
 
     function formatBytes(bytes) {
-        if (bytes < 1024) return bytes + " B";
-        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-        return (bytes / 1048576).toFixed(2) + " MB";
+        if (bytes < 1024) return fmt.number(bytes) + " B";
+        if (bytes < 1048576) return fmt.unit(bytes / 1024, "KB");
+        return fmt.unit(bytes / 1048576, "MB");
     }
 
     // ── Upload zone wiring ──────────────────────────────────────────────────
@@ -128,7 +130,7 @@
 
             fileInfoName.textContent = file.name;
             fileInfoSize.textContent = formatBytes(file.size);
-            fileInfoRows.textContent = rowCount;
+            fileInfoRows.textContent = fmt.number(rowCount);
 
             fileInfoCard.classList.remove("d-none");
             btnGeocode.disabled = false;
@@ -186,7 +188,7 @@
 
     function runGeocode() {
         hideApiAlert();
-        setLoading(true);
+        var done = setLoading(true);
 
         var formData = new FormData();
         formData.append("file", _file);
@@ -196,32 +198,36 @@
             _results = data;
             renderResults(data);
             var total = data.length;
-            showToast("Geocoding complete \u2014 " + total + " address" + (total !== 1 ? "es" : "") + " processed.", "success");
+            var msg = "Geocoding complete \u2014 " + fmt.number(total) + " address" + (total !== 1 ? "es" : "") + " processed.";
+            showToast(msg, "success");
+            announce(msg + " " + summaryText.textContent + ".");
         })
         .catch(function (err) {
             showApiAlert(err.message || "Failed to geocode addresses.");
             window.showToast(err.message || "Geocoding failed.", "danger");
+            announce(err.message || "Geocoding failed.");
         })
         .finally(function () {
-            setLoading(false);
+            done();
         });
     }
 
-    function setLoading(loading) {
-        if (loading) {
-            spinnerOverlay.classList.remove("d-none");
-            btnGeocode.disabled = true;
-        } else {
+    // Shows the overlay and marks the button busy (aria-disabled + click guard, so focus stays on it).
+    // Returns the function that undoes both.
+    function setLoading() {
+        spinnerOverlay.classList.remove("d-none");
+        var undo = window.PortfolioUi.busy({ buttons: [btnGeocode], region: resultsContent.parentNode });
+        return function () {
             spinnerOverlay.classList.add("d-none");
-            btnGeocode.disabled = _file === null;
-        }
+            undo();
+        };
     }
 
     // ── Score bar HTML ──────────────────────────────────────────────────────
 
     function scoreBarHtml(score) {
         if (score === null || score === undefined) {
-            return '<span class="text-muted">\u2014</span>';
+            return '<span class="theme-text-muted">\u2014</span>';
         }
         var pct = Math.min(100, Math.max(0, Math.round(score)));
         var cls = pct >= 90 ? "score-high" : pct >= 75 ? "score-medium" : "score-low";
@@ -237,13 +243,13 @@
         var total     = data.length;
         var matched   = data.filter(function (r) { return r.matched; }).length;
         var unmatched = total - matched;
-        var pct       = total > 0 ? Math.round((matched / total) * 100) : 0;
 
         // KPIs
-        kpiTotal.textContent    = total;
-        kpiMatched.textContent  = matched;
-        kpiUnmatched.textContent = unmatched;
-        summaryText.textContent = matched + " of " + total + " addresses matched (" + pct + "% match rate)";
+        kpiTotal.textContent    = fmt.number(total);
+        kpiMatched.textContent  = fmt.number(matched);
+        kpiUnmatched.textContent = fmt.number(unmatched);
+        summaryText.textContent = fmt.number(matched) + " of " + fmt.number(total) + " addresses matched (" +
+            fmt.percent(total > 0 ? (matched / total) * 100 : 0) + " match rate)";
 
         // Show results panel
         resultsPlaceholder.classList.add("d-none");
@@ -259,12 +265,12 @@
         // Build rows
         var rows = data.map(function (r, idx) {
             var statusBadge = r.matched
-                ? '<span class="badge bg-success">Matched</span>'
-                : '<span class="badge bg-danger">Unmatched</span>';
+                ? '<span class="badge status-badge status-matched">Matched</span>'
+                : '<span class="badge status-badge status-unmatched">Unmatched</span>';
             var matchedAddr = r.matched && r.matchedAddress ? r.matchedAddress : "\u2014";
-            var lat = r.matched && r.latitude  !== null && r.latitude  !== undefined ? r.latitude.toFixed(6)  : "\u2014";
-            var lng = r.matched && r.longitude !== null && r.longitude !== undefined ? r.longitude.toFixed(6) : "\u2014";
-            var scoreCell = r.matched ? scoreBarHtml(r.score) : '<span class="text-muted">\u2014</span>';
+            var lat = r.matched && r.latitude  !== null && r.latitude  !== undefined ? r.latitude.toFixed(5)  : "\u2014";
+            var lng = r.matched && r.longitude !== null && r.longitude !== undefined ? r.longitude.toFixed(5) : "\u2014";
+            var scoreCell = r.matched ? scoreBarHtml(r.score) : '<span class="theme-text-muted">\u2014</span>';
 
             return [
                 idx + 1,
@@ -297,36 +303,34 @@
         });
 
         // Reset filter buttons
-        filterBtns.forEach(function (btn) {
-            btn.classList.remove("active", "btn-accent");
-            btn.classList.add("btn-outline-accent");
-        });
-        var allBtn = document.querySelector('.filter-btn[data-filter="all"]');
-        if (allBtn) {
-            allBtn.classList.add("active", "btn-accent");
-            allBtn.classList.remove("btn-outline-accent");
-        }
+        setActiveFilter(document.querySelector('.filter-btn[data-filter="all"]'));
     }
 
     // ── Filter toggle ───────────────────────────────────────────────────────
+
+    // Exactly one filter button is active; aria-pressed mirrors the visual state.
+    function setActiveFilter(active) {
+        filterBtns.forEach(function (b) {
+            var on = b === active;
+            b.classList.toggle("active", on);
+            b.classList.toggle("btn-accent", on);
+            b.classList.toggle("btn-outline-accent", !on);
+            b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+    }
 
     filterBtns.forEach(function (btn) {
         btn.addEventListener("click", function () {
             if (!_dataTable) return;
             var filter = btn.getAttribute("data-filter");
 
-            filterBtns.forEach(function (b) {
-                b.classList.remove("active", "btn-accent");
-                b.classList.add("btn-outline-accent");
-            });
-            btn.classList.add("active", "btn-accent");
-            btn.classList.remove("btn-outline-accent");
+            setActiveFilter(btn);
 
             // Column 2 (Status) search — DataTables regex search
             if (filter === "matched") {
-                _dataTable.column(2).search("Matched", true, false).draw();
+                _dataTable.column(2).search("^Matched$", true, false).draw();
             } else if (filter === "unmatched") {
-                _dataTable.column(2).search("Unmatched", true, false).draw();
+                _dataTable.column(2).search("^Unmatched$", true, false).draw();
             } else {
                 _dataTable.column(2).search("").draw();
             }

@@ -29,8 +29,10 @@ function loadShipmentsTable() {
         showToast('DataTables library is not loaded. Please check your script order.', 'danger');
         return;
     }
-    window.fetchWithAuth(window.PortfolioApi.routes.fiber.shipments)
-        .then(r => r.json())
+    const loadError = plantOpsAlert('shipmentsTableError');
+    loadError.hide();
+    window.apiFetch(window.PortfolioApi.routes.fiber.shipments)
+        .then(plantOpsJson)
         .then(data => {
             if (shipmentsTable) {
                 shipmentsTable.clear().rows.add(data).draw();
@@ -42,7 +44,7 @@ function loadShipmentsTable() {
                     { title: 'Tracking #', data: 'trackingNumber', render: $.fn.dataTable.render.text() },
                     { title: 'Carrier', data: 'carrierName', render: $.fn.dataTable.render.text() },
                     { title: 'Status', data: 'status', render: $.fn.dataTable.render.text() },
-                    { title: 'Destination', data: null, render: d => `${plantOpsEscape(d.destinationCity)}, ${plantOpsEscape(d.destinationState)}` },
+                    { title: 'Destination', data: null, render: d => `${PortfolioDom.escapeHtml(d.destinationCity)}, ${PortfolioDom.escapeHtml(d.destinationState)}` },
                     { title: 'ETA', data: 'estimatedArrival', render: d => d ? new Date(d).toLocaleString() : '', className: 'text-nowrap' },
                     {
                         title: '',
@@ -52,7 +54,7 @@ function loadShipmentsTable() {
                         render: function (data, type, row) {
                             // The icons carry no text, so each button needs a name that also
                             // identifies its row — otherwise every row reads as the same "Edit".
-                            let rowLabel = plantOpsEscape(row.trackingNumber || row.id);
+                            let rowLabel = PortfolioDom.escapeHtml(row.trackingNumber || row.id);
                             // The status is user-saved free text, so that button is built as a DOM
                             // node (data-status via setAttribute) and serialised, which escapes it.
                             const statusBtn = document.createElement('button');
@@ -75,7 +77,8 @@ function loadShipmentsTable() {
                 autoWidth: false,
                 language: { emptyTable: 'No shipments found.' }
             });
-        });
+        })
+        .catch(err => loadError.show(plantOpsFailure('Failed to load shipments', err)));
 }
 
 // Show modal for updating shipment status
@@ -100,7 +103,7 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">Update Status</button>
+        <button type="submit" class="btn btn-accent">Update Status</button>
       </div>
       </form>
     </div>
@@ -118,17 +121,14 @@ window.showShipmentStatusModal = function (shipmentId, currentStatus) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
-        .then(r => {
-            if (!r.ok) throw new Error('Failed to update status');
-            return r.json();
-        })
+        .then(plantOpsJson)
         .then(() => {
             modal.hide();
             showToast('Shipment status updated', 'success');
             loadShipmentsTable();
         })
-        .catch(() => {
-            showToast('Failed to update shipment status', 'danger');
+        .catch(err => {
+            showToast(plantOpsFailure('Failed to update shipment status', err), 'danger');
         });
     });
 };
@@ -141,11 +141,12 @@ function showShipmentModal(shipmentId) {
     let shipment = null;
     if (isEdit) {
         window.apiFetch(`${window.PortfolioApi.routes.fiber.shipments}/${shipmentId}`)
-            .then(r => r.json())
+            .then(plantOpsJson)
             .then(data => {
                 shipment = data;
                 renderShipmentModal(shipment, isEdit, modalId, $modals);
-            });
+            })
+            .catch(err => showToast(plantOpsFailure('Failed to load shipment', err), 'danger'));
     } else {
         renderShipmentModal({}, false, modalId, $modals);
     }
@@ -165,11 +166,11 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">Tracking Number</label>
-            <input type="text" class="form-control" name="trackingNumber" value="${plantOpsEscape(shipment.trackingNumber)}" required />
+            <input type="text" class="form-control" name="trackingNumber" value="${PortfolioDom.escapeHtml(shipment.trackingNumber)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Carrier Name</label>
-            <input type="text" class="form-control" name="carrierName" value="${plantOpsEscape(shipment.carrierName)}" required />
+            <input type="text" class="form-control" name="carrierName" value="${PortfolioDom.escapeHtml(shipment.carrierName)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Status</label>
@@ -179,11 +180,11 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
           </div>
           <div class="col-md-6">
             <label class="form-label">Destination City</label>
-            <input type="text" class="form-control" name="destinationCity" value="${plantOpsEscape(shipment.destinationCity)}" required />
+            <input type="text" class="form-control" name="destinationCity" value="${PortfolioDom.escapeHtml(shipment.destinationCity)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Destination State</label>
-            <input type="text" class="form-control" name="destinationState" value="${plantOpsEscape(shipment.destinationState)}" required />
+            <input type="text" class="form-control" name="destinationState" value="${PortfolioDom.escapeHtml(shipment.destinationState)}" required />
           </div>
           <div class="col-md-6">
             <label class="form-label">Estimated Arrival</label>
@@ -209,7 +210,7 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">${isEdit ? 'Update' : 'Create'}</button>
+        <button type="submit" class="btn btn-accent">${isEdit ? 'Update' : 'Create'}</button>
       </div>
       </form>
     </div>
@@ -234,90 +235,16 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
-        .then(r => {
-            if (!r.ok) throw new Error('Failed to save shipment');
-            return r.json();
-        })
+        .then(plantOpsJson)
         .then(() => {
             modal.hide();
             showToast(`Shipment ${isEdit ? 'updated' : 'created'}`, 'success');
             loadShipmentsTable();
         })
-        .catch(() => showToast('Failed to save shipment', 'danger'));
+        .catch(err => showToast(plantOpsFailure('Failed to save shipment', err), 'danger'));
     });
 }
 window.renderShipmentModal = renderShipmentModal;
-
-function renderMaterialModal(material, isEdit, modalId, $modals) {
-    let modalHtml = `
-<div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-modal="true" role="dialog">
-  <div class="modal-dialog">
-    <div class="modal-content theme-surface">
-      <div class="modal-header">
-        <h5 class="modal-title" id="${modalId}Label">${isEdit ? 'Edit' : 'New'} Material</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form id="materialForm">
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Name</label>
-          <input type="text" class="form-control" name="name" value="${plantOpsEscape(material.name)}" required />
-        </div>
-        <div class="mb-3">
-          <label class="form-label">SKU</label>
-          <input type="text" class="form-control" name="sku" value="${plantOpsEscape(material.sku)}" required />
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Qty On Hand</label>
-          <input type="number" class="form-control" name="qtyOnHand" value="${material.qtyOnHand || ''}" step="any" required />
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Unit Cost</label>
-          <input type="number" class="form-control" name="unitCost" value="${material.unitCost || ''}" step="any" required />
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Reorder Point</label>
-          <input type="number" class="form-control" name="reorderPoint" value="${material.reorderPoint || ''}" step="any" required />
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">${isEdit ? 'Update' : 'Create'}</button>
-      </div>
-      </form>
-    </div>
-  </div>
-</div>`;
-    $modals.html(modalHtml);
-    let modal = new bootstrap.Modal(document.getElementById(modalId));
-    modal.show();
-
-    $('#materialForm').on('submit', function (e) {
-        e.preventDefault();
-        let formData = Object.fromEntries(new FormData(this).entries());
-        formData.qtyOnHand = parseFloat(formData.qtyOnHand);
-        formData.unitCost = parseFloat(formData.unitCost);
-        formData.reorderPoint = parseFloat(formData.reorderPoint);
-        let method = isEdit ? 'PUT' : 'POST';
-        let url = isEdit ? `${window.PortfolioApi.routes.fiber.materials}/${material.id}` : window.PortfolioApi.routes.fiber.materials;
-        window.apiFetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        })
-        .then(r => {
-            if (!r.ok) throw new Error('Failed to save material');
-            return r.json();
-        })
-        .then(() => {
-            modal.hide();
-            showToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
-            loadInventoryTable();
-        })
-        .catch(() => showToast('Failed to save material', 'danger'));
-    });
-}
-window.renderMaterialModal = renderMaterialModal;
 
 // Delete shipment by ID
 async function deleteShipment(shipmentId) {
@@ -325,11 +252,11 @@ async function deleteShipment(shipmentId) {
     window.apiFetch(`${window.PortfolioApi.routes.fiber.shipments}/${shipmentId}`, {
         method: 'DELETE'
     })
-    .then(r => {
-        if (!r.ok) throw new Error('Failed to delete shipment');
+    .then(plantOpsOk)
+    .then(() => {
         showToast('Shipment deleted', 'success');
         loadShipmentsTable();
     })
-    .catch(() => showToast('Failed to delete shipment', 'danger'));
+    .catch(err => showToast(plantOpsFailure('Failed to delete shipment', err), 'danger'));
 }
 window.deleteShipment = deleteShipment;

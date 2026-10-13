@@ -2,15 +2,16 @@
 (function () {
     "use strict";
 
-    var SVGNS = "http://www.w3.org/2000/svg";
-    var PALETTE = ["#4363d8", "#3cb44b", "#f58231", "#911eb4", "#e6194B", "#42d4f4", "#469990", "#bfef45"];
+    var fmt = window.PortfolioFormat;
+    var charts = window.PortfolioCharts;
 
     var pointCountInput = document.getElementById("overlayPointCount");
     var zonesSelect = document.getElementById("overlayZones");
     var runBtn = document.getElementById("overlayRunBtn");
     var regenBtn = document.getElementById("overlayRegenBtn");
-    var alertBox = document.getElementById("overlayAlert");
+    var alertBox = PortfolioUi.inlineAlert(document.getElementById("overlayAlert"));
     var svg = document.getElementById("overlaySvg");
+    var resultsPanel = svg.closest(".card");
     var zoneTable = document.getElementById("overlayZoneTable");
     var summary = document.getElementById("overlaySummary");
     var kpiPoints = document.getElementById("overlayKpiPoints");
@@ -18,20 +19,22 @@
     var kpiUnassigned = document.getElementById("overlayKpiUnassigned");
     var kpiNative = document.getElementById("overlayKpiNative");
 
-    var seed = 987654321;
+    // Seeded LCG shared with the other pages (PortfolioCharts.rng); one call advances it one step.
+    var rng = charts.rng(987654321);
     var points = [];
     var zones = [];
+    var lastResult = null;
 
     runBtn.addEventListener("click", run);
-    regenBtn.addEventListener("click", function () { seed = (seed * 48271) % 2147483647; regenerate(); });
+    regenBtn.addEventListener("click", function () { rng(); regenerate(); });
     zonesSelect.addEventListener("change", regenerate);
+    // Palette colours are resolved per theme, so repaint when the theme flips.
+    charts.onThemeChange(function () {
+        drawScene(lastResult);
+        if (lastResult) { buildTable(lastResult); }
+    });
 
     regenerate();
-
-    function rng() {
-        seed = (seed * 48271) % 2147483647;
-        return seed / 2147483647;
-    }
 
     function clamp01(v) { return Math.max(0.01, Math.min(0.99, v)); }
 
@@ -40,6 +43,7 @@
         var count = Math.max(20, Math.min(4000, Number(pointCountInput.value) || 600));
         pointCountInput.value = count;
         points = [];
+        lastResult = null;
         for (var i = 0; i < count; i++) {
             // Cluster points loosely around a few centers so zone counts vary.
             var mode = rng();
@@ -48,8 +52,9 @@
             points.push({ x: clamp01(cx + (rng() - 0.5) * 0.6), y: clamp01(cy + (rng() - 0.5) * 0.6) });
         }
         drawScene(null);
-        zoneTable.innerHTML = "";
+        zoneTable.replaceChildren();
         summary.textContent = "";
+        charts.describe(svg, fmt.number(count) + " points over " + zones.length + " zones, not yet joined. Choose Run Spatial Join.");
     }
 
     function buildZones(mode) {
@@ -86,48 +91,65 @@
         ];
     }
 
+    // Runs the join; the regenerate button is guarded too so the points cannot change mid-request.
     function run() {
-        hideAlert();
-        setBusy(true);
-        apiPost(window.PortfolioApi.routes.spatialCompute.overlay.spatialJoin, { points: points, zones: zones })
-            .then(function (result) { render(result); })
-            .catch(function (err) { showAlert(err.message || "Spatial join failed."); })
-            .finally(function () { setBusy(false); });
+        var request = { points: points, zones: zones };
+        var releaseRegen = PortfolioUi.busy({ buttons: [regenBtn] });
+        PortfolioUi.runAction({
+            trigger: runBtn,
+            alert: alertBox,
+            region: resultsPanel,
+            request: function () { return apiPost(window.PortfolioApi.routes.spatialCompute.overlay.spatialJoin, request); },
+            render: render,
+            summary: function (result) {
+                return "Spatial join complete: " + fmt.number(result.assignedCount) + " points assigned, " +
+                    fmt.number(result.unassignedCount) + " outside all zones.";
+            }
+        }).then(releaseRegen);
     }
 
     function render(result) {
+        lastResult = result;
         drawScene(result);
-        kpiPoints.textContent = result.points.length;
-        kpiZones.textContent = result.zones.length;
-        kpiUnassigned.textContent = result.unassignedCount;
-        kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
+        kpiPoints.textContent = fmt.number(result.points.length);
+        kpiZones.textContent = fmt.number(result.zones.length);
+        kpiUnassigned.textContent = fmt.number(result.unassignedCount);
+        kpiNative.textContent = fmt.yesNo(result.nativeAccelerated);
         buildTable(result);
         summary.textContent = JSON.stringify({
             nativeAccelerated: result.nativeAccelerated,
             assignedCount: result.assignedCount,
             unassignedCount: result.unassignedCount
         }, null, 2);
+        charts.describe(svg, result.zones.map(function (z) {
+            return (z.name || ("Zone " + (z.zoneIndex + 1))) + ": " + z.pointCount;
+        }).join("; ") + ". Outside all zones: " + result.unassignedCount + ".");
     }
 
-    function colorFor(index) { return PALETTE[index % PALETTE.length]; }
+    // `palette` is resolved once per draw (charts.palette reads computed styles), not once per point.
+    function colorFor(palette, index) {
+        return palette[index % palette.length];
+    }
 
     function toSvg(p) { return (p.x * 100).toFixed(2) + "," + (100 - p.y * 100).toFixed(2); }
 
     function drawScene(result) {
-        svg.innerHTML = "";
+        charts.svg.clear(svg);
+        var palette = charts.palette(8);
         var maxCount = 1;
         if (result) {
             result.zones.forEach(function (z) { maxCount = Math.max(maxCount, z.pointCount); });
         }
 
         zones.forEach(function (zone, index) {
-            var polygon = document.createElementNS(SVGNS, "polygon");
-            polygon.setAttribute("points", zone.ring.map(toSvg).join(" "));
-            polygon.setAttribute("stroke", colorFor(index));
-            polygon.setAttribute("stroke-width", "0.5");
+            var polygon = charts.svg.el("polygon", {
+                points: zone.ring.map(toSvg).join(" "),
+                stroke: colorFor(palette, index),
+                "stroke-width": "0.5"
+            });
             if (result) {
                 var intensity = result.zones[index].pointCount / maxCount;
-                polygon.setAttribute("fill", colorFor(index));
+                polygon.setAttribute("fill", colorFor(palette, index));
                 polygon.setAttribute("fill-opacity", (0.12 + intensity * 0.55).toFixed(2));
             } else {
                 polygon.setAttribute("fill", "var(--surface)");
@@ -138,12 +160,13 @@
 
         var list = result ? result.points : points.map(function (p) { return { x: p.x, y: p.y, zoneIndex: -1 }; });
         list.forEach(function (p) {
-            var circle = document.createElementNS(SVGNS, "circle");
-            circle.setAttribute("cx", (p.x * 100).toFixed(2));
-            circle.setAttribute("cy", (100 - p.y * 100).toFixed(2));
-            circle.setAttribute("r", "0.9");
+            var circle = charts.svg.el("circle", {
+                cx: (p.x * 100).toFixed(2),
+                cy: (100 - p.y * 100).toFixed(2),
+                r: "0.9"
+            });
             if (p.zoneIndex >= 0) {
-                circle.setAttribute("fill", colorFor(p.zoneIndex));
+                circle.setAttribute("fill", colorFor(palette, p.zoneIndex));
             } else {
                 circle.setAttribute("fill", "var(--text-muted)");
                 circle.setAttribute("opacity", result ? "0.6" : "0.5");
@@ -152,35 +175,17 @@
         });
     }
 
+    // One row per zone: colour swatch (--swatch via setProperty, CSP-safe), name, point count.
     function buildTable(result) {
-        var rows = result.zones.map(function (z) {
-            return '<div class="d-flex align-items-center justify-content-between geo-cell-item mb-1">' +
-                '<span class="d-inline-flex align-items-center gap-2">' +
-                '<span style="width:0.7rem;height:0.7rem;border-radius:2px;background:' + colorFor(z.zoneIndex) + ';display:inline-block;"></span>' +
-                escapeHtml(z.name || ("Zone " + (z.zoneIndex + 1))) + '</span>' +
-                '<strong>' + z.pointCount + '</strong></div>';
-        }).join("");
-        zoneTable.innerHTML = rows;
-    }
-
-    function escapeHtml(text) {
-        var div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function setBusy(busy) {
-        runBtn.disabled = busy;
-        regenBtn.disabled = busy;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
+        zoneTable.replaceChildren();
+        var palette = charts.palette(8);
+        result.zones.forEach(function (z) {
+            var swatch = PortfolioDom.el("span", { "class": "legend__swatch", "aria-hidden": "true" });
+            swatch.style.setProperty("--swatch", colorFor(palette, z.zoneIndex));
+            zoneTable.appendChild(PortfolioDom.el("div", { "class": "d-flex align-items-center justify-content-between geo-cell-item mb-1" },
+                PortfolioDom.el("span", { "class": "d-inline-flex align-items-center gap-2" },
+                    swatch, z.name || ("Zone " + (z.zoneIndex + 1))),
+                PortfolioDom.el("strong", { text: fmt.number(z.pointCount) })));
+        });
     }
 }());

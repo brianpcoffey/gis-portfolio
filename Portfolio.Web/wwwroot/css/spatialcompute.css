@@ -17,8 +17,8 @@
     background:
         linear-gradient(var(--border) 1px, transparent 1px),
         linear-gradient(90deg, var(--border) 1px, transparent 1px),
-        radial-gradient(circle at 30% 30%, rgba(56, 161, 105, 0.15), transparent 35%),
-        radial-gradient(circle at 70% 65%, rgba(26, 54, 93, 0.15), transparent 38%),
+        radial-gradient(circle at 30% 30%, rgba(var(--accent-rgb), 0.15), transparent 35%),
+        radial-gradient(circle at 70% 65%, rgba(var(--primary-rgb), 0.15), transparent 38%),
         var(--background);
     background-size: 32px 32px, 32px 32px, auto, auto, auto;
     border: 1px solid var(--border);
@@ -39,18 +39,18 @@
     height: 0.8rem;
     border-radius: 999px;
     background: var(--bs-info);
-    box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.18);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-info-rgb), 0.18);
     transform: translate(-50%, -50%);
 }
 
 .spatial-compute-page .spatial-point.anomaly {
     background: var(--bs-danger);
-    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.22);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.22);
 }
 
 .spatial-compute-page .spatial-node.route {
     background: var(--bs-success);
-    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.22);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-success-rgb), 0.22);
 }
 
 .spatial-compute-page .spatial-line {
@@ -62,14 +62,14 @@
 }
 
 .spatial-compute-page .triangle-shape {
-    fill: rgba(13, 110, 253, 0.24);
-    stroke: rgba(13, 110, 253, 0.9);
+    fill: rgba(var(--bs-primary-rgb), 0.24);
+    stroke: rgba(var(--bs-primary-rgb), 0.9);
     stroke-width: 2;
 }
 
 .spatial-compute-page .clip-shape {
-    fill: rgba(32, 201, 151, 0.24);
-    stroke: rgba(32, 201, 151, 0.95);
+    fill: color-mix(in srgb, var(--bs-teal) 24%, transparent);
+    stroke: color-mix(in srgb, var(--bs-teal) 95%, transparent);
     stroke-width: 2;
 }
 
@@ -103,15 +103,16 @@
 }
 
 .spatial-compute-page .viewshed-swatch-visible {
-    background: rgba(56, 161, 105, 0.8);
+    background: rgba(var(--accent-rgb), 0.8);
 }
 
+/* Stands for a mid-elevation hidden cell; Viewshed/app.js shades the real cells by elevation. */
 .spatial-compute-page .viewshed-swatch-hidden {
     background: #3a3a45;
 }
 
 .spatial-compute-page .viewshed-swatch-observer {
-    background: #0d6efd;
+    background: var(--bs-primary);
 }
 
 .spatial-compute-page .kpi-card {

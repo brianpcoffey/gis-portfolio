@@ -40,6 +40,8 @@ async function initialize() {
     updateFeatures(features);
     updateSavedFeatures(saved);
     updateCollections(collections);
+    // Anonymous visitors stay on the page: collections are disabled with a sign-in hint.
+    UI.setCollectionsSignedIn(!CollectionService.requiresSignIn);
 
     // State subscription
     subscribe(state => {
@@ -102,13 +104,18 @@ async function initialize() {
 
     document.getElementById("btnNewCollection")?.addEventListener("click", async () => {
 
-        const name = prompt("New collection name:");
+        if (!UI.isCollectionsSignedIn()) {
+            UI.showToast("Collection", "Sign in to create collections.", "info");
+            return;
+        }
 
-        if (!name) return;
+        const input = await UI.openCollectionModal({ title: "New Collection", color: UI.DEFAULT_COLLECTION_COLOR });
+
+        if (!input) return;
 
         try {
 
-            const created = await CollectionService.createCollection(name.trim(), "#6c757d");
+            const created = await CollectionService.createCollection(input.name, input.color);
 
             // merge into state
             const state = getState();
@@ -428,8 +435,7 @@ async function initialize() {
                 );
 
 
-            if (btn)
-                btn.disabled = true;
+            const done = PortfolioUi.busy({ buttons: [btn] });
 
 
             try {
@@ -481,8 +487,7 @@ async function initialize() {
             }
             finally {
 
-                if (btn)
-                    btn.disabled = false;
+                done();
 
             }
 

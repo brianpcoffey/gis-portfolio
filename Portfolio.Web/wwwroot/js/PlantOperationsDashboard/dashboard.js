@@ -3,21 +3,53 @@
 
 
 
-// Escapes a value for safe interpolation into HTML markup strings — covers both
-// element text and double/single-quoted attribute contexts (DataTables cells
-// rendered via innerHTML, and modal `value="..."` inputs). Prevents stored XSS
-// from API/user-entered fields. Returns '' for null/undefined. Loaded before
-// orders.js/inventory.js/shipments.js, so it is available to all of them.
-function plantOpsEscape(value) {
-    if (value === null || value === undefined) return '';
-    return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+// HTML escaping for DataTables cells and modal `value="..."` inputs is PortfolioDom.escapeHtml
+// (dom-safe.js; covers text and quoted-attribute contexts, '' for null/undefined).
+
+// API helpers shared by orders.js / shipments.js / inventory.js (this file loads first).
+// plantOpsJson: parsed JSON on success; on a non-ok response it rejects with the server's own
+// message (getApiError reads error || detail || title, so Fiber's 404/409/400 ProblemDetails show up).
+function plantOpsJson(res) {
+    if (res.ok) return res.json();
+    return window.getApiError(res).then(msg => { throw new Error(msg); });
 }
-window.plantOpsEscape = plantOpsEscape;
+// plantOpsOk: same rejection for responses with no body (DELETE returns 204).
+function plantOpsOk(res) {
+    if (res.ok) return res;
+    return window.getApiError(res).then(msg => { throw new Error(msg); });
+}
+// plantOpsFailure: "Failed to save order: <server message>" for toasts and inline alerts.
+function plantOpsFailure(prefix, err) {
+    const detail = err && err.message;
+    return detail ? `${prefix}: ${detail}` : prefix;
+}
+// plantOpsAlert: PortfolioUi.inlineAlert for a table's error box (#ordersTableError etc.).
+function plantOpsAlert(id) {
+    return PortfolioUi.inlineAlert(document.getElementById(id));
+}
+window.plantOpsJson = plantOpsJson;
+window.plantOpsOk = plantOpsOk;
+window.plantOpsFailure = plantOpsFailure;
+window.plantOpsAlert = plantOpsAlert;
+
+// Focus after a modal closes. Every modal here is built fresh in #plantOpsModals, and a save re-renders
+// the table that held its opener, so Bootstrap's own restore (data-api triggers only) finds nothing and
+// focus is left on the hidden modal. Remember the opener on show; after hide, focus it if it is still in
+// the page, else the active tab's "New ..." button (#btnNewOrder / #btnNewShipment / #btnNewMaterial).
+let plantOpsModalOpener = null;
+document.addEventListener('show.bs.modal', e => {
+    if (e.target.closest('#plantOpsModals')) plantOpsModalOpener = document.activeElement;
+});
+document.addEventListener('hidden.bs.modal', e => {
+    if (!e.target.closest('#plantOpsModals')) return;
+    const opener = plantOpsModalOpener;
+    plantOpsModalOpener = null;
+    setTimeout(() => {
+        const usable = opener && opener !== document.body && opener.isConnected;
+        const target = usable ? opener : document.querySelector('#ordersShipmentsTabsContent .tab-pane.active .btn[id^="btnNew"]');
+        if (target) target.focus();
+    }, 0);
+});
 
 
 
@@ -68,6 +100,10 @@ if (typeof loadPlantOpsMap !== 'function') {
                 const timeout = setTimeout(() => reject(new Error('Map timed out')), 15000);
                 plantOpsMapView.when(() => {
                     clearTimeout(timeout);
+                    // ArcGIS nests its own role="application" surface in the container; name that one.
+                    const surface = plantOpsMapView.container.querySelector('.esri-view-surface');
+                    const label = mapContainer.dataset.mapLabel;
+                    if (surface && label) surface.setAttribute('aria-label', label);
                     resolve();
                 }, err => {
                     clearTimeout(timeout);
@@ -90,11 +126,12 @@ if (typeof loadPlantOpsMap !== 'function') {
                 const lat = Number(s.destinationLat);
                 if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) return;
 
+                // Status tokens (resolved for the current theme): in transit / delivered / other.
                 const color = s.status?.toLowerCase().includes('in transit')
-                    ? [76, 175, 80, 0.9]
+                    ? PortfolioCharts.status('success')
                     : s.status?.toLowerCase().includes('deliv')
-                        ? [33, 150, 243, 0.9]
-                        : [255, 193, 7, 0.9];
+                        ? PortfolioCharts.status('info')
+                        : PortfolioCharts.status('warning');
 
                 plantOpsGraphicsLayer.add(new Graphic({
                     geometry: new Point({ longitude: lon, latitude: lat }),
@@ -121,29 +158,29 @@ if (typeof loadPlantOpsMap !== 'function') {
     window.loadPlantOpsMap = function () {
         initPlantOpsMap()
             .then(() => window.apiFetch(window.PortfolioApi.routes.fiber.shipments))
-            .then(res => res.ok ? res.json() : Promise.reject('Failed to load shipments'))
+            .then(plantOpsJson)
             .then(shipments => plotPlantOpsShipments(shipments))
             .catch(err => {
                 console.error(err);
-                showToast('Map failed to load', 'danger');
+                showToast(plantOpsFailure('Map failed to load', err), 'danger');
             });
     };
 }
 
 
 $(document).ready(function () {
+    // Esri widget theme CSS matching the site theme; esri-theme.js swaps it on themeChanged.
+    PortfolioEsri.loadTheme();
     loadDashboardStats();
     loadPlantOpsMap();
-    // DataTable length menu styling fix
-    $('link[href$="dataTables.bootstrap5.min.css"]').after('<link rel="stylesheet" href="/css/plantoperationsdashboard.css">');
 });
 
 function loadDashboardStats() {
     $('#plantOpsRevenueChart .plant-ops-spinner').removeClass('d-none');
     $('#plantOpsOrdersChart .plant-ops-spinner').removeClass('d-none');
     $('#plantOpsInventoryChart .plant-ops-spinner').removeClass('d-none');
-    window.fetchWithAuth(window.PortfolioApi.routes.fiber.dashboard)
-        .then(r => r.json())
+    window.apiFetch(window.PortfolioApi.routes.fiber.dashboard)
+        .then(plantOpsJson)
         .then(data => {
             updateDashboardBadges(data);
             renderRevenueChart(data.revenueByMonth || []);
@@ -151,11 +188,14 @@ function loadDashboardStats() {
             renderInventoryChart(data.inventoryByCategory || []);
             showToast('Dashboard loaded', 'success');
         })
-        .catch(() => {
-            $('#plantOpsRevenueChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
-            $('#plantOpsOrdersChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
-            $('#plantOpsInventoryChart').html('<div class="text-danger small">Failed to load dashboard data.</div>');
-            showToast('Failed to load dashboard', 'danger');
+        .catch(err => {
+            const message = plantOpsFailure('Failed to load dashboard data', err);
+            ['#plantOpsRevenueChart', '#plantOpsOrdersChart', '#plantOpsInventoryChart'].forEach(sel => {
+                // role="img" prunes its children from the accessibility tree, which would silence the
+                // alert, so the container stops being an image while it shows the error.
+                $(sel).empty().removeAttr('role aria-label').append($('<div class="text-danger small" role="alert"></div>').text(message));
+            });
+            showToast(plantOpsFailure('Failed to load dashboard', err), 'danger');
         })
         .finally(() => {
             $('#plantOpsRevenueChart .plant-ops-spinner').addClass('d-none');

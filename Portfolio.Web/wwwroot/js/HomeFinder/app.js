@@ -7,6 +7,11 @@ let mapInstance = null;
 let graphicsLayer = null;
 let currentResults = [];
 
+// Esri widget theme (light/dark, follows the site toggle) before the map exists.
+window.PortfolioEsri.loadTheme();
+
+const announce = (msg) => window.PortfolioUi.announce(msg);
+
 // ============================================================
 // Slider / Weight Configuration
 // ============================================================
@@ -31,11 +36,11 @@ const weightBarIds = {
 };
 
 const sliders = {
-    sliderMaxPrice: { label: "lblMaxPrice", key: "maxPrice" },
-    sliderMonthlyBudget: { label: "lblMonthlyBudget", key: "maxMonthlyBudget" },
+    sliderMaxPrice: { label: "lblMaxPrice", key: "maxPrice", format: (v) => PortfolioFormat.money(v) },
+    sliderMonthlyBudget: { label: "lblMonthlyBudget", key: "maxMonthlyBudget", format: (v) => PortfolioFormat.money(v) },
     sliderMinBed: { label: "lblMinBed", key: "minBedrooms" },
     sliderMinBath: { label: "lblMinBath", key: "minBathrooms" },
-    sliderMinSqft: { label: "lblMinSqft", key: "minSqft" },
+    sliderMinSqft: { label: "lblMinSqft", key: "minSqft", format: (v) => PortfolioFormat.number(v) },
     sliderMaxCommute: { label: "lblMaxCommute", key: "maxCommuteMin" },
     sliderWAfford: { label: "lblWAfford", key: "weightAffordability", divisor: 100 },
     sliderWNeighbor: { label: "lblWNeighbor", key: "weightNeighborhood", divisor: 100 },
@@ -48,6 +53,20 @@ const sliders = {
     sliderWResale: { label: "lblWResale", key: "weightResale", divisor: 100 },
     sliderWEnv: { label: "lblWEnv", key: "weightEnvironment", divisor: 100 }
 };
+
+/** Shows the slider's value, formatted, in its visible label and as aria-valuetext. */
+function syncSliderLabel(sliderId) {
+    const cfg = sliders[sliderId];
+    const el = document.getElementById(sliderId);
+    if (!cfg || !el) return;
+    let text;
+    if (cfg.format) text = cfg.format(el.value);
+    else if (cfg.divisor) text = `${el.value}%`;
+    else text = String(el.value);
+    const lbl = document.getElementById(cfg.label);
+    if (lbl) lbl.textContent = cfg.divisor ? el.value : text;
+    el.setAttribute("aria-valuetext", text);
+}
 
 // ============================================================
 // Preference Collection
@@ -106,8 +125,7 @@ function enforceWeightBudget(activeSliderId = null) {
         // If the current value somehow exceeds the new max, clamp it
         if (currentVal > steppedMax) {
             el.value = steppedMax;
-            const lbl = document.getElementById(sliders[id]?.label);
-            if (lbl) lbl.textContent = steppedMax;
+            syncSliderLabel(id);
         }
     }
 }
@@ -178,25 +196,29 @@ function updateWeightStatus() {
 
     if (!statusEl) return;
 
-    if (total === 100) {
-        statusEl.className = "alert alert-success small py-1 px-2 mb-2";
-        statusEl.innerHTML =
-            `<i class="fa-solid fa-circle-check me-1"></i>` +
-            `Total: <strong>${total}%</strong> ` +
-            `<span class="text-muted">\u2014 ready to search</span>`;
-        if (btnSearch) btnSearch.disabled = false;
-    } else {
-        statusEl.className = "alert alert-warning small py-1 px-2 mb-2";
-        const hint = remaining > 0
-            ? `${remaining}% remaining`
-            : `${Math.abs(remaining)}% over`;
-        statusEl.innerHTML =
-            `<i class="fa-solid fa-scale-unbalanced me-1"></i>` +
-            `Total: <strong>${total}%</strong> ` +
-            `<span>(${hint} \u2014 must equal 100%)</span>`;
-        if (btnSearch) btnSearch.disabled = true;
+    const textEl = document.getElementById("weightStatusText");
+    const state = total === 100 ? "valid" : (remaining > 0 ? "under" : "over");
+    const hint = remaining > 0 ? `${remaining}% remaining` : `${Math.abs(remaining)}% over`;
+
+    statusEl.className = `alert ${state === "valid" ? "alert-success" : "alert-warning"} small py-1 px-2 mb-2`;
+    if (textEl) {
+        const icon = PortfolioDom.el("i", { class: `fa-solid ${state === "valid" ? "fa-circle-check" : "fa-scale-unbalanced"} me-1`, "aria-hidden": "true" });
+        const tail = PortfolioDom.el("span", { text: state === "valid" ? "\u2014 ready to search" : `(${hint} \u2014 must equal 100%)` });
+        textEl.replaceChildren(icon, "Total: ", PortfolioDom.el("strong", { id: "weightTotal", text: `${total}%` }), " ", tail);
     }
+    if (btnSearch) btnSearch.disabled = state !== "valid";
+
+    // The visible total (#weightStatusText) is read as plain text; only a validity flip is announced,
+    // never every slider step, and not the first evaluation on page load.
+    if (lastWeightState !== null && state !== lastWeightState) {
+        announce(state === "valid"
+            ? "Weights total 100%, ready to search."
+            : `Weights total ${total}%: ${hint}, must equal 100%.`);
+    }
+    lastWeightState = state;
 }
+
+let lastWeightState = null;
 
 // ============================================================
 // Slider Wiring
@@ -209,7 +231,7 @@ function wireSliders() {
         if (!el || !lbl) continue;
 
         el.addEventListener("input", () => {
-            lbl.textContent = el.value;
+            syncSliderLabel(sliderId);
 
             if (cfg.divisor) {
                 // Weight slider — enforce budget, then update visuals
@@ -219,11 +241,8 @@ function wireSliders() {
             }
         });
 
-        // Announce value changes for screen readers
-        el.setAttribute("aria-label",
-            cfg.divisor
-                ? `${cfg.key.replace("weight", "")} weight`
-                : cfg.key);
+        // The visible <label for> names the slider; aria-valuetext carries the formatted value.
+        syncSliderLabel(sliderId);
     }
 
     // Initial sync
@@ -256,14 +275,13 @@ function restorePreferences() {
 
         for (const [sliderId, cfg] of Object.entries(sliders)) {
             const el = document.getElementById(sliderId);
-            const lbl = document.getElementById(cfg.label);
             if (!el || prefs[cfg.key] === undefined) continue;
 
             const raw = cfg.divisor
                 ? Math.round(prefs[cfg.key] * cfg.divisor)
                 : prefs[cfg.key];
             el.value = raw;
-            if (lbl) lbl.textContent = raw;
+            syncSliderLabel(sliderId);
         }
 
         return true;
@@ -277,6 +295,7 @@ function restorePreferences() {
 // ============================================================
 
 async function initMap() {
+    await window.PortfolioEsri.load();
     await new Promise((resolve) => {
         require([
             "esri/Map",
@@ -294,7 +313,13 @@ async function initMap() {
                 zoom: 13
             });
 
-            mapView.when(resolve);
+            mapView.when(() => {
+                // ArcGIS nests its own role="application" surface inside the container; name that one.
+                const surface = mapView.container.querySelector(".esri-view-surface");
+                const label = document.getElementById("homeFinderMap")?.dataset.mapLabel;
+                if (surface && label) surface.setAttribute("aria-label", label);
+                resolve();
+            });
         });
     });
 }
@@ -351,7 +376,7 @@ function plotResults(results) {
                         <b>School rating:</b> ${p.schoolRating}/100<br>
                         <b>HOA:</b> ${p.hoaFee > 0 ? "$" + p.hoaFee.toLocaleString() + "/mo" : "None"}<br>
                         <b>Zip:</b> ${PortfolioDom.escapeHtml(p.zipCode)} \u2014 ${p.daysOnMarket} days on market<br>
-                        <span style="color:#888;">Listed by ${PortfolioDom.escapeHtml(p.brokeredBy || "")}</span>
+                        <span class="theme-text-muted">Listed by ${PortfolioDom.escapeHtml(p.brokeredBy || "")}</span>
                     `
                 })
             });
@@ -387,7 +412,7 @@ function renderResults(results) {
 
     if (!results.length) {
         panel.innerHTML =
-            '<p class="text-muted text-center small">No matching properties found. Try adjusting your filters.</p>';
+            '<p class="theme-text-muted text-center small">No matching properties found. Try adjusting your filters.</p>';
         announce("No matching properties found. Try adjusting your filters.");
         return;
     }
@@ -436,7 +461,7 @@ function renderResults(results) {
                 require(["esri/geometry/Point"], (Point) => {
                     const point = new Point({ longitude: match.longitude, latitude: match.latitude });
                     mapView.goTo({ target: point, zoom: 16 });
-                    mapView.openPopup({ title: `#${match.rank} \u2014 ${match.street}`, location: point });
+                    mapView.openPopup({ title: `#${match.rank} \u2014 ${PortfolioDom.escapeHtml(match.street)}`, location: point });
                 });
             }
         };
@@ -449,17 +474,6 @@ function renderResults(results) {
             }
         });
     });
-}
-
-/**
- * Sends a message to the global polite live region. Clearing first and setting on a
- * timeout makes a repeated identical message fire again instead of being swallowed.
- */
-function announce(msg) {
-    const live = document.getElementById("a11yAnnounce");
-    if (!live) return;
-    live.textContent = "";
-    setTimeout(() => { live.textContent = msg; }, 40);
 }
 
 // ============================================================
@@ -482,8 +496,8 @@ async function performSearch() {
 
     const prefs = getPreferences();
     const btn = document.getElementById("btnSearch");
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Searching\u2026';
+    const done = PortfolioUi.busy({ buttons: [btn], region: document.getElementById("resultsPanel") });
+    btn.replaceChildren(PortfolioDom.el("span", { class: "spinner-border spinner-border-sm me-1", "aria-hidden": "true" }), "Searching\u2026");
 
     try {
         // Use apiFetch instead of raw fetch so that a 401 response
@@ -524,8 +538,8 @@ async function performSearch() {
         showToast("Search failed. Please try again.", "danger");
         announce("Search failed. Please try again.");
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass me-1"></i>Find Homes';
+        done();
+        btn.replaceChildren(PortfolioDom.el("i", { class: "fa-solid fa-magnifying-glass me-1", "aria-hidden": "true" }), "Find Homes");
         updateWeightStatus();
     }
 }
@@ -564,7 +578,7 @@ async function loadSavedSearches() {
     const body = document.getElementById("savedSearchesBody");
     if (!body) return;
 
-    body.innerHTML = '<p class="text-muted text-center small">Loading\u2026</p>';
+    body.innerHTML = '<p class="theme-text-muted text-center small">Loading\u2026</p>';
 
     try {
         const res = await apiFetch(HOME_FINDER_ROUTES.searches);
@@ -572,7 +586,7 @@ async function loadSavedSearches() {
         const searches = await res.json();
 
         if (!searches.length) {
-            body.innerHTML = '<p class="text-muted text-center small">No saved searches found.</p>';
+            body.innerHTML = '<p class="theme-text-muted text-center small">No saved searches found.</p>';
             return;
         }
 
@@ -587,10 +601,10 @@ async function loadSavedSearches() {
                     </div>
                     <div class="d-flex gap-1">
                         <button class="btn btn-sm btn-outline-accent btn-load-search" data-search-id="${s.id}">
-                            <i class="fa-solid fa-upload me-1"></i>Load
+                            <i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Load
                         </button>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-search" data-search-id="${s.id}">
-                            <i class="fa-solid fa-trash"></i>
+                        <button class="btn btn-sm btn-outline-danger btn-delete-search" data-search-id="${s.id}" aria-label="Delete saved search ${PortfolioDom.escapeHtml(s.name)}">
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -638,12 +652,11 @@ async function applySavedSearch(searchId) {
 
         for (const [sliderId, cfg] of Object.entries(sliders)) {
             const el = document.getElementById(sliderId);
-            const lbl = document.getElementById(cfg.label);
             if (!el || prefs[cfg.key] === undefined) continue;
 
             const val = cfg.divisor ? Math.round(prefs[cfg.key] * cfg.divisor) : prefs[cfg.key];
             el.value = val;
-            if (lbl) lbl.textContent = val;
+            syncSliderLabel(sliderId);
         }
 
         enforceWeightBudget();

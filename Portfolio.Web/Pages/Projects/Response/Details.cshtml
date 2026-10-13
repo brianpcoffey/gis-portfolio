@@ -5,17 +5,15 @@
 	ViewData["Title"] = "Emergency Response Coverage Optimizer – Technical Details";
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-
 <div class="container py-5">
 	<div class="mb-4 d-flex align-items-center justify-content-between gap-3">
-		<h1 class="mb-0"><i class="fa-solid fa-truck-medical me-2"></i>Emergency Response Coverage Optimizer – Technical Details</h1>
+		<h1 class="mb-0"><i class="fa-solid fa-truck-medical me-2" aria-hidden="true"></i>Emergency Response Coverage Optimizer – Technical Details</h1>
 		<a href="/Projects/Response" class="btn btn-outline-accent btn-sm flex-shrink-0" aria-label="Back to the Emergency Response Coverage Optimizer demo">
-			<i class="fa-solid fa-arrow-left me-1"></i> Back to Demo
+			<i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i> Back to Demo
 		</a>
 	</div>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">High-Level System Overview</h2>
 		<ul>
 			<li><strong>Purpose:</strong> Answer the question a fire chief has to defend in front of a city council — where do the stations go, and does the result meet the standard we are measured against?</li>
@@ -27,7 +25,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Algorithm</h2>
 		<ul>
 			<li><strong>Travel-time matrix:</strong> One row-major cost matrix of every candidate against every demand point, built by running Dijkstra once per candidate over a single prebuilt adjacency structure. 24 × 450 = 10,800 cells in roughly 18 ms.</li>
@@ -41,7 +39,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">API Layer</h2>
 		<ul>
 			<li><strong>Endpoints:</strong> <code>GET /api/v1/response/scenario</code>, <code>POST /api/v1/response/isochrone</code>, <code>POST /api/v1/response/optimize</code>.</li>
@@ -54,7 +52,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Services and Native Boundary</h2>
 		<ul>
 			<li><strong>Kernel:</strong> <code>facility_location_kernel</code>, a C++20 shared library exposing <code>Facility_SolvePMedian</code> and <code>Facility_EvaluateCoverage</code> through a stable C ABI with status-code returns and caller-allocated output buffers.</li>
@@ -85,7 +83,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>Travel time only:</strong> The model reports travel time, not response time. Turnout time, dispatch processing, and traffic are all excluded, and the page says so. Real NFPA reporting adds roughly 60–80 seconds of turnout on top of everything shown here, so the absolute numbers are optimistic even though the comparisons between sitings are not.</li>
@@ -98,7 +96,7 @@
 		</ul>
 	</section>
 
-	<section class="theme-surface shadow-sm rounded p-4 mb-4">
+	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Interview Discussion Points</h2>
 		<ul>
 			<li>NFPA 1710 is written as a 90th percentile, not a mean. Why does that distinction change where you put stations, and what does optimizing the mean hide?</li>

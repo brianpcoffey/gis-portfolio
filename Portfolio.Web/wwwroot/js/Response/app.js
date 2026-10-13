@@ -1,21 +1,29 @@
 // Emergency Response Coverage Optimizer — Redlands, CA | Leaflet + /api/v1/response
 // Self-contained IIFE, no ES module syntax.
+// Depends on the deferred shared modules: PortfolioUi, PortfolioFormat, PortfolioCharts, PortfolioDom,
+// PortfolioMap (leaflet-setup.js, loaded after leaflet.js).
 (function () {
     "use strict";
 
-    var SVGNS = "http://www.w3.org/2000/svg";
+    var charts = window.PortfolioCharts;
+    var fmt = window.PortfolioFormat;
+    var ui = window.PortfolioUi;
+    var el = window.PortfolioDom.el;
 
     // Isochrone bands in minutes. The first two straddle the NFPA 1710 four-minute
     // first-due threshold; the Redlands network is small enough that a plain 4/8/12
     // split would paint almost everything a single colour.
     var ISOCHRONE_BANDS = [2, 4, 8, 12];
-    var BAND_COLORS = ["#2f9e44", "#74b816", "#f59f00", "#e8590c", "#c92a2a"];
 
     // Response-time ramp used for the demand circles, in minutes.
     var RAMP_MAX_MINUTES = 12;
 
+    // The OpenStreetMap raster tiles stay light in both themes, so the neutral marker colour
+    // drawn over them is fixed; every coloured series uses the (theme-independent) status fills.
+    var SLATE = "#64748b";
+
     // ── DOM refs ──────────────────────────────────────────────────────────
-    var alertBox = document.getElementById("responseAlert");
+    var alertBox = ui.inlineAlert(document.getElementById("responseAlert"));
     var stationsInput = document.getElementById("responseStations");
     var stationsValue = document.getElementById("responseStationsValue");
     var speedInput = document.getElementById("responseSpeed");
@@ -26,9 +34,11 @@
     var isochroneBtn = document.getElementById("responseIsochroneBtn");
     var resetBtn = document.getElementById("responseResetBtn");
     var stationList = document.getElementById("responseStationList");
+    var stationHeading = document.getElementById("responseStationHeading");
     var summary = document.getElementById("responseSummary");
     var comparison = document.getElementById("responseComparison");
     var histogramSvg = document.getElementById("responseHistogramSvg");
+    var resultsPanel = histogramSvg.closest(".card");
     var kpiP90 = document.getElementById("responseKpiP90");
     var kpiFirst = document.getElementById("responseKpiFirst");
     var kpiSecond = document.getElementById("responseKpiSecond");
@@ -43,20 +53,12 @@
     var assignmentLayer = null;
     var isochroneLayer = null;
     var stationMarkers = {};
+    var pending = false;
 
     // ── Leaflet map ───────────────────────────────────────────────────────
-    // preferCanvas keeps hundreds of demand circles and assignment lines smooth.
-    var map = L.map("responseMap", {
-        center: [34.0565, -117.1850],
-        zoom: 13,
-        zoomControl: true,
-        preferCanvas: true
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(map);
+    // PortfolioMap supplies the OSM tile layer, attribution and canvas rendering
+    // (preferCanvas keeps hundreds of demand circles and assignment lines smooth).
+    var map = window.PortfolioMap.create("responseMap", { label: "Redlands response coverage map" });
 
     map.createPane("isochrone");
     map.getPane("isochrone").style.zIndex = 380;
@@ -73,17 +75,30 @@
 
     // ── Data ────────────────────────────────────────────────────────────────
 
+    // Runs `opts` through PortfolioUi.runAction on `trigger`, holding the other action
+    // buttons busy as well. The pending flag also stops a map click starting a second request.
+    function runExclusive(trigger, opts) {
+        if (pending) { return Promise.resolve(); }
+        pending = true;
+        var others = [optimizeBtn, isochroneBtn, resetBtn].filter(function (b) { return b !== trigger; });
+        var release = ui.busy({ buttons: others });
+        opts.trigger = trigger;
+        opts.alert = alertBox;
+        opts.region = resultsPanel;
+        return ui.runAction(opts).then(function (r) { release(); pending = false; return r; });
+    }
+
     function loadScenario() {
-        hideAlert();
-        setBusy(true);
-        apiGet(window.PortfolioApi.routes.spatialCompute.response.scenario)
-            .then(function (result) {
+        runExclusive(resetBtn, {
+            request: function () { return apiGet(window.PortfolioApi.routes.spatialCompute.response.scenario); },
+            render: function (result) {
                 scenario = result;
                 indexScenario();
                 drawDemand(null);
                 drawStations([]);
                 fitToScenario();
                 drawHistogram(null);
+                buildExistingList();
                 summary.textContent = JSON.stringify({
                     scenario: scenario.name,
                     demandPoints: scenario.demandPoints.length,
@@ -91,9 +106,9 @@
                     existingStations: scenario.existingStationIds.length,
                     totalCallVolume: scenario.totalCallVolume
                 }, null, 2);
-            })
-            .catch(function (err) { showAlert(err.message || "Failed to load the response scenario."); })
-            .finally(function () { setBusy(false); });
+            }
+            // No summary: this runs once on page load, not because the visitor asked for it.
+        });
     }
 
     function indexScenario() {
@@ -105,30 +120,36 @@
 
     function optimize() {
         if (!scenario) {
-            showAlert("The scenario has not loaded yet.");
+            alertBox.show("The scenario has not loaded yet.");
             return;
         }
 
-        hideAlert();
-        setBusy(true);
-
-        apiPost(window.PortfolioApi.routes.spatialCompute.response.optimize, {
-            demandPoints: scenario.demandPoints,
-            candidates: scenario.candidates,
-            existingStationIds: scenario.existingStationIds,
-            stationCount: parseInt(stationsInput.value, 10),
-            objectiveMode: parseInt(selectedObjective(), 10),
-            avgSpeedKmh: parseFloat(speedInput.value),
-            firstThresholdMinutes: parseFloat(firstInput.value),
-            secondThresholdMinutes: parseFloat(secondInput.value),
-            maxIterations: 50
-        })
-            .then(function (result) {
+        runExclusive(optimizeBtn, {
+            request: function () {
+                return apiPost(window.PortfolioApi.routes.spatialCompute.response.optimize, {
+                    demandPoints: scenario.demandPoints,
+                    candidates: scenario.candidates,
+                    existingStationIds: scenario.existingStationIds,
+                    stationCount: parseInt(stationsInput.value, 10),
+                    objectiveMode: parseInt(selectedObjective(), 10),
+                    avgSpeedKmh: parseFloat(speedInput.value),
+                    firstThresholdMinutes: parseFloat(firstInput.value),
+                    secondThresholdMinutes: parseFloat(secondInput.value),
+                    maxIterations: 50
+                });
+            },
+            render: function (result) {
                 lastResult = result;
                 render(result);
-            })
-            .catch(function (err) { showAlert(err.message || "Optimization failed."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: function (result) {
+                var n = result.chosenCandidateIds.length;
+                return "Optimization complete: " + n + (n === 1 ? " station" : " stations") + " selected. " +
+                    "p90 response " + fmt.unit(result.optimized.p90Minutes, "min") + ", " +
+                    fmt.percent(result.optimized.percentWithinFirstThreshold) + " within " +
+                    parseFloat(firstInput.value) + " minutes. NFPA 1710 " + (result.meetsNfpa1710 ? "met." : "not met.");
+            }
+        });
     }
 
     function selectedObjective() {
@@ -141,18 +162,18 @@
         if (assignmentLayer) { map.removeLayer(assignmentLayer); assignmentLayer = null; }
         drawDemand(lastResult ? lastResult.baselineAssignments : null);
         drawStations([]);
+        buildExistingList();
         if (lastResult) {
             updateKpis(lastResult.baseline, lastResult.baseline.percentWithinFirstThreshold >= 90);
             drawHistogram(lastResult);
-            comparison.textContent = "Showing today's stations: p90 " +
-                lastResult.baseline.p90Minutes.toFixed(2) + " min, " +
-                lastResult.baseline.percentWithinFirstThreshold.toFixed(1) + "% within " +
+            var text = "Showing today's stations: p90 " + fmt.unit(lastResult.baseline.p90Minutes, "min") + ", " +
+                fmt.percent(lastResult.baseline.percentWithinFirstThreshold) + " within " +
                 parseFloat(firstInput.value) + " minutes.";
-            comparison.classList.remove("d-none");
+            setComparison(text);
+            ui.announce(text);
         } else {
             comparison.classList.add("d-none");
         }
-        stationList.innerHTML = "";
     }
 
     function showIsochroneForFirstStation() {
@@ -161,22 +182,25 @@
             ? lastResult.chosenCandidateIds[0]
             : scenario.existingStationIds[0];
         if (stationId == null) { return; }
-        requestIsochrone(candidateById[stationId]);
+        requestIsochrone(candidateById[stationId], isochroneBtn);
     }
 
-    function requestIsochrone(candidate) {
+    // `trigger` is the control that started the request (a station button or the toolbar button);
+    // map-marker clicks pass the toolbar button. Focus stays on it while the request runs.
+    function requestIsochrone(candidate, trigger) {
         if (!candidate) { return; }
 
-        hideAlert();
-        setBusy(true);
-        apiPost(window.PortfolioApi.routes.spatialCompute.response.isochrone, {
-            originNodeId: candidate.nodeId,
-            avgSpeedKmh: parseFloat(speedInput.value),
-            bandMinutes: ISOCHRONE_BANDS
-        })
-            .then(function (result) { drawIsochrone(result, candidate); })
-            .catch(function (err) { showAlert(err.message || "Isochrone calculation failed."); })
-            .finally(function () { setBusy(false); });
+        runExclusive(trigger || isochroneBtn, {
+            request: function () {
+                return apiPost(window.PortfolioApi.routes.spatialCompute.response.isochrone, {
+                    originNodeId: candidate.nodeId,
+                    avgSpeedKmh: parseFloat(speedInput.value),
+                    bandMinutes: ISOCHRONE_BANDS
+                });
+            },
+            render: function (result) { drawIsochrone(result, candidate); },
+            summary: function () { return comparison.textContent; }
+        });
     }
 
     // ── Rendering ───────────────────────────────────────────────────────────
@@ -191,14 +215,18 @@
 
         var deltaP90 = result.baseline.p90Minutes - result.optimized.p90Minutes;
         if (result.baseline.p90Minutes > 0) {
-            comparison.innerHTML = "<strong>Today:</strong> p90 " + result.baseline.p90Minutes.toFixed(2) +
-                " min, " + result.baseline.percentWithinFirstThreshold.toFixed(1) + "% within " +
-                parseFloat(firstInput.value) + " min. &nbsp;<strong>Optimized:</strong> p90 " +
-                result.optimized.p90Minutes.toFixed(2) + " min, " +
-                result.optimized.percentWithinFirstThreshold.toFixed(1) + "% within " +
-                parseFloat(firstInput.value) + " min &mdash; " +
-                (deltaP90 >= 0 ? "a " + deltaP90.toFixed(2) + " minute improvement." : "a " + Math.abs(deltaP90).toFixed(2) + " minute regression.");
-            comparison.classList.remove("d-none");
+            var within = parseFloat(firstInput.value);
+            setComparison([
+                el("strong", { text: "Today:" }),
+                " p90 " + fmt.unit(result.baseline.p90Minutes, "min") + ", " +
+                    fmt.percent(result.baseline.percentWithinFirstThreshold) + " within " + within + " min.  ",
+                el("strong", { text: "Optimized:" }),
+                " p90 " + fmt.unit(result.optimized.p90Minutes, "min") + ", " +
+                    fmt.percent(result.optimized.percentWithinFirstThreshold) + " within " + within + " min — " +
+                    (deltaP90 >= 0
+                        ? "a " + fmt.number(deltaP90, { decimals: 1 }) + " minute improvement."
+                        : "a " + fmt.number(Math.abs(deltaP90), { decimals: 1 }) + " minute regression.")
+            ]);
         } else {
             comparison.classList.add("d-none");
         }
@@ -215,12 +243,19 @@
         }, null, 2);
     }
 
+    // Replaces the comparison box content with a string or an array of strings / nodes.
+    function setComparison(content) {
+        var nodes = Array.isArray(content) ? content : [content];
+        comparison.replaceChildren.apply(comparison, nodes);
+        comparison.classList.remove("d-none");
+    }
+
     function updateKpis(stats, meetsNfpa) {
-        kpiP90.textContent = stats.p90Minutes.toFixed(2) + " min";
-        kpiFirst.textContent = stats.percentWithinFirstThreshold.toFixed(1) + "%";
-        kpiSecond.textContent = stats.percentWithinSecondThreshold.toFixed(1) + "%";
+        kpiP90.textContent = fmt.unit(stats.p90Minutes, "min");
+        kpiFirst.textContent = fmt.percent(stats.percentWithinFirstThreshold);
+        kpiSecond.textContent = fmt.percent(stats.percentWithinSecondThreshold);
         kpiNfpa.textContent = meetsNfpa ? "PASS" : "FAIL";
-        kpiNfpa.style.color = meetsNfpa ? "#2f9e44" : "#c92a2a";
+        kpiNfpa.style.color = meetsNfpa ? "var(--status-success-text)" : "var(--status-danger-text)";
     }
 
     function drawDemand(assignments) {
@@ -237,6 +272,7 @@
             if (d.callVolume > maxVolume) { maxVolume = d.callVolume; }
         });
 
+        var ramp = responseRamp();
         var group = L.layerGroup();
         scenario.demandPoints.forEach(function (point) {
             var minutes = minutesById[point.id];
@@ -244,11 +280,11 @@
             var marker = L.circleMarker([point.latitude, point.longitude], {
                 radius: radius,
                 stroke: false,
-                fillColor: minutes == null ? "#64748b" : responseColor(minutes),
+                fillColor: minutes == null ? SLATE : responseColor(minutes, ramp),
                 fillOpacity: minutes == null ? 0.45 : 0.8
             });
             marker.bindTooltip(point.callVolume + " calls/yr" +
-                (minutes == null ? "" : " · " + minutes.toFixed(2) + " min"),
+                (minutes == null ? "" : " · " + fmt.unit(minutes, "min")),
                 { direction: "top" });
             marker.addTo(group);
         });
@@ -269,7 +305,8 @@
             var station = candidateById[a.assignedCandidateId];
             if (!demand || !station) { return; }
             L.polyline([[demand.latitude, demand.longitude], [station.latitude, station.longitude]], {
-                color: "rgba(100,116,139,0.35)",
+                color: SLATE,
+                opacity: 0.35,
                 weight: 1,
                 interactive: false
             }).addTo(group);
@@ -286,24 +323,26 @@
 
         var chosen = {};
         (chosenIds || []).forEach(function (id) { chosen[id] = true; });
+        var chosenFill = charts.status("info");
+        var outline = charts.token("on-dark");
 
         scenario.candidates.forEach(function (candidate) {
             var isChosen = !!chosen[candidate.id];
             var marker = L.circleMarker([candidate.latitude, candidate.longitude], {
                 radius: isChosen ? 10 : candidate.isExisting ? 7 : 4,
-                fillColor: isChosen ? "#2563eb" : candidate.isExisting ? "#64748b" : "transparent",
+                fillColor: isChosen ? chosenFill : candidate.isExisting ? SLATE : "transparent",
                 fillOpacity: isChosen ? 0.95 : candidate.isExisting ? 0.85 : 0,
-                color: isChosen ? "#fff" : candidate.isExisting ? "#fff" : "#94a3b8",
+                color: isChosen || candidate.isExisting ? outline : SLATE,
                 weight: isChosen ? 2.5 : 1.2
             }).addTo(map);
 
-            marker.bindTooltip("<strong>" + escapeHtml(candidate.label) + "</strong>" +
-                (candidate.isExisting ? "<br>In service today" : "") +
-                (isChosen ? "<br>Selected by the optimizer" : ""),
-                { direction: "top" });
+            var tip = el("span", {}, el("strong", { text: candidate.label }));
+            if (candidate.isExisting) { tip.append(document.createElement("br"), "In service today"); }
+            if (isChosen) { tip.append(document.createElement("br"), "Selected by the optimizer"); }
+            marker.bindTooltip(tip, { direction: "top" });
 
             marker.on("click", function () {
-                if (showIsochrone.checked) { requestIsochrone(candidate); }
+                if (showIsochrone.checked) { requestIsochrone(candidate, isochroneBtn); }
             });
 
             stationMarkers[candidate.id] = marker;
@@ -313,13 +352,14 @@
     function drawIsochrone(result, candidate) {
         clearIsochrone();
 
+        var ramp = responseRamp();
         var group = L.layerGroup();
         result.nodes.forEach(function (node) {
             L.circleMarker([node.latitude, node.longitude], {
                 pane: "isochrone",
                 radius: 3,
                 stroke: false,
-                fillColor: BAND_COLORS[Math.min(node.bandIndex, BAND_COLORS.length - 1)],
+                fillColor: bandColor(Math.min(node.bandIndex, ISOCHRONE_BANDS.length), ramp),
                 fillOpacity: 0.55,
                 interactive: false
             }).addTo(group);
@@ -331,14 +371,50 @@
         var legend = ISOCHRONE_BANDS.map(function (band, i) {
             return "≤" + band + " min: " + result.bandCounts[i];
         }).join(" · ");
-        comparison.innerHTML = "<strong>Isochrone from " + escapeHtml(candidate.label) + ":</strong> " +
-            legend + " · beyond " + ISOCHRONE_BANDS[ISOCHRONE_BANDS.length - 1] + " min: " +
-            result.bandCounts[ISOCHRONE_BANDS.length] + " · unreachable: " + result.unreachableNodes;
-        comparison.classList.remove("d-none");
+        setComparison([
+            el("strong", { text: "Isochrone from " + candidate.label + ":" }),
+            " " + legend + " · beyond " + ISOCHRONE_BANDS[ISOCHRONE_BANDS.length - 1] + " min: " +
+                result.bandCounts[ISOCHRONE_BANDS.length] + " · unreachable: " + result.unreachableNodes
+        ]);
     }
 
     function clearIsochrone() {
         if (isochroneLayer) { map.removeLayer(isochroneLayer); isochroneLayer = null; }
+    }
+
+    // ── Station list ────────────────────────────────────────────────────────
+    // Each station is a real <button>: activating it paints that station's drive-time bands,
+    // the keyboard equivalent of clicking its marker on the map (which stays mouse-only).
+
+    function stationButton(candidate, primary, meta) {
+        var button = el("button", {
+            type: "button",
+            class: "geo-cell-item w-100 text-start d-block",
+            title: "Show drive-time bands from " + candidate.label
+        },
+            el("span", { class: "d-flex align-items-center justify-content-between" },
+                el("span", { text: candidate.label }),
+                el("strong", { text: primary })),
+            el("span", { class: "geo-cell-meta d-block", text: meta }));
+        button.addEventListener("click", function () { requestIsochrone(candidate, button); });
+        return button;
+    }
+
+    function setStationList(heading, buttons) {
+        stationHeading.textContent = heading;
+        stationList.replaceChildren.apply(stationList, buttons);
+    }
+
+    // Before an optimization (and after Reset) the list is today's stations in service.
+    function buildExistingList() {
+        if (!scenario) { return; }
+        var buttons = [];
+        scenario.existingStationIds.forEach(function (id) {
+            var candidate = candidateById[id];
+            if (!candidate) { return; }
+            buttons.push(stationButton(candidate, "In service", "in service today"));
+        });
+        setStationList("Stations in service today", buttons);
     }
 
     function buildStationList(result) {
@@ -353,38 +429,34 @@
             }
         });
 
-        var listed = 0;
-        stationList.innerHTML = result.chosenCandidateIds.map(function (id) {
+        var buttons = [];
+        result.chosenCandidateIds.forEach(function (id) {
             var candidate = candidateById[id];
-            if (!candidate) { return ""; }
-            listed++;
-            return '<div class="geo-cell-item">' +
-                '<div class="d-flex align-items-center justify-content-between">' +
-                '<span>' + escapeHtml(candidate.label) + '</span>' +
-                '<strong>' + Math.round(loadById[id] || 0) + ' calls</strong></div>' +
-                '<div class="geo-cell-meta">' +
+            if (!candidate) { return; }
+            buttons.push(stationButton(candidate, Math.round(loadById[id] || 0) + " calls",
                 (candidate.isExisting ? "in service today · " : "new build · ") +
-                'worst response ' + (worstById[id] || 0).toFixed(2) + ' min</div></div>';
-        }).join("");
-
-        announce(listed + (listed === 1 ? " station selected" : " stations selected"));
+                "worst response " + fmt.unit(worstById[id] || 0, "min")));
+        });
+        setStationList("Chosen stations", buttons);
     }
 
     // ── Response-time histogram ─────────────────────────────────────────────
 
     function drawHistogram(result) {
-        histogramSvg.innerHTML = "";
+        charts.svg.clear(histogramSvg);
 
         var left = 11, right = 97, top = 5, bottom = 48;
+        var svg = charts.svg;
 
-        appendLine(histogramSvg, left, top, left, bottom, "var(--text-muted)", 0.3);
-        appendLine(histogramSvg, left, bottom, right, bottom, "var(--text-muted)", 0.3);
-        appendText(histogramSvg, (left + right) / 2, 58, "Response Time (minutes)", 2.6, "middle", "var(--text-muted)");
-        appendText(histogramSvg, 3.0, (top + bottom) / 2, "Calls / year", 2.6, "middle", "var(--text-muted)", -90);
+        svg.line(histogramSvg, left, top, left, bottom, { width: 0.3 });
+        svg.line(histogramSvg, left, bottom, right, bottom, { width: 0.3 });
+        svg.text(histogramSvg, (left + right) / 2, 58, "Response Time (minutes)", { size: 2.6, anchor: "middle" });
+        svg.text(histogramSvg, 3.0, (top + bottom) / 2, "Calls / year", { size: 2.6, anchor: "middle", rotate: -90 });
 
         if (!result || !result.assignments || result.assignments.length === 0) {
-            appendText(histogramSvg, (left + right) / 2, (top + bottom) / 2,
-                "Run an optimization to build the distribution", 3, "middle", "var(--text-muted)");
+            svg.text(histogramSvg, (left + right) / 2, (top + bottom) / 2,
+                "Run an optimization to build the distribution", { size: 3, anchor: "middle" });
+            charts.describe(histogramSvg, "Response-time histogram. No optimization has been run yet.");
             return;
         }
 
@@ -399,34 +471,29 @@
             if (baselineBins[i] > maxWeight) { maxWeight = baselineBins[i]; }
         }
 
-        function xFor(minute) {
-            return left + (minute / binCount) * (right - left);
-        }
-
-        function yFor(weight) {
-            return bottom - (weight / maxWeight) * (bottom - top);
-        }
+        var xFor = charts.scale.linear([0, binCount], [left, right]);
+        var yFor = charts.scale.linear([0, maxWeight], [bottom, top]);
 
         // Y gridlines at quarter steps.
         var q;
         for (q = 1; q <= 4; q++) {
             var gy = yFor(maxWeight * q / 4);
-            appendLine(histogramSvg, left, gy, right, gy, "var(--border)", 0.18);
-            appendText(histogramSvg, left - 1.2, gy + 0.9, formatCount(maxWeight * q / 4), 2.2, "end", "var(--text-muted)");
+            svg.line(histogramSvg, left, gy, right, gy, { stroke: "var(--border)", width: 0.18 });
+            svg.text(histogramSvg, left - 1.2, gy + 0.9, formatCount(maxWeight * q / 4), { size: 2.2, anchor: "end" });
         }
 
         // Optimized bars.
         var barWidth = (right - left) / binCount;
         for (i = 0; i < binCount; i++) {
             if (optimizedBins[i] <= 0) { continue; }
-            var rect = document.createElementNS(SVGNS, "rect");
-            rect.setAttribute("x", (xFor(i) + barWidth * 0.12).toFixed(2));
-            rect.setAttribute("y", yFor(optimizedBins[i]).toFixed(2));
-            rect.setAttribute("width", (barWidth * 0.76).toFixed(2));
-            rect.setAttribute("height", Math.max(bottom - yFor(optimizedBins[i]), 0).toFixed(2));
-            rect.setAttribute("fill", "var(--primary-light)");
-            rect.setAttribute("fill-opacity", "0.85");
-            histogramSvg.appendChild(rect);
+            histogramSvg.appendChild(svg.el("rect", {
+                x: (xFor(i) + barWidth * 0.12).toFixed(2),
+                y: yFor(optimizedBins[i]).toFixed(2),
+                width: (barWidth * 0.76).toFixed(2),
+                height: Math.max(bottom - yFor(optimizedBins[i]), 0).toFixed(2),
+                fill: "var(--chart-series)",
+                "fill-opacity": "0.85"
+            }));
         }
 
         // Baseline as a translucent step outline so the improvement reads in one glance.
@@ -436,50 +503,54 @@
                 points.push(xFor(i).toFixed(2) + "," + yFor(baselineBins[i]).toFixed(2));
                 points.push(xFor(i + 1).toFixed(2) + "," + yFor(baselineBins[i]).toFixed(2));
             }
-            var outline = document.createElementNS(SVGNS, "polyline");
-            outline.setAttribute("points", points.join(" "));
-            outline.setAttribute("fill", "none");
-            outline.setAttribute("stroke", "var(--text-muted)");
-            outline.setAttribute("stroke-width", "0.4");
-            outline.setAttribute("stroke-dasharray", "1.4 1");
-            histogramSvg.appendChild(outline);
-            appendText(histogramSvg, right, top + 2, "outline = today", 2.2, "end", "var(--text-muted)");
+            histogramSvg.appendChild(svg.el("polyline", {
+                points: points.join(" "),
+                fill: "none",
+                stroke: "var(--text-muted)",
+                "stroke-width": "0.4",
+                "stroke-dasharray": "1.4 1"
+            }));
+            svg.text(histogramSvg, right, top + 2, "outline = today", { size: 2.2, anchor: "end" });
         }
 
         // X ticks every two minutes.
         for (i = 0; i <= binCount; i += 2) {
             var tx = xFor(i);
-            appendLine(histogramSvg, tx, bottom, tx, bottom + 1.1, "var(--text-muted)", 0.25);
-            appendText(histogramSvg, tx, bottom + 4.2, String(i), 2.3, "middle", "var(--text-muted)");
+            svg.line(histogramSvg, tx, bottom, tx, bottom + 1.1, { width: 0.25 });
+            svg.text(histogramSvg, tx, bottom + 4.2, String(i), { size: 2.3, anchor: "middle" });
         }
 
         // NFPA threshold markers.
-        markMinute(parseFloat(firstInput.value), "first-due", "#2f9e44", left, right, top, bottom, xFor);
-        markMinute(parseFloat(secondInput.value), "ALS", "#f59f00", left, right, top, bottom, xFor);
+        markMinute(parseFloat(firstInput.value), "first-due", "var(--status-success-fill)", "var(--status-success-text)",
+            top, bottom, binCount, xFor);
+        markMinute(parseFloat(secondInput.value), "ALS", "var(--status-warning-fill)", "var(--status-warning-text)",
+            top, bottom, binCount, xFor);
 
         // Shade everything past the optimized p90 — the tail the standard is written about.
         var p90 = result.optimized.p90Minutes;
         if (p90 > 0 && p90 < binCount) {
-            var shade = document.createElementNS(SVGNS, "rect");
-            shade.setAttribute("x", xFor(p90).toFixed(2));
-            shade.setAttribute("y", String(top));
-            shade.setAttribute("width", Math.max(right - xFor(p90), 0).toFixed(2));
-            shade.setAttribute("height", (bottom - top).toFixed(2));
-            shade.setAttribute("fill", "#c92a2a");
-            shade.setAttribute("fill-opacity", "0.10");
-            histogramSvg.appendChild(shade);
-            appendText(histogramSvg, Math.min(xFor(p90) + 1, right - 8), top + 5.5,
-                "p90 " + p90.toFixed(2), 2.2, "start", "#c92a2a");
+            histogramSvg.appendChild(svg.el("rect", {
+                x: xFor(p90).toFixed(2),
+                y: String(top),
+                width: Math.max(right - xFor(p90), 0).toFixed(2),
+                height: (bottom - top).toFixed(2),
+                fill: "var(--status-danger-fill)",
+                "fill-opacity": "0.10"
+            }));
+            svg.text(histogramSvg, Math.min(xFor(p90) + 1, right - 8), top + 5.5,
+                "p90 " + fmt.number(p90, { decimals: 1 }), { size: 2.2, anchor: "start", fill: "var(--status-danger-text)" });
         }
+
+        charts.describe(histogramSvg, "Response-time histogram, call volume per one-minute bin. Optimized p90 is " +
+            fmt.unit(p90, "min") + "; the dashed outline shows today's stations.");
     }
 
-    function markMinute(minute, label, color, left, right, top, bottom, xFor) {
-        if (!isFinite(minute) || minute <= 0) { return; }
+    function markMinute(minute, label, lineColor, textColor, top, bottom, binCount, xFor) {
+        if (!isFinite(minute) || minute <= 0 || minute > binCount) { return; }
         var x = xFor(minute);
-        if (x < left || x > right) { return; }
-        var line = appendLine(histogramSvg, x, top, x, bottom, color, 0.35);
+        var line = charts.svg.line(histogramSvg, x, top, x, bottom, { stroke: lineColor, width: 0.35 });
         line.setAttribute("stroke-dasharray", "1.2 1");
-        appendText(histogramSvg, x, top - 0.6, label, 2.2, "middle", color);
+        charts.svg.text(histogramSvg, x, top - 0.6, label, { size: 2.2, anchor: "middle", fill: textColor });
     }
 
     // Sums call volume into one-minute bins, so the y axis is calls rather than incidents.
@@ -503,21 +574,22 @@
 
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    function responseColor(minutes) {
-        var t = Math.max(0, Math.min(1, minutes / RAMP_MAX_MINUTES));
-        if (t < 0.5) {
-            return mixHex("#2f9e44", "#f59f00", t / 0.5);
-        }
-        return mixHex("#f59f00", "#c92a2a", (t - 0.5) / 0.5);
+    // Green -> amber -> red from the status fills (resolved once per draw).
+    function responseRamp() {
+        return { low: charts.status("success"), mid: charts.status("warning"), high: charts.status("danger") };
     }
 
-    function mixHex(from, to, t) {
-        var f = parseInt(from.slice(1), 16);
-        var g = parseInt(to.slice(1), 16);
-        var r = Math.round(((f >> 16) & 255) + (((g >> 16) & 255) - ((f >> 16) & 255)) * t);
-        var gr = Math.round(((f >> 8) & 255) + (((g >> 8) & 255) - ((f >> 8) & 255)) * t);
-        var b = Math.round((f & 255) + ((g & 255) - (f & 255)) * t);
-        return "rgb(" + r + "," + gr + "," + b + ")";
+    function responseColor(minutes, ramp) {
+        var t = Math.max(0, Math.min(1, minutes / RAMP_MAX_MINUTES));
+        if (t < 0.5) {
+            return charts.mix(ramp.low, ramp.mid, t / 0.5);
+        }
+        return charts.mix(ramp.mid, ramp.high, (t - 0.5) / 0.5);
+    }
+
+    // Isochrone band i of n bands (plus one "beyond" band) along the same ramp.
+    function bandColor(index, ramp) {
+        return responseColor(index / ISOCHRONE_BANDS.length * RAMP_MAX_MINUTES, ramp);
     }
 
     function fitToScenario() {
@@ -530,65 +602,7 @@
     }
 
     function formatCount(value) {
-        if (value >= 1000) { return (value / 1000).toFixed(1) + "k"; }
+        if (value >= 1000) { return fmt.number(value / 1000, { decimals: 1 }) + "k"; }
         return String(Math.round(value));
-    }
-
-    function appendLine(svg, x1, y1, x2, y2, stroke, width) {
-        var line = document.createElementNS(SVGNS, "line");
-        line.setAttribute("x1", x1.toFixed(2));
-        line.setAttribute("y1", y1.toFixed(2));
-        line.setAttribute("x2", x2.toFixed(2));
-        line.setAttribute("y2", y2.toFixed(2));
-        line.setAttribute("stroke", stroke);
-        line.setAttribute("stroke-width", String(width));
-        svg.appendChild(line);
-        return line;
-    }
-
-    function appendText(svg, x, y, content, size, anchor, fill, rotate) {
-        var text = document.createElementNS(SVGNS, "text");
-        text.setAttribute("x", x.toFixed(2));
-        text.setAttribute("y", y.toFixed(2));
-        text.setAttribute("font-size", String(size));
-        text.setAttribute("text-anchor", anchor);
-        text.setAttribute("fill", fill);
-        if (rotate) {
-            text.setAttribute("transform", "rotate(" + rotate + " " + x.toFixed(2) + " " + y.toFixed(2) + ")");
-        }
-        text.textContent = content;
-        svg.appendChild(text);
-        return text;
-    }
-
-    function setBusy(busy) {
-        optimizeBtn.disabled = busy;
-        isochroneBtn.disabled = busy;
-        resetBtn.disabled = busy;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
-    }
-
-    function escapeHtml(text) {
-        var div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Sends a message to the global polite live region. Clearing first and setting on a
-    // timeout makes a repeated identical message fire again instead of being swallowed.
-    function announce(message) {
-        var live = document.getElementById("a11yAnnounce");
-        if (!live) { return; }
-        live.textContent = "";
-        window.setTimeout(function () { live.textContent = message; }, 40);
     }
 }());

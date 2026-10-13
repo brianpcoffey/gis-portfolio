@@ -284,20 +284,15 @@ body.dark-mode .btn-google {
     line-height: 1.5;
 }
 
-.login-back-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 0.875rem;
-}
-
+/* Sits on the card surface, so muted text rather than the white used on the gradient. */
 .login-back-link {
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--text-muted);
     transition: color var(--transition);
 }
 
 .login-back-link:hover {
-    color: #fff;
+    color: var(--accent-text);
 }
 
 /* Login Card (legacy, kept for Login page card used elsewhere) */

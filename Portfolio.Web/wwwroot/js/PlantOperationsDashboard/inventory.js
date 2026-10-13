@@ -21,17 +21,14 @@ $(document).ready(function () {
             case 'delete': deleteMaterial(id); break;
         }
     });
-    // Row click for details removed to prevent double modal issue
-    // $('#plantOpsInventoryTable').on('click', 'tbody tr', function () {
-    //     const data = inventoryTable.row(this).data();
-    //     if (data) showMaterialDetailModal(data);
-    // });
 });
 
 function loadInventoryTable() {
+    const loadError = plantOpsAlert('inventoryTableError');
+    loadError.hide();
     $('#inventoryTableSpinner').removeClass('d-none');
-    window.fetchWithAuth(window.PortfolioApi.routes.fiber.materials)
-        .then(r => r.json())
+    window.apiFetch(window.PortfolioApi.routes.fiber.materials)
+        .then(plantOpsJson)
         .then(data => {
             if (inventoryTable) {
                 inventoryTable.clear().rows.add(data).draw();
@@ -56,7 +53,7 @@ function loadInventoryTable() {
                             // title= alone gave every row the same accessible name ("Edit"),
                             // so the row identity is carried by aria-label; title stays purely
                             // as the mouse tooltip.
-                            let rowLabel = plantOpsEscape(row.name || row.sku || row.id);
+                            let rowLabel = PortfolioDom.escapeHtml(row.name || row.sku || row.id);
                             return `
                                 <button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${Number(row.id)}" title="Edit" aria-label="Edit material ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
                                 <button class="btn btn-sm btn-outline-success me-1" data-action="receive" data-id="${Number(row.id)}" title="Receive Stock" aria-label="Receive stock for material ${rowLabel}"><i class='fa fa-arrow-down' aria-hidden="true"></i></button>
@@ -78,7 +75,11 @@ function loadInventoryTable() {
             });
             showToast('Inventory loaded', 'success');
         })
-        .catch(() => showToast('Failed to load inventory', 'danger'))
+        .catch(err => {
+            const message = plantOpsFailure('Failed to load inventory', err);
+            loadError.show(message);
+            showToast(message, 'danger');
+        })
         .finally(() => $('#inventoryTableSpinner').addClass('d-none'));
 }
 
@@ -97,8 +98,8 @@ function showMaterialDetailModal(material) {
       </div>
       <div class="modal-body">
         <dl class="row mb-0">
-          <dt class="col-5">Name</dt><dd class="col-7">${plantOpsEscape(material.name)}</dd>
-          <dt class="col-5">SKU</dt><dd class="col-7">${plantOpsEscape(material.sku)}</dd>
+          <dt class="col-5">Name</dt><dd class="col-7">${PortfolioDom.escapeHtml(material.name)}</dd>
+          <dt class="col-5">SKU</dt><dd class="col-7">${PortfolioDom.escapeHtml(material.sku)}</dd>
           <dt class="col-5">Qty On Hand</dt><dd class="col-7">${material.qtyOnHand}</dd>
           <dt class="col-5">Unit Cost</dt><dd class="col-7">$${material.unitCost.toFixed(2)}</dd>
           <dt class="col-5">Total Value</dt><dd class="col-7">$${material.totalValue.toFixed(2)}</dd>
@@ -107,7 +108,7 @@ function showMaterialDetailModal(material) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-accent theme-btn" data-action="receive" data-id="${Number(material.id)}">Receive Stock</button>
+        <button type="button" class="btn btn-accent" data-action="receive" data-id="${Number(material.id)}">Receive Stock</button>
       </div>
     </div>
   </div>
@@ -143,7 +144,7 @@ window.showReceiveStockModal = function (materialId) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">Receive</button>
+        <button type="submit" class="btn btn-accent">Receive</button>
       </div>
       </form>
     </div>
@@ -162,16 +163,13 @@ window.showReceiveStockModal = function (materialId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
-        .then(r => {
-            if (!r.ok) throw new Error('Failed to receive stock');
-            return r.json();
-        })
+        .then(plantOpsJson)
         .then(() => {
             modal.hide();
             showToast('Stock received', 'success');
             loadInventoryTable();
         })
-        .catch(() => showToast('Failed to receive stock', 'danger'));
+        .catch(err => showToast(plantOpsFailure('Failed to receive stock', err), 'danger'));
     });
 };
 
@@ -183,11 +181,12 @@ function showMaterialModal(materialId) {
     let material = null;
     if (isEdit) {
         window.apiFetch(`${window.PortfolioApi.routes.fiber.materials}/${materialId}`)
-            .then(r => r.json())
+            .then(plantOpsJson)
             .then(data => {
                 material = data;
                 renderMaterialModal(material, isEdit, modalId, $modals);
-            });
+            })
+            .catch(err => showToast(plantOpsFailure('Failed to load material', err), 'danger'));
     } else {
         renderMaterialModal({}, false, modalId, $modals);
     }
@@ -206,15 +205,15 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label">Name</label>
-          <input type="text" class="form-control" name="name" value="${plantOpsEscape(material.name)}" required />
+          <input type="text" class="form-control" name="name" value="${PortfolioDom.escapeHtml(material.name)}" required />
         </div>
         <div class="mb-3">
           <label class="form-label">SKU</label>
-          <input type="text" class="form-control" name="sku" value="${plantOpsEscape(material.sku)}" required />
+          <input type="text" class="form-control" name="sku" value="${PortfolioDom.escapeHtml(material.sku)}" required />
         </div>
         <div class="mb-3">
           <label class="form-label">Category</label>
-          <input type="text" class="form-control" name="category" value="${plantOpsEscape(material.category)}" list="materialCategoryOptions" placeholder="e.g. Reinforcements, Resins" />
+          <input type="text" class="form-control" name="category" value="${PortfolioDom.escapeHtml(material.category)}" list="materialCategoryOptions" placeholder="e.g. Reinforcements, Resins" />
           <datalist id="materialCategoryOptions">
             <option value="Reinforcements"></option>
             <option value="Resins"></option>
@@ -238,7 +237,7 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-accent theme-btn">${isEdit ? 'Update' : 'Create'}</button>
+        <button type="submit" class="btn btn-accent">${isEdit ? 'Update' : 'Create'}</button>
       </div>
       </form>
     </div>
@@ -261,16 +260,13 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
-        .then(r => {
-            if (!r.ok) throw new Error('Failed to save material');
-            return r.json();
-        })
+        .then(plantOpsJson)
         .then(() => {
             modal.hide();
             showToast(`Material ${isEdit ? 'updated' : 'created'}`, 'success');
             loadInventoryTable();
         })
-        .catch(() => showToast('Failed to save material', 'danger'));
+        .catch(err => showToast(plantOpsFailure('Failed to save material', err), 'danger'));
     });
 }
 window.renderMaterialModal = renderMaterialModal;
@@ -281,11 +277,11 @@ async function deleteMaterial(materialId) {
     window.apiFetch(`${window.PortfolioApi.routes.fiber.materials}/${materialId}`, {
         method: 'DELETE'
     })
-    .then(r => {
-        if (!r.ok) throw new Error('Failed to delete material');
+    .then(plantOpsOk)
+    .then(() => {
         showToast('Material deleted', 'success');
         loadInventoryTable();
     })
-    .catch(() => showToast('Failed to delete material', 'danger'));
+    .catch(err => showToast(plantOpsFailure('Failed to delete material', err), 'danger'));
 }
 window.deleteMaterial = deleteMaterial;

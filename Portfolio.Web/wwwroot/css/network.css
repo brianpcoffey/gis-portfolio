@@ -3,18 +3,20 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── Page shell ──────────────────────────────────────────────────────── */
+/* --nav-h is the measured navbar height (navigation.js); 75px is the live height until it is set. */
 .network-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 62px); /* subtract navbar */
+    height: calc(100vh - var(--nav-h, 75px));
+    height: calc(100dvh - var(--nav-h, 75px));
     overflow: hidden;
-    background: var(--background, #f8fafc);
-    color: var(--text, #1a202c);
+    background: var(--background);
+    color: var(--text);
 }
 
 .network-hero {
-    background: linear-gradient(135deg, rgba(26, 54, 93, 0.10), rgba(56, 161, 105, 0.12));
-    border-bottom: 1px solid var(--border, #e2e8f0);
+    background: linear-gradient(135deg, rgba(26, 54, 93, 0.10), rgba(var(--accent-rgb), 0.12));
+    border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
@@ -31,15 +33,15 @@
     max-width: 340px;
     display: flex;
     flex-direction: column;
-    background: var(--surface, #ffffff);
-    border-right: 1px solid var(--border, #e2e8f0);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
     overflow-y: auto;
     flex-shrink: 0;
 }
 
 .panel-section {
     padding: 0.75rem 1rem 0.5rem;
-    border-bottom: 1px solid var(--border, #e2e8f0);
+    border-bottom: 1px solid var(--border);
 }
 
 .panel-section-header {
@@ -49,7 +51,14 @@
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-muted, #64748b);
+    color: var(--text-muted);
+}
+
+/* Panel titles are h2.h6 (A13); keep the small uppercase look of the old spans. */
+.panel-section-header h2 {
+    margin: 0;
+    font-size: 0.875em;
+    color: inherit;
 }
 
 .panel-body {
@@ -58,31 +67,42 @@
 
 .hint-text {
     font-size: 0.75rem;
-    color: var(--text-muted, #64748b);
+    color: var(--text-muted);
     margin-bottom: 0;
 }
 
 .panel-footer {
     margin-top: auto;
     padding: 0.75rem 1rem;
-    border-top: 1px solid var(--border, #e2e8f0);
+    border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
     font-size: 0.8rem;
     flex-shrink: 0;
 }
 
+.network-max-cost {
+    max-width: 90px;
+}
+
 /* ── Destination chip ────────────────────────────────────────────────── */
+/* T5: success text on its tint (was #198754, 3.89:1 light / 2.38:1 dark). Light mode uses the darker
+   --accent-on-fill-h (6.7:1 on the tint; --status-success-text was 4.46:1 at 13px/500); dark mode keeps
+   --status-success-text (5.6:1). */
 .destination-chip {
     display: inline-flex;
     align-items: center;
-    background: rgba(25, 135, 84, 0.12);
-    color: #198754;
-    border: 1px solid rgba(25, 135, 84, 0.3);
+    background: var(--status-success-soft);
+    color: var(--accent-on-fill-h);
+    border: 1px solid color-mix(in srgb, var(--status-success-text) 40%, transparent);
     border-radius: 999px;
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 500;
+}
+
+body.dark-mode .destination-chip {
+    color: var(--status-success-text);
 }
 
 /* ── KPI grid ────────────────────────────────────────────────────────── */
@@ -93,41 +113,46 @@
 }
 
 .kpi-tile {
-    background: var(--background, #f8fafc);
-    border: 1px solid var(--border, #e2e8f0);
+    background: var(--background);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     padding: 0.5rem 0.6rem;
     text-align: center;
 }
 
+/* T6: --accent as text was 3.10:1; --accent-text is the AA-safe member of the ramp. */
 .kpi-val {
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--accent, #38a169);
+    color: var(--accent-text);
     line-height: 1.2;
 }
 
 .kpi-label {
     font-size: 0.7rem;
-    color: var(--text-muted, #64748b);
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-top: 0.1rem;
 }
 
 /* ── Turn-by-turn list ───────────────────────────────────────────────── */
-.route-steps-list {
-    padding-left: 1.25rem;
-    margin-bottom: 0;
+/* The scroller is a focusable labelled region so keyboard users can scroll it (A16). */
+.route-steps-region {
     max-height: 220px;
     overflow-y: auto;
 }
 
+.route-steps-list {
+    padding-left: 1.25rem;
+    margin-bottom: 0;
+}
+
 .route-steps-list li {
     font-size: 0.78rem;
-    color: var(--text, #1a202c);
+    color: var(--text);
     padding: 0.2rem 0;
-    border-bottom: 1px solid var(--border, #e2e8f0);
+    border-bottom: 1px solid var(--border);
 }
 
 .route-steps-list li:last-child {
@@ -155,7 +180,7 @@
     transform: translateX(-50%);
     z-index: 500;
     background: rgba(0, 0, 0, 0.65);
-    color: #fff;
+    color: var(--on-dark);
     font-size: 0.78rem;
     padding: 0.3rem 0.8rem;
     border-radius: 999px;
@@ -170,12 +195,12 @@
 
 /* ── Leaflet override: route polyline pulse ──────────────────────────── */
 .network-route-line {
-    stroke: #2563eb;
+    stroke: var(--chart-1);
     stroke-width: 5;
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;
-    filter: drop-shadow(0 0 4px rgba(37, 99, 235, 0.55));
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--chart-1) 55%, transparent));
 }
 
 /* ── Responsive collapse ────────────────────────────────────────────── */
@@ -194,7 +219,7 @@
         width: 100%;
         max-width: 100%;
         border-right: none;
-        border-bottom: 1px solid var(--border, #e2e8f0);
+        border-bottom: 1px solid var(--border);
         overflow-y: visible;
         max-height: none;
     }
@@ -205,7 +230,7 @@
     }
 }
 
-/* Search-space legend swatches (explored-node overlay) */
+/* Search-space legend swatches (explored-node overlay); same tokens as the map dots in app.js */
 .explored-swatch {
     display: inline-block;
     width: 10px;
@@ -215,5 +240,5 @@
     vertical-align: middle;
     opacity: 0.7;
 }
-.explored-swatch-astar { background: #0d9488; }
-.explored-swatch-dijkstra { background: #f59e0b; }
+.explored-swatch-astar { background: var(--chart-5); }
+.explored-swatch-dijkstra { background: var(--status-warning-fill); }
