@@ -42,20 +42,31 @@
         }
 
         var timer = null;
+        var onCallerAbort = null;
+        var callerSignal = null;
+        function settle() {
+            if (timer) { clearTimeout(timer); }
+            if (onCallerAbort && callerSignal) { callerSignal.removeEventListener("abort", onCallerAbort); }
+        }
         if (typeof timeoutMs === "number" && timeoutMs > 0 && typeof global.AbortController === "function") {
             var controller = new global.AbortController();
-            var callerSignal = opts.signal;
+            callerSignal = opts.signal;
             if (callerSignal) {
                 // Honour a caller-supplied signal as well as the timeout.
-                if (callerSignal.aborted) { controller.abort(); }
-                else { callerSignal.addEventListener("abort", function () { controller.abort(); }); }
+                if (callerSignal.aborted) { controller.abort(callerSignal.reason); }
+                else {
+                    onCallerAbort = function () { controller.abort(callerSignal.reason); };
+                    callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+                }
             }
             opts.signal = controller.signal;
-            timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+            timer = setTimeout(function () {
+                controller.abort(new global.DOMException("Request timed out.", "TimeoutError"));
+            }, timeoutMs);
         }
 
         return fetch(url, opts).then(function (res) {
-            if (timer) { clearTimeout(timer); }
+            settle();
             if (res.status === 401 && redirectOn401) {
                 var returnUrl = encodeURIComponent(
                     global.location.pathname + global.location.search
@@ -67,7 +78,7 @@
             }
             return res;
         }, function (err) {
-            if (timer) { clearTimeout(timer); }
+            settle();
             throw err;
         });
     }
