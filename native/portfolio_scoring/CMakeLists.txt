@@ -14,7 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ---------------------------------------------------------------------------
 if(MSVC)
     # /O2  – full optimisation
-    # /arch:AVX2 – lets the compiler use AVX2 (measured effect: native/README.md)
+    # /arch:AVX2 – lets the compiler use AVX2 (measured effect: root README.md, "Measured speedup")
     # /fp:fast   – allow re-association of FP ops (matches -ffast-math intent)
     # /GR-       – no RTTI needed; trim binary size
     add_compile_options(/O2 /arch:AVX2 /fp:fast /GR-)

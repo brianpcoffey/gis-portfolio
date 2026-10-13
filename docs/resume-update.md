@@ -25,7 +25,7 @@ that is done, and this repo cannot show whether it currently does.
 > **Fact check against the repo (the wording above is quoted as written; the résumé text is the
 > owner's to change).** Four phrases do not match what the code and CI show today:
 > - *"high-performance C++ modules"* (bullet 2) — the benchmarks measured 0.37×–2.26× (9 wins /
->   5 losses / 7 ties at ±15%, see `native/README.md`), and the rule further down in this document
+>   5 losses / 7 ties at ±15%, see the root `README.md`, section "Measured speedup"), and the rule further down in this document
 >   rules out "high-performance computing" claims.
 > - *"role-based authorization"* (bullet 1) — there are no roles; the one authorization policy is
 >   `"Authenticated"` (a signed-in Google user).

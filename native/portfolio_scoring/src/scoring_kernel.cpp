@@ -11,7 +11,7 @@
  *    pollution and allow aggressive inlining.
  *  - ScorePropertyBatch iterates a plain for-loop over contiguous structs,
  *    which leaves the compiler free to vectorise it under AVX2; measured,
- *    it is no faster than the managed path (native/README.md).
+ *    it is no faster than the managed path (root README.md, "Measured speedup").
  *  - LoanTermMonths and AnnualInterestRate are constexpr to match the C#
  *    constants and allow compile-time evaluation where possible.
  */

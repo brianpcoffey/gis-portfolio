@@ -136,7 +136,7 @@ PS_API void ScoreProperty(
  *
  * A plain loop over contiguous structs; the build enables AVX2, so the compiler
  * may vectorise it. Measured, it is no faster than the managed path
- * (native/README.md).
+ * (root README.md, "Measured speedup").
  */
 PS_API void ScorePropertyBatch(
 	const PropertyInputNative*    properties,

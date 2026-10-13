@@ -33,8 +33,9 @@ namespace Portfolio.Services.Native
 
         // InvalidOperationException is included on purpose: bridges throw it for a negative native
         // status or an out-of-range result, and that must log a warning and fall back to managed code.
-        // Known wart (docs/plans/README.md): a genuine native bug that surfaces as an
-        // InvalidOperationException is therefore also absorbed by the fallback, not rethrown.
+        // Known wart: a genuine native bug that surfaces as an InvalidOperationException is
+        // therefore also absorbed by the fallback (one logged warning, then the managed path
+        // answers), not rethrown. The pattern is kept for consistency across the bridges.
         internal static bool IsNativeInvocationException(Exception exception)
         {
             return exception is DllNotFoundException

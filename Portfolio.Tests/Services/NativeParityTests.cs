@@ -12,7 +12,7 @@ namespace Portfolio.Tests.Services
     // defects ship: the whole managed contract was tested and nothing checked that native
     // honoured it.
     //
-    // Run them meaningfully by building the kernels first (see native/README.md), or reach
+    // Run them meaningfully by building the kernels first (root README.md, "Building the kernels"), or reach
     // for `dotnet run --project Portfolio.Benchmarks`, which parity-checks every kernel.
     public class NativeParityTests
     {

@@ -3,7 +3,7 @@ using System.Net;
 namespace Portfolio.Tests.Integration;
 
 /// <summary>
-/// Characterizes the middleware order documented in docs/agent-context.md section 4 by observing
+/// Characterizes the middleware order (see Startup/Pipeline.cs) by observing
 /// it from outside: forwarded headers, security headers, static files, rate limiter, exception
 /// middleware, anonymous identity, authentication.
 /// </summary>
