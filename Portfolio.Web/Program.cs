@@ -556,9 +556,8 @@ builder.Services.AddOpenApi();
 // --------------------------
 // Database Context (PostgreSQL via Render / Supabase)
 // --------------------------
-var databaseUrl = builder.Configuration.GetConnectionString("DefaultConnection")
-                  ?? Environment.GetEnvironmentVariable("DATABASE_URL")
-                  ?? throw new InvalidOperationException("Database connection string not set.");
+var databaseUrl = Portfolio.Web.Infrastructure.ConnectionStrings.ResolveDatabaseUrl(
+    builder.Configuration, Environment.GetEnvironmentVariable);
 
 var npgsqlBuilder = Portfolio.Web.Infrastructure.ConnectionStrings.ParsePostgres(databaseUrl);
 

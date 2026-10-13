@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Npgsql;
 using Portfolio.Web.Infrastructure;
 
@@ -99,6 +100,52 @@ namespace Portfolio.Tests.Infrastructure
 
             Assert.Equal("Invalid Redis connection string format.", ex.Message);
             Assert.DoesNotContain("secretpw", ex.Message);
+        }
+
+        // ---------- Database URL resolution ----------
+
+        private static IConfiguration Config(string? defaultConnection) =>
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(defaultConnection is null
+                    ? new Dictionary<string, string?>()
+                    : new Dictionary<string, string?> { ["ConnectionStrings:DefaultConnection"] = defaultConnection })
+                .Build();
+
+        [Fact]
+        public void ResolveDatabaseUrl_ConfiguredValueWinsOverTheEnvironment()
+        {
+            var result = ConnectionStrings.ResolveDatabaseUrl(Config("Host=a"), _ => "postgres://u:p@env/db");
+
+            Assert.Equal("Host=a", result);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void ResolveDatabaseUrl_BlankDefaultConnection_FallsBackToDatabaseUrl(string? configured)
+        {
+            string? requested = null;
+
+            var result = ConnectionStrings.ResolveDatabaseUrl(Config(configured), name =>
+            {
+                requested = name;
+                return "postgres://u:p@env/db";
+            });
+
+            Assert.Equal("postgres://u:p@env/db", result);
+            Assert.Equal("DATABASE_URL", requested);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("  ")]
+        public void ResolveDatabaseUrl_NothingSet_ThrowsWithoutLeakingAnything(string? env)
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() => ConnectionStrings.ResolveDatabaseUrl(Config(""), _ => env));
+
+            Assert.Equal("Database connection string not set.", ex.Message);
         }
 
         // ---------- Redis ----------

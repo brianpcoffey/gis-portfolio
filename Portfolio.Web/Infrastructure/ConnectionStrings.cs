@@ -5,6 +5,25 @@ namespace Portfolio.Web.Infrastructure
     internal static class ConnectionStrings
     {
         // --------------------------
+        // Helper: Resolve the database connection string
+        // --------------------------
+        // ConnectionStrings:DefaultConnection wins, then the DATABASE_URL environment variable
+        // (the Render convention). A blank value counts as unset at each step: the committed
+        // appsettings files carry "" precisely so that DATABASE_URL is reachable.
+        internal static string ResolveDatabaseUrl(IConfiguration configuration, Func<string, string?> env)
+        {
+            var configured = configuration.GetConnectionString("DefaultConnection");
+            if (!string.IsNullOrWhiteSpace(configured))
+                return configured;
+
+            var fromEnv = env("DATABASE_URL");
+            if (!string.IsNullOrWhiteSpace(fromEnv))
+                return fromEnv;
+
+            throw new InvalidOperationException("Database connection string not set.");
+        }
+
+        // --------------------------
         // Helper: Parse postgres:// URI or standard connection string
         // --------------------------
         internal static NpgsqlConnectionStringBuilder ParsePostgres(string connectionString)
