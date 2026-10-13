@@ -79,7 +79,9 @@ namespace Portfolio.Services.Services
             if (onTotal is not null)
                 await onTotal(rows.Count);
 
-            var channel = Channel.CreateBounded<CsvRow>(new BoundedChannelOptions(500)
+            // Rows are already in memory (at most MaxRows), so the channel holds them all and the
+            // producer step cannot block: nothing here can wait on a consumer that has died.
+            var channel = Channel.CreateBounded<CsvRow>(new BoundedChannelOptions(rows.Count)
             {
                 FullMode                      = BoundedChannelFullMode.Wait,
                 SingleWriter                  = true,
@@ -87,37 +89,55 @@ namespace Portfolio.Services.Services
                 AllowSynchronousContinuations = false
             });
 
-            // Producer: write all rows into the channel.
-            var producer = Task.Run(async () =>
-            {
-                foreach (var row in rows)
-                    await channel.Writer.WriteAsync(row, cancellationToken);
+            foreach (var row in rows)
+                channel.Writer.TryWrite(row);
+            channel.Writer.Complete();
 
-                channel.Writer.Complete();
-            }, cancellationToken);
+            // A faulting worker cancels its siblings so the job ends promptly instead of the
+            // remaining workers grinding through (or hanging on) the rest of the rows.
+            using var faultCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var workerToken = faultCts.Token;
+            Exception? firstFault = null;
 
-            // Consumer: spin up MaxConcurrency workers.
             var results = new System.Collections.Concurrent.ConcurrentBag<(string Id, BatchGeocodingResultDto Dto)>();
             var processed = 0;
             var cacheHits = 0;
             var stats = new RunStats();
 
+            // Consumer: spin up MaxConcurrency workers.
             var workers = Enumerable.Range(0, _maxConcurrency).Select(_ => Task.Run(async () =>
             {
-                await foreach (var row in channel.Reader.ReadAllAsync(cancellationToken))
+                try
                 {
-                    var (dto, cacheHit) = await GeocodeRowAsync(row, stats, cancellationToken);
-                    results.Add((row.Id, dto));
-                    if (cacheHit)
-                        Interlocked.Increment(ref cacheHits);
-                    var done = Interlocked.Increment(ref processed);
-                    if (onProgress is not null)
-                        await onProgress(done);
+                    await foreach (var row in channel.Reader.ReadAllAsync(workerToken))
+                    {
+                        var (dto, cacheHit) = await GeocodeRowAsync(row, stats, workerToken);
+                        results.Add((row.Id, dto));
+                        if (cacheHit)
+                            Interlocked.Increment(ref cacheHits);
+                        var done = Interlocked.Increment(ref processed);
+                        if (onProgress is not null)
+                            await onProgress(done);
+                    }
                 }
-            }, cancellationToken)).ToArray();
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested
+                                           && !(ex is OperationCanceledException && workerToken.IsCancellationRequested))
+                {
+                    Interlocked.CompareExchange(ref firstFault, ex, null);
+                    faultCts.Cancel();
+                    throw;
+                }
+            }, workerToken)).ToArray();
 
-            await producer;
-            await Task.WhenAll(workers);
+            try
+            {
+                await Task.WhenAll(workers);
+            }
+            catch when (firstFault is not null)
+            {
+                // Surface the original fault, not a sibling's cancellation.
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(firstFault).Throw();
+            }
 
             var ordered = results.OrderBy(r => r.Id).Select(r => r.Dto).ToList();
 
