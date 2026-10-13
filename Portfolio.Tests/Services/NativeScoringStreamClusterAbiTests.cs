@@ -371,6 +371,40 @@ namespace Portfolio.Tests.Services
             Assert.Equal(-1, SpatialClusterNativeInterop.RunDbscan(points, 2, 1.0, 0, labels, 2));
         }
 
+        public static TheoryData<double> NonFiniteEpsilons => new()
+        {
+            double.NaN,
+            double.PositiveInfinity,
+            double.NegativeInfinity
+        };
+
+        [Theory]
+        [MemberData(nameof(NonFiniteEpsilons))]
+        public void NativeCluster_EpsilonThatIsNotFinite_ReturnsMinusOne(double epsilon)
+        {
+            Assert.SkipUnless(SpatialClusterNativeBridge.IsAvailable, "native library not loaded");
+
+            var points = new[] { new ClusterPointNative { X = 0, Y = 0 }, new ClusterPointNative { X = 1, Y = 1 } };
+            var labels = new int[2];
+
+            AssertStatus(-1, () => SpatialClusterNativeInterop.RunDbscan(points, 2, epsilon, 2, labels, 2));
+        }
+
+        [Theory]
+        [MemberData(nameof(NonFiniteEpsilons))]
+        public void ClusterBridge_EpsilonThatIsNotFinite_FallsBackInsteadOfThrowing(double epsilon)
+        {
+            Assert.SkipUnless(SpatialClusterNativeBridge.IsAvailable, "native library not loaded");
+
+            var request = new DbscanRequestDto { Epsilon = epsilon, MinPoints = 2, Points = DuplicateHeavyPoints() };
+
+            // The native -1 status becomes an InvalidOperationException inside the bridge, which the
+            // Try... wrapper classifies as a native failure: false, so the service runs the managed path.
+            Assert.False(SpatialClusterNativeBridge.TryRunDbscan(request, NullLogger.Instance, out var labels, out var clusterCount));
+            Assert.Null(labels);
+            Assert.Equal(0, clusterCount);
+        }
+
         // ---------------------------------------------------------------------------------------
         // cluster: DBSCAN labels must not depend on how (or whether) seeds are deduplicated.
         // ---------------------------------------------------------------------------------------
@@ -490,6 +524,26 @@ namespace Portfolio.Tests.Services
 
             Assert.Equal(expected, labels);
             Assert.Equal(Math.Max(0, expected.Max() + 1), clusterCount);
+        }
+
+        // Every point is within epsilon of every other. Before the kernel deduplicated seeds, each core
+        // point re-queued all of its neighbours, so the work list grew by `count` per point: 12,000
+        // coincident points needed about 1 GB. The bound itself is not asserted here (process memory is
+        // too noisy for a unit test); this pins the labels on the input that exposed it.
+        [Fact]
+        public void NativeDbscan_ManyCoincidentPoints_FormOneClusterAndLeaveOutliersAsNoise()
+        {
+            Assert.SkipUnless(SpatialClusterNativeBridge.IsAvailable, "native library not loaded");
+
+            var points = Enumerable.Range(0, 4000).Select(_ => new ClusterPointDto { X = 1.0, Y = 1.0 }).ToList();
+            points.Add(new ClusterPointDto { X = 500.0, Y = 500.0 });
+            var request = new DbscanRequestDto { Epsilon = 0.5, MinPoints = 3, Points = points };
+
+            Assert.True(SpatialClusterNativeBridge.TryRunDbscan(request, NullLogger.Instance, out var labels, out var clusterCount));
+
+            Assert.Equal(1, clusterCount);
+            Assert.All(labels!.Take(4000), label => Assert.Equal(0, label));
+            Assert.Equal(Noise, labels![4000]);
         }
     }
 }

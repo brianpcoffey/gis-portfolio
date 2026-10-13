@@ -41,8 +41,13 @@ namespace Portfolio.Services.Native
                     output,
                     output.Length);
 
+                // A non-negative return is the cluster count. A negative one is a failure of the call
+                // itself, never a property of the data (the service has validated the request and the
+                // output buffer is sized from the point count), so it is surfaced as an
+                // InvalidOperationException: the catch below logs it and falls back to the managed
+                // DBSCAN, which has already seen the same validated request. See spatial_cluster_kernel.h.
                 if (status < 0)
-                    throw new InvalidOperationException($"Native spatial cluster kernel failed with status {status}.");
+                    throw new InvalidOperationException($"Native spatial cluster kernel failed with status {status} ({DescribeStatus(status)}).");
 
                 labels = output;
                 clusterCount = status;
@@ -53,6 +58,16 @@ namespace Portfolio.Services.Native
                 logger.LogWarning(ex, "Native DBSCAN failed; falling back to managed clustering implementation.");
                 return false;
             }
+        }
+
+        private static string DescribeStatus(int status)
+        {
+            return status switch
+            {
+                -1 => "invalid argument",
+                -99 => "native exception",
+                _ => "unknown"
+            };
         }
     }
 }
