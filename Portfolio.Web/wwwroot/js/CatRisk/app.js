@@ -1,13 +1,16 @@
 // Catastrophe Risk Analyzer Page — self-contained IIFE, no ES module syntax.
+// Depends on the deferred shared modules: PortfolioUi, PortfolioFormat, PortfolioCharts, PortfolioDom.
 (function () {
     "use strict";
 
-    var SVGNS = "http://www.w3.org/2000/svg";
     var KM_PER_LAT_DEGREE = 111.32;
     var BENCHMARK_PERIODS = [10, 25, 50, 100, 250, 500];
+    var charts = window.PortfolioCharts;
+    var fmt = window.PortfolioFormat;
+    var ui = window.PortfolioUi;
 
     // Cache DOM nodes up front.
-    var alertBox = document.getElementById("catAlert");
+    var alertBox = ui.inlineAlert(document.getElementById("catAlert"));
     var radiusInput = document.getElementById("catRadius");
     var limitInput = document.getElementById("catLimit");
     var alphaInput = document.getElementById("catAlpha");
@@ -27,25 +30,42 @@
     // Module state.
     var book = null;
     var projection = null;
+    var lastAccumulation = null;
+    var lastSimulation = null;
 
     runBtn.addEventListener("click", run);
     reloadBtn.addEventListener("click", loadBook);
     alphaInput.addEventListener("input", function () {
         alphaValue.textContent = parseFloat(alphaInput.value).toFixed(1);
     });
+    // Hazard colours are resolved tokens, so redraw when the theme flips.
+    charts.onThemeChange(function () {
+        if (!book) { return; }
+        buildCommunityTable(book.communities);
+        drawExposure(lastAccumulation, lastSimulation);
+    });
 
     loadBook();
 
     // ── Data ────────────────────────────────────────────────────────────────
 
+    // Runs a request with `primary` as the busy trigger and `other` also held busy.
+    function runExclusive(primary, other, opts) {
+        var releaseOther = ui.busy({ buttons: [other] });
+        opts.trigger = primary;
+        opts.alert = alertBox;
+        return ui.runAction(opts).then(function (r) { releaseOther(); return r; });
+    }
+
     function loadBook() {
-        hideAlert();
-        setBusy(true);
-        apiGet(window.PortfolioApi.routes.spatialCompute.catRisk.book)
-            .then(function (result) {
+        return runExclusive(reloadBtn, runBtn, {
+            request: function () { return apiGet(window.PortfolioApi.routes.spatialCompute.catRisk.book); },
+            render: function (result) {
                 book = result;
                 projection = buildProjection(book.locations);
-                kpiTiv.textContent = formatMoney(book.totalInsuredValue);
+                lastAccumulation = null;
+                lastSimulation = null;
+                kpiTiv.textContent = fmt.money(book.totalInsuredValue, { compact: true });
                 buildCommunityTable(book.communities);
                 drawExposure(null);
                 drawCurve(null);
@@ -54,43 +74,50 @@
                     locations: book.locationCount,
                     events: book.events.length
                 }, null, 2);
-            })
-            .catch(function (err) { showAlert(err.message || "Failed to load the policy book."); })
-            .finally(function () { setBusy(false); });
+            },
+            summary: function (result) {
+                return "Policy book loaded: " + result.locationCount + " locations, total insured value " +
+                    fmt.money(result.totalInsuredValue, { compact: true }) + ".";
+            }
+        });
     }
 
     function run() {
         if (!book) {
-            showAlert("The policy book has not loaded yet.");
+            alertBox.show("The policy book has not loaded yet.");
             return;
         }
-
-        hideAlert();
-        setBusy(true);
 
         var radiusKm = parseFloat(radiusInput.value);
         var concentrationLimit = parseFloat(limitInput.value) * 1000000;
         var alpha = parseFloat(alphaInput.value);
         var events = sampleCatalog(book.events, parseInt(catalogSelect.value, 10));
 
-        var accumulation = null;
-
-        apiPost(window.PortfolioApi.routes.spatialCompute.catRisk.accumulation, {
-            locations: book.locations,
-            radiusKm: radiusKm,
-            concentrationLimit: concentrationLimit
-        })
-            .then(function (result) {
-                accumulation = result;
-                return apiPost(window.PortfolioApi.routes.spatialCompute.catRisk.simulate, {
+        runExclusive(runBtn, reloadBtn, {
+            request: function () {
+                var accumulation = null;
+                return apiPost(window.PortfolioApi.routes.spatialCompute.catRisk.accumulation, {
                     locations: book.locations,
-                    events: events,
-                    vulnerabilityAlpha: alpha
-                });
-            })
-            .then(function (simulation) { render(accumulation, simulation); })
-            .catch(function (err) { showAlert(err.message || "Analysis failed."); })
-            .finally(function () { setBusy(false); });
+                    radiusKm: radiusKm,
+                    concentrationLimit: concentrationLimit
+                })
+                    .then(function (result) {
+                        accumulation = result;
+                        return apiPost(window.PortfolioApi.routes.spatialCompute.catRisk.simulate, {
+                            locations: book.locations,
+                            events: events,
+                            vulnerabilityAlpha: alpha
+                        });
+                    })
+                    .then(function (simulation) { return { accumulation: accumulation, simulation: simulation }; });
+            },
+            render: function (r) { render(r.accumulation, r.simulation); },
+            summary: function (r) {
+                return "Analysis complete: average annual loss " + fmt.money(r.simulation.averageAnnualLoss, { compact: true }) +
+                    ", probable maximum loss " + fmt.money(r.simulation.probableMaximumLoss, { compact: true }) +
+                    ", " + r.accumulation.breachCount + " concentration breaches.";
+            }
+        });
     }
 
     // Subsamples the catalog while preserving total annual frequency, so shrinking the
@@ -131,8 +158,10 @@
     }
 
     function render(accumulation, simulation) {
-        kpiAal.textContent = formatMoney(simulation.averageAnnualLoss);
-        kpiPml.textContent = formatMoney(simulation.probableMaximumLoss);
+        lastAccumulation = accumulation;
+        lastSimulation = simulation;
+        kpiAal.textContent = fmt.money(simulation.averageAnnualLoss, { compact: true });
+        kpiPml.textContent = fmt.money(simulation.probableMaximumLoss, { compact: true });
         kpiBreaches.textContent = accumulation.breachCount;
 
         drawExposure(accumulation, simulation);
@@ -203,7 +232,7 @@
     // ── Exposure map ────────────────────────────────────────────────────────
 
     function drawExposure(accumulation, simulation) {
-        exposureSvg.innerHTML = "";
+        charts.svg.clear(exposureSvg);
         if (!book || !projection) {
             return;
         }
@@ -215,16 +244,16 @@
 
         // Worst event footprint sits underneath the exposure so markers stay readable.
         if (simulation && simulation.worstEvent) {
-            var footprint = document.createElementNS(SVGNS, "circle");
-            footprint.setAttribute("cx", projectX(simulation.worstEvent.longitude).toFixed(2));
-            footprint.setAttribute("cy", projectY(simulation.worstEvent.latitude).toFixed(2));
-            footprint.setAttribute("r", Math.max(kmToSvg(simulation.worstEvent.radiusKm), 0.5).toFixed(2));
-            footprint.setAttribute("fill", "#e03131");
-            footprint.setAttribute("fill-opacity", "0.13");
-            footprint.setAttribute("stroke", "#e03131");
-            footprint.setAttribute("stroke-width", "0.35");
-            footprint.setAttribute("stroke-dasharray", "1.4 1");
-            exposureSvg.appendChild(footprint);
+            exposureSvg.appendChild(charts.svg.el("circle", {
+                cx: projectX(simulation.worstEvent.longitude).toFixed(2),
+                cy: projectY(simulation.worstEvent.latitude).toFixed(2),
+                r: Math.max(kmToSvg(simulation.worstEvent.radiusKm), 0.5).toFixed(2),
+                fill: "var(--status-danger-fill)",
+                "fill-opacity": "0.13",
+                stroke: "var(--status-danger-fill)",
+                "stroke-width": "0.35",
+                "stroke-dasharray": "1.4 1"
+            }));
         }
 
         var breachedById = {};
@@ -234,63 +263,66 @@
             });
         }
 
+        var ramp = hazardRamp();
         book.locations.forEach(function (location) {
-            var circle = document.createElementNS(SVGNS, "circle");
             var radius = 0.4 + Math.sqrt(location.insuredValue / maxTiv) * 1.2;
-
-            circle.setAttribute("cx", projectX(location.longitude).toFixed(2));
-            circle.setAttribute("cy", projectY(location.latitude).toFixed(2));
-            circle.setAttribute("r", radius.toFixed(2));
-            circle.setAttribute("fill", hazardColor(location.siteHazard));
-            circle.setAttribute("fill-opacity", "0.82");
+            var circle = charts.svg.el("circle", {
+                cx: projectX(location.longitude).toFixed(2),
+                cy: projectY(location.latitude).toFixed(2),
+                r: radius.toFixed(2),
+                fill: hazardColor(location.siteHazard, ramp),
+                "fill-opacity": "0.82"
+            });
 
             if (breachedById[location.id]) {
                 circle.setAttribute("stroke", "var(--text)");
                 circle.setAttribute("stroke-width", "0.28");
             }
 
-            var title = document.createElementNS(SVGNS, "title");
-            title.textContent = location.name + " — " + formatMoney(location.insuredValue) +
+            var title = charts.svg.el("title");
+            title.textContent = location.name + " — " + fmt.money(location.insuredValue, { compact: true }) +
                 " TIV, hazard " + location.siteHazard.toFixed(2);
             circle.appendChild(title);
 
             exposureSvg.appendChild(circle);
         });
+
+        charts.describe(exposureSvg, "Exposure map of " + book.locations.length + " insured locations; marker size is " +
+            "insured value and colour is site hazard." +
+            (accumulation ? " " + accumulation.breachCount + " rings exceed the concentration limit." : ""));
     }
 
-    // Green -> amber -> red ramp over site hazard.
-    function hazardColor(hazard) {
+    // Green -> amber -> red ramp over site hazard, from the theme's status fills.
+    function hazardRamp() {
+        return { low: charts.status("success"), mid: charts.status("warning"), high: charts.status("danger") };
+    }
+
+    function hazardColor(hazard, ramp) {
         var h = Math.max(0, Math.min(1, hazard));
+        ramp = ramp || hazardRamp();
         if (h < 0.5) {
-            return mixHex("#2f9e44", "#f59f00", h / 0.5);
+            return charts.mix(ramp.low, ramp.mid, h / 0.5);
         }
-        return mixHex("#f59f00", "#e03131", (h - 0.5) / 0.5);
-    }
-
-    function mixHex(from, to, t) {
-        var f = parseInt(from.slice(1), 16);
-        var g = parseInt(to.slice(1), 16);
-        var r = Math.round(((f >> 16) & 255) + (((g >> 16) & 255) - ((f >> 16) & 255)) * t);
-        var gr = Math.round(((f >> 8) & 255) + (((g >> 8) & 255) - ((f >> 8) & 255)) * t);
-        var b = Math.round((f & 255) + ((g & 255) - (f & 255)) * t);
-        return "rgb(" + r + "," + gr + "," + b + ")";
+        return charts.mix(ramp.mid, ramp.high, (h - 0.5) / 0.5);
     }
 
     // ── Exceedance probability curve ────────────────────────────────────────
 
     function drawCurve(simulation) {
-        curveSvg.innerHTML = "";
+        charts.svg.clear(curveSvg);
 
         var left = 13, right = 97, top = 5, bottom = 48;
+        var svg = charts.svg;
 
-        appendLine(curveSvg, left, top, left, bottom, "var(--text-muted)", 0.3);
-        appendLine(curveSvg, left, bottom, right, bottom, "var(--text-muted)", 0.3);
-        appendText(curveSvg, (left + right) / 2, 58, "Return Period (years)", 2.6, "middle", "var(--text-muted)");
-        appendText(curveSvg, 3.2, (top + bottom) / 2, "Loss", 2.6, "middle", "var(--text-muted)", -90);
+        svg.line(curveSvg, left, top, left, bottom, { width: 0.3 });
+        svg.line(curveSvg, left, bottom, right, bottom, { width: 0.3 });
+        svg.text(curveSvg, (left + right) / 2, 58, "Return Period (years)", { size: 2.6, anchor: "middle" });
+        svg.text(curveSvg, 3.2, (top + bottom) / 2, "Loss", { size: 2.6, anchor: "middle", rotate: -90 });
 
         if (!simulation || !simulation.exceedanceCurve || simulation.exceedanceCurve.length < 2) {
-            appendText(curveSvg, (left + right) / 2, (top + bottom) / 2,
-                "Run an analysis to build the curve", 3, "middle", "var(--text-muted)");
+            svg.text(curveSvg, (left + right) / 2, (top + bottom) / 2,
+                "Run an analysis to build the curve", { size: 3, anchor: "middle" });
+            charts.describe(curveSvg, "Occurrence exceedance probability curve. No analysis has been run yet.");
             return;
         }
 
@@ -300,43 +332,34 @@
         var maxLoss = 0;
         curve.forEach(function (p) { if (p.loss > maxLoss) { maxLoss = p.loss; } });
         if (maxLoss <= 0) { maxLoss = 1; }
+        if (maxRp <= minRp) { maxRp = minRp * 10; }
 
-        var logMin = log10(minRp);
-        var logMax = log10(maxRp);
-        if (logMax <= logMin) { logMax = logMin + 1; }
-
-        function xFor(rp) {
-            var t = (log10(Math.max(rp, minRp)) - logMin) / (logMax - logMin);
-            return left + Math.max(0, Math.min(1, t)) * (right - left);
-        }
-
-        function yFor(loss) {
-            return bottom - (loss / maxLoss) * (bottom - top);
-        }
+        var xFor = charts.scale.log([minRp, maxRp], [left, right]);
+        var yFor = charts.scale.linear([0, maxLoss], [bottom, top]);
 
         // Y gridlines at quarter steps of the maximum loss.
         var q;
         for (q = 1; q <= 4; q++) {
             var gy = yFor(maxLoss * q / 4);
-            appendLine(curveSvg, left, gy, right, gy, "var(--border)", 0.18);
-            appendText(curveSvg, left - 1.2, gy + 0.9, formatMoneyShort(maxLoss * q / 4), 2.2, "end", "var(--text-muted)");
+            svg.line(curveSvg, left, gy, right, gy, { stroke: "var(--border)", width: 0.18 });
+            svg.text(curveSvg, left - 1.2, gy + 0.9, fmt.money(maxLoss * q / 4, { compact: true }), { size: 2.2, anchor: "end" });
         }
 
         // X ticks at the benchmark return periods that fall inside the plotted range.
         BENCHMARK_PERIODS.forEach(function (rp) {
             if (rp < minRp || rp > maxRp) { return; }
             var tx = xFor(rp);
-            appendLine(curveSvg, tx, bottom, tx, bottom + 1.1, "var(--text-muted)", 0.25);
-            appendText(curveSvg, tx, bottom + 4.2, String(rp), 2.3, "middle", "var(--text-muted)");
+            svg.line(curveSvg, tx, bottom, tx, bottom + 1.1, { width: 0.25 });
+            svg.text(curveSvg, tx, bottom + 4.2, String(rp), { size: 2.3, anchor: "middle" });
         });
 
         // Average annual loss reference line.
         if (simulation.averageAnnualLoss > 0 && simulation.averageAnnualLoss <= maxLoss) {
             var aalY = yFor(simulation.averageAnnualLoss);
-            var aalLine = appendLine(curveSvg, left, aalY, right, aalY, "var(--accent)", 0.28);
+            var aalLine = svg.line(curveSvg, left, aalY, right, aalY, { stroke: "var(--accent-text)", width: 0.28 });
             aalLine.setAttribute("stroke-dasharray", "1.6 1.2");
-            appendText(curveSvg, right, aalY - 1.2, "AAL " + formatMoneyShort(simulation.averageAnnualLoss),
-                2.2, "end", "var(--accent)");
+            svg.text(curveSvg, right, aalY - 1.2, "AAL " + fmt.money(simulation.averageAnnualLoss, { compact: true }),
+                { size: 2.2, anchor: "end", fill: "var(--accent-text)" });
         }
 
         // The curve itself.
@@ -344,117 +367,51 @@
             return xFor(p.returnPeriod).toFixed(2) + "," + yFor(p.loss).toFixed(2);
         }).join(" ");
 
-        var polyline = document.createElementNS(SVGNS, "polyline");
-        polyline.setAttribute("points", points);
-        polyline.setAttribute("fill", "none");
-        polyline.setAttribute("stroke", "var(--primary-light)");
-        polyline.setAttribute("stroke-width", "0.6");
-        polyline.setAttribute("stroke-linejoin", "round");
-        curveSvg.appendChild(polyline);
+        curveSvg.appendChild(svg.el("polyline", {
+            points: points,
+            fill: "none",
+            stroke: "var(--chart-series)",
+            "stroke-width": "0.6",
+            "stroke-linejoin": "round"
+        }));
 
         // Mark the two return periods carriers actually quote.
+        var quoted = [];
         simulation.returnPeriodLosses.forEach(function (r) {
             if (r.returnPeriod !== 100 && r.returnPeriod !== 250) { return; }
             if (r.returnPeriod < minRp || r.returnPeriod > maxRp) { return; }
 
             var cx = xFor(r.returnPeriod);
             var cy = yFor(r.loss);
-            var dot = document.createElementNS(SVGNS, "circle");
-            dot.setAttribute("cx", cx.toFixed(2));
-            dot.setAttribute("cy", cy.toFixed(2));
-            dot.setAttribute("r", "0.9");
-            dot.setAttribute("fill", "#e03131");
-            curveSvg.appendChild(dot);
+            curveSvg.appendChild(svg.el("circle", {
+                cx: cx.toFixed(2), cy: cy.toFixed(2), r: "0.9", fill: "var(--status-danger-fill)"
+            }));
 
-            appendText(curveSvg, cx, cy - 2, "1-in-" + r.returnPeriod + " " + formatMoneyShort(r.loss),
-                2.2, "middle", "var(--text)");
+            var label = "1-in-" + r.returnPeriod + " " + fmt.money(r.loss, { compact: true });
+            quoted.push(label);
+            svg.text(curveSvg, cx, cy - 2, label, { size: 2.2, anchor: "middle", fill: "var(--text)" });
         });
-    }
 
-    function log10(value) {
-        return Math.log(value) / Math.LN10;
-    }
-
-    function appendLine(svg, x1, y1, x2, y2, stroke, width) {
-        var line = document.createElementNS(SVGNS, "line");
-        line.setAttribute("x1", x1.toFixed(2));
-        line.setAttribute("y1", y1.toFixed(2));
-        line.setAttribute("x2", x2.toFixed(2));
-        line.setAttribute("y2", y2.toFixed(2));
-        line.setAttribute("stroke", stroke);
-        line.setAttribute("stroke-width", String(width));
-        svg.appendChild(line);
-        return line;
-    }
-
-    function appendText(svg, x, y, content, size, anchor, fill, rotate) {
-        var text = document.createElementNS(SVGNS, "text");
-        text.setAttribute("x", x.toFixed(2));
-        text.setAttribute("y", y.toFixed(2));
-        text.setAttribute("font-size", String(size));
-        text.setAttribute("text-anchor", anchor);
-        text.setAttribute("fill", fill);
-        if (rotate) {
-            text.setAttribute("transform", "rotate(" + rotate + " " + x.toFixed(2) + " " + y.toFixed(2) + ")");
-        }
-        text.textContent = content;
-        svg.appendChild(text);
-        return text;
+        charts.describe(curveSvg, "Occurrence exceedance probability curve, loss against return period on a log scale. " +
+            "Average annual loss " + fmt.money(simulation.averageAnnualLoss, { compact: true }) +
+            (quoted.length ? "; " + quoted.join("; ") : "") + ".");
     }
 
     // ── Community table ─────────────────────────────────────────────────────
 
     function buildCommunityTable(communities) {
+        var el = window.PortfolioDom.el;
+        var ramp = hazardRamp();
         var rows = communities.map(function (c) {
-            return '<div class="geo-cell-item">' +
-                '<div class="d-flex align-items-center justify-content-between">' +
-                '<span class="d-inline-flex align-items-center gap-2">' +
-                '<span style="width:0.7rem;height:0.7rem;border-radius:2px;background:' +
-                hazardColor(c.meanSiteHazard) + ';display:inline-block;"></span>' +
-                escapeHtml(c.name) + '</span>' +
-                '<strong>' + formatMoney(c.totalInsuredValue) + '</strong></div>' +
-                '<div class="geo-cell-meta">' + c.locationCount + ' locations · mean hazard ' +
-                c.meanSiteHazard.toFixed(2) + '</div></div>';
-        }).join("");
-        communityTable.innerHTML = rows;
-    }
-
-    // ── Helpers ─────────────────────────────────────────────────────────────
-
-    function formatMoney(value) {
-        if (!isFinite(value)) { return "–"; }
-        if (value >= 1e9) { return "$" + (value / 1e9).toFixed(2) + "B"; }
-        if (value >= 1e6) { return "$" + (value / 1e6).toFixed(1) + "M"; }
-        if (value >= 1e3) { return "$" + (value / 1e3).toFixed(0) + "K"; }
-        return "$" + Math.round(value);
-    }
-
-    function formatMoneyShort(value) {
-        if (!isFinite(value)) { return "–"; }
-        if (value >= 1e9) { return "$" + (value / 1e9).toFixed(1) + "B"; }
-        if (value >= 1e6) { return "$" + (value / 1e6).toFixed(0) + "M"; }
-        if (value >= 1e3) { return "$" + (value / 1e3).toFixed(0) + "K"; }
-        return "$" + Math.round(value);
-    }
-
-    function setBusy(busy) {
-        runBtn.disabled = busy;
-        reloadBtn.disabled = busy;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
-    }
-
-    function escapeHtml(text) {
-        var div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
+            var swatch = el("span", { class: "legend__swatch", "aria-hidden": "true" });
+            swatch.style.setProperty("--swatch", hazardColor(c.meanSiteHazard, ramp));
+            return el("div", { class: "geo-cell-item" },
+                el("div", { class: "d-flex align-items-center justify-content-between" },
+                    el("span", { class: "d-inline-flex align-items-center gap-2" }, swatch, c.name),
+                    el("strong", { text: fmt.money(c.totalInsuredValue, { compact: true }) })),
+                el("div", { class: "geo-cell-meta",
+                    text: c.locationCount + " locations · mean hazard " + c.meanSiteHazard.toFixed(2) }));
+        });
+        communityTable.replaceChildren.apply(communityTable, rows);
     }
 }());

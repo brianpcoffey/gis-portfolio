@@ -1,0 +1,56 @@
+/* Raster Change Detection page (moved out of inline style="" attributes and innerHTML strings).
+   Tokens only: the page already inherits gis.css and spatialcompute.css. */
+
+.change-swipe-stage {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 1;
+    cursor: ew-resize;
+    touch-action: none;
+}
+
+.change-swipe-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+}
+
+.change-swipe-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: var(--accent);
+    pointer-events: none;
+}
+
+.change-swipe-range {
+    max-width: 480px;
+}
+
+.change-mask-canvas {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 1;
+    image-rendering: pixelated;
+}
+
+.change-histogram-svg {
+    max-width: 620px;
+}
+
+.change-blob-row {
+    cursor: pointer;
+}
+
+.change-blob-confidence {
+    height: 4px;
+}
+
+.change-blob-confidence .progress-bar {
+    background: var(--accent);
+}
