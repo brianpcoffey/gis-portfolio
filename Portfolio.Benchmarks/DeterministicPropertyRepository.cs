@@ -3,9 +3,8 @@ using Portfolio.Repositories.Interfaces;
 
 namespace Portfolio.Benchmarks;
 
-/// <summary>
-/// A fixed-seed, in-memory <see cref="IPropertyRepository"/>.
-///
+/// <summary>A fixed-seed, in-memory <see cref="IPropertyRepository"/>.</summary>
+/// <remarks>
 /// <para>
 /// <c>HomeScoringService</c> is the only native-backed service whose public entry point
 /// reads from a database. Every other kernel has a deterministic in-repo dataset behind a
@@ -17,7 +16,7 @@ namespace Portfolio.Benchmarks;
 /// The filter call returns the pre-built list directly. Copying it would put an allocation
 /// of the whole set inside the timed region on both paths and dilute the measurement.
 /// </para>
-/// </summary>
+/// </remarks>
 internal sealed class DeterministicPropertyRepository : IPropertyRepository
 {
     private readonly List<Property> _properties;

@@ -7,20 +7,14 @@ namespace Portfolio.Tests.Services
 {
     // Tests for NativeScoringBridge.
     //
-    // The native library (portfolio_scoring.dll/.so) will not be present during a
-    // standard `dotnet test` run on a build server.  All tests therefore assert
-    // correct behaviour in BOTH states:
-    //   1. Library absent  – IsAvailable == false; managed fallback is exercised.
-    //   2. Library present – IsAvailable == true; scores produced by the kernel
-    //      must be within ±0.01 of the managed implementation (floating-point
-    //      rounding only).
+    // The native library (portfolio_scoring.dll/.so) is not present in a standard `dotnet test`
+    // run, so the tests that call the bridge skip themselves (Assert.SkipUnless on IsAvailable).
+    // The native-parity CI job builds the kernels; there they run, and the scores produced by the
+    // kernel must be within ±0.01 of the managed implementation (floating-point rounding only).
     //
-    // The parity assertions in this class run only when IsAvailable is true.
-    // On CI they are unconditionally skipped via xUnit Skip.
+    // The Managed* helper tests at the end do not touch the bridge and run everywhere.
     public class NativeScoringBridgeTests
     {
-        // ── Helpers ──────────────────────────────────────────────────────────────
-
         private static Property MakeProperty() => new()
         {
             Id                  = 1,
@@ -138,17 +132,13 @@ namespace Portfolio.Tests.Services
               + (prefs.WeightEnvironment   / total) * ManagedEnvironment(p));
         }
 
-        // ── Availability ─────────────────────────────────────────────────────────
-
         [Fact]
         public void IsAvailable_ReturnsBoolWithoutThrowing()
         {
-            // Just exercising the static ctor; no assertion on the value itself
-            // because the library may or may not be present on the current machine.
+            // Just exercising the static initializer (NativeKernelLoader.TryLoad); no assertion on the
+            // value itself because the library may or may not be present on the current machine.
             var _ = NativeScoringBridge.IsAvailable;
         }
-
-        // ── Single-property parity (runs only when native lib is present) ────────
 
         [Fact]
         public void ScoreProperty_WhenNativeAvailable_MatchesManagedWithinTolerance()
@@ -199,8 +189,6 @@ namespace Portfolio.Tests.Services
             Assert.InRange(native.Composite,     0, 100);
         }
 
-        // ── Batch parity (runs only when native lib is present) ─────────────────
-
         [Fact]
         public void ScorePropertyBatch_WhenNativeAvailable_ReturnsCorrectCount()
         {
@@ -231,8 +219,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(single1.Composite, batch[0].Composite, precision: 6);
             Assert.Equal(single2.Composite, batch[1].Composite, precision: 6);
         }
-
-        // ── Edge cases (managed, always run) ────────────────────────────────────
 
         [Fact]
         public void ScoreProperty_ZeroBudget_AffordabilityDefaultsFifty()
@@ -265,7 +251,6 @@ namespace Portfolio.Tests.Services
             Assert.True(with.Condition >= without.Condition);
         }
 
-        // ── Always-run managed helper parity tests ───────────────────────────────
         // These validate the in-file helper methods that mirror the managed scoring
         // logic. They run on every CI build regardless of native library presence.
 

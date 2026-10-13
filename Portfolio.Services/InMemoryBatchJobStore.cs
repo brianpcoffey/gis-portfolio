@@ -5,13 +5,13 @@ using Portfolio.Services.Abstractions;
 namespace Portfolio.Services;
 
 /// <summary>
-/// Thread-safe, in-process job store backed by a <see cref="ConcurrentDictionary{TKey,TValue}"/>.
-/// A job expires <see cref="JobTtl"/> after its last write, matching the Redis store's sliding
-/// expiry. Expired jobs are pruned on every write and are never returned by reads.
+/// Thread-safe in-process job store over a <see cref="ConcurrentDictionary{TKey,TValue}"/>; like the Redis store, a
+/// job expires <see cref="JobTtl"/> after its last write, and expired jobs are pruned on writes and never returned
+/// by reads.
 /// </summary>
 public sealed class InMemoryBatchJobStore : IBatchJobStore
 {
-    /// <summary>How long a job is kept after its last write. Same value as the Redis store's key expiry.</summary>
+    /// <summary>How long a job is kept after its last write, matching the Redis store's key expiry.</summary>
     public static readonly TimeSpan JobTtl = TimeSpan.FromHours(24);
 
     private readonly ConcurrentDictionary<string, Entry> _store = new();

@@ -28,8 +28,6 @@
     var comparison = R.dom.comparison;
     var resultsPanel = R.dom.resultsPanel;
 
-    // ── Data ────────────────────────────────────────────────────────────────
-
     // Runs `opts` through PortfolioUi.runAction on `trigger`, holding the other action
     // buttons busy as well. The pending flag also stops a map click starting a second request.
     function runExclusive(trigger, opts) {
@@ -161,7 +159,6 @@
     // layers.js (map-marker clicks) and results.js (station buttons) request isochrones through here.
     R.requestIsochrone = requestIsochrone;
 
-    // ── Bootstrap ────────────────────────────────────────────────────────
     optimizeBtn.addEventListener("click", optimize);
     isochroneBtn.addEventListener("click", showIsochroneForFirstStation);
     resetBtn.addEventListener("click", resetToExisting);

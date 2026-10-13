@@ -4,10 +4,6 @@
 (function (HF) {
     const announce = HF.announce;
 
-    // ============================================================
-    // Slider / Weight Configuration
-    // ============================================================
-
     const weightSliderIds = [
         "sliderWAfford", "sliderWNeighbor", "sliderWSize", "sliderWAppreciation",
         "sliderWCondition", "sliderWCommute", "sliderWAmenities", "sliderWTax",
@@ -60,10 +56,6 @@
         el.setAttribute("aria-valuetext", text);
     }
 
-    // ============================================================
-    // Preference Collection
-    // ============================================================
-
     function getPreferences() {
         const prefs = {};
         for (const [sliderId, cfg] of Object.entries(sliders)) {
@@ -75,11 +67,6 @@
         return prefs;
     }
 
-    // ============================================================
-    // Weight Engine — Dynamic Clamping
-    // ============================================================
-
-    /** Returns the integer sum of all weight sliders. */
     function getWeightSum() {
         let sum = 0;
         for (const id of weightSliderIds) {
@@ -114,7 +101,6 @@
             const steppedMax = Math.floor(maxAllowed / step) * step;
             el.max = steppedMax;
 
-            // If the current value somehow exceeds the new max, clamp it
             if (currentVal > steppedMax) {
                 el.value = steppedMax;
                 syncSliderLabel(id);
@@ -122,10 +108,7 @@
         }
     }
 
-    /**
-     * Updates the visual weight bar for a given slider.
-     * Bar width is shown as percentage of 100, color-coded by severity.
-     */
+    // Bar width is a percentage of 100, color-coded by severity.
     function updateWeightBar(sliderId) {
         const barId = weightBarIds[sliderId];
         if (!barId) return;
@@ -151,7 +134,6 @@
         }
     }
 
-    /** Refreshes all weight bars to match their slider values. */
     function updateAllWeightBars() {
         for (const sliderId of weightSliderIds) {
             updateWeightBar(sliderId);
@@ -174,7 +156,6 @@
         if (totalEl) totalEl.textContent = total;
         if (remainingEl) remainingEl.textContent = remaining;
 
-        // Update the SVG ring indicator
         if (budgetRing) {
             const circumference = 2 * Math.PI * 36; // r=36
             const offset = circumference - (total / 100) * circumference;
@@ -212,10 +193,6 @@
 
     let lastWeightState = null;
 
-    // ============================================================
-    // Slider Wiring
-    // ============================================================
-
     function wireSliders() {
         for (const [sliderId, cfg] of Object.entries(sliders)) {
             const el = document.getElementById(sliderId);
@@ -226,7 +203,6 @@
                 syncSliderLabel(sliderId);
 
                 if (cfg.divisor) {
-                    // Weight slider — enforce budget, then update visuals
                     enforceWeightBudget(sliderId);
                     updateWeightBar(sliderId);
                     updateWeightStatus();
@@ -237,19 +213,13 @@
             syncSliderLabel(sliderId);
         }
 
-        // Initial sync
         enforceWeightBudget();
         updateAllWeightBars();
         updateWeightStatus();
     }
 
-    // ============================================================
-    // Persistence — Save/Load slider state via localStorage
-    // ============================================================
-
     const PREFS_STORAGE_KEY = "homeFinderPrefs";
 
-    /** Persists the current slider values to localStorage. */
     function persistPreferences() {
         try {
             const prefs = getPreferences();

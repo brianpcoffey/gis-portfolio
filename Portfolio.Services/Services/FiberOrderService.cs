@@ -39,7 +39,8 @@ public class FiberOrderService : IFiberOrderService
     public async Task<FiberOrderDto> CreateAsync(CreateFiberOrderDto dto, CancellationToken cancellationToken = default)
     {
         var userId = CurrentUserId;
-        // OrderNumber will be generated in repository or here if needed
+        // Known gap: OrderNumber is never generated (not here, in FiberOrderRepository or in
+        // FiberDemoSeedData), so the dashboard's "Order #" column is blank. Tracked as a cleanup follow-up.
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var order = new FiberOrder
         {

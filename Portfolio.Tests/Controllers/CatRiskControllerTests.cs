@@ -8,8 +8,6 @@ namespace Portfolio.Tests.Controllers
 {
     public class CatRiskControllerTests
     {
-        // ── Catastrophe Risk Analyzer ───────────────────────────────────────────
-
         [Fact]
         public async Task CatRiskGetBook_ReturnsOk()
         {

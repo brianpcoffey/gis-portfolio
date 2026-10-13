@@ -1,4 +1,3 @@
-// mapManager.js
 // Responsible for map initialization and rendering. Reads state but does not touch DOM.
 
 import { getState, subscribe } from './stateStore.js';
@@ -102,7 +101,6 @@ export const MapManager = {
                         zoom: 4
                     });
 
-                    // expose to callers
                     this.view = view;
                     this.map = map;
 
@@ -113,7 +111,6 @@ export const MapManager = {
                         if (surface && label) surface.setAttribute("aria-label", label);
                     });
 
-                    // Subscribe to state changes
                     subscribe(state => {
                         this.renderFeatures(state);
                     });

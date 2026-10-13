@@ -16,13 +16,16 @@ namespace Portfolio.Tests.Integration;
 /// <summary>
 /// WP-43 / D-17: pins the exact wire bodies of the two controller error shapes that the
 /// <c>[BadRequestOnArgumentException]</c> and <c>[ArcGisUnavailable]</c> filters now produce, through
-/// the real host. All but the "framework" case below passed unchanged on the old try/catch code and
-/// on the filters, so they prove the move did not change a byte of the response. The 400 cases use
-/// the real services (no stubs) so the message text is the one a client sees; the 503 cases stub the
-/// service to throw the breaker exception (opening a real breaker takes several slow retried
-/// requests). Nothing leaves the machine: the factory replaces every ArcGIS transport. One factory
-/// per test, because rate-limit state lives in the host.
+/// the real host.
 /// </summary>
+/// <remarks>
+/// All but the "framework" case below passed unchanged on the old try/catch code and on the filters, so
+/// they prove the move did not change a byte of the response. The 400 cases use the real services (no
+/// stubs) so the message text is the one a client sees; the 503 cases stub the service to throw the
+/// breaker exception (opening a real breaker takes several slow retried requests). Nothing leaves the
+/// machine: the factory replaces every ArcGIS transport. One factory per test, because rate-limit state
+/// lives in the host.
+/// </remarks>
 public class ControllerErrorBodyTests
 {
     private const string GeocodingDetail =
@@ -50,7 +53,7 @@ public class ControllerErrorBodyTests
         return new MultipartFormDataContent { { file, "file", "addresses.csv" } };
     }
 
-    // ---- 400 { error }: real services, so the message is exactly what a client receives -------------
+    // 400 { error }: real services, so the message is exactly what a client receives.
 
     [Fact]
     public async Task Dbscan_WithNoPoints_Returns400ErrorBody()
@@ -98,7 +101,7 @@ public class ControllerErrorBodyTests
         Assert.Equal(0, f.ArcGisAttempts("IBatchGeocodingService"));
     }
 
-    // ---- the one deliberate change: framework-originated text no longer reaches the 400 body ---------
+    // The one deliberate change: framework-originated text no longer reaches the 400 body.
 
     private sealed class FrameworkThrowingReverseService : IReverseGeocodingService
     {
@@ -125,7 +128,7 @@ public class ControllerErrorBodyTests
         await AssertBody(r, HttpStatusCode.BadRequest, "application/json", "{\"error\":\"The request was invalid.\"}");
     }
 
-    // ---- 503 ProblemDetails: the breaker exception, from a stubbed service ------------------------
+    // 503 ProblemDetails: the breaker exception, from a stubbed service.
 
     [Fact]
     public async Task ReverseGeocode_BreakerOpen_Returns503GeocodingBody()

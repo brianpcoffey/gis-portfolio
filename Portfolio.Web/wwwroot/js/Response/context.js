@@ -21,7 +21,6 @@
     // split would paint almost everything a single colour.
     var ISOCHRONE_BANDS = [2, 4, 8, 12];
 
-    // ── DOM refs ──────────────────────────────────────────────────────────
     var histogramSvg = document.getElementById("responseHistogramSvg");
     var dom = {
         alertBox: ui.inlineAlert(document.getElementById("responseAlert")),
@@ -46,7 +45,6 @@
         kpiNfpa: document.getElementById("responseKpiNfpa")
     };
 
-    // ── State ─────────────────────────────────────────────────────────────
     var state = {
         scenario: null,
         candidateById: {},
@@ -59,7 +57,6 @@
         pending: false
     };
 
-    // ── Leaflet map ───────────────────────────────────────────────────────
     // PortfolioMap supplies the OSM tile layer, attribution and canvas rendering
     // (preferCanvas keeps hundreds of demand circles and assignment lines smooth).
     var map = window.PortfolioMap.create("responseMap", { label: "Redlands response coverage map" });

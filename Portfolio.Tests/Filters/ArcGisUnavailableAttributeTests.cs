@@ -12,7 +12,7 @@ using static Portfolio.Tests.Filters.BadRequestOnArgumentExceptionAttributeTests
 namespace Portfolio.Tests.Filters;
 
 /// <summary>
-/// WP-43 / D-17 and CX-19: <c>[ArcGisUnavailable]</c> unit tests. The same bodies are pinned through the
+/// WP-43 / D-17 and CX-19: <c>[ArcGisUnavailable]</c> unit tests; the same bodies are pinned through the
 /// real host in <c>ControllerErrorBodyTests</c>.
 /// </summary>
 public class ArcGisUnavailableAttributeTests

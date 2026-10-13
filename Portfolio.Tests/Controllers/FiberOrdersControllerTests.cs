@@ -21,8 +21,6 @@ namespace Portfolio.Tests.Controllers
                 _serviceMock.Object);
         }
 
-        // ── GetAll ──────────────────────────────────────────────────────
-
         [Fact]
         public async Task GetAll_ReturnsOkWithList()
         {
@@ -48,8 +46,6 @@ namespace Portfolio.Tests.Controllers
             // Act & Assert
             await Assert.ThrowsAsync<Exception>(() => _controller.GetAll(CancellationToken.None));
         }
-
-        // ── Get ─────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Get_WhenFound_ReturnsOk()
@@ -90,8 +86,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<Exception>(() => _controller.Get(1, CancellationToken.None));
         }
 
-        // ── Create ──────────────────────────────────────────────────────
-
         [Fact]
         public async Task Create_WithValidDto_ReturnsOkWithCreatedOrder()
         {
@@ -120,8 +114,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<Exception>(() => _controller.Create(dto, CancellationToken.None));
         }
 
-        // ── Update ──────────────────────────────────────────────────────
-
         [Fact]
         public async Task Update_WhenSuccessful_ReturnsOkWithUpdatedOrder()
         {
@@ -149,8 +141,6 @@ namespace Portfolio.Tests.Controllers
             // Act & Assert
             await Assert.ThrowsAsync<Exception>(() => _controller.Update(1, dto, CancellationToken.None));
         }
-
-        // ── Delete ──────────────────────────────────────────────────────
 
         [Fact]
         public async Task Delete_WhenDeleted_ReturnsNoContent()

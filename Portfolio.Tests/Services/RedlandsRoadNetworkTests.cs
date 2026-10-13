@@ -47,8 +47,6 @@ namespace Portfolio.Tests.Services
             return false;
         }
 
-        // ── Basic structure ──────────────────────────────────────────────────────
-
         [Fact]
         public void Build_ReturnsNonTrivialNetwork()
         {
@@ -112,8 +110,6 @@ namespace Portfolio.Tests.Services
                 Assert.False(string.IsNullOrWhiteSpace(n.Label), $"Node {n.Id} has an empty label.");
         }
 
-        // ── Coordinate sanity ─────────────────────────────────────────────────────
-
         [Fact]
         public void Build_AllNodeCoordinatesAreFinite()
         {
@@ -133,8 +129,6 @@ namespace Portfolio.Tests.Services
                 Assert.InRange(node.Longitude, -117.23, -117.11);
             }
         }
-
-        // ── Esri HQ destination ───────────────────────────────────────────────────
 
         [Fact]
         public void Build_DestinationNodeIdIsEsriHq()
@@ -161,8 +155,6 @@ namespace Portfolio.Tests.Services
             Assert.True(connections >= 2, $"Esri HQ should have >=2 connections but has {connections}.");
         }
 
-        // ── Reachability: every intersection can route to Esri HQ ─────────────────
-
         [Fact]
         public void Build_EsriHqIsReachableFromEveryNode()
         {
@@ -171,8 +163,6 @@ namespace Portfolio.Tests.Services
                 Assert.True(CanReach(node.Id, destination),
                     $"Esri HQ is not reachable from node {node.Id} ({node.Label}).");
         }
-
-        // ── Graph name ────────────────────────────────────────────────────────────
 
         [Fact]
         public void Build_GraphNameContainsNodeCountAndCity()

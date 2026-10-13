@@ -7,13 +7,12 @@ namespace Portfolio.Services.Interfaces
     /// </summary>
     public interface IUserProfileService
     {
-        // --- Identity resolution ---
-
-        /// <summary>Reads the current user's id from the AnonUserId cookie or Google identity.</summary>
+        /// <summary>
+        /// Reads the current user's id from <c>HttpContext.Items["PortfolioIdentity"]</c>, set by the
+        /// anonymous-identity middleware or the Google sign-in event.
+        /// </summary>
         /// <returns>The current user's id, or <c>null</c> if none can be resolved.</returns>
         Guid? GetCurrentUserId();
-
-        // --- Claims CRUD (scoped to current user) ---
 
         /// <summary>Returns all claims for the current user.</summary>
         Task<List<ClaimDto>> GetClaimsAsync(CancellationToken cancellationToken = default);
@@ -27,8 +26,6 @@ namespace Portfolio.Services.Interfaces
         /// <summary>Removes the claim of the given type from the current user.</summary>
         /// <returns><c>true</c> if a claim was removed; otherwise <c>false</c>.</returns>
         Task<bool> RemoveClaimAsync(string type, CancellationToken cancellationToken = default);
-
-        // --- Profile CRUD ---
 
         /// <summary>Returns the profile with the given user id, or <c>null</c> if not found.</summary>
         Task<ProfileDto?> GetProfileByIdAsync(Guid userId, CancellationToken cancellationToken = default);
@@ -46,16 +43,10 @@ namespace Portfolio.Services.Interfaces
         /// <returns><c>true</c> if a row was deleted; otherwise <c>false</c>.</returns>
         Task<bool> DeleteProfileAsync(Guid userId, CancellationToken cancellationToken = default);
 
-        // --- Google OAuth integration ---
-
         /// <summary>Creates or updates a profile from a Google identity and returns the resulting user id.</summary>
         Task<Guid> CreateOrUpdateFromGoogleAsync(GoogleProfileDto google, CancellationToken cancellationToken = default);
 
-        // --- Convenience helpers ---
-
-        /// <summary>
-        /// Returns true if the current user has a linked Google account.
-        /// </summary>
+        /// <summary>Returns true if the current user has a linked Google account.</summary>
         Task<bool> IsGoogleLinkedAsync(CancellationToken cancellationToken = default);
     }
 }

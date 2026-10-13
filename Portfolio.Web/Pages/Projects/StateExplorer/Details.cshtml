@@ -33,7 +33,7 @@
 			<li><strong>Module boundaries:</strong> <code>mapManager.js</code> owns ArcGIS map lifecycle; <code>featureService.js</code> and <code>collectionService.js</code> wrap API calls; <code>stateStore.js</code> tracks client state; <code>uiManager.js</code> updates the DOM.</li>
 			<li><strong>API communication:</strong> Shared <code>api-config.js</code> constants provide versioned routes for features, saved features, and collections.</li>
 			<li><strong>State management:</strong> Client-side state tracks active layer, selected feature, saved features, collections, map highlights, and theme preferences without a SPA framework.</li>
-			<li><strong>Authentication handling:</strong> Saved features use the anonymous cookie automatically sent with API calls; collections use the shared fetch helper to redirect unauthenticated users to Google login.</li>
+			<li><strong>Authentication handling:</strong> Saved features use the anonymous cookie automatically sent with API calls; collections require sign-in, so an anonymous visitor stays on the page with collections disabled and a link to the app's login page, rather than being redirected.</li>
 			<li><strong>Performance:</strong> ArcGIS handles map rendering in the browser, while the backend handles persistence, ownership, validation, and protected proxy calls.</li>
 		</ul>
 	</section>

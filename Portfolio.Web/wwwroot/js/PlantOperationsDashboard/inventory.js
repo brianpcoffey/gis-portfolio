@@ -83,7 +83,6 @@ function loadInventoryTable() {
         .finally(() => $('#inventoryTableSpinner').addClass('d-none'));
 }
 
-// Show material detail modal
 function showMaterialDetailModal(material) {
     let modalId = 'plantOpsMaterialDetailModal';
     let $modals = $('#plantOpsModals');
@@ -118,7 +117,6 @@ function showMaterialDetailModal(material) {
     modal.show();
 }
 
-// Show receive stock modal
 window.showReceiveStockModal = function (materialId) {
     let modalId = 'plantOpsReceiveStockModal';
     let $modals = $('#plantOpsModals');
@@ -271,7 +269,6 @@ function renderMaterialModal(material, isEdit, modalId, $modals) {
 }
 window.renderMaterialModal = renderMaterialModal;
 
-// Delete material by ID
 async function deleteMaterial(materialId) {
     if (!await confirmDialog('Are you sure you want to delete this material?')) return;
     window.apiFetch(`${window.PortfolioApi.routes.fiber.materials}/${materialId}`, {

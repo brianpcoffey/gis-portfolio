@@ -36,8 +36,6 @@ namespace Portfolio.Tests.Services
             return JsonSerializer.Serialize(new { candidates = Array.Empty<object>() });
         }
 
-        // ── Parse happy path ──────────────────────────────────────────────────
-
         [Fact]
         public async Task ParseAsync_WellFormedAddress_ExtractsAllComponents()
         {
@@ -80,8 +78,6 @@ namespace Portfolio.Tests.Services
             Assert.Contains("Apt 4B", result.StandardizedAddress);
         }
 
-        // ── Parse partial: missing ZIP reduces confidence ─────────────────────
-
         [Fact]
         public async Task ParseAsync_MissingZip_ReturnsReducedConfidence()
         {
@@ -100,8 +96,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(5.0 / 6.0, result.ParseConfidence, precision: 5);
         }
 
-        // ── Parse empty input ─────────────────────────────────────────────────
-
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -115,8 +109,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAnyAsync<ArgumentException>(
                 () => service.ParseAsync(rawAddress!, CancellationToken.None));
         }
-
-        // ── Validate happy path: high-score returns High tier ─────────────────
 
         [Fact]
         public async Task ValidateAsync_HighScoreResult_ReturnsHighTier()
@@ -144,8 +136,6 @@ namespace Portfolio.Tests.Services
             Assert.NotEmpty(result.MatchedAddress);
         }
 
-        // ── Validate Medium tier ──────────────────────────────────────────────
-
         [Fact]
         public async Task ValidateAsync_MediumScoreResult_ReturnsMediumTier()
         {
@@ -159,8 +149,6 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.Equal(ConfidenceTier.Medium, result.ConfidenceTier);
         }
-
-        // ── Validate fallback: first pass low, fallback succeeds → Low tier ───
 
         [Fact]
         public async Task ValidateAsync_LowFirstPassScore_TriggersAndReturnsFallbackAsLow()
@@ -182,8 +170,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(ConfidenceTier.Low, result.ConfidenceTier);
         }
 
-        // ── Validate unresolved: no candidates → Unresolved tier ─────────────
-
         [Fact]
         public async Task ValidateAsync_NoCandidates_ReturnsUnresolvedTier()
         {
@@ -198,8 +184,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(ConfidenceTier.Unresolved, result.ConfidenceTier);
             Assert.Equal(0.0, result.Score);
         }
-
-        // ── Suffix normalisation [Theory] covering all 9 abbreviations ────────
 
         [Theory]
         [InlineData("100 Oak St, Denver, CO 80201",   "Street")]
@@ -222,8 +206,6 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.Equal(expectedSuffix, result.StreetSuffix);
         }
-
-        // ── Directional qualifier does not consume city ────────────────────────
 
         [Fact]
         public async Task Parse_DirectionalAfterSuffix_DoesNotEatCity()
@@ -273,8 +255,6 @@ namespace Portfolio.Tests.Services
             }
         }
 
-        // ── Persistence limits: an address exactly at the boundary is accepted ──
-
         [Fact]
         public async Task ParseAsync_AcceptsAddressAtMaximumLength()
         {
@@ -286,8 +266,6 @@ namespace Portfolio.Tests.Services
 
             Assert.Equal("1", result.HouseNumber);
         }
-
-        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
 
         [Fact]
         public async Task ParseAsync_RejectsAddressOverLimit()

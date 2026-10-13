@@ -11,8 +11,8 @@ using System.Security.Claims;
 namespace Portfolio.Services.Services
 {
     /// <summary>
-    /// Manages user profiles and claims.
-    /// Resolves the current user from HttpContext.Items["PortfolioIdentity"] (set by the anonymous-identity middleware or the Google sign-in event).
+    /// Manages user profiles and claims for the user in <c>HttpContext.Items["PortfolioIdentity"]</c>, set by the
+    /// anonymous-identity middleware or the Google sign-in event.
     /// </summary>
     public class UserProfileService : IUserProfileService
     {
@@ -40,20 +40,18 @@ namespace Portfolio.Services.Services
             _logger = logger;
         }
 
-        // Reads the current user's GUID from HttpContext.Items["PortfolioIdentity"], set by AnonymousUserMiddleware or the sign-in event.
-        // Returns null if called outside a valid HTTP request context.
         public Guid? GetCurrentUserId()
         {
             var ctx = _httpContextAccessor.HttpContext;
             if (ctx == null) return null;
-            // Prefer authenticated user identity resolved from Items (set during sign-in event).
-            // Falls back to anonymous identity set by AnonymousUserMiddleware.
+            // Set by AnonymousUserMiddleware: a signed-in request gets the profile its GoogleId claim maps to (it
+            // never falls back to the anonymous cookie), any other request the anonymous id. The Google sign-in
+            // event also sets it on the callback request.
             if (ctx.Items.TryGetValue(HttpContextItemKey, out var o) && o is Guid g) return g;
             return null;
         }
 
-        // Returns all claims for the current anonymous user as ClaimDtos.
-        // Throws InvalidOperationException if no user identity is present on the request.
+        // Throws InvalidOperationException if the request carries no user identity.
         public async Task<List<ClaimDto>> GetClaimsAsync(CancellationToken cancellationToken = default)
         {
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
@@ -61,8 +59,6 @@ namespace Portfolio.Services.Services
             return claims.Select(c => new ClaimDto { Type = c.ClaimType, Value = c.ClaimValue }).ToList();
         }
 
-        // Returns the value of the claim matching the given type for the current user.
-        // Returns null if the claim does not exist.
         public async Task<string?> GetClaimAsync(string type, CancellationToken cancellationToken = default)
         {
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");
@@ -70,7 +66,6 @@ namespace Portfolio.Services.Services
             return claim?.ClaimValue;
         }
 
-        // Creates or overwrites the claim of the given type for the current user.
         // Throws if the claim type is blank or the value is null, if the type exceeds
         // MaxClaimTypeLength or the value MaxClaimValueLength, or if adding a new claim type
         // would take the user past MaxClaimsPerUser.
@@ -90,8 +85,6 @@ namespace Portfolio.Services.Services
             _logger.LogInformation("Claim '{ClaimType}' set for user {UserId}", type, LogRedaction.UserId(userId));
         }
 
-        // Removes the claim of the given type for the current user.
-        // Returns false if the claim did not exist.
         public async Task<bool> RemoveClaimAsync(string type, CancellationToken cancellationToken = default)
         {
             var userId = GetCurrentUserId() ?? throw new InvalidOperationException("UserId not available");

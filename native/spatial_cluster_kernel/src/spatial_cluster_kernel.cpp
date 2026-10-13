@@ -8,7 +8,6 @@ namespace
 	constexpr std::int32_t kUnvisited = -2;
 	constexpr std::int32_t kNoise = -1;
 
-	// Collects the indices of every point within `epsilonSquared` of point `origin`.
 	void region_query(
 		const ClusterPointNative* points,
 		int count,

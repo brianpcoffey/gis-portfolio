@@ -5,10 +5,6 @@
     const state = HF.state;
     const announce = HF.announce;
 
-    // ============================================================
-    // Results Panel
-    // ============================================================
-
     function getScoreBarClass(score) {
         if (score >= 70) return "score-excellent";
         if (score >= 40) return "score-good";

@@ -62,8 +62,6 @@ namespace Portfolio.Services.Services
             });
         }
 
-        // Computes TIV concentration within a ring around each location, preferring the
-        // native kernel and falling back to managed code.
         public Task<AccumulationResultDto> ComputeAccumulationAsync(
             AccumulationRequestDto request,
             CancellationToken cancellationToken = default)
@@ -95,9 +93,8 @@ namespace Portfolio.Services.Services
             return Task.FromResult(BuildAccumulationResult(request, ringTiv, neighborCount, nativeAccelerated));
         }
 
-        // Simulates the event catalog against the book, preferring the native kernel and
-        // falling back to managed code. The kernel returns per-event losses; AAL and the
-        // exceedance curve are derived here, where they stay readable and testable.
+        // The kernel returns per-event losses; AAL and the exceedance curve are derived here, where they stay
+        // readable and testable.
         public Task<SimulationResultDto> SimulateAsync(
             SimulationRequestDto request,
             CancellationToken cancellationToken = default)
@@ -130,8 +127,6 @@ namespace Portfolio.Services.Services
 
             return Task.FromResult(BuildSimulationResult(request, eventLosses, affectedCounts, nativeAccelerated));
         }
-
-        // ── Validation ──────────────────────────────────────────────────────────
 
         private static void ValidateLocations(List<CatLocationDto> locations, string paramName)
         {
@@ -186,8 +181,7 @@ namespace Portfolio.Services.Services
             }
         }
 
-        // ── Managed fallbacks (mirror the native kernel exactly) ────────────────
-
+        // Managed fallbacks; these mirror the native kernel exactly.
         private static (double[] RingTiv, int[] NeighborCount) AccumulateManaged(
             AccumulationRequestDto request,
             CancellationToken cancellationToken)
@@ -293,8 +287,6 @@ namespace Portfolio.Services.Services
             return net > cap ? cap : net;
         }
 
-        // ── Result shaping ──────────────────────────────────────────────────────
-
         private static AccumulationResultDto BuildAccumulationResult(
             AccumulationRequestDto request,
             double[] ringTiv,
@@ -347,7 +339,7 @@ namespace Portfolio.Services.Services
         {
             var events = request.Events;
 
-            // Average Annual Loss is the rate-weighted mean of the event losses.
+            // Average Annual Loss is the rate-weighted sum of the event losses.
             var aal = 0.0;
             var totalRate = 0.0;
             var worstIndex = -1;
@@ -393,8 +385,6 @@ namespace Portfolio.Services.Services
             };
         }
 
-        // Builds the occurrence exceedance probability curve.
-        //
         // For a loss level L the annual exceedance rate is the summed frequency of every
         // event whose loss exceeds L, so sorting descending by loss and accumulating rate
         // yields one curve point per event: (returnPeriod = 1 / cumulativeRate, loss).
@@ -489,8 +479,7 @@ namespace Portfolio.Services.Services
             return sampled;
         }
 
-        // ── Geodesy (mirrors the native kernel) ─────────────────────────────────
-
+        // Mirrors the native kernel.
         private static double HaversineKm(double lat1, double lon1, double lat2, double lon2)
         {
             var dLat = (lat2 - lat1) * Math.PI / 180.0;

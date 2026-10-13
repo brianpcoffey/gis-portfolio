@@ -8,9 +8,8 @@ using Portfolio.Services.Services.ChangeDetection;
 namespace Portfolio.Services.Services
 {
     /// <summary>
-    /// Multitemporal raster change detection. The pipeline is the classic remote-sensing
-    /// chain: CVA magnitude, Otsu threshold, morphological open, connected components,
-    /// ranked detections.
+    /// Multitemporal raster change detection: CVA magnitude, Otsu threshold, morphological open,
+    /// connected components, then ranked detections.
     /// </summary>
     public class ChangeDetectionService : IChangeDetectionService
     {
@@ -60,32 +59,28 @@ namespace Portfolio.Services.Services
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // ── 1. Change Vector Analysis magnitude ─────────────────────────
             var nativeAccelerated = true;
             var magnitude = ComputeMagnitude(request, epochA, epochB, ref nativeAccelerated, cancellationToken);
             var (histogramMin, histogramMax) = MagnitudeRange(magnitude);
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // ── 2. Threshold. The histogram is always computed, even in manual ──
-            // ── mode, because the UI plots it next to the chosen threshold. ──
+            // The histogram is always computed, even in manual mode, because the UI plots it next to
+            // the chosen threshold.
             var (otsuThreshold, histogram) = ComputeOtsu(magnitude, ref nativeAccelerated);
             var threshold = mode == "manual" ? request.ManualThreshold : otsuThreshold;
 
-            // ── 3. Binarize ─────────────────────────────────────────────────
             var mask = new byte[magnitude.Length];
             for (var i = 0; i < magnitude.Length; i++)
                 mask[i] = magnitude[i] > threshold ? (byte)1 : (byte)0;
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // ── 4. Morphological open ───────────────────────────────────────
             if (request.OpenIterations > 0)
                 mask = ComputeOpen(mask, width, height, request.OpenIterations, ref nativeAccelerated, cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // ── 5. Connected components ─────────────────────────────────────
             var components = ComputeComponents(mask, width, height, magnitude, ref nativeAccelerated, cancellationToken);
 
             return Task.FromResult(BuildResult(
@@ -171,8 +166,6 @@ namespace Portfolio.Services.Services
             return ManagedChangeKernels.LabelComponentsManaged(mask, width, height, magnitude, cancellationToken);
         }
 
-        // ── Validation ──────────────────────────────────────────────────────────
-
         private static (string Mode, double[] EpochA, double[] EpochB) ValidateDetectRequest(DetectRequestDto request)
         {
             ValidateDimensions(request.Width, request.Height, nameof(request));
@@ -237,8 +230,6 @@ namespace Portfolio.Services.Services
             }
             return array;
         }
-
-        // ── Result shaping ──────────────────────────────────────────────────────
 
         // Returns null when the component is below the minimum blob area.
         private static ChangeBlobDto? TryBuildBlob(

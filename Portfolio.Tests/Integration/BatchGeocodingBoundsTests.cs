@@ -5,8 +5,8 @@ using Portfolio.Tests.Helpers;
 namespace Portfolio.Tests.Integration;
 
 /// <summary>
-/// WP-36 / D-10: both batch geocoding endpoints reject a CSV over 1,000 data rows with the public
-/// 400 <c>{ "error": ... }</c> body. The rejection happens before any ArcGIS call.
+/// WP-36 / D-10: both batch geocoding endpoints reject a CSV over 1,000 data rows, before any ArcGIS
+/// call, with the public 400 <c>{ "error": ... }</c> body.
 /// </summary>
 public class BatchGeocodingBoundsTests
 {

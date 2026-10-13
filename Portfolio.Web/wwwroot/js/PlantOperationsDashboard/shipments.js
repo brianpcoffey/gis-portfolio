@@ -81,7 +81,6 @@ function loadShipmentsTable() {
         .catch(err => loadError.show(plantOpsFailure('Failed to load shipments', err)));
 }
 
-// Show modal for updating shipment status
 window.showShipmentStatusModal = function (shipmentId, currentStatus) {
     let modalId = 'plantOpsShipmentStatusModal';
     let $modals = $('#plantOpsModals');
@@ -246,7 +245,6 @@ function renderShipmentModal(shipment, isEdit, modalId, $modals) {
 }
 window.renderShipmentModal = renderShipmentModal;
 
-// Delete shipment by ID
 async function deleteShipment(shipmentId) {
     if (!await confirmDialog('Are you sure you want to delete this shipment?')) return;
     window.apiFetch(`${window.PortfolioApi.routes.fiber.shipments}/${shipmentId}`, {

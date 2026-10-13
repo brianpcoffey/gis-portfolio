@@ -77,7 +77,7 @@
 		<h2 class="h4 mb-3">Infrastructure and Deployment</h2>
 		<ul>
 			<li><strong>Hosting:</strong> Runs as part of the same Render-hosted ASP.NET Core application as the other portfolio APIs.</li>
-			<li><strong>Configuration:</strong> ArcGIS timeout, retry, and circuit breaker behavior is configured through the typed <code>HttpClient</code> registration in <code>Program.cs</code>.</li>
+			<li><strong>Configuration:</strong> ArcGIS timeout, retry, and circuit breaker behavior is configured through the typed <code>HttpClient</code> registration in <code>Startup/ArcGisClientRegistration.cs</code>.</li>
 			<li><strong>Shared Redis infrastructure:</strong> This stateless parser does not store results in Redis, but the hosting application uses Redis for batch geocoding job state, geocoding caches, and production Data Protection keys when configured.</li>
 			<li><strong>Observability:</strong> Controller logging records upstream circuit-breaker failures; unexpected exceptions flow through centralized middleware.</li>
 			<li><strong>Container/cloud readiness:</strong> Because the workflow is stateless, it works well in Docker, Kubernetes, Azure Container Apps, AKS, or any horizontally scaled container platform.</li>
@@ -91,7 +91,7 @@
 			<li><strong>Regex-based parsing:</strong> Keeps the implementation transparent and dependency-light, but does not match the coverage of a specialized address parsing library.</li>
 			<li><strong>Server-side parsing:</strong> Centralizes business rules and testability rather than duplicating parsing logic in JavaScript.</li>
 			<li><strong>Fallback query:</strong> Improves recovery for noisy addresses but may produce less specific matches; the confidence tier communicates that uncertainty.</li>
-			<li><strong>Future improvements:</strong> Add provider abstraction, per-country parsing strategies, normalized-address caching, rate limiting, telemetry by failure reason, and human-review queues for unresolved addresses.</li>
+			<li><strong>Future improvements:</strong> Add provider abstraction, per-country parsing strategies, normalized-address caching, telemetry by failure reason, and human-review queues for unresolved addresses.</li>
 		</ul>
 	</section>
 

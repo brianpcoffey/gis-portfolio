@@ -15,17 +15,15 @@ namespace Portfolio.Services.Interfaces
         Task<List<BatchGeocodingResultDto>> GeocodeAsync(IFormFile file, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Validates a CSV file, adds a job to the bounded queue and returns immediately.
-        /// The caller polls <c>GET /geocoding/batch/{jobId}/status</c> for progress and results.
+        /// Validates a CSV file and queues a job, returning immediately; callers poll
+        /// <c>GET /geocoding/batch/{jobId}/status</c> for progress and results.
         /// </summary>
         /// <returns>The job id used to poll for status.</returns>
         /// <exception cref="ArgumentException">The CSV exceeds the row cap.</exception>
         /// <exception cref="Portfolio.Services.Abstractions.BatchQueueFullException">The queue is at capacity.</exception>
         Task<string> EnqueueAsync(IFormFile file, CancellationToken ct = default);
 
-        /// <summary>
-        /// Runs a queued job to a terminal status (Completed or Failed). Called by the hosted worker.
-        /// </summary>
+        /// <summary>Runs a queued job to a terminal status (Completed or Failed); the hosted worker calls it.</summary>
         Task ProcessJobAsync(Portfolio.Services.Abstractions.BatchWorkItem item, CancellationToken ct);
     }
 }

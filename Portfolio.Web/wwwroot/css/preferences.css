@@ -1,15 +1,8 @@
-/* ============================================================
-   preferences.css — User-controllable display & accessibility
-   ------------------------------------------------------------
-   Every preference is expressed as a data-* attribute (or CSS
-   custom property) on <html>, set before first paint by the
-   inline script in _Layout and thereafter by preferences.js.
-   This keeps the whole system declarative and easy to extend:
-   add a new attribute here + a new entry in the JS registry.
-   ============================================================ */
+/* Every preference is expressed as a data-* attribute (or CSS custom property) on <html>, set before
+   first paint by the inline script in _Layout and thereafter by preferences.js. This keeps the whole
+   system declarative and easy to extend: add a new attribute here + a new entry in the JS registry. */
 
-/* ---- Text scaling -------------------------------------------------
-   Overrides the base html font-size (rem cascade scales the whole UI).
+/* Text scaling: overrides the base html font-size (rem cascade scales the whole UI).
    Loaded after site.css so this wins. Range is clamped in JS. */
 :root {
     --user-font-scale: 1;
@@ -25,7 +18,7 @@ html {
     }
 }
 
-/* ---- Skip to content link (first focusable in <body>) ------------- */
+/* Skip link: keep it the first focusable element in <body> (_Layout.cshtml) so it is the first Tab stop. */
 .skip-link {
     position: absolute;
     left: 0.75rem;
@@ -47,7 +40,7 @@ html {
     outline-offset: 2px;
 }
 
-/* ---- Theme-switch transition suppression --------------------------
+/* Theme-switch transition suppression.
    A theme switch changes custom properties, not declarations. Chrome does
    not restart a running transition when only the var() behind a property
    changes, so anything transitioning color/background keeps the OLD palette
@@ -62,8 +55,7 @@ html.theme-switching *::after {
     transition: none !important;
 }
 
-/* ---- Keyboard focus visibility -----------------------------------
-   Only for keyboard users (:focus-visible), so mouse clicks stay clean. */
+/* Keyboard focus visibility: only for keyboard users (:focus-visible), so mouse clicks stay clean. */
 :focus-visible {
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
@@ -113,13 +105,11 @@ body.dark-mode .form-select:focus-visible {
     --focus-ring: var(--focus-ring-on-dark);
 }
 
-/* ---- Underline links preference ----------------------------------- */
 html[data-underline="on"] a:not(.btn):not(.navbar-brand):not(.nav-link):not(.dropdown-item) {
     text-decoration: underline;
     text-underline-offset: 0.15em;
 }
 
-/* ---- Readable font & spacing preference --------------------------- */
 html[data-readable="on"] body,
 html[data-readable="on"] .btn,
 html[data-readable="on"] .form-control,
@@ -135,8 +125,7 @@ html[data-readable="on"] body {
     line-height: 1.8;
 }
 
-/* ---- High-contrast preference ------------------------------------
-   Re-points the palette variables on the themed element so every
+/* High-contrast preference: re-points the palette variables on the themed element so every
    var(--text)/var(--surface)/... consumer picks it up automatically. */
 html[data-contrast="high"] body:not(.dark-mode) {
     --text: #000000;
@@ -175,8 +164,7 @@ html[data-contrast="high"] *:focus-visible {
     outline-width: 4px;
 }
 
-/* ---- Reduced-motion preference -----------------------------------
-   Honour the OS setting by default, and let the user force it on. */
+/* Reduced motion: honour the OS setting by default, and let the user force it on. */
 @media (prefers-reduced-motion: reduce) {
     html:not([data-motion="no-pref"]) *,
     html:not([data-motion="no-pref"]) *::before,
@@ -203,13 +191,8 @@ html[data-motion="reduce"] .fade-in {
     transform: none !important;
 }
 
-/* ============================================================
-   Preferences controls
-   ------------------------------------------------------------
-   One shared partial, rendered on the public /Accessibility page
-   and inside the signed-in profile card. Sizing is in rem so the
-   panel scales with the very text-size setting it contains.
-   ============================================================ */
+/* Controls: one shared partial, rendered on the public /Accessibility page and inside the signed-in
+   profile card. Sizing is in rem so the panel scales with the very text-size setting it contains. */
 .prefs-controls {
     display: flex;
     flex-direction: column;
@@ -251,7 +234,7 @@ html[data-motion="reduce"] .fade-in {
     border-top: 1px solid var(--border);
 }
 
-/* ---- Segmented control (theme) ------------------------------------ */
+/* Segmented control (theme) */
 .pref-seg {
     display: flex;
     gap: 0.35rem;
@@ -294,7 +277,7 @@ html[data-motion="reduce"] .fade-in {
     transform: translateY(1px);
 }
 
-/* ---- Text size ---------------------------------------------------- */
+/* Text size */
 .pref-badge {
     padding: 0.15rem 0.6rem;
     border-radius: 999px;
@@ -329,7 +312,6 @@ html[data-motion="reduce"] .fade-in {
 .pref-range-cap--sm { font-size: 0.85rem; }
 .pref-range-cap--lg { font-size: 1.4rem; }
 
-/* ---- Switch rows -------------------------------------------------- */
 .pref-switches {
     list-style: none;
     margin: 0;
@@ -402,7 +384,6 @@ html[data-motion="reduce"] .fade-in {
     border-color: var(--accent-on-fill);
 }
 
-/* ---- Reset -------------------------------------------------------- */
 .prefs-reset-btn {
     align-self: flex-start;
     display: inline-flex;
@@ -424,7 +405,6 @@ html[data-motion="reduce"] .fade-in {
     background: var(--accent-soft);
 }
 
-/* ---- Standalone /Accessibility page ------------------------------- */
 .a11y-page .prefs-panel {
     padding: 1.75rem;
     background: var(--surface);
@@ -454,19 +434,13 @@ html[data-contrast="high"] .pref-switch__control .form-check-input {
     border-color: var(--text);
 }
 
-/* ============================================================
-   Motion & entrance animations
-   ------------------------------------------------------------
-   All use `animation`/`transition`, so the reduced-motion rules
-   above neutralize them automatically (near-zero duration →
-   elements settle instantly at their final, visible state).
-   ============================================================ */
+/* Entrance animations all use `animation`/`transition`, so the reduced-motion rules above neutralize
+   them automatically (near-zero duration → elements settle instantly at their final, visible state). */
 @keyframes prefRise {
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Preference blocks rise in, gently staggered, on the standalone page */
 .a11y-page .pref-block {
     animation: prefRise 0.35s ease both;
 }
@@ -475,7 +449,6 @@ html[data-contrast="high"] .pref-switch__control .form-check-input {
 .a11y-page .pref-block:nth-of-type(3) { animation-delay: 0.15s; }
 .a11y-page .pref-block:nth-of-type(4) { animation-delay: 0.21s; }
 
-/* Profile cards rise in on load, gently staggered */
 .profile-page .profile-card {
     animation: prefRise 0.45s ease both;
 }
@@ -485,7 +458,6 @@ html[data-contrast="high"] .pref-switch__control .form-check-input {
 .profile-page .profile-card:nth-of-type(4) { animation-delay: 0.22s; }
 .profile-page .profile-card:nth-of-type(5) { animation-delay: 0.28s; }
 
-/* Animated accent underline for main nav links */
 .navbar-nav .nav-link:not(.dropdown-toggle) {
     position: relative;
 }
@@ -507,7 +479,6 @@ html[data-contrast="high"] .pref-switch__control .form-check-input {
     transform: scaleX(1);
 }
 
-/* Segmented + switch controls: gentle press feedback */
 .pref-seg .btn:active {
     transform: translateY(1px);
 }

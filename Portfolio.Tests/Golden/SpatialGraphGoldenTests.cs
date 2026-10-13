@@ -4,7 +4,7 @@ using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Golden
 {
-    // Golden output for SpatialGraphService before it is split. Dijkstra and A* run over
+    // Golden output for SpatialGraphService, captured before it was split. Dijkstra and A* run over
     // the Redlands road network from fixed nodes to Esri HQ (node 2530). The result, the
     // number of nodes settled and the nodes themselves are pinned (in settle order for A*,
     // as a set for Dijkstra), so any change to the search shows up even when the final
@@ -146,8 +146,6 @@ namespace Portfolio.Tests.Golden
             Assert.Equal(1, result.ExploredNodes);
         }
 
-        // ── Service area and distances ──────────────────────────────────────────
-
         [Fact]
         public async Task ServiceArea_ThreeKmFromEsriHq_ReachesThePinnedNodeCount()
         {
@@ -186,8 +184,6 @@ namespace Portfolio.Tests.Golden
             Assert.Equal(7701.523, distances.Sum(), 1e-3);
             Assert.Equal(0, distances[graph.Nodes.FindIndex(n => n.Id == EsriHq)]);
         }
-
-        // ── Immutability ────────────────────────────────────────────────────────
 
         // The graph is built once and shared by every request. Route, fleet and response
         // runs all read it; none may write to it.

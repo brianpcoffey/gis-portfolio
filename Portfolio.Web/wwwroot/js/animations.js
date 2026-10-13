@@ -7,10 +7,6 @@ document.addEventListener('DOMContentLoaded', function () {
     initScrollAnimations();
 });
 
-/**
- * Initialize fade-in animations on scroll.
- * Elements sharing the same direct parent are staggered in sequence.
- */
 function initScrollAnimations() {
     const animatableSelectors = [
         '.skill-card',

@@ -16,8 +16,6 @@ namespace Portfolio.Tests.Services
     // for `dotnet run --project Portfolio.Benchmarks`, which parity-checks every kernel.
     public class NativeParityTests
     {
-        // ── spatial_geometry_kernel ─────────────────────────────────────────────
-        //
         // Regression guard: Geometry_ClipToBoundingBox used to clamp each vertex
         // independently instead of clipping the polygon. That returned a vertex count equal
         // to the input with every outside vertex squashed onto the box edge, never emitted a
@@ -135,8 +133,6 @@ namespace Portfolio.Tests.Services
             }
         }
 
-        // ── viewshed_kernel ─────────────────────────────────────────────────────
-        //
         // Regression guard: the ray walk rounded sample coordinates with std::lround in C++
         // (half away from zero) and Math.Round in C# (half to even), so any ray whose sample
         // landed exactly on .5 walked a different cell. Both now use explicit half-up.
@@ -186,7 +182,6 @@ namespace Portfolio.Tests.Services
                 Assert.Equal(expected[i], native.Visibility[i]);
         }
 
-        // ── Local reference implementations ─────────────────────────────────────
         // Deliberately duplicated rather than reused: these encode the contract the native
         // kernels must honour, so they must not drift if a service is refactored.
 

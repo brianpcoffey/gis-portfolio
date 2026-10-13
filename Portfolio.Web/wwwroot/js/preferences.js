@@ -1,6 +1,5 @@
 /**
  * preferences.js — user-controllable display & accessibility settings
- * -------------------------------------------------------------------
  * Single source of truth for theme + accessibility preferences.
  *
  * Design goals:
@@ -202,9 +201,9 @@
         return out;
     }
 
-    /* ---- Live OS changes feed the remaining "auto" option (motion) ----
-       Theme deliberately does not listen: once the visitor has a stored
-       light/dark value, the OS no longer gets to change it underneath them. */
+    // Live OS changes feed the remaining "auto" option (motion). Theme deliberately does not
+    // listen: once the visitor has a stored light/dark value, the OS no longer gets to change
+    // it underneath them.
     function onSystemChange() {
         if (prefs.motion === 'auto') REGISTRY.motion.apply(prefs.motion);
     }
@@ -214,7 +213,6 @@
         mqReduce.addListener(onSystemChange);
     }
 
-    /* ---- Screen-reader announcements ---- */
     function announce(msg) {
         var live = document.getElementById('a11yAnnounce');
         if (!live) return;
@@ -235,7 +233,6 @@
         }
     }
 
-    /* ---- Navbar theme toggle (light ⇄ dark) ---- */
     function cycleTheme() {
         set('theme', prefs.theme === 'dark' ? 'light' : 'dark');
     }
@@ -256,7 +253,6 @@
         }
     }
 
-    /* ---- Bind the panel controls generically from [data-pref] ---- */
     function syncControls() {
         document.querySelectorAll('[data-pref]').forEach(function (ctrl) {
             var key = ctrl.getAttribute('data-pref');
@@ -301,7 +297,6 @@
         if (themeBtn) themeBtn.addEventListener('click', cycleTheme);
     }
 
-    /* ---- Public API for future extensions ---- */
     window.SitePreferences = {
         get: function (key) { return key ? prefs[key] : getAll(); },
         set: set,

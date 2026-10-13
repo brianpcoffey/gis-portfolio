@@ -28,10 +28,11 @@ namespace Portfolio.Web.Controllers.Api
             _fleetRoutingService = fleetRoutingService;
         }
 
-        /// <summary>
-        /// Returns a named demo delivery scenario: depot, customer stops with demands and
-        /// time windows, and the fleet available to cover them.
-        /// </summary>
+        /// <summary>Returns a named demo delivery scenario.</summary>
+        /// <remarks>
+        /// The scenario comprises the depot, customer stops with demands and time windows, and the fleet available to
+        /// cover them.
+        /// </remarks>
         /// <param name="preset">Scenario key: "morning", "fullday", or "tight".</param>
         /// <returns>The scenario, ready to post straight back to the optimize endpoint.</returns>
         [HttpGet("scenario")]
@@ -49,11 +50,11 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _fleetRoutingService.GetScenarioAsync(preset ?? string.Empty, cancellationToken));
         }
 
-        /// <summary>
-        /// Solves the capacitated vehicle routing problem with time windows for the supplied
-        /// scenario, returning one route per vehicle used with road-following geometry, the
-        /// per-stop arrival schedule, and the convergence trace.
-        /// </summary>
+        /// <summary>Solves the capacitated vehicle routing problem with time windows for a supplied scenario.</summary>
+        /// <remarks>
+        /// Returns one route per vehicle used with road-following geometry, the per-stop arrival schedule, and the
+        /// convergence trace.
+        /// </remarks>
         /// <param name="request">Depot, stops, fleet parameters, and search budget.</param>
         /// <returns>Routes, unserved stops, objective trace, and honest timings.</returns>
         [HttpPost("optimize")]

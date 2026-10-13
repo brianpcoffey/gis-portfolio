@@ -7,9 +7,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for managing collections.
-    /// </summary>
+    /// <summary>API endpoints for managing collections.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/collections")]
@@ -25,10 +23,7 @@ namespace Portfolio.Web.Controllers.Api
             _logger = logger;
         }
 
-        /// <summary>
-        /// Gets all collections for the authenticated user.
-        /// </summary>
-        /// <returns>List of collections.</returns>
+        /// <summary>Gets all collections for the authenticated user.</summary>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<CollectionDto>), 200)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -38,11 +33,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(items);
         }
 
-        /// <summary>
-        /// Gets a collection by its ID.
-        /// </summary>
-        /// <param name="id">Collection ID.</param>
-        /// <returns>The collection.</returns>
+        /// <summary>Gets a collection by its ID.</summary>
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(CollectionDto), 200)]
         [ProducesResponseType(404)]
@@ -54,11 +45,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(item);
         }
 
-        /// <summary>
-        /// Creates a new collection.
-        /// </summary>
-        /// <param name="dto">Collection data.</param>
-        /// <returns>The created collection.</returns>
+        /// <summary>Creates a new collection.</summary>
         [HttpPost]
         [BadRequestOnArgumentException]
         [RequestSizeLimit(4_096)]
@@ -80,12 +67,7 @@ namespace Portfolio.Web.Controllers.Api
             }
         }
 
-        /// <summary>
-        /// Updates an existing collection.
-        /// </summary>
-        /// <param name="id">Collection ID.</param>
-        /// <param name="dto">Update data.</param>
-        /// <returns>The updated collection.</returns>
+        /// <summary>Updates an existing collection.</summary>
         [HttpPut("{id:int}")]
         [RequestSizeLimit(4_096)]
         [ProducesResponseType(typeof(CollectionDto), 200)]
@@ -105,10 +87,7 @@ namespace Portfolio.Web.Controllers.Api
             }
         }
 
-        /// <summary>
-        /// Deletes a collection by its ID.
-        /// </summary>
-        /// <param name="id">Collection ID.</param>
+        /// <summary>Deletes a collection by its ID.</summary>
         /// <returns>No content if deleted, NotFound if not found.</returns>
         [HttpDelete("{id:int}")]
         [ProducesResponseType(204)]

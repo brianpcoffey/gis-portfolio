@@ -1,7 +1,6 @@
-// stateStore.js
 // Centralized application state with subscribe/notify and safe update helpers.
 
-export const MAX_COMPARE = 4; // maximum features allowed in compare set
+export const MAX_COMPARE = 4;
 
 const initialState = {
     features: [],
@@ -19,7 +18,6 @@ const initialState = {
 
 export const appState = { ...initialState };
 
-// Subscribers
 const listeners = new Set();
 
 export function subscribe(fn) {
@@ -33,7 +31,6 @@ function notify() {
     });
 }
 
-// Utilities
 export function getState() {
     // Return shallow snapshot to discourage direct mutation
     return {
@@ -59,7 +56,6 @@ export function setState(partial) {
     notify();
 }
 
-// Helpers for common updates
 export function updateFeatures(featuresArray) {
     appState.features = Array.isArray(featuresArray) ? featuresArray : [];
     notify();

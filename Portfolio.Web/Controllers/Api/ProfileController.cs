@@ -7,9 +7,7 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for anonymous and authenticated user profile claims.
-    /// </summary>
+    /// <summary>API endpoints for anonymous and authenticated user profile claims.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/profile")]
@@ -25,9 +23,7 @@ namespace Portfolio.Web.Controllers.Api
         private bool IsInvalidClaim(ClaimCreateDto claim) =>
             claim == null || string.IsNullOrWhiteSpace(claim.Type);
 
-        /// <summary>
-        /// Gets the anonymous user profile and claims.
-        /// </summary>
+        /// <summary>Gets the anonymous user profile and claims.</summary>
         [HttpGet]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ProfileDto), 200)]
@@ -43,9 +39,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(new ProfileDto { UserId = userId.Value, Claims = claims });
         }
 
-        /// <summary>
-        /// Sets or updates a claim for the anonymous user.
-        /// </summary>
+        /// <summary>Sets or updates a claim for the anonymous user.</summary>
         [HttpPost("claims")]
         [RequestSizeLimit(8_192)]
         [AllowAnonymous]
@@ -59,7 +53,6 @@ namespace Portfolio.Web.Controllers.Api
 
             if (ProfileClaimTypes.Protected.Contains(claim.Type))
             {
-                // log attempt here if needed
                 return BadRequest(new { error = $"Claim type '{claim.Type}' cannot be set anonymously." });
             }
 
@@ -67,9 +60,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(new ClaimDto { Type = claim.Type, Value = claim.Value });
         }
 
-        /// <summary>
-        /// Removes a claim for the anonymous user.
-        /// </summary>
+        /// <summary>Removes a claim for the anonymous user.</summary>
         [HttpDelete("claims/{type}")]
         [AllowAnonymous]
         [ProducesResponseType(204)]
@@ -83,7 +74,6 @@ namespace Portfolio.Web.Controllers.Api
 
             if (ProfileClaimTypes.Protected.Contains(type))
             {
-                // log attempt here if needed
                 return BadRequest(new { error = $"Claim type '{type}' cannot be removed anonymously." });
             }
 
@@ -91,9 +81,7 @@ namespace Portfolio.Web.Controllers.Api
             return removed ? NoContent() : NotFound();
         }
 
-        /// <summary>
-        /// Sets or updates a claim for the authenticated user.
-        /// </summary>
+        /// <summary>Sets or updates a claim for the authenticated user.</summary>
         [HttpPut("me/claims")]
         [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
@@ -107,7 +95,6 @@ namespace Portfolio.Web.Controllers.Api
 
             if (ProfileClaimTypes.Protected.Contains(claim.Type))
             {
-                // log attempt here if needed
                 return BadRequest(new { error = $"Claim type '{claim.Type}' is managed by Google OAuth and cannot be set manually." });
             }
 

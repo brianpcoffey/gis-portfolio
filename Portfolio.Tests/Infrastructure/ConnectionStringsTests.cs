@@ -5,13 +5,11 @@ using Portfolio.Web.Infrastructure;
 namespace Portfolio.Tests.Infrastructure
 {
     /// <summary>
-    /// Characterization tests for the connection-string helpers extracted from Program.cs.
-    /// All values are fake test vectors.
+    /// Characterization tests for the helpers in Portfolio.Web/Infrastructure/ConnectionStrings.cs
+    /// (originally inline in Program.cs), using only fake test vectors.
     /// </summary>
     public class ConnectionStringsTests
     {
-        // ---------- Postgres ----------
-
         [Fact]
         public void ParsePostgres_HostFormat_PassesThroughUnchanged()
         {
@@ -102,8 +100,6 @@ namespace Portfolio.Tests.Infrastructure
             Assert.DoesNotContain("secretpw", ex.Message);
         }
 
-        // ---------- Database URL resolution ----------
-
         private static IConfiguration Config(string? defaultConnection) =>
             new ConfigurationBuilder()
                 .AddInMemoryCollection(defaultConnection is null
@@ -148,8 +144,6 @@ namespace Portfolio.Tests.Infrastructure
             Assert.Equal("Database connection string not set.", ex.Message);
         }
 
-        // ---------- Redis ----------
-
         [Fact]
         public void NormalizeRedis_EmptyOrWhitespace_ReturnsEmpty()
         {
@@ -181,8 +175,6 @@ namespace Portfolio.Tests.Infrastructure
         {
             Assert.Equal("h:6380,ssl=True,abortConnect=False", ConnectionStrings.NormalizeRedis("rediss://h"));
         }
-
-        // ---------- Mask ----------
 
         [Fact]
         public void MaskRedisPassword_MasksPasswordPart()

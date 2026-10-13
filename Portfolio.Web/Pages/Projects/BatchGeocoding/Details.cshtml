@@ -89,7 +89,7 @@
 			<li><strong>Channels over unbounded tasks:</strong> Bounded channels make throughput predictable and prevent large uploads from creating unbounded concurrent ArcGIS calls.</li>
 			<li><strong>Async job over synchronous request:</strong> The job pattern avoids long-running HTTP requests and supports scale-out status polling, at the cost of added job-state complexity.</li>
 			<li><strong>Cache before persistence:</strong> Geocoding outputs are treated as transient workflow results; persisting only job snapshots keeps the database clean but limits historical analytics.</li>
-			<li><strong>Future improvements:</strong> Add durable queue-backed workers, per-client rate limits, file size quotas, idempotency keys, dead-letter handling, and managed Redis/PostgreSQL in production cloud environments.</li>
+			<li><strong>Future improvements:</strong> Add a durable job queue (the current one is in-process), idempotency keys, dead-letter handling, and managed Redis/PostgreSQL in production cloud environments.</li>
 		</ul>
 	</section>
 
@@ -99,7 +99,7 @@
 			<li>How would you set concurrency limits against a third-party geocoding API with variable latency and quotas?</li>
 			<li>Why is Redis-backed job state important once the app runs more than one replica?</li>
 			<li>How would you evolve this from in-process background work to a queue/worker architecture?</li>
-			<li>Where would you add rate limiting, file validation, observability, and tenant-level quotas?</li>
+			<li>Beyond the existing rate limiting and file validation, where would you add observability and tenant-level quotas?</li>
 			<li>How do timeout, retry, and circuit breaker policies interact with user-facing SLA and upstream protection?</li>
 		</ul>
 	</section>

@@ -1,8 +1,6 @@
 namespace Portfolio.Tests
 {
-    /// <summary>
-    /// Deterministic <see cref="TimeProvider"/> for unit tests.
-    /// </summary>
+    /// <summary>Deterministic <see cref="TimeProvider"/> for unit tests.</summary>
     public sealed class FakeTimeProvider : TimeProvider
     {
         private DateTimeOffset _utcNow;

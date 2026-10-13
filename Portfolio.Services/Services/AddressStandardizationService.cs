@@ -58,7 +58,6 @@ namespace Portfolio.Services.Services
             ["Blf"] = "Bluff",       ["Bluff"] = "Bluff"
         };
 
-        // Known US state abbreviations for validation.
         private static readonly HashSet<string> UsStateAbbreviations = new(StringComparer.OrdinalIgnoreCase)
         {
             "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
@@ -69,11 +68,9 @@ namespace Portfolio.Services.Services
             "DC","PR","VI","GU","MP","AS"
         };
 
-        // Token-level patterns used during parsing.
         private static readonly Regex ZipTokenPattern    = new(@"^\d{5}(-\d{4})?$", RegexOptions.Compiled);
         private static readonly Regex NormalizeSpaces    = new(@"\s+", RegexOptions.Compiled);
 
-        // Unit designator keywords (case-insensitive token match).
         private static readonly HashSet<string> UnitKeywords = new(StringComparer.OrdinalIgnoreCase)
         {
             "Apt", "Suite", "Ste", "Unit", "#"
@@ -100,7 +97,6 @@ namespace Portfolio.Services.Services
                     $"Address must be {MaxRawAddressLength} characters or fewer.", nameof(rawAddress));
         }
 
-        // Parses a raw freeform address into structured, standardized components.
         public Task<AddressParsedDto> ParseAsync(string rawAddress, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(rawAddress, nameof(rawAddress));
@@ -109,8 +105,6 @@ namespace Portfolio.Services.Services
             return Task.FromResult(result);
         }
 
-        // Parses, then geocodes the standardized address against ArcGIS.
-        // Falls back to City+State+ZIP if the full-address score is below 75.
         public async Task<AddressValidationResultDto> ValidateAsync(string rawAddress, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(rawAddress, nameof(rawAddress));
@@ -118,10 +112,8 @@ namespace Portfolio.Services.Services
 
             var parsed = ParseAddress(rawAddress);
 
-            // First pass: geocode the full standardized address.
             var (matchedAddress, score) = await GeocodeAddressAsync(parsed.StandardizedAddress, cancellationToken);
 
-            // Fallback: if score < 75, retry with City+State+ZIP only.
             if (score < 75.0)
             {
                 var fallbackQuery = BuildCityStateZipQuery(parsed);
@@ -151,8 +143,7 @@ namespace Portfolio.Services.Services
             };
         }
 
-        // Calls the ArcGIS findAddressCandidates endpoint for a single address string.
-        // Returns ("", 0) when no candidates are returned.
+        // Returns ("", 0) when ArcGIS returns no candidates or the request fails.
         private async Task<(string MatchedAddress, double Score)> GeocodeAddressAsync(
             string address, CancellationToken cancellationToken)
         {
@@ -203,7 +194,6 @@ namespace Portfolio.Services.Services
             public string Current => Tokens[Pos];
         }
 
-        // Components extracted during parsing.
         private sealed class ParsedParts
         {
             public string HouseNumber = string.Empty;
@@ -216,12 +206,10 @@ namespace Portfolio.Services.Services
             public string PostalCode = string.Empty;
         }
 
-        // Core parsing logic: token-based pipeline.
         // Commas are treated as whitespace; all parsing is driven by a single flat token array
         // so that comma-delimited and comma-free address formats are handled identically.
         private static AddressParsedDto ParseAddress(string rawAddress)
         {
-            // Normalise: collapse whitespace, replace commas with spaces, then re-split into tokens.
             var normalised = NormalizeSpaces.Replace(rawAddress.Replace(',', ' ').Trim(), " ");
             var cursor = new TokenCursor(normalised.Split(' ', StringSplitOptions.RemoveEmptyEntries));
             var parts = new ParsedParts();
@@ -232,8 +220,6 @@ namespace Portfolio.Services.Services
             ConsumeDirectional(cursor, parts, suffixFound);
             ConsumeUnit(cursor, parts);
 
-            // ── Step 7: City ──
-            // All tokens remaining between cursor and end (inclusive) form the city.
             if (cursor.HasRemaining)
             {
                 parts.City = ToTitleCase(string.Join(" ", cursor.Tokens[cursor.Pos..(cursor.End + 1)]));
@@ -242,8 +228,8 @@ namespace Portfolio.Services.Services
             return BuildStandardized(parts, ComputeConfidence(parts));
         }
 
-        // ── Step 5 & 6: consume PostalCode and State from the tail first ──
-        // This anchors the tail so everything in between is city/street.
+        // Consume the ZIP and state from the tail first: this anchors the tail so everything in between is
+        // city/street.
         private static void ConsumeTail(TokenCursor cursor, ParsedParts parts)
         {
             var tokens = cursor.Tokens;
@@ -260,8 +246,7 @@ namespace Portfolio.Services.Services
             }
         }
 
-        // ── Step 2: HouseNumber ──
-        // Matches a leading numeric token (digits only, or digits + single letter suffix like "123A").
+        // Takes a leading token that starts with a digit and holds only letters and digits (e.g. "123", "123A").
         private static void ConsumeHouseNumber(TokenCursor cursor, ParsedParts parts)
         {
             if (cursor.HasRemaining && cursor.Current.Length > 0
@@ -273,9 +258,7 @@ namespace Portfolio.Services.Services
             }
         }
 
-        // ── Step 3: StreetName + StreetSuffix ──
-        // Walk tokens forward until we find one that is a known suffix abbreviation.
-        // Returns whether a suffix was found.
+        // Walks tokens forward until one is a known street suffix; returns whether a suffix was found.
         private static bool ConsumeStreet(TokenCursor cursor, ParsedParts parts)
         {
             var streetNameTokens = new List<string>();
@@ -308,7 +291,6 @@ namespace Portfolio.Services.Services
             return suffixFound;
         }
 
-        // ── Step 8: Directional qualifier after suffix ──
         // A directional token immediately after the suffix (e.g. "NW" in "Ave NW") is stored
         // separately so it can be placed after the expanded suffix in the standardized address
         // ("Pennsylvania Avenue NW"), not before it. The state and ZIP have already been
@@ -323,8 +305,6 @@ namespace Portfolio.Services.Services
             }
         }
 
-        // ── Step 4: Unit designator ──
-        // Check whether the token at cursor is a unit keyword; if so, consume keyword + value.
         private static void ConsumeUnit(TokenCursor cursor, ParsedParts parts)
         {
             if (!cursor.HasRemaining || !UnitKeywords.Contains(cursor.Current))
@@ -343,7 +323,6 @@ namespace Portfolio.Services.Services
             }
         }
 
-        // ── Step 9: ParseConfidence ──
         // Denominator is 6 when no unit is present (unit is optional and not penalised),
         // 7 when a unit was extracted (all 7 components are in play).
         private static double ComputeConfidence(ParsedParts parts)
@@ -362,8 +341,7 @@ namespace Portfolio.Services.Services
             return (found + 1) / 7.0;
         }
 
-        // ── Step 10: StandardizedAddress ──
-        // directional goes after the expanded suffix: "Pennsylvania Avenue NW".
+        // The directional goes after the expanded suffix: "Pennsylvania Avenue NW".
         private static AddressParsedDto BuildStandardized(ParsedParts parts, double parseConfidence)
         {
             var streetPart = string.Join(" ",
@@ -392,7 +370,6 @@ namespace Portfolio.Services.Services
             };
         }
 
-        // Determines the ConfidenceTier from a numeric ArcGIS score.
         private static ConfidenceTier DetermineConfidenceTier(double score)
         {
             if (score >= 90.0) return ConfidenceTier.High;
@@ -401,7 +378,6 @@ namespace Portfolio.Services.Services
             return ConfidenceTier.Unresolved;
         }
 
-        // Builds a City+State+ZIP query string for the ArcGIS fallback.
         private static string BuildCityStateZipQuery(AddressParsedDto parsed)
         {
             return string.Join(", ",
@@ -409,7 +385,6 @@ namespace Portfolio.Services.Services
                     .Where(s => !string.IsNullOrWhiteSpace(s)));
         }
 
-        // Simple title-case helper (no external libraries).
         private static string ToTitleCase(string input)
         {
             if (string.IsNullOrWhiteSpace(input))

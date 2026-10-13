@@ -1,21 +1,11 @@
-﻿/* ======================================
-   Portfolio – shared component styles
-   --------------------------------------
-   Palette variables, base element styles (html/body/a/headings) and
-   .section-title live in base.css — the single source of truth. This file
-   holds shared component styles only. base.css, utilities.css, layout.css,
-   components.css and preferences.css are all linked directly in
-   _Layout.cshtml (base and utilities before this file).
-   ====================================== */
-/* base.css and utilities.css used to be @imported here. They are now linked
-   directly from _Layout so asp-append-version can cache-bust them — an
-   @import carries no version hash of its own, so a palette change in
+﻿/* Shared component styles only. Palette variables, base element styles (html/body/a/headings)
+   and .section-title live in base.css, the single source of truth. */
+
+/* base.css and utilities.css are linked from _Layout, not @imported here, so asp-append-version
+   can cache-bust them — an @import carries no version hash of its own, so a palette change in
    base.css never reached a returning visitor. */
 
-/* ======================================
-   Buttons
-   ====================================== */
-/* White label on --accent is 3.24:1 and on --accent-light 2.45:1; both are
+/* White label on --accent is 3.25:1 and on --accent-light 2.43:1; both are
    under AA. The filled tokens carry the label instead, and hover goes
    *darker* rather than lighter so the contrast improves on interaction. */
 /* Both variants are written on Bootstrap's button variable API so hover,
@@ -80,9 +70,6 @@
     --bs-btn-disabled-border-color: var(--on-dark);
 }
 
-/* ======================================
-   Theme Toggle
-   ====================================== */
 .theme-toggle-btn {
     background: transparent;
     border: none;
@@ -101,9 +88,6 @@ body.dark-mode .theme-toggle-btn {
     color: #ffd700;
 }
 
-/* ======================================
-   Profile Avatar
-   ====================================== */
 .profile-avatar {
     display: flex;
     align-items: center;
@@ -123,9 +107,6 @@ body.dark-mode .theme-toggle-btn {
     border-color: var(--accent-light);
 }
 
-/* ======================================
-   User Dropdown - Mobile Touch Target & Positioning
-   ====================================== */
 .user-dropdown-toggle {
     min-height: 44px;
     min-width: 44px;
@@ -158,9 +139,6 @@ body.dark-mode .theme-toggle-btn {
     }
 }
 
-/* ======================================
-   Google Login Button
-   ====================================== */
 .btn-google {
     background-color: #fff;
     color: #444;
@@ -184,16 +162,12 @@ body.dark-mode .theme-toggle-btn {
     height: 20px;
 }
 
-/* Dark mode adjustments for Google button */
 body.dark-mode .btn-google {
     background-color: #fff;
     color: #444;
     border-color: #ddd;
 }
 
-/* ======================================
-   Login Page
-   ====================================== */
 .login-section {
     min-height: calc(100vh - 64px);
     background: var(--hero-gradient);
@@ -295,7 +269,8 @@ body.dark-mode .btn-google {
     color: var(--accent-text);
 }
 
-/* Login Card (legacy, kept for Login page card used elsewhere) */
+/* Legacy: nothing references .login-card now (the login page uses .login-card-wrapper and
+   .login-card-inner). */
 .login-card {
     max-width: 350px;
     border-radius: 1rem;
@@ -305,9 +280,6 @@ body.dark-mode .btn-google {
     color: var(--text);
 }
 
-/* ======================================
-   Modal Compatibility
-   ====================================== */
 .modal-content {
     background-color: var(--surface);
     color: var(--text);
@@ -322,9 +294,6 @@ body.dark-mode .btn-google {
     border-top-color: var(--border);
 }
 
-/* ======================================
-   Dropdown Menu Compatibility
-   ====================================== */
 .dropdown-menu {
     background-color: var(--surface);
     border-color: var(--border);
@@ -340,7 +309,6 @@ body.dark-mode .btn-google {
     color: var(--accent-text);
 }
 
-/* Limit the height of the View Saved modal and add a vertical scrollbar if needed */
 #viewSavedModal .modal-body {
     max-height: 60vh;
     overflow-y: auto;
@@ -350,7 +318,7 @@ body.dark-mode .btn-google {
 .custom-modal-content {
     display: flex;
     flex-direction: column;
-    max-height: 90vh; /* Never exceed 90% of viewport height */
+    max-height: 90vh;
 }
 
 .custom-modal-body {

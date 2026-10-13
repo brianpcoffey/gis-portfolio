@@ -29,11 +29,9 @@ internal sealed class PortfolioCookieEvents : CookieAuthenticationEvents
         _time = time;
     }
 
-    // -------------------------------------------------------
     // Stamp the sign-in instant into the principal before the cookie ticket is
     // serialized. Sliding renewals re-issue the same ticket without raising
     // SigningIn, so the claim keeps the ORIGINAL sign-in time.
-    // -------------------------------------------------------
     public override Task SigningIn(CookieSigningInContext context)
     {
         if (context.Principal?.Identity is ClaimsIdentity identity)
@@ -50,13 +48,11 @@ internal sealed class PortfolioCookieEvents : CookieAuthenticationEvents
         return base.SigningIn(context);
     }
 
-    // -------------------------------------------------------
     // Enforce the absolute lifetime. Cookies issued before auth_time existed
     // have no claim; they are not killed by the deploy, but are stamped with
     // the current time and renewed, so the 24 h cap starts at their first
     // validation instead of sliding forever. A present but unparseable claim
     // is rejected.
-    // -------------------------------------------------------
     public override async Task ValidatePrincipal(CookieValidatePrincipalContext context)
     {
         if (context.Principal is null)
@@ -90,14 +86,12 @@ internal sealed class PortfolioCookieEvents : CookieAuthenticationEvents
         await context.HttpContext.SignOutAsync(context.Scheme.Name);
     }
 
-    // -------------------------------------------------------
     // Return 401/403 for API requests instead of a 302 to the /Login
     // page, so fetch/XHR callers get a status they can react to
     // (the client then sends the user to /Login) instead of silently
     // following the redirect and parsing the login page as JSON.
     //
     // Non-API (Razor Pages) requests still get the normal 302 redirect.
-    // -------------------------------------------------------
     public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context) =>
         ApiAwareRedirect(context, StatusCodes.Status401Unauthorized);
 
@@ -121,7 +115,6 @@ internal sealed class PortfolioCookieEvents : CookieAuthenticationEvents
         var profileService = context.HttpContext.RequestServices
             .GetRequiredService<IUserProfileService>();
 
-        // Merge anonymous profile if present
         Guid? anonId = null;
         if (context.HttpContext.Request.Cookies.TryGetValue("AnonUserId", out var anonCookie) && Guid.TryParse(anonCookie, out var parsedAnonId))
         {
@@ -136,19 +129,17 @@ internal sealed class PortfolioCookieEvents : CookieAuthenticationEvents
             Picture = picture
         });
 
-        // Remove anonymous cookie after merge
         if (anonId.HasValue)
         {
             context.HttpContext.Response.Cookies.Delete("AnonUserId");
         }
 
-        // Set identity key for authenticated user
         context.HttpContext.Items["PortfolioIdentity"] = userId;
     }
 
     /// <summary>
     /// Sets <paramref name="statusCode"/> for <c>/api</c> requests and issues the normal redirect for
-    /// everything else. Also used by the Google handler's authorization-endpoint redirect.
+    /// everything else (also used by the Google handler's authorization-endpoint redirect).
     /// </summary>
     internal static Task ApiAwareRedirect<TOptions>(RedirectContext<TOptions> context, int statusCode)
         where TOptions : AuthenticationSchemeOptions

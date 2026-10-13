@@ -7,10 +7,6 @@
     // Esri widget theme (light/dark, follows the site toggle) before the map exists.
     window.PortfolioEsri.loadTheme();
 
-    // ============================================================
-    // Map Initialization
-    // ============================================================
-
     async function initMap() {
         await window.PortfolioEsri.load();
         await new Promise((resolve) => {
@@ -48,10 +44,6 @@
             state.mapInstance.basemap = select.value;
         });
     }
-
-    // ============================================================
-    // Map — Plot Results
-    // ============================================================
 
     function plotResults(results) {
         require([

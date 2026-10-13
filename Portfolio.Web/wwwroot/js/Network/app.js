@@ -7,7 +7,6 @@
     var Fmt = window.PortfolioFormat;
     var Charts = window.PortfolioCharts;
 
-    // ── DOM refs ──────────────────────────────────────────────────────────
     var startSelect      = document.getElementById("networkStart");
     var routeBtn         = document.getElementById("networkRouteBtn");
     var serviceAreaBtn   = document.getElementById("networkServiceAreaBtn");
@@ -27,7 +26,6 @@
     var showExplored     = document.getElementById("showExplored"); // optional checkbox
     var alertUi          = PortfolioUi.inlineAlert(alertBox);
 
-    // ── State ─────────────────────────────────────────────────────────────
     var graph            = null;   // RoadGraphDto
     var nodeById         = {};     // id -> node
     var degree           = {};     // id -> degree (from edges)
@@ -59,7 +57,6 @@
         };
     }
 
-    // ── Leaflet map ───────────────────────────────────────────────────────
     // PortfolioMap adds the OSM tile layer + attribution; preferCanvas keeps thousands of edges smooth.
     var map = PortfolioMap.create("networkMap", { center: [34.0565, -117.1850], zoom: 14, label: "Route map" });
 
@@ -67,7 +64,6 @@
     map.createPane("explored");
     map.getPane("explored").style.zIndex = 380; // between tiles(200) and overlay/markers(400+)
 
-    // ── Bootstrap ────────────────────────────────────────────────────────
     routeBtn.addEventListener("click", findRoute);
     serviceAreaBtn.addEventListener("click", computeServiceArea);
 
@@ -90,7 +86,6 @@
         });
     }
 
-    // Click anywhere on the map → snap to the nearest intersection.
     map.on("click", function (e) {
         var id = nearestJunction(e.latlng.lat, e.latlng.lng);
         if (id != null) setOrigin(id);
@@ -98,7 +93,6 @@
 
     fetchGraph();
 
-    // ── Graph fetch ───────────────────────────────────────────────────────
     function fetchGraph() {
         apiGet(window.PortfolioApi.routes.spatialCompute.network.graph)
             .then(function (data) {
@@ -115,7 +109,6 @@
             });
     }
 
-    // Build id→node, node degree, and the junction list.
     function indexGraph() {
         nodeById = {}; degree = {}; junctionIds = [];
         graph.nodes.forEach(function (n) { nodeById[n.id] = n; degree[n.id] = 0; });
@@ -133,7 +126,6 @@
         return id === graph.destinationNodeId || degree[id] !== 2;
     }
 
-    // ── Origin select (junctions only) ─────────────────────────────────────
     function populateOriginSelect() {
         startSelect.innerHTML = "";
         var placeholder = document.createElement("option");
@@ -152,7 +144,6 @@
             });
     }
 
-    // ── Map rendering ─────────────────────────────────────────────────────
     function renderGraphOnMap() {
         var lats = [], lngs = [];
 
@@ -174,7 +165,6 @@
             lats.push(node.latitude); lngs.push(node.longitude);
         });
 
-        // Destination marker
         var hq = nodeById[graph.destinationNodeId];
         if (hq) {
             var hqMarker = L.circleMarker([hq.latitude, hq.longitude], {
@@ -205,7 +195,6 @@
         }
     }
 
-    // ── Nearest-junction snap ──────────────────────────────────────────────
     function nearestJunction(lat, lng) {
         var best = null, bestD = Infinity;
         for (var i = 0; i < junctionIds.length; i++) {
@@ -217,7 +206,6 @@
         return best;
     }
 
-    // ── Origin selection ───────────────────────────────────────────────────
     function setOrigin(id) {
         originNodeId = id;
         startSelect.value = id;
@@ -231,7 +219,6 @@
         clearRoute();
     }
 
-    // ── Run flow (A04) ─────────────────────────────────────────────────────
     // runAction keeps focus on the trigger (aria-disabled, not disabled), shows errors in the inline
     // alert and announces results. The other button is guarded for the duration so runs can't overlap.
     function run(trigger, other, request, render, summary) {
@@ -250,7 +237,6 @@
         });
     }
 
-    // ── Find route ────────────────────────────────────────────────────────
     function findRoute() {
         if (!graph) return;
         var start = parseInt(startSelect.value, 10);
@@ -289,7 +275,6 @@
             });
     }
 
-    // ── Service area ───────────────────────────────────────────────────────
     function computeServiceArea() {
         if (!graph) return;
         var origin = parseInt(startSelect.value, 10);
@@ -321,7 +306,6 @@
             });
     }
 
-    // ── Explored-nodes overlay (the A* vs Dijkstra story) ──────────────────
     function renderExplored(result) {
         if (exploredLayer) { map.removeLayer(exploredLayer); exploredLayer = null; }
         if (showExplored && !showExplored.checked) return;
@@ -342,7 +326,6 @@
         exploredLayer = group;
     }
 
-    // ── Route rendering ────────────────────────────────────────────────────
     function hasRoute(result) {
         return !!(result.found && result.path && result.path.length >= 2);
     }
@@ -400,7 +383,6 @@
         routeStepsEmpty.style.display = "";
     }
 
-    // ── KPIs and turn-by-turn ──────────────────────────────────────────────
     function algoLabel(algo) {
         if (algo === "astar") return "A*";
         if (algo === "dijkstra") return "Dijkstra";

@@ -36,7 +36,6 @@
 </div>
 
 <div class="container-fluid py-3 theme-root">
-    <!-- Live KPI badges -->
     <div class="row mb-3">
         <div class="col-12 d-flex flex-wrap gap-2">
             <span class="badge bg-success theme-badge" id="badgeActiveShipments">0 Active Shipments</span>
@@ -45,7 +44,6 @@
         </div>
     </div>
 
-    <!-- DASHBOARD ROW: ANALYTICS & MAP -->
     <div class="row g-3 mb-3">
         <div class="col-lg-4">
             <div class="card shadow-sm theme-card mb-3">
@@ -105,7 +103,6 @@
                 </div>
                 <div class="card-body position-relative">
                     <div class="plant-ops-map-wrapper position-relative">
-                        <!-- Basemap Switcher Toolbar (matches HomeFinder) -->
                         <div id="plantOpsMapToolbar" class="position-absolute top-0 end-0 m-2 z-3">
                             <select id="plantOpsBasemapSelect" class="form-select form-select-sm basemap-select" aria-label="Select basemap view">
                                 <option value="dark-gray-vector">Dark Gray</option>
@@ -127,7 +124,6 @@
         </div>
     </div>
 
-    <!-- DATA GRIDS: ORDERS, SHIPMENTS, INVENTORY -->
     <div class="row g-3 mb-3">
         <div class="col-12">
             <div class="card shadow-sm theme-card mb-3">
@@ -189,9 +185,6 @@
     </div>
 
     <div class="row g-3 mb-3">
-        <!-- Inventory card removed; now in tabs above -->
-
-        <!-- MODALS (Order CRUD, Shipment Status, Inventory Details) -->
         <div id="plantOpsModals"></div>
     </div>
 </div>

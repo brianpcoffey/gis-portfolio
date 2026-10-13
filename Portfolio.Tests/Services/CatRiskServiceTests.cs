@@ -11,8 +11,8 @@ namespace Portfolio.Tests.Services
     // These tests assert computation, not which path produced it: they pass whether or
     // not the native shared libraries have been built. Native/managed equivalence is
     // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
-    // native/cat_risk_kernel/src/cat_risk_kernel.cpp line for line, so these also pin the
-    // arithmetic the native kernel must reproduce.
+    // The managed path mirrors native/cat_risk_kernel/src/cat_risk_kernel.cpp line for line, so
+    // these also pin the arithmetic the native kernel must reproduce.
     public class CatRiskServiceTests
     {
         // 0.01 degrees of latitude is ~1.112 km, which brackets the bounding-box reject
@@ -23,8 +23,6 @@ namespace Portfolio.Tests.Services
 
         private static CatRiskService NewService() =>
             new(NullLogger<CatRiskService>.Instance);
-
-        // ── Ring accumulation ───────────────────────────────────────────────────
 
         [Fact]
         public async Task Accumulation_SingleLocation_RingEqualsOwnTiv()
@@ -199,8 +197,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() =>
                 service.ComputeAccumulationAsync(new AccumulationRequestDto { Locations = [bad], RadiusKm = 5 }));
         }
-
-        // ── Loss simulation ─────────────────────────────────────────────────────
 
         [Fact]
         public async Task Simulate_DirectHit_ProducesExactModelledLoss()
@@ -482,8 +478,6 @@ namespace Portfolio.Tests.Services
                 service.SimulateAsync(new SimulationRequestDto { Locations = locations, Events = events }));
         }
 
-        // ── Upper bounds (WP-06) ────────────────────────────────────────────────
-
         [Fact]
         public async Task Accumulation_InsuredValueOverCap_ThrowsArgumentException()
         {
@@ -597,8 +591,6 @@ namespace Portfolio.Tests.Services
                 service.SimulateAsync(new SimulationRequestDto { Locations = [Location(1, BaseLat, BaseLon)], Events = [bad] }));
         }
 
-        // ── Policy book ─────────────────────────────────────────────────────────
-
         [Fact]
         public async Task PolicyBook_IsDeterministic()
         {
@@ -699,8 +691,6 @@ namespace Portfolio.Tests.Services
             Assert.NotEmpty(result.ExceedanceCurve);
             Assert.NotNull(result.WorstEvent);
         }
-
-        // ── Helpers ─────────────────────────────────────────────────────────────
 
         private static CatLocationDto Location(int id, double latitude, double longitude, double insuredValue = 750_000) =>
             new()

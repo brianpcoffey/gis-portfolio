@@ -5,10 +5,8 @@ using Portfolio.Repositories;
 namespace Portfolio.Web.HealthChecks
 {
     /// <summary>
-    /// Readiness check: reports Healthy only when the PostgreSQL database is reachable.
-    /// Backs the Kubernetes readiness probe (/health/ready) so a pod is kept out of the
-    /// Service until its dependencies are up. Uses only the framework's built-in health
-    /// check abstractions — no extra NuGet dependency.
+    /// Readiness check behind the Kubernetes probe at /health/ready: reports Healthy only when the
+    /// PostgreSQL database is reachable.
     /// </summary>
     /// <remarks>
     /// /health/ready is unthrottled, and on a serverless database every probe can wake the
@@ -34,7 +32,7 @@ namespace Portfolio.Web.HealthChecks
             _time = time;
         }
 
-        /// <summary>Drops the cached result. For tests, which share the static cache.</summary>
+        /// <summary>Drops the cached result (for tests, which share the static cache).</summary>
         internal static void ResetCache() => Volatile.Write(ref _cached, null);
 
         public async Task<HealthCheckResult> CheckHealthAsync(

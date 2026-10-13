@@ -14,7 +14,6 @@ namespace Portfolio.Tests.DTOs
 
         private static HomeSearchPreferencesDto WithWeights(double w)
         {
-            // Ten weights, all equal.
             return new HomeSearchPreferencesDto
             {
                 WeightAffordability = w, WeightNeighborhood = w, WeightSize = w, WeightAppreciation = w,

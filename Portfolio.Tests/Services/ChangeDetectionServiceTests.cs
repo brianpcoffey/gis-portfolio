@@ -10,8 +10,8 @@ namespace Portfolio.Tests.Services
     // These tests assert computation, not which path produced it: they pass whether or
     // not the native shared libraries have been built. Native/managed equivalence is
     // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
-    // native/change_detection_kernel/src/change_detection_kernel.cpp line for line, so
-    // these also pin the arithmetic the native kernel must reproduce.
+    // The managed path mirrors native/change_detection_kernel/src/change_detection_kernel.cpp line
+    // for line, so these also pin the arithmetic the native kernel must reproduce.
     public class ChangeDetectionServiceTests
     {
         private static ChangeDetectionService NewService() =>
@@ -50,8 +50,6 @@ namespace Portfolio.Tests.Services
                     raster[y * width + x] = value;
             }
         }
-
-        // ── Core detection ──────────────────────────────────────────────────────
 
         [Fact]
         public async Task Detect_IdenticalEpochs_ProducesNoChange()
@@ -178,8 +176,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal([1, 2, 3], result.Blobs.Select(blob => blob.Id).ToArray());
         }
 
-        // ── Morphology ──────────────────────────────────────────────────────────
-
         [Fact]
         public async Task Detect_MorphologicalOpen_RemovesSinglePixelSpeckle()
         {
@@ -210,8 +206,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(2, withOpen.Blobs.Count);
             Assert.Equal(26, withOpen.ChangedPixels);
         }
-
-        // ── Otsu ────────────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Otsu_BimodalHistogram_ThresholdFallsBetweenModes()
@@ -340,8 +334,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(1, result.ChangedPixels);
         }
 
-        // ── Validation ──────────────────────────────────────────────────────────
-
         [Fact]
         public async Task Detect_MismatchedEpochLengths_ThrowsArgumentException()
         {
@@ -441,8 +433,6 @@ namespace Portfolio.Tests.Services
 
             await Assert.ThrowsAsync<ArgumentNullException>(() => service.DetectAsync(null!));
         }
-
-        // ── Scene ───────────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Scene_IsDeterministic()

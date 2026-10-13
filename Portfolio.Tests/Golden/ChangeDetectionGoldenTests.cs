@@ -4,7 +4,7 @@ using Portfolio.Services.Services;
 
 namespace Portfolio.Tests.Golden
 {
-    // Golden output for ChangeDetectionService before it is split. The shipped synthetic
+    // Golden output for ChangeDetectionService, captured before it was split. The shipped synthetic
     // scene (256 x 256, four bands, two epochs) is run with the page's defaults: Otsu
     // threshold, one open iteration, minimum blob area 12. The managed path and the native
     // change_detection_kernel must agree, so these hold with and without the kernels.
@@ -134,8 +134,6 @@ namespace Portfolio.Tests.Golden
                     b.MinY <= truth.MaxY && b.MaxY >= truth.MinY));
         }
 
-        // ── Connected components ────────────────────────────────────────────────
-
         // A U whose two arms get different provisional labels on the way down and are only
         // joined by the bottom bar, so the label merge (union-find) has to run.
         [Fact]
@@ -172,8 +170,6 @@ namespace Portfolio.Tests.Golden
             Assert.Equal(15, blob.Area);
             Assert.Equal((1, 1, 5, 6), (blob.MinX, blob.MinY, blob.MaxX, blob.MaxY));
         }
-
-        // ── Validation ──────────────────────────────────────────────────────────
 
         private static DetectRequestDto Valid() =>
             new()

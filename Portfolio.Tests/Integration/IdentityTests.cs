@@ -15,9 +15,12 @@ namespace Portfolio.Tests.Integration;
 
 /// <summary>
 /// Identity separation (WP-15): the anonymous GUID cookie identity must never be able to act as, or
-/// take over, a Google-linked profile. Host tests use <see cref="PortfolioAppFactory"/>; the sign-in
-/// merge is exercised on the real service and repository over EF InMemory (never real Google).
+/// take over, a Google-linked profile.
 /// </summary>
+/// <remarks>
+/// Host tests use <see cref="PortfolioAppFactory"/>; the sign-in merge is exercised on the real service
+/// and repository over EF InMemory (never real Google).
+/// </remarks>
 public class IdentityTests
 {
     private const string CookieName = "AnonUserId";
@@ -48,8 +51,6 @@ public class IdentityTests
         using var scope = f.Services.CreateScope();
         return await work(scope.ServiceProvider.GetRequiredService<PortfolioDbContext>());
     }
-
-    // ── Host: what a visit creates ───────────────────────────────────────────
 
     [Fact]
     public async Task FreshAnonymousVisit_InsertsOneProfileAndNoSeedRows()
@@ -128,8 +129,6 @@ public class IdentityTests
         Assert.Null(SetCookieFor(last));
         Assert.Equal(10, f.ProfileCount());
     }
-
-    // ── Service: sign-in merge over a real repository ────────────────────────
 
     private sealed class SignInRig : IDisposable
     {

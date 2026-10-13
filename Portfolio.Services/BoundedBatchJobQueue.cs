@@ -4,8 +4,8 @@ using Portfolio.Services.Abstractions;
 namespace Portfolio.Services;
 
 /// <summary>
-/// <see cref="IBatchJobQueue"/> backed by a bounded <see cref="Channel{T}"/>. Capacity is small by
-/// design (decision D-10): batch geocoding fans out to a paid API and a free-tier Redis.
+/// <see cref="IBatchJobQueue"/> backed by a bounded <see cref="Channel{T}"/>, kept small by design (decision D-10)
+/// because batch geocoding fans out to a paid API and a free-tier Redis.
 /// </summary>
 public sealed class BoundedBatchJobQueue : IBatchJobQueue
 {

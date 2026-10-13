@@ -178,8 +178,6 @@ namespace Portfolio.Tests.Services
             Assert.False(result);
         }
 
-        // ── Persistence limits: values exactly at the boundary are accepted ──
-
         private void SetupSavedFeatureAdd()
         {
             _repoMock
@@ -208,8 +206,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(1, result.Id);
             Assert.Equal(1_000_000, result.GeometryJson!.Length);
         }
-
-        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
 
         [Fact]
         public async Task CreateAsync_RejectsLayerIdOverLimit()

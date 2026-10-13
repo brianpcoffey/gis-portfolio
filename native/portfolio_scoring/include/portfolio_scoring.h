@@ -9,8 +9,7 @@
  * without any marshalling copies.
  *
  * Thread-safety: ScoreProperty and ScorePropertyBatch are fully reentrant
- * (no global state).  Safe to call from any thread, including the .NET
- * thread-pool workers used by the Channel-based batch pipeline.
+ * (no global state), so they are safe to call from any thread.
  */
 
 #include <stdint.h>
@@ -19,12 +18,11 @@
 extern "C" {
 #endif
 
-/* -----------------------------------------------------------------------
- * Input / output structs
+/*
  * All fields match the corresponding C# properties in Property.cs and
  * HomeSearchPreferencesDto.cs.  Field order MUST stay in sync with the
  * [StructLayout(LayoutKind.Sequential)] definitions in NativeStructs.cs.
- * ----------------------------------------------------------------------- */
+ */
 
 #pragma pack(push, 8)
 
@@ -116,10 +114,6 @@ typedef struct ScoreOutputNative
 
 #pragma pack(pop)
 
-/* -----------------------------------------------------------------------
- * Exported functions
- * ----------------------------------------------------------------------- */
-
 #if defined(_WIN32) || defined(_WIN64)
 #  define PS_API __declspec(dllexport)
 #else
@@ -140,8 +134,9 @@ PS_API void ScoreProperty(
  * `properties` and `scores` must each point to arrays of at least `count`
  * elements.  The same `prefs` pointer is shared across all rows.
  *
- * Designed so that the compiler can auto-vectorise the inner loop with
- * AVX2 (MSVC /arch:AVX2 or GCC/Clang -march=haswell -ffast-math).
+ * A plain loop over contiguous structs; the build enables AVX2, so the compiler
+ * may vectorise it. Measured, it is no faster than the managed path
+ * (native/README.md).
  */
 PS_API void ScorePropertyBatch(
 	const PropertyInputNative*    properties,

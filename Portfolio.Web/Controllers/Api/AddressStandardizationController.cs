@@ -9,9 +9,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for address parsing, standardization, and validation.
-    /// </summary>
+    /// <summary>API endpoints for address parsing, standardization, and validation.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/addresses")]
@@ -47,10 +45,10 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _addressStandardizationService.ParseAsync(request.RawAddress, cancellationToken));
         }
 
-        /// <summary>
-        /// Parses a raw freeform address, geocodes it against ArcGIS, and returns validation results
-        /// including the matched address, confidence score, and confidence tier classification.
-        /// </summary>
+        /// <summary>Parses a freeform address, geocodes it against ArcGIS, and returns validation results.</summary>
+        /// <remarks>
+        /// The results include the matched address, confidence score, and confidence tier classification.
+        /// </remarks>
         /// <param name="request">Request body containing the raw address string.</param>
         /// <returns>Validation result with parsed components, ArcGIS matched address, score, and confidence tier.</returns>
         [HttpPost("validate")]

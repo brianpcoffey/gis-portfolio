@@ -11,9 +11,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for batch geocoding CSV uploads.
-    /// </summary>
+    /// <summary>API endpoints for batch geocoding CSV uploads.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/geocoding/batch")]
@@ -46,11 +44,11 @@ namespace Portfolio.Web.Controllers.Api
         private static bool HasCsvExtension(IFormFile file) =>
             string.Equals(Path.GetExtension(file.FileName), ".csv", StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>
-        /// Accepts a CSV file upload of addresses, enqueues a background geocoding job,
-        /// and returns 202 Accepted with a status URL the client can poll.
-        /// The CSV must have columns: Id, Address, City, State, Zip.
-        /// </summary>
+        /// <summary>Accepts a CSV of addresses, enqueues a geocoding job, and returns 202 with a status URL.</summary>
+        /// <remarks>
+        /// The job runs in the background and the client can poll the returned status URL. The CSV must have columns:
+        /// Id, Address, City, State, Zip.
+        /// </remarks>
         /// <param name="file">CSV file containing addresses to geocode.</param>
         /// <returns>Job ID and status polling URL.</returns>
         [HttpPost]
@@ -92,10 +90,8 @@ namespace Portfolio.Web.Controllers.Api
             }
         }
 
-        /// <summary>
-        /// Returns the current status and results of a previously submitted batch geocoding job.
-        /// Poll this endpoint after receiving a 202 Accepted from POST.
-        /// </summary>
+        /// <summary>Returns the current status and results of a previously submitted batch geocoding job.</summary>
+        /// <remarks>Poll this endpoint after receiving a 202 Accepted from POST.</remarks>
         /// <param name="jobId">Opaque job identifier returned by the submit endpoint.</param>
         /// <returns>Job status, progress metrics, and results when completed.</returns>
         [HttpGet("{jobId}/status")]
@@ -109,9 +105,7 @@ namespace Portfolio.Web.Controllers.Api
             return job is null ? NotFound() : Ok(job);
         }
 
-        /// <summary>
-        /// Accepts a CSV file upload of addresses and returns geocoding results synchronously.
-        /// </summary>
+        /// <summary>Accepts a CSV file upload of addresses and returns geocoding results synchronously.</summary>
         /// <param name="file">CSV file containing addresses to geocode.</param>
         /// <returns>List of geocoding results with match status, coordinates, and score.</returns>
         [HttpPost("sync")]

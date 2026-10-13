@@ -2,10 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Portfolio.Common.DTOs;
 
-/// <summary>
-/// An inventory material (SKU) tracked in the fiber plant, with stock and cost figures.
-/// Also used as the create/update request body; validation attributes apply on binding.
-/// </summary>
+/// <summary>An inventory material (SKU) tracked in the fiber plant, with stock and cost figures.</summary>
 public class FiberMaterialDto
 {
     /// <summary>Unique identifier of the material.</summary>
@@ -45,7 +42,7 @@ public class FiberMaterialDto
 }
 
 /// <summary>
-/// Request body for creating a fiber material. Excludes server-computed/read-only fields
+/// Request body for creating a fiber material; excludes server-computed/read-only fields
 /// (Id, TotalValue, IsLowStock) so they cannot be over-posted.
 /// </summary>
 public class CreateFiberMaterialDto

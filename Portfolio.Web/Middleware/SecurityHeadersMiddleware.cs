@@ -2,11 +2,11 @@ using System.Security.Cryptography;
 
 namespace Portfolio.Web.Middleware
 {
-    /// <summary>
-    /// Emits security response headers on every response (including static files and
-    /// error responses). Runs early in the pipeline so headers are present before any
-    /// downstream middleware begins writing the response body.
-    /// </summary>
+    /// <summary>Emits security headers on every response, including static files and error responses.</summary>
+    /// <remarks>
+    /// Runs early in the pipeline so headers are present before any downstream middleware begins
+    /// writing the response body.
+    /// </remarks>
     public class SecurityHeadersMiddleware
     {
         /// <summary><see cref="HttpContext.Items"/> key holding the per-request CSP nonce.</summary>

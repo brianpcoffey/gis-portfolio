@@ -2,7 +2,7 @@ namespace Portfolio.Common.DTOs
 {
     /// <summary>
     /// One labelled ground-truth change planted in the synthetic scene, used to score
-    /// detections. Coordinates are inclusive pixel indices.
+    /// detections (coordinates are inclusive pixel indices).
     /// </summary>
     public class GroundTruthBoxDto
     {
@@ -82,7 +82,7 @@ namespace Portfolio.Common.DTOs
         /// <summary>CVA magnitude threshold used when <see cref="ThresholdMode"/> is "manual".</summary>
         public double ManualThreshold { get; set; }
 
-        /// <summary>Morphological open iterations, 0 to 5. Zero disables speckle removal.</summary>
+        /// <summary>Morphological open iterations, 0 to 5 (zero disables speckle removal).</summary>
         public int OpenIterations { get; set; }
 
         /// <summary>Blobs smaller than this pixel area are discarded as speckle.</summary>
@@ -110,9 +110,9 @@ namespace Portfolio.Common.DTOs
         public double MeanMagnitude { get; set; }
 
         /// <summary>
-        /// Mean magnitude divided by the scene's maximum magnitude, clamped to 0–1.
-        /// This is a relative heuristic for ranking detections, NOT a calibrated
-        /// probability of change — nothing here is trained against labelled data.
+        /// Mean magnitude divided by the scene's maximum magnitude, clamped to 0–1: a relative
+        /// heuristic for ranking detections, NOT a calibrated probability of change
+        /// (nothing here is trained against labelled data).
         /// </summary>
         public double Confidence { get; set; }
 
@@ -153,7 +153,7 @@ namespace Portfolio.Common.DTOs
         /// <summary>Per-pixel CVA magnitude, row-major.</summary>
         public List<double> Magnitude { get; set; } = [];
 
-        /// <summary>Binary change mask after morphological open, row-major. 1 = changed.</summary>
+        /// <summary>Binary change mask after morphological open, row-major (1 = changed).</summary>
         public List<byte> Mask { get; set; } = [];
 
         /// <summary>Magnitude histogram used by Otsu, spanning <see cref="HistogramMin"/> to <see cref="HistogramMax"/>.</summary>

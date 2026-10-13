@@ -6,8 +6,6 @@ namespace Portfolio.Tests.Services
 {
     public class ViewshedServiceTests
     {
-        // ── Viewshed Analyzer ───────────────────────────────────────────────────
-
         [Fact]
         public async Task Viewshed_FlatTerrain_AllCellsVisible()
         {
@@ -120,8 +118,6 @@ namespace Portfolio.Tests.Services
             };
             await Assert.ThrowsAsync<ArgumentException>(() => service.ComputeAsync(request));
         }
-
-        // ── Viewshed caps and finite validation (WP-06) ─────────────────────────
 
         private static ViewshedRequestDto FlatViewshed(int width, int height, int observerX = 0, int observerY = 0) => new()
         {

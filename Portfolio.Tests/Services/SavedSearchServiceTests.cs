@@ -18,8 +18,6 @@ namespace Portfolio.Tests.Services
             _service = new SavedSearchService(_repoMock.Object, TimeProvider.System);
         }
 
-        // ── CreateSavedSearchAsync ──────────────────────────────────────
-
         [Fact]
         public async Task CreateSavedSearchAsync_WithValidInput_ReturnsCreatedEntity()
         {
@@ -147,8 +145,6 @@ namespace Portfolio.Tests.Services
             _repoMock.Verify(r => r.AddAsync(It.IsAny<SavedSearch>(), token), Times.Once);
         }
 
-        // ── GetSavedSearchesAsync ───────────────────────────────────────
-
         [Fact]
         public async Task GetSavedSearchesAsync_ReturnsListForUser()
         {
@@ -204,8 +200,6 @@ namespace Portfolio.Tests.Services
             _repoMock.Verify(r => r.GetAllAsync(otherUserId, It.IsAny<CancellationToken>()), Times.Once);
         }
 
-        // ── DeleteSavedSearchAsync ──────────────────────────────────────
-
         [Fact]
         public async Task DeleteSavedSearchAsync_WhenExists_DeletesSuccessfully()
         {
@@ -236,8 +230,6 @@ namespace Portfolio.Tests.Services
             Assert.Contains("999", ex.Message);
         }
 
-        // ── Persistence limits: values exactly at the boundary are accepted ──
-
         [Fact]
         public async Task CreateSavedSearchAsync_AcceptsNameAtMaximumLengthAndFiftyIds()
         {
@@ -260,8 +252,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(200, result.Name!.Length);
             Assert.Equal(50, result.PropertyIds!.Length);
         }
-
-        // ── Persistence limits: one over the boundary is a 400 (ArgumentException) ──
 
         [Fact]
         public async Task CreateSavedSearchAsync_RejectsNameOverLimit()

@@ -52,7 +52,6 @@ namespace Portfolio.Tests.Services
                 Assert.False(string.IsNullOrWhiteSpace(p.Street));
                 Assert.False(string.IsNullOrWhiteSpace(p.PropertyType));
 
-                // 0–100 score fields stay in range.
                 foreach (var score in new[] { p.SchoolRating, p.CrimeScore, p.Walkability, p.TransitAccess, p.AmenitiesScore, p.FloodRisk, p.NoiseLevel, p.FutureAppreciation, p.ResalePotential })
                     Assert.InRange(score, 0, 100);
             }

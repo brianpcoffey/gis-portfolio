@@ -41,8 +41,6 @@ namespace Portfolio.Tests.Services
             Assert.Empty(result);
         }
 
-        // ── GetPropertyByIdAsync ────────────────────────────────────────
-
         [Fact]
         public async Task GetPropertyByIdAsync_WhenFound_ReturnsScoredPropertyDto()
         {
@@ -93,8 +91,6 @@ namespace Portfolio.Tests.Services
             // Assert
             _propertyRepoMock.Verify(r => r.GetByIdAsync(1, token), Times.Once);
         }
-
-        // ── Ranking and truncation ──────────────────────────────────────
 
         [Fact]
         public async Task GetTopPropertiesAsync_RanksAreAssignedSequentially()
@@ -323,8 +319,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal(34.05, dto.Latitude);
             Assert.Equal(-117.18, dto.Longitude);
         }
-
-        // ── Helpers ──────────────────────────────────────────────────────────────
 
         private static HomeSearchPreferencesDto MakePrefs() => new()
         {

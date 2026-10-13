@@ -1,6 +1,6 @@
-﻿// uiManager.js
-// All DOM rendering and UI behaviors. Uses delegation and single-time event wiring.
-// UI methods do not perform network requests or mutate global variables directly.
+﻿// All DOM rendering and UI behaviors. Uses delegation and single-time event wiring.
+// UI methods do not mutate global variables directly; only the collection edit/delete handlers
+// call the API (through CollectionService).
 //
 // This file assembles the public `UI` object. The pieces live beside it:
 //   metadata.js    extractMetadataPairs (pure)
@@ -37,7 +37,7 @@ export const UI = {
                     return;
                 }
                 const action = btn.dataset.action;
-                // Buttons now carry both saved-db id and external feature id
+                // Buttons carry both the saved-db id and the external feature id
                 const savedId = btn.dataset.savedId;
                 const fid = btn.dataset.featureId;
                 if (action === "select") document.dispatchEvent(new CustomEvent("ui:selectSaved", { detail: { featureId: fid } }));
@@ -57,7 +57,6 @@ export const UI = {
                 const id = item.dataset.collectionId;
                 if (!id) return; // e.g. the sign-in hint row
 
-                // If the click was on a small action button, handle edit/delete.
                 if (btn && (btn.dataset.action === "edit" || btn.dataset.action === "delete")) {
                     const action = btn.dataset.action;
                     if (action === "edit") {
@@ -70,12 +69,10 @@ export const UI = {
                         const newColor = input.color;
                         try {
                             await CollectionService.updateCollection(id, { name: newName, color: newColor });
-                            // merge update locally
                             const updated = { ...col, name: newName, color: newColor, lastModified: new Date().toISOString() };
                             const newList = state.collections.map(c => String(c.id) === String(id) ? updated : c);
                             updateCollections(newList);
                             UI.showToast("Collection", "Collection updated", "success");
-                            // keep selection on updated collection
                             setSelectedCollection(id);
                             // The re-render replaced the edit button that held focus.
                             if (!document.activeElement || document.activeElement === document.body) restoreCollectionFocus(null, id);
@@ -91,7 +88,6 @@ export const UI = {
                             const newList = state.collections.filter(c => String(c.id) !== String(id));
                             updateCollections(newList);
                             UI.showToast("Collection", "Collection deleted", "success");
-                            // clear selection if it was the deleted one
                             if (String(state.selectedCollectionId) === String(id)) {
                                 setSelectedCollection(null);
                             }
@@ -103,7 +99,6 @@ export const UI = {
                     return;
                 }
 
-                // Otherwise treat as select
                 document.dispatchEvent(new CustomEvent("ui:selectCollection", { detail: { collectionId: id } }));
             });
             collectionsList._delegationAttached = true;
@@ -122,7 +117,6 @@ export const UI = {
             confirmBtn._attached = true;
         }
 
-        // Listen for view saved events and open modal
         if (!document._ui_view_handler_attached) {
             document.addEventListener("ui:viewSaved", (e) => {
                 const d = e.detail || {};
@@ -145,7 +139,6 @@ export const UI = {
             searchInput._attached = true;
         }
 
-        // Comparison panel wiring
         const closeBtn = query("btnCloseComparison");
         if (closeBtn && !closeBtn._attached) {
             closeBtn.addEventListener("click", () => {
@@ -204,7 +197,6 @@ export const UI = {
         const title = PortfolioDom.escapeHtml(feature.displayName || feature.Name || feature.name || "");
         const description = PortfolioDom.escapeHtml(feature.Description || feature.description || "");
 
-        // Build metadata table
         const metaPairs = extractMetadataPairs(feature);
         let metaHtml = "";
         if (metaPairs.length) {
@@ -213,7 +205,6 @@ export const UI = {
                 `</dl>`;
         }
 
-        // If savedEntry exists show Saved state and Unsave action, otherwise show Save button
         let actionHtml = "";
         if (savedEntry) {
             actionHtml = `
@@ -239,7 +230,6 @@ export const UI = {
         `;
         target.innerHTML = html;
 
-        // Wire buttons
         const saveBtn = query("btnSaveFromDetail");
         if (saveBtn) {
             saveBtn.onclick = () => {

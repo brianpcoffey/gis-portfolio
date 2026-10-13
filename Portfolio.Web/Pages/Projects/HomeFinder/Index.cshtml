@@ -14,7 +14,6 @@
 
 <div class="container-fluid py-3 theme-root">
     <div class="row">
-        <!-- Left: Preferences Panel -->
         <div class="col-lg-3 col-md-4 mb-3">
             <div class="theme-surface shadow-sm rounded p-3">
                 <h2 class="h5 mb-3"><i class="fa-solid fa-sliders me-1" aria-hidden="true"></i>Preferences</h2>
@@ -47,12 +46,10 @@
                 <hr>
                 <h3 class="h6 mb-2"><i class="fa-solid fa-weight-scale me-1" aria-hidden="true"></i>Weights</h3>
 
-                <!-- Weight validation indicator -->
                 <div id="weightStatus" class="alert alert-success small py-1 px-2 mb-2">
                     <span id="weightStatusText"><i class="fa-solid fa-circle-check me-1" aria-hidden="true"></i>Total: <strong id="weightTotal">100</strong>% <span>— must equal 100%</span></span>
                 </div>
 
-                <!-- Each weight slider now has a visual bar beneath it -->
                 <div class="mb-2">
                     <label class="form-label small" for="sliderWAfford"><i class="fa-solid fa-piggy-bank me-1" aria-hidden="true"></i>Affordability: <span id="lblWAfford">20</span>%</label>
                     <input type="range" class="form-range weight-slider" id="sliderWAfford" min="0" max="100" step="5" value="20">
@@ -136,10 +133,8 @@
             </div>
         </div>
 
-        <!-- Center: Map + View Switcher -->
         <div class="col-lg-6 col-md-8 mb-3">
             <div class="theme-surface shadow-sm rounded overflow-hidden position-relative" style="height: 600px;">
-                <!-- Basemap Switcher Toolbar -->
                 <div id="mapToolbar" class="position-absolute top-0 end-0 m-2 z-3">
                     <select id="basemapSelect" class="form-select form-select-sm basemap-select" aria-label="Select basemap view">
                         <option value="dark-gray-vector" selected>Dark Gray</option>
@@ -154,7 +149,6 @@
             </div>
         </div>
 
-        <!-- Right: Results Panel -->
         <div class="col-lg-3 col-md-12">
             <div class="theme-surface shadow-sm rounded p-3">
                 <h2 class="h5 mb-3"><i class="fa-solid fa-trophy me-1" aria-hidden="true"></i>Top 10 Results</h2>
@@ -166,7 +160,6 @@
     </div>
 </div>
 
-<!-- Saved Searches Modal -->
 <div class="modal fade" id="savedSearchesModal" tabindex="-1" aria-labelledby="savedSearchesModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content theme-modal">

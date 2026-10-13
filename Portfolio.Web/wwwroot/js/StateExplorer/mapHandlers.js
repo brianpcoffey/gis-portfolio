@@ -1,4 +1,3 @@
-// mapHandlers.js
 // Map pointer handlers: click selects (or toggles compare), hover highlights.
 // registerMapHandlers() attaches them to the MapView (called from app.js after MapManager.init()).
 
@@ -6,7 +5,6 @@ import { getState, setSelectedFeature, toggleCompareFeature, MAX_COMPARE } from 
 import { MapManager } from './mapManager.js';
 import { UI } from './uiManager.js';
 
-// MAP CLICK HANDLER (SAFE)
 async function handleMapClick(event) {
 
     try {
@@ -76,7 +74,6 @@ async function handleMapClick(event) {
 }
 
 
-// MAP HOVER HANDLER (SAFE)
 function handleMapHover(event) {
 
     try {

@@ -16,8 +16,8 @@ namespace Portfolio.Services.Native
         }
 
         /// <summary>
-        /// Solves the CVRPTW natively. <paramref name="routes"/> receives one list of
-        /// zero-based stop indices per vehicle used; the depot is implicit at both ends.
+        /// Solves the CVRPTW natively; <paramref name="routes"/> receives one list of
+        /// zero-based stop indices per vehicle used, with the depot implicit at both ends.
         /// </summary>
         internal static bool TrySolveCvrptw(
             double[] costMatrix,

@@ -2,14 +2,12 @@ using Portfolio.Common.DTOs;
 
 namespace Portfolio.Services.Data
 {
-    /// <summary>
-    /// Deterministic delivery scenarios over the Redlands OSM road network.
-    ///
-    /// Stops are drawn from actual road-network node coordinates, so snapping is exact and
-    /// every stop is reachable from the depot. A fixed-seed LCG makes the whole scenario
-    /// byte-identical on every run, exactly like <c>SoCalPolicyBook</c> and
-    /// <c>RedlandsRoadNetwork</c> — no database, no persistence.
-    /// </summary>
+    /// <summary>Deterministic delivery scenarios over the Redlands OSM road network.</summary>
+    /// <remarks>
+    /// Stops are drawn from actual road-network node coordinates, so snapping is exact and every stop is reachable from
+    /// the depot. A fixed-seed LCG makes the scenario byte-identical on every run, like <c>SoCalPolicyBook</c> and
+    /// <c>RedlandsRoadNetwork</c>; there is no database or persistence.
+    /// </remarks>
     internal static class RedlandsDeliveryScenario
     {
         // The depot sits on the industrial west side of the network, off Redlands Boulevard.
@@ -90,8 +88,8 @@ namespace Portfolio.Services.Data
         public static IReadOnlyList<string> PresetKeys { get; } = [.. Presets.Select(p => p.Key)];
 
         /// <summary>
-        /// Builds the named scenario over the supplied road graph. Returns null when the
-        /// preset key is not recognised.
+        /// Builds the named scenario over the supplied road graph, or returns null when the preset key is not
+        /// recognised.
         /// </summary>
         public static FleetScenarioDto? Build(RoadGraphDto graph, string preset)
         {
@@ -246,8 +244,8 @@ namespace Portfolio.Services.Data
 
         private static double Lerp(double min, double max, double t) => min + (max - min) * t;
 
-        // Park-Miller minimal-standard LCG: the same generator the rest of the portfolio's
-        // demo datasets use, so scenarios are reproducible across processes and platforms.
+        // Park-Miller minimal-standard LCG, so scenarios are reproducible across processes and platforms.
+        // (SyntheticChangeScene uses the same generator; the other demo datasets use the Numerical Recipes constants.)
         private sealed class Lcg
         {
             private long _state;

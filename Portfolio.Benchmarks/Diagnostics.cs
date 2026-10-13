@@ -6,9 +6,12 @@ namespace Portfolio.Benchmarks;
 
 /// <summary>
 /// <c>--diag</c>: prints the raw shape of the results that the parity checksums fold, for the
-/// workloads where native and managed disagree. Run it once per path and diff the output —
-/// the checksum tells you that something differs, this tells you what.
+/// workloads where native and managed disagree.
 /// </summary>
+/// <remarks>
+/// Run it once per path and diff the output — the checksum tells you that something differs,
+/// this tells you what.
+/// </remarks>
 internal static class Diagnostics
 {
     public static async Task RunAsync(CancellationToken ct)
@@ -16,7 +19,6 @@ internal static class Diagnostics
         var disabled = Environment.GetEnvironmentVariable("PORTFOLIO_DISABLE_NATIVE");
         Console.WriteLine($"# PORTFOLIO_DISABLE_NATIVE={disabled}");
 
-        // ---- portfolio_scoring
         var repo = new DeterministicPropertyRepository(count: 200_000, seed: 20_260_719u);
         var scoring = new HomeScoringService(repo, NullLogger<HomeScoringService>.Instance, TimeProvider.System);
         var top = await scoring.GetTopPropertiesAsync(new HomeSearchPreferencesDto
@@ -36,7 +38,6 @@ internal static class Diagnostics
         Console.WriteLine("scoring.ids=" + string.Join(",", top.Select(p => p.PropertyId)));
         Console.WriteLine("scoring.composites=" + string.Join(",", top.Select(p => p.CompositeScore.ToString("R"))));
 
-        // ---- spatial_geometry_kernel clip
         var geometry = new SpatialGeometryService(NullLogger<SpatialGeometryService>.Instance);
         var subject = new List<CoordinateDto>(5_000);
         for (var i = 0; i < 5_000; i++)
@@ -57,7 +58,6 @@ internal static class Diagnostics
         foreach (var v in clipped.Vertices.Take(6))
             Console.WriteLine($"clip[] x={v.X:R} y={v.Y:R}");
 
-        // ---- viewshed_kernel
         var viewshed = new ViewshedService(NullLogger<ViewshedService>.Instance);
         const int dim = 500;
         var elevation = new List<double>(dim * dim);

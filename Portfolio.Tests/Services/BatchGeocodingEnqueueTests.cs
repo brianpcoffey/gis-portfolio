@@ -21,10 +21,12 @@ using System.Text.Json;
 namespace Portfolio.Tests.Services
 {
     /// <summary>
-    /// Tests for BatchGeocodingService.EnqueueAsync — the async job pattern introduced in Change 4.
+    /// Tests for the async job pattern: BatchGeocodingService.EnqueueAsync and the worker that runs queued jobs.
+    /// </summary>
+    /// <remarks>
     /// Each test that inspects background-task results polls the store until the job reaches a
     /// terminal status, capped at five seconds to prevent an infinite wait in CI.
-    /// </summary>
+    /// </remarks>
     public class BatchGeocodingEnqueueTests : IAsyncDisposable
     {
         private readonly Mock<ILogger<BatchGeocodingService>> _loggerMock = new();
@@ -38,7 +40,8 @@ namespace Portfolio.Tests.Services
                 await worker.StopAsync(CancellationToken.None);
         }
 
-        // Starts the real hosted worker over the service, as Program.cs does, so the queued job runs end to end.
+        // Starts the real hosted worker over the service, as AddPortfolioArcGisClients registers it
+        // (Startup/ArcGisClientRegistration.cs), so the queued job runs end to end.
         private void StartWorker(BatchGeocodingService service)
         {
             var provider = new ServiceCollection()
@@ -91,7 +94,6 @@ namespace Portfolio.Tests.Services
                 }
             });
 
-        // Polls the store until the job leaves Queued/Processing, then returns it.
         private static async Task<BatchJob> WaitForTerminalStatusAsync(InMemoryBatchJobStore store, string jobId)
         {
             var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
@@ -108,7 +110,6 @@ namespace Portfolio.Tests.Services
             throw new TimeoutException($"Job {jobId} did not reach a terminal status within 5 seconds.");
         }
 
-        // EnqueueAsync returns a non-empty, 32-character hex job ID (Guid "N" format).
         [Fact]
         public async Task EnqueueAsync_ReturnsNonEmptyHexJobId()
         {
@@ -126,7 +127,6 @@ namespace Portfolio.Tests.Services
             Assert.True(jobId.All(char.IsAsciiHexDigit));
         }
 
-        // Immediately after EnqueueAsync the job is visible in the store with Queued or Processing status.
         [Fact]
         public async Task EnqueueAsync_JobIsInStoreWithQueuedOrProcessingStatus()
         {
@@ -144,7 +144,6 @@ namespace Portfolio.Tests.Services
             Assert.Contains(job.Status, new[] { BatchJobStatus.Queued, BatchJobStatus.Processing, BatchJobStatus.Completed });
         }
 
-        // FileName on the stored job matches the IFormFile.FileName.
         [Fact]
         public async Task EnqueueAsync_StoresCorrectFileName()
         {
@@ -163,7 +162,6 @@ namespace Portfolio.Tests.Services
             Assert.Equal("test.csv", job.FileName);
         }
 
-        // After background geocoding completes the job reaches Completed with the correct metrics.
         [Fact]
         public async Task EnqueueAsync_BackgroundTask_SetsCompletedStatusAndMetrics()
         {
@@ -214,7 +212,6 @@ namespace Portfolio.Tests.Services
             Assert.NotNull(badJob.CompletedAt);
         }
 
-        // EnqueueAsync returns a fresh unique job ID on every call.
         [Fact]
         public async Task EnqueueAsync_CalledTwice_ReturnsDifferentJobIds()
         {
@@ -291,7 +288,6 @@ namespace Portfolio.Tests.Services
             store.Verify(s => s.CreateAsync(It.IsAny<BatchJob>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
-        // The worker takes a queued job through Processing to Completed and logs one summary for it.
         [Fact]
         public async Task Worker_ProcessesQueuedJobEndToEnd_WithOneSummaryLog()
         {
@@ -439,8 +435,6 @@ namespace Portfolio.Tests.Services
                 });
             }
         }
-
-        // ── Fake HTTP handlers ───────────────────────────────────────────────
 
         private sealed class BlockingHandler : HttpMessageHandler
         {

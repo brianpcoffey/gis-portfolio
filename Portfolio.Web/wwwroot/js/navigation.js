@@ -9,9 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
     initMobileMenu();
 });
 
-/**
- * Enable smooth scrolling for anchor links
- */
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
@@ -45,7 +42,6 @@ function initSmoothScroll() {
                 if (added) target.addEventListener('blur', () => target.removeAttribute('tabindex'), { once: true });
                 history.pushState(null, '', targetId);
 
-                // Close mobile menu if open
                 closeMobileMenu();
             }
         });
@@ -75,14 +71,10 @@ function initNavHeight() {
     collapsedLayout.addEventListener('change', update);
 }
 
-/**
- * Handle mobile menu close on link click.
- * Excludes dropdown toggles so the profile dropdown can open on mobile.
- */
 function initMobileMenu() {
     const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
     navLinks.forEach(link => {
-        // Don't close the mobile menu when tapping a dropdown toggle
+        // Dropdown toggles must not close the menu, or the profile dropdown could not open on mobile.
         if (link.classList.contains('dropdown-toggle')) return;
 
         link.addEventListener('click', closeMobileMenu);
@@ -95,9 +87,6 @@ function initMobileMenu() {
     });
 }
 
-/**
- * Close mobile menu by removing show class
- */
 function closeMobileMenu() {
     const navbarCollapse = document.getElementById('navbarNav');
     if (navbarCollapse && navbarCollapse.classList.contains('show')) {

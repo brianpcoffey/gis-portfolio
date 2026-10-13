@@ -61,7 +61,7 @@ namespace Portfolio.Services.Services
             return run.Results;
         }
 
-        // Core geocoding implementation over raw CSV bytes. All internal callers use this overload
+        // Core geocoding over raw CSV bytes. All internal callers use this method
         // so the IFormFile stream is never captured across an async boundary. Optional callbacks
         // report the total row count (once the CSV is parsed) and per-row completion progress, so
         // the async job can surface live polling status. Returns the results plus the cache-hit tally.
@@ -104,7 +104,6 @@ namespace Portfolio.Services.Services
             var cacheHits = 0;
             var stats = new RunStats();
 
-            // Consumer: spin up MaxConcurrency workers.
             var workers = Enumerable.Range(0, _maxConcurrency).Select(_ => Task.Run(async () =>
             {
                 try
@@ -153,8 +152,7 @@ namespace Portfolio.Services.Services
             return (ordered, cacheHits);
         }
 
-        // Validates the upload, records the job and puts it on the bounded queue. The row cap is
-        // enforced here, on the request thread, so an oversized CSV is a 400 rather than a failed
+        // The row cap is enforced here, on the request thread, so an oversized CSV is a 400 rather than a failed
         // job. A full queue throws BatchQueueFullException (503 + Retry-After at the controller).
         // The stream is read here so the IFormFile lifetime need not extend into the background.
         public async Task<string> EnqueueAsync(IFormFile file, CancellationToken ct = default)
@@ -193,7 +191,6 @@ namespace Portfolio.Services.Services
             return jobId;
         }
 
-        // Runs one queued job to a terminal status. Called by the hosted BatchGeocodingWorker.
         // The final store update is in finally, so a failure or cancellation still leaves the
         // job Completed/Failed rather than stuck in Processing.
         public async Task ProcessJobAsync(BatchWorkItem item, CancellationToken ct)
@@ -208,7 +205,6 @@ namespace Portfolio.Services.Services
 
                 var (results, cacheHits) = await RunGeocodeAsync(
                     item.CsvBytes, job.FileName,
-                    // TotalRows known once the CSV is parsed, before any geocoding.
                     onTotal: async total =>
                     {
                         job.TotalRows = total;
@@ -292,7 +288,6 @@ namespace Portfolio.Services.Services
             return (dto, cacheHit);
         }
 
-        // Makes the HTTP call to the ArcGIS World Geocoding REST API.
         private async Task<GeocodeCacheEntry> FetchGeocodeAsync(CsvRow row, RunStats stats, CancellationToken cancellationToken)
         {
             var address = Uri.EscapeDataString(row.Address);
@@ -319,7 +314,6 @@ namespace Portfolio.Services.Services
                     top.Score,
                     top.Location?.Y ?? 0,
                     top.Location?.X ?? 0);
-                // ArcGisGeocodeResponse and ArcGisGeocodeCandidate are defined in Portfolio.Common.ArcGis.
             }
             catch (OperationCanceledException)
             {
@@ -337,14 +331,13 @@ namespace Portfolio.Services.Services
         // outbound geocoding volume and Redis commands.
         private const int MaxRows = 1_000;
 
-        // Parses the CSV bytes into typed rows. Expects header: Id,Address,City,State,Zip
+        // Expects header: Id,Address,City,State,Zip
         private static List<CsvRow> ParseCsv(byte[] csvBytes)
         {
             var rows = new List<CsvRow>();
 
             using var reader = new StreamReader(new MemoryStream(csvBytes));
 
-            // Skip header line.
             var header = reader.ReadLine();
             if (header is null)
                 return rows;

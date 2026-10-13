@@ -28,9 +28,7 @@ namespace Portfolio.Web.Controllers.Api
             _rasterTerrainService = rasterTerrainService;
         }
 
-        /// <summary>
-        /// Generates an 8-bit hillshade intensity grid from an elevation raster.
-        /// </summary>
+        /// <summary>Generates an 8-bit hillshade intensity grid from an elevation raster.</summary>
         /// <param name="request">Elevation raster and hillshade options.</param>
         /// <returns>Hillshade intensity grid.</returns>
         [HttpPost("hillshade")]
@@ -46,9 +44,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _rasterTerrainService.GenerateHillshadeAsync(request, cancellationToken));
         }
 
-        /// <summary>
-        /// Generates a normalized heatmap over a raster extent.
-        /// </summary>
+        /// <summary>Generates a normalized heatmap over a raster extent.</summary>
         /// <param name="request">Weighted points and raster extent.</param>
         /// <returns>Normalized heatmap values.</returns>
         [HttpPost("heatmap")]

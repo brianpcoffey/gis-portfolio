@@ -5,10 +5,12 @@ using System.Text.Json;
 namespace Portfolio.Web.Middleware
 {
     /// <summary>
-    /// Catches unhandled exceptions on all routes and returns an RFC 7807
-    /// ProblemDetails JSON response. UseExceptionHandler("/Error") remains as
-    /// a final fallback but this middleware handles the vast majority of cases.
+    /// Catches unhandled exceptions on all routes and returns an RFC 7807 ProblemDetails JSON response.
     /// </summary>
+    /// <remarks>
+    /// UseExceptionHandler("/Error") remains as a final fallback but this middleware handles the
+    /// vast majority of cases.
+    /// </remarks>
     public class ApiExceptionMiddleware
     {
         private readonly RequestDelegate _next;
@@ -54,10 +56,12 @@ namespace Portfolio.Web.Middleware
 
         /// <summary>
         /// True when the exception was thrown from Portfolio code (including async
-        /// state machines), so its message is ours and safe to surface. Framework
-        /// throw helpers (Dictionary indexer, serializer, ThrowIfNull...) are not
-        /// own; a null TargetSite counts as not own.
+        /// state machines), so its message is ours and safe to surface.
         /// </summary>
+        /// <remarks>
+        /// Framework throw helpers (Dictionary indexer, serializer, ThrowIfNull...) are not
+        /// own; a null TargetSite counts as not own.
+        /// </remarks>
         internal static bool IsOwn(Exception ex) =>
             ex.TargetSite?.DeclaringType?.Assembly.GetName().Name?.StartsWith("Portfolio.", StringComparison.Ordinal) == true;
 

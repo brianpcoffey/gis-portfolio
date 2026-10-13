@@ -1,4 +1,3 @@
-// toolbarHandlers.js
 // Toolbar controls: Compare Mode, Clear selection, Export, "+ New" collection and the basemap select.
 // Each handler is a named function; registerToolbarHandlers() attaches them (called from app.js).
 
@@ -66,7 +65,6 @@ async function onNewCollectionClick() {
 
         const created = await CollectionService.createCollection(input.name, input.color);
 
-        // merge into state
         const state = getState();
         updateCollections([...(state.collections || []), created]);
 
@@ -87,7 +85,6 @@ function onBasemapChange(e) {
 }
 
 
-// Toolbar Buttons
 export function registerToolbarHandlers() {
 
     document.getElementById("btnCompareMode")?.addEventListener("click", onCompareModeClick);

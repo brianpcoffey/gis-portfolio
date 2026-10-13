@@ -146,8 +146,6 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<BadRequestResult>(result);
         }
 
-        // ── Exact error bodies ─────────────────────────────────────────────────
-
         [Fact]
         public async Task Create_MissingIds_PinsExactErrorBody()
         {

@@ -7,9 +7,7 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for managing user profiles.
-    /// </summary>
+    /// <summary>API endpoints for managing user profiles.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/users")]
@@ -22,9 +20,7 @@ namespace Portfolio.Web.Controllers.Api
             _profileService = profileService;
         }
 
-        /// <summary>
-        /// Gets the current user's profile and claims.
-        /// </summary>
+        /// <summary>Gets the current user's profile and claims.</summary>
         [HttpGet("me")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ProfileDto), 200)]
@@ -43,9 +39,7 @@ namespace Portfolio.Web.Controllers.Api
             }
         }
 
-        /// <summary>
-        /// Updates editable fields on the current user's profile.
-        /// </summary>
+        /// <summary>Updates editable fields on the current user's profile.</summary>
         [HttpPut("me")]
         [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
@@ -59,9 +53,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(profile);
         }
 
-        /// <summary>
-        /// Gets a user profile by internal ID.
-        /// </summary>
+        /// <summary>Gets a user profile by internal ID.</summary>
         /// <param name="userId">The internal GUID user ID.</param>
         [HttpGet("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]
@@ -80,9 +72,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(profile);
         }
 
-        /// <summary>
-        /// Gets a user profile by Google ID.
-        /// </summary>
+        /// <summary>Gets a user profile by Google ID.</summary>
         /// <param name="googleId">The Google subject identifier.</param>
         [HttpGet("google/{googleId}")]
         [Authorize(Policy = "Authenticated")]
@@ -102,9 +92,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(profile);
         }
 
-        /// <summary>
-        /// Gets all claims for the current user.
-        /// </summary>
+        /// <summary>Gets all claims for the current user.</summary>
         [HttpGet("me/claims")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(List<ClaimDto>), 200)]
@@ -115,9 +103,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(claims);
         }
 
-        /// <summary>
-        /// Sets a claim for the current user.
-        /// </summary>
+        /// <summary>Sets a claim for the current user.</summary>
         [HttpPut("me/claims")]
         [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
@@ -137,9 +123,7 @@ namespace Portfolio.Web.Controllers.Api
             return NoContent();
         }
 
-        /// <summary>
-        /// Removes a claim for the current user.
-        /// </summary>
+        /// <summary>Removes a claim for the current user.</summary>
         /// <param name="type">The claim type to remove.</param>
         [HttpDelete("me/claims/{type}")]
         [Authorize(Policy = "Authenticated")]
@@ -157,9 +141,7 @@ namespace Portfolio.Web.Controllers.Api
             return removed ? NoContent() : NotFound();
         }
 
-        /// <summary>
-        /// Deletes a user profile and all associated claims.
-        /// </summary>
+        /// <summary>Deletes a user profile and all associated claims.</summary>
         /// <param name="userId">The internal GUID user ID.</param>
         [HttpDelete("{userId:guid}")]
         [Authorize(Policy = "Authenticated")]

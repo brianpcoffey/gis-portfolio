@@ -3,7 +3,7 @@ using Portfolio.Common.DTOs;
 namespace Portfolio.Services.Services.Fleet;
 
 /// <summary>
-/// Request guards for the fleet optimizer. Messages are public 400 bodies; keep them verbatim.
+/// Request guards for the fleet optimizer; messages are public 400 bodies, so keep them verbatim.
 /// </summary>
 internal static class FleetRequestValidator
 {

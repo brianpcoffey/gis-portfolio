@@ -138,9 +138,7 @@ private readonly Mock<ILogger<ArcGisService>> _loggerMock = new();
             Assert.Null(result);
         }
 
-        /// <summary>
-        /// Fake handler to supply canned HTTP responses for testing.
-        /// </summary>
+        /// <summary>Fake handler to supply canned HTTP responses for testing.</summary>
         private sealed class FakeHttpMessageHandler(HttpResponseMessage response) : HttpMessageHandler
         {
             protected override Task<HttpResponseMessage> SendAsync(

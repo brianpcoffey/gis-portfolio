@@ -66,8 +66,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.GenerateHillshadeAsync(request));
         }
 
-        // ── Terrain Analyzer validation ─────────────────────────────────────
-
         [Fact]
         public async Task RasterTerrainHillshade_NullRequest_ThrowsArgumentNullException()
         {
@@ -147,8 +145,6 @@ namespace Portfolio.Tests.Services
             Assert.Single(result.Intensities);
             Assert.InRange(result.Intensities[0], (byte)0, (byte)255);
         }
-
-        // ── Compute work caps and finite validation (WP-06) ─────────────────────
 
         private static RasterHillshadeRequestDto Hillshade(int width, int height) => new()
         {

@@ -1,5 +1,4 @@
-/* Raster Change Detection page (moved out of inline style="" attributes and innerHTML strings).
-   Tokens only: the page already inherits gis.css and spatialcompute.css. */
+/* Raster Change Detection page. Tokens only: the page already inherits gis.css and spatialcompute.css. */
 
 .change-swipe-stage {
     position: relative;

@@ -6,9 +6,7 @@ using Portfolio.Repositories.Interfaces;
 
 namespace Portfolio.Repositories.Repositories
 {
-    /// <summary>
-    /// EF Core-backed repository for user profiles and their associated claims.
-    /// </summary>
+    /// <summary>EF Core-backed repository for user profiles and their associated claims.</summary>
     public class UserProfileRepository : IUserProfileRepository
     {
         private readonly PortfolioDbContext _db;
@@ -20,7 +18,6 @@ namespace Portfolio.Repositories.Repositories
             _logger = logger;
         }
 
-        // Runs the given work inside a single transaction (commit on success, rollback on throw).
         // Uses the provider's execution strategy so it is safe under connection-resiliency config.
         public async Task RunInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
         {
@@ -41,19 +38,13 @@ namespace Portfolio.Repositories.Repositories
             });
         }
 
-        // Retrieves the user profile for the given userId.
-        // Returns null if no matching profile exists.
         public async Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
         }
 
-// Inserts a new user profile or overwrites all fields of the existing one.
-// Persists changes to the database before returning.
-
 /// <summary>
-/// Finds a UserProfile that has a specific claim type/value pair.
-/// Used to locate profiles by GoogleId without knowing the internal UserId.
+/// Finds the profile holding the given claim type/value, e.g. to locate a profile by GoogleId without its UserId.
 /// </summary>
 public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string claimValue, CancellationToken cancellationToken = default)
 {
@@ -66,6 +57,7 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
 }
 
 
+        // Inserts the profile, or overwrites every field of the existing one; persists before returning.
         public async Task<UserProfile> AddOrUpdateProfileAsync(UserProfile profile, CancellationToken cancellationToken = default)
         {
             var existing = await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == profile.UserId, cancellationToken);
@@ -81,8 +73,7 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
             return profile;
         }
 
-        // Removes the user profile for the given userId.
-        // Returns false if no profile was found; true after successful deletion.
+        // Returns false if no profile was found.
         public async Task<bool> DeleteProfileAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
@@ -96,7 +87,7 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
             return true;
         }
 
-        // Returns all claims stored for the given user. Read-only (AsNoTracking).
+        // Read-only (AsNoTracking).
         public async Task<List<UserClaim>> GetClaimsAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return await _db.UserClaims
@@ -105,8 +96,6 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
                 .ToListAsync(cancellationToken);
         }
 
-        // Retrieves a single claim by type for the given user.
-        // Returns null if the claim does not exist.
         public async Task<UserClaim?> GetClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default)
         {
             return await _db.UserClaims
@@ -114,7 +103,6 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.ClaimType == type, cancellationToken);
         }
 
-        // True when the user has a claim of the given type (e.g. a linked google_id).
         public async Task<bool> HasClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default)
         {
             return await _db.UserClaims
@@ -122,7 +110,6 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
                 .AnyAsync(c => c.UserId == userId && c.ClaimType == type, cancellationToken);
         }
 
-        // Number of claims stored for the given user.
         public async Task<int> CountClaimsAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return await _db.UserClaims
@@ -130,8 +117,7 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
                 .CountAsync(c => c.UserId == userId, cancellationToken);
         }
 
-        // Creates a new claim or updates the value of an existing one for the given user.
-        // Persists the change to the database immediately.
+        // Creates the claim or updates the value of an existing one; persists immediately.
         public async Task SetClaimAsync(Guid userId, string type, string value, CancellationToken cancellationToken = default)
         {
             var existing = await _db.UserClaims.FirstOrDefaultAsync(c => c.UserId == userId && c.ClaimType == type, cancellationToken);
@@ -151,8 +137,7 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        // Deletes the claim of the specified type for the given user.
-        // Returns false if the claim did not exist; true after successful removal.
+        // Returns false if the claim did not exist.
         public async Task<bool> RemoveClaimAsync(Guid userId, string type, CancellationToken cancellationToken = default)
         {
             var existing = await _db.UserClaims.FirstOrDefaultAsync(c => c.UserId == userId && c.ClaimType == type, cancellationToken);

@@ -31,7 +31,6 @@ namespace Portfolio.Services.Services
             FacilityLocationNativeBridge.LogAvailability(_logger);
         }
 
-        // Returns the deterministic demo scenario, built once against the cached road graph.
         public async Task<ResponseScenarioDto> GetScenarioAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -40,9 +39,7 @@ namespace Portfolio.Services.Services
             return RedlandsResponseScenario.Build(graph);
         }
 
-        // Buckets every reachable road-network node into a drive-time band. The graph
-        // engine already computes the full single-source cost vector; this keeps it,
-        // which is exactly what ComputeServiceAreaAsync throws away.
+        // Keeps the graph engine's full single-source cost vector, which ComputeServiceAreaAsync throws away.
         public async Task<IsochroneResultDto> ComputeIsochroneAsync(
             IsochroneRequestDto request,
             CancellationToken cancellationToken = default)
@@ -102,9 +99,6 @@ namespace Portfolio.Services.Services
             };
         }
 
-        // Builds the candidate-to-demand travel-time matrix over the road network, sites
-        // the requested number of stations, and reports the result against the stations
-        // operating today.
         public async Task<OptimizeCoverageResultDto> OptimizeAsync(
             OptimizeCoverageRequestDto request,
             CancellationToken cancellationToken = default)
@@ -196,8 +190,6 @@ namespace Portfolio.Services.Services
                 matrixWatch.Elapsed.TotalMilliseconds, solveWatch.Elapsed.TotalMilliseconds, nativeAccelerated);
         }
 
-        // ── Validation ──────────────────────────────────────────────────────────
-
         private static void ValidateDemandPoints(List<DemandPointDto> demandPoints)
         {
             if (demandPoints is null || demandPoints.Count == 0)
@@ -250,8 +242,6 @@ namespace Portfolio.Services.Services
             }
         }
 
-        // ── Isochrone banding ───────────────────────────────────────────────────
-
         // Returns the index of the first band whose upper bound contains the travel time,
         // or bands.Count for anything past the last band. Bands are ascending and
         // half-open on the upper side, so every reachable node lands in exactly one.
@@ -265,8 +255,6 @@ namespace Portfolio.Services.Services
 
             return bands.Count;
         }
-
-        // ── Coverage evaluation ─────────────────────────────────────────────────
 
         // Prefers the native kernel; clears the caller's native flag when it falls back so
         // the reported flag describes the whole computation, not just the solve.
@@ -293,8 +281,6 @@ namespace Portfolio.Services.Services
             return ManagedPMedianSolver.EvaluateManaged(
                 costMatrix, demandCount, weights, chosenIndices, firstThreshold, secondThreshold);
         }
-
-        // ── Result shaping ──────────────────────────────────────────────────────
 
         // Existing stations come from the request when supplied, otherwise from the
         // IsExisting flag on the candidate list. With neither, there is nothing to compare

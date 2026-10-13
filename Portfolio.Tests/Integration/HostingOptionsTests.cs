@@ -10,11 +10,13 @@ using Microsoft.Extensions.Options;
 
 namespace Portfolio.Tests.Integration;
 
-/// <summary>
-/// Pins the hosting options Program.cs registers (WP-14). TestServer does not run Kestrel, so the
-/// Kestrel limits are asserted as configured options only; the 413 and the absent Server header
-/// are checked against a live run.
-/// </summary>
+/// <summary>Pins the hosting options registered at startup (WP-14).</summary>
+/// <remarks>
+/// The options come from ConfigurePortfolioKestrel (Startup/CoreRegistration.cs), AddPortfolioHsts
+/// (Startup/InfrastructureRegistration.cs) and ForwardedHeadersSetup (Startup/ForwardedHeadersSetup.cs).
+/// TestServer does not run Kestrel, so the Kestrel limits are asserted as configured options only; the
+/// 413 and the absent Server header are checked against a live run.
+/// </remarks>
 public class HostingOptionsTests
 {
     [Fact]

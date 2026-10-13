@@ -14,7 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ---------------------------------------------------------------------------
 if(MSVC)
     # /O2  – full optimisation
-    # /arch:AVX2 – enable 256-bit AVX2 for auto-vectorisation of the batch loop
+    # /arch:AVX2 – lets the compiler use AVX2 (measured effect: native/README.md)
     # /fp:fast   – allow re-association of FP ops (matches -ffast-math intent)
     # /GR-       – no RTTI needed; trim binary size
     add_compile_options(/O2 /arch:AVX2 /fp:fast /GR-)

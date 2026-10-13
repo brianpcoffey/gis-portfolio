@@ -70,7 +70,6 @@ public class FiberDashboardService : IFiberDashboardService
             .Take(5)
             .ToList();
 
-        // Inventory by Category analytics
         var inventoryByCategory = materials
             .GroupBy(m => string.IsNullOrEmpty(m.Category) ? "Uncategorized" : m.Category)
             .Select(g => new InventoryByCategoryDto

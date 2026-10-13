@@ -27,7 +27,7 @@
 	<section class="panel shadow-sm rounded p-4 mb-4">
 		<h2 class="h4 mb-3">Frontend Architecture</h2>
 		<p>
-			The page uses Razor for initial layout and <code>wwwroot/js/HomeFinder/app.js</code> for client behavior. It is not a SPA; preference sliders, map graphics, property cards, and saved-search interactions are coordinated with modular vanilla JavaScript.
+			The page uses Razor for initial layout and six deferred scripts under <code>wwwroot/js/HomeFinder/</code> for client behavior: <code>context.js</code> (the shared <code>window.HomeFinder</code> namespace), <code>preferences.js</code>, <code>map.js</code>, <code>results.js</code>, <code>saved-searches.js</code>, and <code>app.js</code> (search orchestration and wiring). It is not a SPA; preference sliders, map graphics, property cards, and saved-search interactions are coordinated with modular vanilla JavaScript.
 		</p>
 		<ul>
 			<li><strong>Map UI:</strong> ArcGIS JavaScript SDK renders property pins and popup content for selected scored properties.</li>

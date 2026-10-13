@@ -6,8 +6,6 @@ namespace Portfolio.Tests.Services
 {
     public class SpatialOverlayServiceTests
     {
-        // ── Spatial Overlay / Zone Tagger ───────────────────────────────────────
-
         [Fact]
         public async Task SpatialJoin_PointsAssignedToContainingZone()
         {

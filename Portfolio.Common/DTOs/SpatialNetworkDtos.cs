@@ -80,8 +80,8 @@ namespace Portfolio.Common.DTOs
         /// <summary>Total number of nodes the search explored before completing.</summary>
         public int ExploredNodes { get; set; }
 
-        /// <summary>Ids of every node the search settled, in exploration order. Drives
-        /// the "search space" map overlay that contrasts A* against Dijkstra. May be
+        /// <summary>Ids of every node the search settled, in exploration order, driving
+        /// the "search space" map overlay that contrasts A* against Dijkstra; may be
         /// empty when the native engine computes the path.</summary>
         public List<int> ExploredNodeIds { get; set; } = [];
 

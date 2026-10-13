@@ -17,7 +17,6 @@ namespace Portfolio.Services.Services
             GeoStreamNativeBridge.LogAvailability(_logger);
         }
 
-        // Processes a telemetry batch into grid aggregates using the native kernel when available.
         public Task<GeoStreamBatchResultDto> ProcessBatchAsync(
             GeoStreamBatchRequestDto request,
             CancellationToken cancellationToken = default)

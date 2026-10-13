@@ -18,8 +18,6 @@ namespace Portfolio.Tests.Controllers
             _controller = new AddressStandardizationController(_serviceMock.Object);
         }
 
-        // ── /parse ────────────────────────────────────────────────────────────
-
         [Fact]
         public async Task Parse_ValidRequest_ReturnsOkWithParsedDto()
         {
@@ -80,8 +78,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<ArgumentException>(() => _controller.Parse(request, CancellationToken.None));
         }
 
-        // ── /validate ─────────────────────────────────────────────────────────
-
         [Fact]
         public async Task Validate_ValidRequest_ReturnsOkWithValidationDto()
         {
@@ -138,8 +134,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<ArgumentException>(() => _controller.Validate(request, CancellationToken.None));
         }
 
-        // ── Circuit-breaker resilience ──────────────────────────────────────────
-
         [Fact]
         public async Task Parse_BrokenCircuit_Propagates()
         {
@@ -169,8 +163,6 @@ namespace Portfolio.Tests.Controllers
             await Assert.ThrowsAsync<Polly.CircuitBreaker.BrokenCircuitException>(
                 () => _controller.Validate(request, CancellationToken.None));
         }
-
-        // ── Exact error bodies ─────────────────────────────────────────────────
 
         private static AddressStandardizationController NewPinned() =>
             new(new Mock<IAddressStandardizationService>().Object);

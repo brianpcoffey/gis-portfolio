@@ -16,13 +16,11 @@ namespace Portfolio.Tests.Services
     // These tests assert computation, not which path produced it: they pass whether or
     // not the native shared libraries have been built. Native/managed equivalence is
     // covered by NativeParityTests and by `dotnet run --project Portfolio.Benchmarks`.
-    // native/facility_location_kernel/src/facility_location_kernel.cpp line for line, so
-    // these also pin the arithmetic the native kernel must reproduce.
+    // The managed path mirrors native/facility_location_kernel/src/facility_location_kernel.cpp line
+    // for line, so these also pin the arithmetic the native kernel must reproduce.
     public class ResponseCoverageServiceTests
     {
         private const double SpeedForMinuteParity = 60.0;
-
-        // ── Optimization ────────────────────────────────────────────────────────
 
         [Fact]
         public async Task Optimize_SingleCandidate_ChoosesIt()
@@ -237,8 +235,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentException>(() => service.OptimizeAsync(request));
         }
 
-        // ── Isochrones ──────────────────────────────────────────────────────────
-
         [Fact]
         public async Task Isochrone_BandsPartitionReachableNodes()
         {
@@ -329,8 +325,6 @@ namespace Portfolio.Tests.Services
             await Assert.ThrowsAsync<ArgumentNullException>(() => service.ComputeIsochroneAsync(null!));
         }
 
-        // ── Scenario dataset ────────────────────────────────────────────────────
-
         [Fact]
         public async Task Scenario_IsDeterministic()
         {
@@ -376,8 +370,6 @@ namespace Portfolio.Tests.Services
                 Assert.Equal(node.Longitude, candidate.Longitude);
             });
         }
-
-        // ── Fixtures ────────────────────────────────────────────────────────────
 
         // Candidate 1 is excellent for five demand points and terrible for the sixth;
         // candidate 2 is uniformly mediocre but inside the four-minute threshold. Used by

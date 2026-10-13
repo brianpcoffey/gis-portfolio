@@ -3,16 +3,16 @@ using System.Text;
 
 namespace Portfolio.Repositories.Diagnostics;
 
-/// <summary>
-/// Helpers that keep personal identifiers out of log output. Warning-level logs are kept in
-/// production, so a raw user GUID there would be a durable, correlatable identifier.
-/// </summary>
+/// <summary>Helpers that keep personal identifiers out of log output.</summary>
+/// <remarks>
+/// Warning-level logs are kept in production, so a raw user GUID there would be a durable, correlatable identifier.
+/// </remarks>
 public static class LogRedaction
 {
     /// <summary>
-    /// Returns a stable, non-reversible tag for a user id: the first 8 lowercase hex characters of
-    /// the SHA-256 of the id's canonical lowercase "D" string (UTF-8). The same user always yields
-    /// the same tag, so log lines can still be correlated without exposing the id.
+    /// Returns a stable, non-reversible tag for a user id (the first 8 lowercase hex characters of the SHA-256 of the
+    /// id's canonical lowercase "D" string, UTF-8), so the same user always yields the same tag and log lines can still
+    /// be correlated without exposing the id.
     /// </summary>
     public static string UserId(Guid userId)
     {

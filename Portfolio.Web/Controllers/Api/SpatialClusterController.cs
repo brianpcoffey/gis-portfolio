@@ -9,9 +9,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for density-based spatial clustering (DBSCAN hotspot detection).
-    /// </summary>
+    /// <summary>API endpoints for density-based spatial clustering (DBSCAN hotspot detection).</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]

@@ -1,23 +1,19 @@
-// AddressStandardization/app.js
 // Self-contained IIFE for the Address Standardization & Validation page.
 // Uses jQuery (global) and D3 (loaded per-page before this script).
 
 (function ($) {
     "use strict";
 
-    // ── Constants ──────────────────────────────────────────────────────────────
     var PARSE_API    = window.PortfolioApi.routes.addresses.parse;
     var VALIDATE_API = window.PortfolioApi.routes.addresses.validate;
     var SCORE_KEY    = "as_score_history";
     var MAX_SCORES   = 5;
     var DEBOUNCE_MS  = 600;
 
-    // ── State ──────────────────────────────────────────────────────────────────
     var debounceTimer    = null;
     var lastParsedDto    = null;
     var confidenceSvgInit = false;
 
-    // ── DOM refs ───────────────────────────────────────────────────────────────
     var $textarea         = $("#asRawAddress");
     var $charCount        = $("#asCharCount");
     var $btnParse         = $("#asBtnParse");
@@ -45,7 +41,6 @@
     var $fallbackAlert       = $("#asFallbackAlert");
     var $unresolvedAlert     = $("#asUnresolvedAlert");
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
     var escapeHtml = window.PortfolioDom.escapeHtml;
     var announce = window.PortfolioUi.announce;
 
@@ -91,7 +86,6 @@
         }
     }
 
-    // ── Score history (sessionStorage) ─────────────────────────────────────────
     function loadScores() {
         try { return JSON.parse(sessionStorage.getItem(SCORE_KEY) || "[]"); } catch (_) { return []; }
     }
@@ -108,7 +102,6 @@
         renderSparkline(scores);
     }
 
-    // ── D3 Confidence Meter ────────────────────────────────────────────────────
     var confSvg, confTrack, confFill, confWidth;
 
     function initConfidenceMeter() {
@@ -172,7 +165,6 @@
         container.setAttribute("aria-label", "Parse confidence " + pct + "%");
     }
 
-    // ── D3 Score Sparkline ─────────────────────────────────────────────────────
     function renderSparkline(scores) {
         var container = document.getElementById("as-sparkline");
         var tooltipEl = document.getElementById("as-sparkline-tooltip");
@@ -253,7 +245,6 @@
             });
     }
 
-    // ── Render parse result ────────────────────────────────────────────────────
     function renderParseResult(dto) {
         lastParsedDto = dto;
 
@@ -285,7 +276,6 @@
         announce("Address parsed: " + (dto.standardizedAddress || "no standardized form") + ".");
     }
 
-    // ── Render validation result ───────────────────────────────────────────────
     // confidenceTier arrives as an integer from the API (System.Text.Json default enum serialization):
     //   0 = High, 1 = Medium, 2 = Low, 3 = Unresolved
     // Integer keys and string keys are both provided so the lookup works regardless of serialization format.
@@ -306,7 +296,6 @@
         var score   = dto.score;
         var matched = dto.matchedAddress || "";
 
-        // Tier card
         var cfg = tierConfig[tier] || tierConfig.Unresolved;
         $tierCard
             .removeClass("tier-high tier-medium tier-low tier-unresolved")
@@ -328,16 +317,13 @@
         $validatePlaceholder.addClass("d-none");
         $validateResult.removeClass("d-none");
 
-        // Also populate parse panel from dto.parsed
         if (parsed) {
             renderParseResult(parsed);
         }
 
-        // Persist score and re-render sparkline
         pushScore(score);
     }
 
-    // ── Reset validation panel ─────────────────────────────────────────────────
     function resetValidation() {
         $validateResult.addClass("d-none");
         $validatePlaceholder.removeClass("d-none");
@@ -345,7 +331,6 @@
         $unresolvedAlert.addClass("d-none");
     }
 
-    // ── API helpers ────────────────────────────────────────────────────────────
     function callParse(raw) {
         return window.apiFetch(PARSE_API, {
             method: "POST",
@@ -370,7 +355,6 @@
         });
     }
 
-    // ── Parse action ───────────────────────────────────────────────────────────
     function doParse(raw, fromDebounce) {
         hideAlert();
         var done = null;
@@ -405,7 +389,6 @@
             });
     }
 
-    // ── Validate action ────────────────────────────────────────────────────────
     function doValidate(raw) {
         hideAlert();
         $parseSpinner.removeClass("d-none");
@@ -434,7 +417,6 @@
             });
     }
 
-    // ── Textarea wiring ────────────────────────────────────────────────────────
     $textarea.on("input", function () {
         var val = $textarea.val();
         var len = val.length;
@@ -443,10 +425,8 @@
         var hasText = val.trim().length > 0;
         syncButtons();
 
-        // Reset validation when input changes
         resetValidation();
 
-        // Debounced auto-parse
         clearTimeout(debounceTimer);
         if (hasText) {
             debounceTimer = setTimeout(function () {
@@ -471,12 +451,10 @@
         if (val) doValidate(val);
     });
 
-    // ── Example addresses ──────────────────────────────────────────────────────
     $(document).on("click", ".as-example-item", function () {
         var addr = $(this).data("address");
         $textarea.val(addr).trigger("input");
 
-        // Close the Bootstrap collapse
         var collapseEl = document.getElementById("asExamples");
         if (collapseEl && window.bootstrap && bootstrap.Collapse) {
             var bsCollapse = bootstrap.Collapse.getInstance(collapseEl);
@@ -488,7 +466,6 @@
         }
     });
 
-    // ── Clipboard copy ─────────────────────────────────────────────────────────
     $copyBtn.on("click", function () {
         var text = $standardized.text();
         if (!text || text === "—") return;
@@ -498,7 +475,6 @@
             $icon.removeClass("fa-regular fa-copy").addClass("fa-solid fa-check");
             $copyBtn.addClass("text-accent").attr("title", "Copied!");
 
-            // Bootstrap Tooltip feedback
             if (window.bootstrap && bootstrap.Tooltip) {
                 var existingTip = bootstrap.Tooltip.getInstance($copyBtn[0]);
                 if (existingTip) existingTip.dispose();
@@ -525,9 +501,7 @@
         });
     });
 
-    // ── Initialization ─────────────────────────────────────────────────────────
     (function init() {
-        // Initialize confidence meter at 0
         initConfidenceMeter();
         updateConfidenceMeter(0);
 

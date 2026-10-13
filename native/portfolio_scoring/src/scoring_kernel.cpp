@@ -9,9 +9,9 @@
  *  - No global mutable state; fully reentrant.
  *  - All helpers are file-scoped (anonymous namespace) to avoid symbol
  *    pollution and allow aggressive inlining.
- *  - ScorePropertyBatch iterates a plain for-loop over contiguous structs.
- *    With /arch:AVX2 (MSVC) or -march=haswell (GCC/Clang) the compiler
- *    auto-vectorises the bulk of the arithmetic to 4-wide double SIMD lanes.
+ *  - ScorePropertyBatch iterates a plain for-loop over contiguous structs,
+ *    which leaves the compiler free to vectorise it under AVX2; measured,
+ *    it is no faster than the managed path (native/README.md).
  *  - LoanTermMonths and AnnualInterestRate are constexpr to match the C#
  *    constants and allow compile-time evaluation where possible.
  */
@@ -22,15 +22,11 @@
 #include <algorithm>  /* std::clamp */
 #include <cstdint>
 
-/* -----------------------------------------------------------------------
- * Internal helpers (not exported)
- * ----------------------------------------------------------------------- */
 namespace
 {
 	constexpr double kAnnualInterestRate = 0.065;
 	constexpr int    kLoanTermMonths     = 360;  // 30-year fixed
 
-	/* clamp to [0, 100] */
 	inline double clamp100(double v) noexcept
 	{
 		return std::clamp(v, 0.0, 100.0);
@@ -59,7 +55,6 @@ namespace
 			mortgage = loan_amount / static_cast<double>(kLoanTermMonths);
 		}
 
-		/* mortgage + annual_tax/12 + monthly_hoa + monthly_utilities */
 		return std::round((mortgage + (p.propertyTax / 12.0) + p.hoaFee + p.utilities) * 100.0) / 100.0;
 	}
 
@@ -166,7 +161,6 @@ namespace
 
 		const double denom = (total_weight > 0.0) ? total_weight : 1.0;
 
-		/* Sub-scores */
 		const double monthly_cost = estimate_monthly_cost(p);
 
 		out.estimatedMonthlyCost = monthly_cost;
@@ -181,7 +175,6 @@ namespace
 		out.resale         = clamp100(p.resalePotential);
 		out.environment    = score_environment(p);
 
-		/* Weighted composite */
 		out.composite = clamp100(
 			(prefs.wAffordability / denom) * out.affordability
 		  + (prefs.wNeighborhood  / denom) * out.neighborhood
@@ -196,10 +189,6 @@ namespace
 	}
 
 } /* anonymous namespace */
-
-/* -----------------------------------------------------------------------
- * Exported entry points
- * ----------------------------------------------------------------------- */
 
 extern "C"
 {
@@ -218,14 +207,9 @@ extern "C"
 		ScoreOutputNative*            scores)
 	{
 		/*
-		 * Plain indexed loop over contiguous input/output arrays.
-		 * The compiler can auto-vectorise this loop because:
-		 *  - All sub-score functions are inlined.
-		 *  - There are no data dependencies between iterations.
-		 *  - Input and output arrays cannot alias (separate pointers).
-		 *
-		 * With /arch:AVX2 or -march=haswell -ffast-math the inner arithmetic
-		 * on doubles maps to VFMADD231PD / VMULPD instructions.
+		 * Plain indexed loop over contiguous input/output arrays. Iterations are
+		 * independent, the helpers inline and the arrays cannot alias, so the
+		 * compiler may vectorise it; whether it does depends on compiler and flags.
 		 */
 		for (int32_t i = 0; i < count; ++i)
 		{

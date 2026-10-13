@@ -7,14 +7,15 @@ using Portfolio.Tests.Integration;
 
 namespace Portfolio.Tests.Contracts;
 
-/// <summary>
-/// Guards "public routes don't change". The golden list is every controller action endpoint as
-/// "VERB /path" (the API-version segment is shown as v1), taken from the real endpoint table. It
-/// has 79 entries: the 77 versioned routes, three of which are hidden aliases (homefinder/score,
-/// homefinder/properties/{id}, geocoding/batch/sync), plus the one unversioned legacy route
-/// POST /api/batchgeocoding/sync that the same action (the live batch sync endpoint the demo calls) also exposes, and the version-neutral POST /csp-report (WP-20). Page endpoints are not
+/// <summary>Guards "public routes don't change" with a golden list of every controller action endpoint.</summary>
+/// <remarks>
+/// Each entry is "VERB /path" (the API-version segment is shown as v1), taken from the real endpoint
+/// table. The list has 79 entries: the 77 versioned routes, three of which are hidden aliases
+/// (homefinder/score, homefinder/properties/{id}, geocoding/batch/sync), plus the one unversioned
+/// legacy route POST /api/batchgeocoding/sync that the same action (the live batch sync endpoint the
+/// demo calls) also exposes, and the version-neutral POST /csp-report (WP-20). Page endpoints are not
 /// listed. Every route string in wwwroot/js/api-config.js must also resolve to a controller route.
-/// </summary>
+/// </remarks>
 public class RouteTableTests
 {
     private const string Expected = """

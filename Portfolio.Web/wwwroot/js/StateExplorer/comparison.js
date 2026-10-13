@@ -1,4 +1,3 @@
-// comparison.js
 // Comparison panel: the side-by-side cards for the features in the compare set, and the
 // Compare Mode button's on/off look. Reads state only; the cards' buttons are wired by delegation in uiManager.js.
 
@@ -6,7 +5,6 @@ import { getState } from './stateStore.js';
 import { extractMetadataPairs } from './metadata.js';
 import { el, query } from './uiHelpers.js';
 
-// Comparison panel rendering
 export function renderComparison() {
     const panel = query("comparisonPanel");
     const content = query("comparisonContent");
@@ -14,7 +12,6 @@ export function renderComparison() {
 
     const state = getState();
     const ids = Array.from(state.compareSet || []);
-    // If compareMode is not enabled or there are no ids, hide panel
     if (!state.compareMode || ids.length === 0) {
         panel.classList.add("d-none");
         content.innerHTML = "";
@@ -22,7 +19,6 @@ export function renderComparison() {
         return;
     }
 
-    // Build content
     const frag = document.createDocumentFragment();
     ids.forEach(id => {
         // Try to locate feature in features list first, then savedFeatures
@@ -31,7 +27,6 @@ export function renderComparison() {
         const title = feature?.displayName || feature?.Name || feature?.name || `State ${id}`;
         const desc = (feature?.Description || feature?.description || "").toString();
 
-        // Build metadata snippet
         const metaPairs = extractMetadataPairs(feature);
         const metaHtml = metaPairs.length ? `<div class="mt-2"><small class="theme-text-muted">${metaPairs.map(p => `<div>${PortfolioDom.escapeHtml(p[0])}: <strong>${PortfolioDom.escapeHtml(p[1])}</strong></div>`).join("")}</small></div>` : "";
 
@@ -61,7 +56,6 @@ export function renderComparison() {
     renderCompareIndicator();
 }
 
-// Visual indicator for compare mode (toggles button style/text)
 export function renderCompareIndicator() {
     const btn = query("btnCompareMode");
     if (!btn) return;

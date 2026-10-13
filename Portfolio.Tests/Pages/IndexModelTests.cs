@@ -2,11 +2,11 @@ using Portfolio.Web.Pages;
 
 namespace Portfolio.Tests.Pages;
 
-/// <summary>
-/// Covers the résumé download metadata. The point of reading these from the file
-/// is that they cannot go stale, so the tests are mostly about what happens when
-/// the file or the page count is not what we expect.
-/// </summary>
+/// <summary>Covers the résumé download metadata.</summary>
+/// <remarks>
+/// The point of reading these from the file is that they cannot go stale, so the tests are mostly
+/// about what happens when the file or the page count is not what we expect.
+/// </remarks>
 public class IndexModelTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "resume-meta-" + Guid.NewGuid().ToString("N"));

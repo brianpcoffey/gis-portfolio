@@ -82,7 +82,6 @@ if (typeof loadPlantOpsMap !== 'function') {
                 plantOpsGraphicsLayer = new GraphicsLayer();
                 plantOpsMapInstance.add(plantOpsGraphicsLayer);
 
-                // Center for North America (approximate)
                 plantOpsMapView = new MapView({
                     container: 'plantOpsMap',
                     map: plantOpsMapInstance,
@@ -90,7 +89,6 @@ if (typeof loadPlantOpsMap !== 'function') {
                     zoom: 4
                 });
 
-                // Wire up basemap switcher (same as HomeFinder)
                 if (basemapSelect) {
                     basemapSelect.addEventListener('change', () => {
                         plantOpsMapInstance.basemap = basemapSelect.value;
@@ -217,7 +215,6 @@ function renderRevenueChart(revenueByMonth) {
         container.append('div').attr('class', 'text-muted small').text('No revenue data.');
         return;
     }
-    // D3 bar chart
     const margin = { top: 24, right: 24, bottom: 40, left: 60 };
     const width = container.node().clientWidth - margin.left - margin.right;
     const height = 320 - margin.top - margin.bottom;
