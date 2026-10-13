@@ -2,6 +2,8 @@
 (function () {
     "use strict";
 
+    var fmt = window.PortfolioFormat;
+
     var sampleEvents = [
         { entityId: 101, timestampUtc: new Date().toISOString(), latitude: 34.054, longitude: -117.182, speedMetersPerSecond: 12, headingDegrees: 90 },
         { entityId: 102, timestampUtc: new Date().toISOString(), latitude: 34.057, longitude: -117.185, speedMetersPerSecond: 35, headingDegrees: 105 },
@@ -14,9 +16,10 @@
     var anomalySpeed = document.getElementById("geoAnomalySpeed");
     var sampleJson = document.getElementById("geoSampleJson");
     var runBtn = document.getElementById("geoRunBtn");
-    var alertBox = document.getElementById("geoStreamAlert");
+    var alertBox = PortfolioUi.inlineAlert(document.getElementById("geoStreamAlert"));
     var stage = document.getElementById("geoStage");
     var aggregateList = document.getElementById("geoAggregateList");
+    var resultsPanel = stage.closest(".card");
     var kpiTotal = document.getElementById("geoKpiTotal");
     var kpiValid = document.getElementById("geoKpiValid");
     var kpiAnomalies = document.getElementById("geoKpiAnomalies");
@@ -26,12 +29,12 @@
     runBtn.addEventListener("click", processTelemetry);
 
     function processTelemetry() {
-        hideAlert();
+        alertBox.hide();
         var events;
         try {
             events = JSON.parse(sampleJson.value);
         } catch (err) {
-            showAlert("Sample events must be valid JSON.");
+            alertBox.show("Sample events must be valid JSON.");
             return;
         }
 
@@ -41,41 +44,50 @@
             events: events
         };
 
-        runBtn.disabled = true;
-        apiPost(window.PortfolioApi.routes.spatialCompute.geostream.events, request)
-            .then(renderResult)
-            .catch(function (err) {
-                showAlert(err.message || "Failed to process telemetry.");
-            })
-            .finally(function () {
-                runBtn.disabled = false;
-            });
+        PortfolioUi.runAction({
+            trigger: runBtn,
+            alert: alertBox,
+            region: resultsPanel,
+            request: function () { return apiPost(window.PortfolioApi.routes.spatialCompute.geostream.events, request); },
+            render: renderResult,
+            summary: function (result) {
+                return "Telemetry processed: " + fmt.number(result.validEvents) + " valid events in " +
+                    fmt.number(result.aggregates.length) + " cells, " + fmt.number(result.anomalyCount) + " anomalies.";
+            }
+        });
     }
 
     function renderResult(result) {
-        kpiTotal.textContent = result.totalEvents;
-        kpiValid.textContent = result.validEvents;
-        kpiAnomalies.textContent = result.anomalyCount;
-        kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
+        kpiTotal.textContent = fmt.number(result.totalEvents);
+        kpiValid.textContent = fmt.number(result.validEvents);
+        kpiAnomalies.textContent = fmt.number(result.anomalyCount);
+        kpiNative.textContent = fmt.yesNo(result.nativeAccelerated);
 
-        stage.innerHTML = "";
-        aggregateList.innerHTML = "";
+        stage.replaceChildren();
+        aggregateList.replaceChildren();
 
         result.aggregates.forEach(function (aggregate) {
-            var point = document.createElement("div");
-            point.className = "spatial-point" + (aggregate.anomalyCount > 0 ? " anomaly" : "");
+            var avg = fmt.unit(aggregate.averageSpeedMetersPerSecond, "m/s");
+            var point = PortfolioDom.el("div", {
+                class: "spatial-point" + (aggregate.anomalyCount > 0 ? " anomaly" : ""),
+                title: aggregate.count + " events, avg " + avg
+            });
             point.style.left = normalize(aggregate.centerLongitude, -117.22, -117.16) + "%";
             point.style.top = (100 - normalize(aggregate.centerLatitude, 34.04, 34.08)) + "%";
-            point.title = aggregate.count + " events, avg " + aggregate.averageSpeedMetersPerSecond + " m/s";
             stage.appendChild(point);
 
-            var item = document.createElement("div");
-            item.className = "geo-cell-item" + (aggregate.anomalyCount > 0 ? " geo-cell-anomaly" : "");
-            item.innerHTML = "<strong>Cell " + aggregate.cellX + ", " + aggregate.cellY + "</strong>" +
-                "<div class='geo-cell-meta'>" + aggregate.count + " events · avg " + aggregate.averageSpeedMetersPerSecond +
-                " m/s · max " + aggregate.maxSpeedMetersPerSecond + " m/s · anomalies " + aggregate.anomalyCount + "</div>";
-            aggregateList.appendChild(item);
+            aggregateList.appendChild(PortfolioDom.el("div",
+                { class: "geo-cell-item" + (aggregate.anomalyCount > 0 ? " geo-cell-anomaly" : "") },
+                PortfolioDom.el("strong", { text: "Cell " + aggregate.cellX + ", " + aggregate.cellY }),
+                PortfolioDom.el("div", {
+                    class: "geo-cell-meta",
+                    text: aggregate.count + " events · avg " + avg + " · max " +
+                        fmt.unit(aggregate.maxSpeedMetersPerSecond, "m/s") + " · anomalies " + aggregate.anomalyCount
+                })));
         });
+
+        stage.setAttribute("aria-label", "Telemetry aggregate map: " + result.aggregates.length + " cells, " +
+            result.anomalyCount + " with anomalies");
 
         if (window.showToast) {
             window.showToast("Telemetry batch processed.", "success");
@@ -84,15 +96,5 @@
 
     function normalize(value, min, max) {
         return Math.max(5, Math.min(95, ((value - min) / (max - min)) * 100));
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
     }
 }());

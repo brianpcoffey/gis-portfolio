@@ -2,11 +2,8 @@
 (function () {
     "use strict";
 
-    var SVGNS = "http://www.w3.org/2000/svg";
-    var PALETTE = [
-        "#e6194B", "#3cb44b", "#4363d8", "#f58231", "#911eb4",
-        "#42d4f4", "#f032e6", "#bfef45", "#fabed4", "#469990"
-    ];
+    var fmt = window.PortfolioFormat;
+    var charts = window.PortfolioCharts;
 
     var epsilonInput = document.getElementById("clusterEpsilon");
     var epsilonValue = document.getElementById("clusterEpsilonValue");
@@ -14,8 +11,9 @@
     var datasetSelect = document.getElementById("clusterDataset");
     var runBtn = document.getElementById("clusterRunBtn");
     var regenBtn = document.getElementById("clusterRegenBtn");
-    var alertBox = document.getElementById("clusterAlert");
+    var alertBox = PortfolioUi.inlineAlert(document.getElementById("clusterAlert"));
     var svg = document.getElementById("clusterSvg");
+    var resultsPanel = svg.closest(".card");
     var legend = document.getElementById("clusterLegend");
     var summary = document.getElementById("clusterSummary");
     var kpiPoints = document.getElementById("clusterKpiPoints");
@@ -23,21 +21,22 @@
     var kpiNoise = document.getElementById("clusterKpiNoise");
     var kpiNative = document.getElementById("clusterKpiNative");
 
-    var seed = 1337;
+    // Seeded LCG shared with the other pages (PortfolioCharts.rng); one call advances it one step.
+    var rng = charts.rng(1337);
     var points = [];
+    var lastResult = null;
 
     epsilonInput.addEventListener("input", function () { epsilonValue.textContent = Number(epsilonInput.value).toFixed(2); });
     runBtn.addEventListener("click", run);
-    regenBtn.addEventListener("click", function () { seed = (seed * 48271) % 2147483647; regenerate(); });
+    regenBtn.addEventListener("click", function () { rng(); regenerate(); });
     datasetSelect.addEventListener("change", regenerate);
+    // Palette colours are resolved per theme, so repaint when the theme flips.
+    charts.onThemeChange(function () {
+        drawPoints(lastResult ? lastResult.points : null);
+        if (lastResult) { buildLegend(lastResult); }
+    });
 
     regenerate();
-
-    // Deterministic pseudo-random generator so a given seed reproduces the same dataset.
-    function rng() {
-        seed = (seed * 48271) % 2147483647;
-        return seed / 2147483647;
-    }
 
     function gaussian(mean, spread) {
         var u = Math.max(rng(), 1e-9);
@@ -50,6 +49,7 @@
     function regenerate() {
         var mode = datasetSelect.value;
         points = [];
+        lastResult = null;
         if (mode === "blobs") {
             addBlob(0.28, 0.30, 0.05, 35);
             addBlob(0.70, 0.35, 0.05, 30);
@@ -69,7 +69,9 @@
             }
         }
         drawPoints(null);
+        legend.replaceChildren();
         summary.textContent = "";
+        charts.describe(svg, fmt.number(points.length) + " sample points, not yet clustered. Choose Run DBSCAN.");
     }
 
     function addBlob(cx, cy, spread, count) {
@@ -84,27 +86,34 @@
         }
     }
 
+    // Runs DBSCAN; the regenerate button is guarded too so the points cannot change mid-request.
     function run() {
-        hideAlert();
         var request = {
             epsilon: Number(epsilonInput.value),
             minPoints: Number(minPointsInput.value),
             points: points
         };
 
-        setBusy(true);
-        apiPost(window.PortfolioApi.routes.spatialCompute.clustering.dbscan, request)
-            .then(function (result) { render(result); })
-            .catch(function (err) { showAlert(err.message || "Clustering failed."); })
-            .finally(function () { setBusy(false); });
+        var releaseRegen = PortfolioUi.busy({ buttons: [regenBtn] });
+        PortfolioUi.runAction({
+            trigger: runBtn,
+            alert: alertBox,
+            region: resultsPanel,
+            request: function () { return apiPost(window.PortfolioApi.routes.spatialCompute.clustering.dbscan, request); },
+            render: render,
+            summary: function (result) {
+                return result.clusterCount + " clusters, " + result.noiseCount + " noise points.";
+            }
+        }).then(releaseRegen);
     }
 
     function render(result) {
+        lastResult = result;
         drawPoints(result.points);
-        kpiPoints.textContent = result.points.length;
-        kpiClusters.textContent = result.clusterCount;
-        kpiNoise.textContent = result.noiseCount;
-        kpiNative.textContent = result.nativeAccelerated ? "Yes" : "No";
+        kpiPoints.textContent = fmt.number(result.points.length);
+        kpiClusters.textContent = fmt.number(result.clusterCount);
+        kpiNoise.textContent = fmt.number(result.noiseCount);
+        kpiNative.textContent = fmt.yesNo(result.nativeAccelerated);
         buildLegend(result);
         summary.textContent = JSON.stringify({
             nativeAccelerated: result.nativeAccelerated,
@@ -112,73 +121,55 @@
             noiseCount: result.noiseCount,
             clusterSizes: result.clusterSizes
         }, null, 2);
+        charts.describe(svg, result.clusterCount + " clusters of " + result.clusterSizes.join(", ") +
+            " points, and " + result.noiseCount + " noise points, from " + result.points.length + " points.");
     }
 
     function colorFor(clusterId) {
         if (clusterId < 0) return "var(--text-muted)";
-        return PALETTE[clusterId % PALETTE.length];
+        var palette = charts.palette(8);
+        return palette[clusterId % palette.length];
     }
 
     function drawPoints(labelled) {
-        svg.innerHTML = "";
+        charts.svg.clear(svg);
         var list = labelled || points.map(function (p) { return { x: p.x, y: p.y, clusterId: -2 }; });
+        var palette = charts.palette(8);
+        var unclustered = charts.status("info");
         list.forEach(function (p) {
-            var circle = document.createElementNS(SVGNS, "circle");
-            circle.setAttribute("cx", (p.x * 100).toFixed(2));
-            circle.setAttribute("cy", (100 - p.y * 100).toFixed(2));
-            circle.setAttribute("r", p.clusterId === -1 ? "1.1" : "1.7");
+            var circle = charts.svg.el("circle", {
+                cx: (p.x * 100).toFixed(2),
+                cy: (100 - p.y * 100).toFixed(2),
+                r: p.clusterId === -1 ? "1.1" : "1.7"
+            });
             if (p.clusterId === -2) {
-                circle.setAttribute("fill", "var(--bs-info)");
+                circle.setAttribute("fill", unclustered);
                 circle.setAttribute("opacity", "0.7");
             } else if (p.clusterId === -1) {
                 circle.setAttribute("fill", "var(--text-muted)");
                 circle.setAttribute("opacity", "0.55");
             } else {
-                circle.setAttribute("fill", colorFor(p.clusterId));
+                circle.setAttribute("fill", palette[p.clusterId % palette.length]);
             }
             svg.appendChild(circle);
         });
     }
 
     function buildLegend(result) {
-        legend.innerHTML = "";
+        legend.replaceChildren();
         result.clusterSizes.forEach(function (size, index) {
-            legend.appendChild(legendChip(colorFor(index), "Cluster " + (index + 1) + " · " + size));
+            legend.appendChild(legendItem(colorFor(index), "Cluster " + (index + 1) + " · " + fmt.number(size)));
         });
         if (result.noiseCount > 0) {
-            legend.appendChild(legendChip("var(--text-muted)", "Noise · " + result.noiseCount));
+            legend.appendChild(legendItem("var(--text-muted)", "Noise · " + fmt.number(result.noiseCount)));
         }
     }
 
-    function legendChip(color, label) {
-        var chip = document.createElement("span");
-        chip.className = "badge d-inline-flex align-items-center gap-1";
-        chip.style.background = "var(--surface)";
-        chip.style.color = "var(--text)";
-        chip.style.border = "1px solid var(--border)";
-        var dot = document.createElement("span");
-        dot.style.width = "0.7rem";
-        dot.style.height = "0.7rem";
-        dot.style.borderRadius = "999px";
-        dot.style.background = color;
-        dot.style.display = "inline-block";
-        chip.appendChild(dot);
-        chip.appendChild(document.createTextNode(label));
-        return chip;
-    }
-
-    function setBusy(busy) {
-        runBtn.disabled = busy;
-        regenBtn.disabled = busy;
-    }
-
-    function showAlert(message) {
-        alertBox.textContent = message;
-        alertBox.classList.remove("d-none");
-    }
-
-    function hideAlert() {
-        alertBox.classList.add("d-none");
-        alertBox.textContent = "";
+    // <li><span class="legend__swatch"/> label</li> per components.css; the colour goes through
+    // --swatch via setProperty (CSP-safe).
+    function legendItem(color, label) {
+        var swatch = PortfolioDom.el("span", { "class": "legend__swatch", "aria-hidden": "true" });
+        swatch.style.setProperty("--swatch", color);
+        return PortfolioDom.el("li", null, swatch, label);
     }
 }());

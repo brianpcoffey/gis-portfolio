@@ -1,37 +1,27 @@
 @page
+@using Portfolio.Common.Models
 @model Portfolio.Web.Pages.Projects.Terrain.IndexModel
 @{
 	Layout = "/Pages/Shared/_Layout.cshtml";
 	ViewData["Title"] = "Terrain Analyzer";
+	var hero = new ProjectHero("Terrain Analyzer", "fa-solid fa-mountain-sun", "Generate hillshade and heatmap rasters from dense grid math backed by a native terrain kernel.",
+		new[] { new ProjectHeroBadge("fa-solid fa-layer-group", "C++ Raster Kernel MVP") }, "/Projects/Terrain/Details");
 }
 
-<link rel="stylesheet" href="~/css/gis.css" />
-<link rel="stylesheet" href="~/css/spatialcompute.css" />
+@section Styles {
+	<link rel="stylesheet" href="~/css/gis.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/css/spatialcompute.css" asp-append-version="true" />
+}
 
 <div class="spatial-compute-page theme-root">
-	<div class="project-hero py-4 mb-4">
-		<div class="container">
-			<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-				<div>
-					<h1 class="mb-1"><i class="fa-solid fa-mountain-sun me-2"></i>Terrain Analyzer</h1>
-					<p class="text-muted theme-text-muted mb-0">Generate hillshade and heatmap rasters from dense grid math backed by a native terrain kernel.</p>
-				</div>
-				<div class="d-flex align-items-center gap-2">
-					<span class="badge badge-gis fs-6"><i class="fa-solid fa-layer-group me-1"></i>C++ Raster Kernel MVP</span>
-					<a class="btn btn-outline-accent btn-sm project-info-btn" href="/Projects/Terrain/Details" aria-label="View technical details for Terrain Analyzer" title="Technical Details">
-						<i class="fa-solid fa-circle-info"></i>
-					</a>
-				</div>
-			</div>
-		</div>
-	</div>
+	<partial name="_ProjectHero" model="hero" />
 
 	<div class="container pb-5">
 		<div id="terrainAlert" class="alert alert-danger d-none" role="alert"></div>
 		<div class="row g-4">
 			<div class="col-lg-4">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent"></i><strong>Raster Controls</strong></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-sliders text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Raster Controls</h2></div>
 					<div class="card-body d-flex flex-column gap-3">
 						<div class="row g-2">
 							<div class="col-6">
@@ -44,18 +34,18 @@
 							</div>
 						</div>
 						<div>
-							<label for="terrainAzimuth" class="form-label small">Hillshade azimuth</label>
-							<input id="terrainAzimuth" class="form-range" type="range" min="0" max="360" value="315" />
+							<label for="terrainAzimuth" class="form-label small d-flex justify-content-between"><span>Hillshade azimuth</span><output id="terrainAzimuthValue" for="terrainAzimuth" class="text-accent">315°</output></label>
+							<input id="terrainAzimuth" class="form-range" type="range" min="0" max="360" value="315" aria-valuetext="315°" />
 						</div>
-						<button id="terrainHillshadeBtn" class="btn btn-accent"><i class="fa-solid fa-sun me-1"></i>Generate Hillshade</button>
-						<button id="terrainHeatmapBtn" class="btn btn-outline-accent"><i class="fa-solid fa-fire me-1"></i>Generate Heatmap</button>
+						<button id="terrainHillshadeBtn" class="btn btn-accent"><i class="fa-solid fa-sun me-1" aria-hidden="true"></i>Generate Hillshade</button>
+						<button id="terrainHeatmapBtn" class="btn btn-outline-accent"><i class="fa-solid fa-fire me-1" aria-hidden="true"></i>Generate Heatmap</button>
 						<pre id="terrainSummary" class="sample-json mt-auto mb-0"></pre>
 					</div>
 				</div>
 			</div>
 			<div class="col-lg-8">
 				<div class="card spatial-card shadow-sm h-100">
-					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-table-cells text-accent"></i><strong>Raster Output</strong></div>
+					<div class="card-header d-flex align-items-center gap-2"><i class="fa-solid fa-table-cells text-accent" aria-hidden="true"></i><h2 class="h6 mb-0">Raster Output</h2></div>
 					<div class="card-body">
 						<div class="row g-3 mb-3">
 							<div class="col-md-4"><div class="kpi-card text-center"><div id="terrainKpiCells" class="kpi-value">0</div><div class="kpi-label">Cells</div></div></div>
@@ -63,7 +53,7 @@
 							<div class="col-md-4"><div class="kpi-card text-center"><div id="terrainKpiMode" class="kpi-value">—</div><div class="kpi-label">Mode</div></div></div>
 						</div>
 						<div class="spatial-map-panel d-flex align-items-center justify-content-center p-3">
-							<div id="terrainGrid" class="raster-grid" aria-label="Raster output grid"></div>
+							<div id="terrainGrid" class="raster-grid" role="img" aria-label="Raster output grid: no results yet"></div>
 						</div>
 					</div>
 				</div>
