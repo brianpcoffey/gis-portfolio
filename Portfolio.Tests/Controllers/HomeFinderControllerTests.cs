@@ -254,5 +254,60 @@ namespace Portfolio.Tests.Controllers
             // Assert
             Assert.IsType<UnauthorizedResult>(result);
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        [Fact]
+        public async Task SaveSearch_InvalidOperation_PinsExactConflictBody()
+        {
+            // Arrange
+            _profileMock.Setup(p => p.GetCurrentUserId()).Returns(_testUserId);
+            _savedSearchMock
+                .Setup(s => s.CreateSavedSearchAsync(It.IsAny<CreateSavedSearchDto>(), _testUserId, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("A saved search with that name already exists."));
+
+            // Act
+            var result = await _controller.SaveSearch(
+                new SaveSearchRequest { Name = "dup" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 409, "A saved search with that name already exists.");
+        }
+
+        [Fact]
+        public async Task DeleteSearch_KeyNotFound_ReturnsBareNotFound()
+        {
+            // Arrange
+            _profileMock.Setup(p => p.GetCurrentUserId()).Returns(_testUserId);
+            _savedSearchMock
+                .Setup(s => s.DeleteSavedSearchAsync(It.IsAny<int>(), _testUserId, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new KeyNotFoundException("gone"));
+
+            // Act
+            var result = await _controller.DeleteSearch(3, CancellationToken.None);
+
+            // Assert
+            var notFound = Assert.IsType<NotFoundResult>(result);
+            Assert.Equal(404, notFound.StatusCode);
+        }
+
+        [Fact]
+        public async Task Search_InvalidModelState_ReturnsBadRequestWithModelStateBody()
+        {
+            // Arrange
+            _controller.ModelState.AddModelError("WeightSize", "Each weight must be between 0% and 100%.");
+
+            // Act
+            var result = await _controller.Search(new HomeSearchPreferencesDto(), CancellationToken.None);
+
+            // Assert
+            var bad = Assert.IsType<BadRequestObjectResult>(result);
+            var errors = Assert.IsType<SerializableError>(bad.Value);
+            var messages = Assert.IsType<string[]>(errors["WeightSize"]);
+            Assert.Equal(["Each weight must be between 0% and 100%."], messages);
+            _scoringMock.Verify(
+                s => s.GetTopPropertiesAsync(It.IsAny<HomeSearchPreferencesDto>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
     }
 }

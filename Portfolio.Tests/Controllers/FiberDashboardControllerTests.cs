@@ -66,5 +66,19 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(500, problem.Status);
             Assert.Equal("An unexpected error occurred.", problem.Title);
         }
+
+        [Fact]
+        public async Task GetStats_ServiceThrows_PinsExact500BodyWithoutLeakingMessage()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.GetDashboardAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("connection string leaked here"));
+
+            // Act
+            var result = await _controller.GetStats(CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.Unexpected(result);
+        }
     }
 }

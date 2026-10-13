@@ -191,5 +191,102 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(503, problem.Status);
             Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
         }
+
+        // ── Exact error bodies ─────────────────────────────────────────────────
+
+        private static (AddressStandardizationController Controller, Mock<IAddressStandardizationService> Service) NewPinned()
+        {
+            var service = new Mock<IAddressStandardizationService>();
+            var controller = new AddressStandardizationController(
+                service.Object,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<AddressStandardizationController>.Instance);
+            return (controller, service);
+        }
+
+        [Fact]
+        public async Task Parse_BlankAddress_PinsExactErrorBody()
+        {
+            // Arrange
+            var (controller, _) = NewPinned();
+
+            // Act
+            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = " " }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "RawAddress is required.");
+        }
+
+        [Fact]
+        public async Task Parse_ArgumentException_PinsExactErrorBody()
+        {
+            // Arrange
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Unparseable address.", "rawAddress"));
+
+            // Act
+            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Unparseable address. (Parameter 'rawAddress')");
+        }
+
+        [Fact]
+        public async Task Parse_BrokenCircuit_PinsExact503Body()
+        {
+            // Arrange
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ParseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
+
+            // Act
+            var result = await controller.Parse(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.GeocodingUnavailable(result);
+        }
+
+        [Fact]
+        public async Task Validate_BlankAddress_PinsExactErrorBody()
+        {
+            // Arrange
+            var (controller, _) = NewPinned();
+
+            // Act
+            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "RawAddress is required.");
+        }
+
+        [Fact]
+        public async Task Validate_ArgumentException_PinsExactErrorBody()
+        {
+            // Arrange
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("Unvalidatable address.", "rawAddress"));
+
+            // Act
+            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400, "Unvalidatable address. (Parameter 'rawAddress')");
+        }
+
+        [Fact]
+        public async Task Validate_BrokenCircuit_PinsExact503Body()
+        {
+            // Arrange
+            var (controller, service) = NewPinned();
+            service.Setup(s => s.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Polly.CircuitBreaker.BrokenCircuitException("open"));
+
+            // Act
+            var result = await controller.Validate(new AddressParseRequestDto { RawAddress = "x" }, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.GeocodingUnavailable(result);
+        }
     }
 }

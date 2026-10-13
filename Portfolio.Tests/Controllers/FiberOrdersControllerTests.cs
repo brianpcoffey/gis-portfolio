@@ -211,5 +211,62 @@ namespace Portfolio.Tests.Controllers
             var status = Assert.IsType<ObjectResult>(result);
             Assert.Equal(StatusCodes.Status500InternalServerError, status.StatusCode);
         }
+
+        // ── Exact 500 bodies for every catch-all (the exception message must not leak) ──
+
+        [Fact]
+        public async Task GetAll_ServiceThrows_PinsExact500Body()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            // Act & Assert
+            ControllerBodyAssert.Unexpected(await _controller.GetAll(CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Get_ServiceThrows_PinsExact500Body()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            // Act & Assert
+            ControllerBodyAssert.Unexpected(await _controller.Get(1, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Create_ServiceThrows_PinsExact500Body()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CreateFiberOrderDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            // Act & Assert
+            ControllerBodyAssert.Unexpected(await _controller.Create(new CreateFiberOrderDto(), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Update_ServiceThrows_PinsExact500Body()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<UpdateFiberOrderDto>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            // Act & Assert
+            ControllerBodyAssert.Unexpected(await _controller.Update(1, new UpdateFiberOrderDto(), CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Delete_ServiceThrows_PinsExact500Body()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.DeleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("secret detail"));
+
+            // Act & Assert
+            ControllerBodyAssert.Unexpected(await _controller.Delete(1, CancellationToken.None));
+        }
     }
 }
