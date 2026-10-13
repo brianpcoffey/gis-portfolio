@@ -58,7 +58,8 @@ Both formats are supported. The application automatically normalizes `rediss://`
 | **Dockerfile Path** | `Dockerfile` |
 | **Docker Build Context Directory** | `.` (root) |
 | **Instance Type** | `Starter` (512 MB RAM, $7/month) or `Free` (limited hours) |
-| **Pre-Deploy Command** | `dotnet Portfolio.Web.dll --migrate` (see [Database migrations](#database-migrations-pre-deploy-step)) |
+| **Pre-Deploy Command** | Leave empty. On the free plan the field is locked, and the app migrates itself at startup (see [Database migrations](#database-migrations)) |
+| **Health Check Path** | `/health/live` (see [Health check](#health-check)) |
 | **Auto-Deploy** | See [How a push to `main` reaches production](#how-a-push-to-main-reaches-production) |
 
 ## Step 3: Configure Environment Variables
@@ -80,23 +81,39 @@ In the Render dashboard, go to **Environment** and add these variables:
 |----------|---------|-------------|
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Already set by Dockerfile |
 | `ASPNETCORE_HTTP_PORTS` | `10000` | Set to a fixed `10000` by the Dockerfile (Render's default port); Render routes to it |
-| `RunMigrationsOnStartup` | `true` | Set to `false` **only together with** the Pre-Deploy Command below |
+| `RunMigrationsOnStartup` | `true` | Leave at the default on the free plan. Set to `false` **only together with** a Pre-Deploy Command (see [Database migrations](#database-migrations)) |
 | `BatchGeocoding__MaxConcurrency` | `4` | Max parallel geocoding requests per job |
 | `BatchGeocoding__MinMatchScore` | `80` | Minimum score for geocode matches |
 | `ForwardedHeaders__KnownNetworks` | *(empty)* | Comma-separated CIDRs of Render's proxy. Empty trusts `X-Forwarded-*` from any proxy; set it only after verifying Render's range (the forward limit stays 1 while it is empty) |
 
 > **Note**: Use double underscores (`__`) in environment variable names. ASP.NET Core automatically maps `Redis__ConnectionString` to `Redis:ConnectionString` in `IConfiguration`.
 
-### Database migrations (pre-deploy step)
+### Database migrations
 
-By default the app applies EF Core migrations itself at startup (`db.Database.Migrate()`), which keeps a fresh clone working with no extra configuration. On an instance that spins down when idle that costs a round trip to the database on every cold start, and the first request after it is the one a visitor is waiting on. Two settings move the cost to deploy time; **set both or neither** (setting only `RunMigrationsOnStartup=false` means nothing migrates):
+**What happens today.** The service runs on Render's free plan, where the **Pre-Deploy Command** field in the service settings is locked and empty (observed in the dashboard in October 2026; the repository cannot confirm dashboard settings). So nothing migrates before a deploy. Instead the app migrates itself at startup: `StartupMigrations.Run` calls `db.Database.Migrate()` unless the `RunMigrationsOnStartup` setting is `false`. That setting defaults to `true`, and the service logs show the migration line at startup, so it has not been turned off. Every process start (each deploy, and each cold start after the free instance spins down when idle) logs `Database migration successful.` and pays one round trip to Neon to check the migration history before serving its first request.
+
+Two behaviours follow from that:
+
+- A migration failure at startup is logged (`Database migration failed.`) and tolerated: the process keeps running and can still serve pages that do not touch the database. It does not abort the deploy.
+- Nothing needs to be configured. A fresh clone and a Render free service both work with the defaults.
+
+**On a paid plan** the Pre-Deploy Command field should be editable (the free plan locks it), so the cost could move from every cold start to deploy time. Two settings do that, and you **set both or neither** (setting only `RunMigrationsOnStartup=false` means nothing migrates):
 
 | Setting | Value |
 |---------|-------|
-| **Pre-Deploy Command** (Render service settings) | `dotnet Portfolio.Web.dll --migrate` — migrates, then exits without starting the web host; a failure exits non-zero, which aborts the deploy |
-| `RunMigrationsOnStartup` (environment variable) | `false` — skips the startup pass |
+| **Pre-Deploy Command** (Render service settings) | `dotnet Portfolio.Web.dll --migrate`: migrates, then exits without starting the web host; a failure exits non-zero, which aborts the deploy |
+| `RunMigrationsOnStartup` (environment variable) | `false`: skips the startup pass |
 
-If your Render plan does not offer a Pre-Deploy Command, leave both at their defaults and the app migrates itself at startup. These settings live in the Render dashboard, not in the repository, so nothing in the repo proves what a given service is set to.
+### Health check
+
+The app exposes two anonymous probe endpoints that are exempt from rate limiting:
+
+| Path | Checks | Use |
+|------|--------|-----|
+| `/health/live` | None: it answers `200` while the process is up | Render's Health Check Path |
+| `/health/ready` | Database connectivity (the result is cached for 10 seconds) | Kubernetes readiness probes (`k8s/`) |
+
+The service currently has **no Health Check Path set** in Render (observed in the dashboard in October 2026), so Render applies no application-level check to a new deploy or to a running instance. Set **Health Check Path** to `/health/live` (service **Settings** → **Health Check Path**). Prefer it to `/health/ready` on Render: the readiness check queries the database, a brief Neon outage would then take the instance out of rotation although the app is fine, and on a serverless database each probe can wake the compute.
 
 ## Step 4: Deploy
 
@@ -115,7 +132,7 @@ Data Protection keys will be stored in Redis
 Database migration successful.
 ```
 
-With the pre-deploy step configured, `Database migration successful.` followed by `Migration-only run complete; exiting without starting the web host.` appears in the **pre-deploy** log, and the running service's log no longer shows the migration line.
+On the free plan the migration line appears in the running service's log on every start. If you later move migrations to a paid plan's pre-deploy step, `Database migration successful.` followed by `Migration-only run complete; exiting without starting the web host.` appears in the **pre-deploy** log instead, and the running service's log no longer shows the migration line.
 
 ## Step 5: Verify Redis Integration
 
@@ -252,6 +269,7 @@ This project is meant to run in the second mode: the owner turned Auto-Deploy of
 4. ✅ Store secrets in Render environment variables (not in code)
 5. ✅ Monitor Upstash command usage in [Console](https://console.upstash.com)
 6. ✅ Set `ASPNETCORE_ENVIRONMENT=Production` (already in Dockerfile)
+7. ✅ Set the Health Check Path to `/health/live` (see [Health check](#health-check))
 
 ## Support
 
