@@ -35,7 +35,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Processes a batch of telemetry events into grid aggregates and anomaly counts.
         /// </summary>
         /// <param name="request">Telemetry batch and processing options.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Aggregated telemetry processing result.</returns>
         [HttpPost("events")]
         [ProducesResponseType(typeof(GeoStreamBatchResultDto), 200)]

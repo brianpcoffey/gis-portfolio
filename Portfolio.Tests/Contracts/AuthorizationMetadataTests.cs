@@ -27,7 +27,7 @@ public class AuthorizationMetadataTests
     public void ControllersAreDiscovered()
     {
         // Act & Assert
-        Assert.Equal(25, Controllers.Length);
+        Assert.Equal(26, Controllers.Length);
         Assert.True(Controllers.SelectMany(Actions).Count() >= 74);
     }
 

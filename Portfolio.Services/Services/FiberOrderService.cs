@@ -8,18 +8,15 @@ namespace Portfolio.Services.Services;
 public class FiberOrderService : IFiberOrderService
 {
     private readonly IFiberOrderRepository _orderRepo;
-    private readonly IFiberClientRepository _clientRepo;
     private readonly IUserProfileService _userProfileService;
     private readonly TimeProvider _timeProvider;
 
     public FiberOrderService(
         IFiberOrderRepository orderRepo,
-        IFiberClientRepository clientRepo,
         IUserProfileService userProfileService,
         TimeProvider timeProvider)
     {
         _orderRepo = orderRepo;
-        _clientRepo = clientRepo;
         _userProfileService = userProfileService;
         _timeProvider = timeProvider;
     }

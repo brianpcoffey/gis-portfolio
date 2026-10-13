@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <NoWarn>$(NoWarn);1591;1573</NoWarn>
     <!-- Asp.Versioning 10.2 analyzers suggest the Asp.Versioning OpenAPI integration
          (AddApiVersioning().AddOpenApi(), MapOpenApi().WithDocumentPerVersion()). Adopting it
          changes how /openapi/v1.json is produced, so it is a planned change, not a dependency bump.
@@ -36,10 +36,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Scalar.AspNetCore" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="obj\Debug\net10.0\Microsoft.AspNetCore.OpenApi.SourceGenerators\Microsoft.AspNetCore.OpenApi.SourceGenerators.XmlCommentGenerator\" />
   </ItemGroup>
 
 </Project>

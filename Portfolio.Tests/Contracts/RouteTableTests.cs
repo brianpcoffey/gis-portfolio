@@ -10,9 +10,9 @@ namespace Portfolio.Tests.Contracts;
 /// <summary>
 /// Guards "public routes don't change". The golden list is every controller action endpoint as
 /// "VERB /path" (the API-version segment is shown as v1), taken from the real endpoint table. It
-/// has 78 entries: the 77 versioned routes, three of which are hidden aliases (homefinder/score,
+/// has 79 entries: the 77 versioned routes, three of which are hidden aliases (homefinder/score,
 /// homefinder/properties/{id}, geocoding/batch/sync), plus the one unversioned legacy route
-/// POST /api/batchgeocoding/sync that the same obsolete action also exposes. Page endpoints are not
+/// POST /api/batchgeocoding/sync that the same obsolete action also exposes, and the version-neutral POST /csp-report (WP-20). Page endpoints are not
 /// listed. Every route string in wwwroot/js/api-config.js must also resolve to a controller route.
 /// </summary>
 public class RouteTableTests
@@ -88,6 +88,7 @@ public class RouteTableTests
         POST /api/v1/response/isochrone
         POST /api/v1/response/optimize
         POST /api/v1/viewshed/compute
+        POST /csp-report
         PUT /api/v1/collections/{id:int}
         PUT /api/v1/fiber/materials/{id}
         PUT /api/v1/fiber/orders/{id}
@@ -118,7 +119,7 @@ public class RouteTableTests
         var expected = Expected.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
         // Act & Assert
-        Assert.Equal(78, expected.Count);
+        Assert.Equal(79, expected.Count);
         GoldenAssert.Equal(expected, ActionRoutes(f));
     }
 

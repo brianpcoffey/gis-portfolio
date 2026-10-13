@@ -34,7 +34,6 @@ namespace Portfolio.Web.Controllers.Api
         /// <summary>
         /// Returns the pre-built Redlands, CA road graph centered on Esri HQ.
         /// </summary>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Graph nodes, edges, and destination node id.</returns>
         [HttpGet("graph")]
         [ProducesResponseType(typeof(RoadGraphDto), 200)]
@@ -48,7 +47,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Computes the least-cost route between two graph nodes.
         /// </summary>
         /// <param name="request">Spatial graph and route endpoints.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Route path and total cost.</returns>
         [HttpPost("route")]
         [ProducesResponseType(typeof(RouteResultDto), 200)]
@@ -75,7 +73,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Computes graph nodes reachable from an origin within a cost budget.
         /// </summary>
         /// <param name="request">Spatial graph, origin, and maximum cost.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Reachable node ids.</returns>
         [HttpPost("service-area")]
         [ProducesResponseType(typeof(ServiceAreaResultDto), 200)]

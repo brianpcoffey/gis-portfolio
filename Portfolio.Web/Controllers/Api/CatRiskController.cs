@@ -35,7 +35,6 @@ namespace Portfolio.Web.Controllers.Api
         /// <summary>
         /// Returns the demo policy book and its paired stochastic wildfire event catalog.
         /// </summary>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Insured locations, event catalog, and per-community exposure rollups.</returns>
         [HttpGet("book")]
         [ProducesResponseType(typeof(PolicyBookDto), 200)]
@@ -51,7 +50,6 @@ namespace Portfolio.Web.Controllers.Api
         /// TIV exceeds the supplied limit.
         /// </summary>
         /// <param name="request">Policy locations, ring radius, and concentration limit.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Per-location ring totals plus a breach tally and the worst offender.</returns>
         [HttpPost("accumulation")]
         [ProducesResponseType(typeof(AccumulationResultDto), 200)]
@@ -79,7 +77,6 @@ namespace Portfolio.Web.Controllers.Api
         /// loss, the probable maximum loss, and the occurrence exceedance probability curve.
         /// </summary>
         /// <param name="request">Policy locations, event catalog, and vulnerability curve shape.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>AAL, PML, benchmark return-period losses, and the OEP curve.</returns>
         [HttpPost("simulate")]
         [ProducesResponseType(typeof(SimulationResultDto), 200)]

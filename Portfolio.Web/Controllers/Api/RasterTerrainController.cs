@@ -35,7 +35,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Generates an 8-bit hillshade intensity grid from an elevation raster.
         /// </summary>
         /// <param name="request">Elevation raster and hillshade options.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Hillshade intensity grid.</returns>
         [HttpPost("hillshade")]
         [ProducesResponseType(typeof(RasterHillshadeResultDto), 200)]
@@ -62,7 +61,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Generates a normalized heatmap over a raster extent.
         /// </summary>
         /// <param name="request">Weighted points and raster extent.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Normalized heatmap values.</returns>
         [HttpPost("heatmap")]
         [ProducesResponseType(typeof(HeatmapResultDto), 200)]
