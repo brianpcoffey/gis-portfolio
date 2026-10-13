@@ -5,10 +5,9 @@ namespace Portfolio.Services.Native
     /// bridge report <c>IsAvailable == false</c>, so the managed fallbacks run even when the libraries load.
     /// </summary>
     /// <remarks>
-    /// Each bridge probes once, when its type initialises, so without this switch the fallback could only be exercised
-    /// by moving the libraries. The benchmarks use it to measure both paths from one build, and it lets the fallback
-    /// (production behaviour today) be verified without a redeploy. The variable is read once per process, so set it
-    /// before the process starts.
+    /// Bridges probe once, at type initialisation, so the fallback could otherwise be exercised only by moving the
+    /// libraries. It lets the benchmarks measure both paths and the fallback (production behaviour today) be verified
+    /// without a redeploy. Read once per process: set it before the process starts.
     /// </remarks>
     internal static class NativeToggle
     {

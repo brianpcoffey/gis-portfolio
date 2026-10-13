@@ -88,7 +88,8 @@ namespace Portfolio.Services.Data
         public static IReadOnlyList<string> PresetKeys { get; } = [.. Presets.Select(p => p.Key)];
 
         /// <summary>
-        /// Builds the named scenario over the supplied road graph, or returns null when the preset key is not recognised.
+        /// Builds the named scenario over the supplied road graph, or returns null when the preset key is not
+        /// recognised.
         /// </summary>
         public static FleetScenarioDto? Build(RoadGraphDto graph, string preset)
         {

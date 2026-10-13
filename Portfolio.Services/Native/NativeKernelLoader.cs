@@ -8,8 +8,8 @@ namespace Portfolio.Services.Native
     internal static class NativeKernelLoader
     {
         /// <summary>
-        /// True when the named kernel library loads; always false when <see cref="NativeToggle.Disabled"/> is set or the
-        /// probe throws.
+        /// True when the named kernel library loads; always false when <see cref="NativeToggle.Disabled"/> is set or
+        /// the probe throws.
         /// </summary>
         internal static bool TryLoad(string libraryName)
         {
