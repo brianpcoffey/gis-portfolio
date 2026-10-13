@@ -86,17 +86,23 @@
 }
 
 /* ── Destination chip ────────────────────────────────────────────────── */
-/* T5: status text on its tint (was #198754, 3.89:1 light / 2.38:1 dark). */
+/* T5: success text on its tint (was #198754, 3.89:1 light / 2.38:1 dark). Light mode uses the darker
+   --accent-on-fill-h (6.7:1 on the tint; --status-success-text was 4.46:1 at 13px/500); dark mode keeps
+   --status-success-text (5.6:1). */
 .destination-chip {
     display: inline-flex;
     align-items: center;
     background: var(--status-success-soft);
-    color: var(--status-success-text);
+    color: var(--accent-on-fill-h);
     border: 1px solid color-mix(in srgb, var(--status-success-text) 40%, transparent);
     border-radius: 999px;
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 500;
+}
+
+body.dark-mode .destination-chip {
+    color: var(--status-success-text);
 }
 
 /* ── KPI grid ────────────────────────────────────────────────────────── */
