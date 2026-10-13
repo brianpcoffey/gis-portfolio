@@ -253,17 +253,20 @@ function updateDashboardBadges(data) {
     $('#badgeLowStock').text(`${data.lowStockAlerts ?? 0} Low Stock`);
 }
 
-// The chart is drawn at the width its card has now (outer width, in SVG units) and sized by its viewBox:
-// .plant-ops-chart svg (plantoperationsdashboard.css) makes it fill the card, so it scales down with the
-// window and never overflows it, and redrawPlantOpsCharts draws it again at the new width once a resize
-// has settled, which keeps the text at its real size.
+// The charts are drawn at the width their cards have now (outer width, in SVG units) and sized by their
+// viewBox: .plant-ops-chart svg (plantoperationsdashboard.css) makes each fill its card, so it scales down
+// with the window and never overflows it, and redrawPlantOpsCharts draws them again at the new width once a
+// resize has settled, which keeps the text at its real size. The three cards are equally wide (col-lg-4,
+// stacked at the same width below lg), so the width is measured once per draw, on the first card.
 const PLANT_OPS_CHART_HEIGHT = 320;
 const PLANT_OPS_CHART_MIN_WIDTH = 200;
 let plantOpsChartDrawnWidth = 0;
-function plantOpsChartFrame(container) {
+function plantOpsChartWidth() {
+    const card = document.getElementById('plantOpsRevenueChart');
+    return card ? Math.max(card.clientWidth, PLANT_OPS_CHART_MIN_WIDTH) : 0;
+}
+function plantOpsChartFrame(container, outerWidth) {
     const margin = { top: 24, right: 24, bottom: 40, left: 60 };
-    const outerWidth = Math.max(container.node().clientWidth, PLANT_OPS_CHART_MIN_WIDTH);
-    plantOpsChartDrawnWidth = outerWidth;
     const svg = container.append('svg')
         .attr('viewBox', `0 0 ${outerWidth} ${PLANT_OPS_CHART_HEIGHT}`)
         .append('g')
@@ -280,9 +283,11 @@ function plantOpsChartFrame(container) {
 // and again after a failed load (the cards then show the error and there is nothing to draw).
 let plantOpsChartData = null;
 function renderDashboardCharts(data) {
-    renderRevenueChart(data.revenueByMonth || []);
-    renderOrdersChart(data.ordersByStatus || []);
-    renderInventoryChart(data.inventoryByCategory || []);
+    const outerWidth = plantOpsChartWidth();
+    plantOpsChartDrawnWidth = outerWidth;
+    renderRevenueChart(data.revenueByMonth || [], outerWidth);
+    renderOrdersChart(data.ordersByStatus || [], outerWidth);
+    renderInventoryChart(data.inventoryByCategory || [], outerWidth);
 }
 
 // Draws the charts again at the width their cards have now. Waits until the resizing has settled, and does
@@ -291,22 +296,21 @@ let plantOpsResizeTimer = null;
 function redrawPlantOpsCharts() {
     clearTimeout(plantOpsResizeTimer);
     plantOpsResizeTimer = setTimeout(() => {
-        const first = document.getElementById('plantOpsRevenueChart');
-        if (!plantOpsChartData || !first) return;
-        if (Math.max(first.clientWidth, PLANT_OPS_CHART_MIN_WIDTH) === plantOpsChartDrawnWidth) return;
+        const width = plantOpsChartWidth();
+        if (!plantOpsChartData || width === 0 || width === plantOpsChartDrawnWidth) return;
         renderDashboardCharts(plantOpsChartData);
     }, 150);
 }
 window.addEventListener('resize', redrawPlantOpsCharts);
 
-function renderRevenueChart(revenueByMonth) {
+function renderRevenueChart(revenueByMonth, outerWidth) {
     const container = d3.select('#plantOpsRevenueChart');
     container.selectAll('*:not(.plant-ops-spinner)').remove();
     if (!revenueByMonth.length) {
         container.append('div').attr('class', 'text-muted small').text('No revenue data.');
         return;
     }
-    const { svg, width, height, margin } = plantOpsChartFrame(container);
+    const { svg, width, height, margin } = plantOpsChartFrame(container, outerWidth);
 
     const months = revenueByMonth.map(d => d.month);
     const values = revenueByMonth.map(d => d.revenue);
@@ -354,14 +358,14 @@ function renderRevenueChart(revenueByMonth) {
         .text('Revenue');
 }
 
-function renderOrdersChart(ordersByStatus) {
+function renderOrdersChart(ordersByStatus, outerWidth) {
     const container = d3.select('#plantOpsOrdersChart');
     container.selectAll('*:not(.plant-ops-spinner)').remove();
     if (!ordersByStatus.length) {
         container.append('div').attr('class', 'text-muted small').text('No order status data.');
         return;
     }
-    const { svg, width, height, margin } = plantOpsChartFrame(container);
+    const { svg, width, height, margin } = plantOpsChartFrame(container, outerWidth);
 
     const statuses = ordersByStatus.map(d => d.status);
     const counts = ordersByStatus.map(d => d.count);
@@ -409,14 +413,14 @@ function renderOrdersChart(ordersByStatus) {
         .text('Count');
 }
 
-function renderInventoryChart(inventoryByCategory) {
+function renderInventoryChart(inventoryByCategory, outerWidth) {
     const container = d3.select('#plantOpsInventoryChart');
     container.selectAll('*:not(.plant-ops-spinner)').remove();
     if (!inventoryByCategory.length) {
         container.append('div').attr('class', 'text-muted small').text('No inventory data.');
         return;
     }
-    const { svg, width, height, margin } = plantOpsChartFrame(container);
+    const { svg, width, height, margin } = plantOpsChartFrame(container, outerWidth);
 
     const categories = inventoryByCategory.map(d => d.category);
     const counts = inventoryByCategory.map(d => d.count);
