@@ -1,72 +1,12 @@
 /* ======================================
-   Home Finder — Dark Mode Contrast Fixes
+   Home Finder
+   Dark mode comes from the tokens in base.css and the shared overrides in components.css;
+   this file only holds what is specific to the page.
    ====================================== */
 
-/* Weight status alert in dark mode */
-body.dark-mode #weightStatus {
-    background-color: rgba(40, 167, 69, 0.15) !important;
-    color: #a3e4b8 !important;
-    border-color: rgba(40, 167, 69, 0.3) !important;
-}
-
-body.dark-mode #weightStatus.alert-danger {
-    background-color: rgba(220, 53, 69, 0.15) !important;
-    color: #f5a9b3 !important;
-    border-color: rgba(220, 53, 69, 0.3) !important;
-}
-
-body.dark-mode #weightStatus .text-muted {
-    color: #a0aec0 !important;
-}
-
-body.dark-mode #resultsPanel p.text-muted {
-    color: #e2e8f0 !important;
-}
-
-/* Slider labels in dark mode — high contrast */
-body.dark-mode .form-label.small,
-body.dark-mode .form-label {
-    color: #e2e8f0 !important;
-}
-
+/* Slider labels' icons: info tone from the status tokens (dark mode only, as before) */
 body.dark-mode .form-label .fa-solid {
-    color: #90cdf4 !important;
-}
-
-/* Preferences panel heading */
-body.dark-mode h5,
-body.dark-mode h6 {
-    color: #f7fafc !important;
-}
-
-/* Horizontal rule contrast */
-body.dark-mode hr {
-    border-color: #4a5568 !important;
-    opacity: 0.5;
-}
-
-/* Results cards in dark mode */
-body.dark-mode #resultsPanel .card,
-body.dark-mode #resultsPanel .theme-card {
-    background: var(--surface) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-}
-
-body.dark-mode #resultsPanel .card .text-muted,
-body.dark-mode #resultsPanel .card .theme-text-muted {
-    color: #cbd5e0 !important;
-}
-
-/* Saved searches modal in dark mode */
-body.dark-mode #savedSearchesBody .card {
-    background: var(--surface) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-}
-
-body.dark-mode #savedSearchesBody .theme-text-muted {
-    color: #a0aec0 !important;
+    color: var(--status-info-text);
 }
 
 /* Basemap select dropdown */
@@ -74,7 +14,7 @@ body.dark-mode #savedSearchesBody .theme-text-muted {
     min-width: 160px;
     background: var(--surface);
     color: var(--text);
-    border: 1px solid var(--border);
+    border: 1px solid var(--input-border);
     box-shadow: 0 2px 8px var(--shadow);
     opacity: 0.92;
     transition: opacity 0.2s ease;
@@ -84,62 +24,29 @@ body.dark-mode #savedSearchesBody .theme-text-muted {
     opacity: 1;
 }
 
-body.dark-mode .basemap-select {
-    background: #2d3748 !important;
-    color: #f7fafc !important;
-    border-color: #4a5568 !important;
+.basemap-select option {
+    background: var(--surface);
+    color: var(--text);
 }
 
-body.dark-mode .basemap-select option {
-    background: #2d3748;
-    color: #f7fafc;
-}
-
-/* Map popup in dark mode (ArcGIS overrides) */
+/* Map popup (ArcGIS) follows the page tokens in dark mode */
 body.dark-mode .esri-popup__main-container {
-    background: #2d3748 !important;
-    color: #f7fafc !important;
-    border-color: #4a5568 !important;
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
 }
 
 body.dark-mode .esri-popup__header-title {
-    color: #f7fafc !important;
+    color: var(--text) !important;
 }
 
 body.dark-mode .esri-popup__content {
-    color: #e2e8f0 !important;
+    color: var(--text) !important;
 }
 
-/* Range slider track in dark mode */
-body.dark-mode .form-range::-webkit-slider-runnable-track {
-    background: #4a5568;
-}
-
-body.dark-mode .form-range {
-    background: #4a5568;
-}
-
+/* Slider thumb keeps the brand accent in dark mode (the track comes from Bootstrap). */
 body.dark-mode .form-range::-webkit-slider-thumb {
     background: var(--accent);
-}
-
-body.dark-mode .form-range {
-    background: var(--accent);
-}
-
-/* Toast container in dark mode */
-body.dark-mode .toast {
-    background: var(--surface) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-}
-
-body.dark-mode .score-bar-container {
-    background: var(--border);
-}
-
-body.dark-mode .weight-bar-container {
-    background: var(--border);
 }
 
 /* ============================================================
@@ -161,7 +68,7 @@ body.dark-mode .weight-bar-container {
     position: absolute;
     font-size: 0.65rem;
     font-weight: 700;
-    color: var(--bs-body-color, #fff);
+    color: var(--text);
     pointer-events: none;
 }
 
@@ -171,15 +78,15 @@ body.dark-mode .weight-bar-container {
 }
 
 #budgetRing.ring-valid {
-    stroke: var(--bs-success, #198754);
+    stroke: var(--status-success-fill);
 }
 
 #budgetRing.ring-under {
-    stroke: var(--bs-warning, #ffc107);
+    stroke: var(--status-warning-fill);
 }
 
 #budgetRing.ring-over {
-    stroke: var(--bs-danger, #dc3545);
+    stroke: var(--status-danger-fill);
 }
 
 /* ============================================================
@@ -188,7 +95,7 @@ body.dark-mode .weight-bar-container {
 
 .weight-bar-container {
     height: 5px;
-    background: var(--bs-border-color, rgba(255, 255, 255, 0.08));
+    background: var(--border);
     border-radius: 3px;
     overflow: hidden;
     margin-top: 2px;
@@ -202,11 +109,11 @@ body.dark-mode .weight-bar-container {
 }
 
 .weight-bar-fill[data-weight-level="medium"] {
-    background: var(--bs-warning, #ffc107);
+    background: var(--status-warning-fill);
 }
 
 .weight-bar-fill[data-weight-level="high"] {
-    background: var(--bs-danger, #dc3545);
+    background: var(--status-danger-fill);
 }
 
 /* Slider max-clamped visual hint — dims the slider when at 0 max */
@@ -216,32 +123,12 @@ input.weight-slider[max="0"] {
 }
 
 /* ============================================================
-   Toast Slide Animations
-   ============================================================ */
-
-.toast {
-    opacity: 0;
-    transform: translateX(100%);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.toast.toast-slide-in {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.toast.toast-slide-out {
-    opacity: 0;
-    transform: translateX(100%);
-}
-
-/* ============================================================
    Score Bar (Results Panel)
    ============================================================ */
 
 .score-bar-container {
     height: 5px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--border);
     border-radius: 3px;
     overflow: hidden;
     margin-top: 4px;
@@ -254,17 +141,25 @@ input.weight-slider[max="0"] {
 }
 
 .score-bar-fill.score-excellent {
-    background: var(--bs-success, #198754);
+    background: var(--status-success-fill);
 }
 
 .score-bar-fill.score-good {
-    background: var(--bs-warning, #ffc107);
+    background: var(--status-warning-fill);
 }
 
 .score-bar-fill.score-fair {
-    background: var(--bs-danger, #dc3545);
+    background: var(--status-danger-fill);
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .weight-bar-fill,
+    .score-bar-fill,
+    #budgetRing,
+    .basemap-select {
+        transition: none;
+    }
+}
 
 /* ============================================================
    Responsive — Collapse weights section on small screens
