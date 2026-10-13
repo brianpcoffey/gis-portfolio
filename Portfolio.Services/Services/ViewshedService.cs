@@ -76,39 +76,7 @@ namespace Portfolio.Services.Services
                         continue;
                     }
 
-                    var dx = (double)(tx - request.ObserverX);
-                    var dy = (double)(ty - request.ObserverY);
-                    var steps = (int)Math.Max(Math.Abs(dx), Math.Abs(dy));
-                    var targetDistance = Math.Sqrt(dx * dx + dy * dy) * request.CellSize;
-                    var targetAngle = (elevation[ty * width + tx] - observerElevation) / targetDistance;
-
-                    var maxAngle = double.NegativeInfinity;
-                    var blocked = false;
-                    for (var i = 1; i < steps; i++)
-                    {
-                        var fraction = (double)i / steps;
-                        // Half-up, stated explicitly. Math.Round rounds half to even and the
-                        // native kernel's std::lround rounds half away from zero, so relying
-                        // on either default made the two paths walk a different cell whenever
-                        // a sample landed exactly on .5. Sample coordinates are always
-                        // non-negative here, so Floor(v + 0.5) is unambiguous.
-                        var cx = (int)Math.Floor(request.ObserverX + dx * fraction + 0.5);
-                        var cy = (int)Math.Floor(request.ObserverY + dy * fraction + 0.5);
-                        var distance = fraction * targetDistance;
-                        if (distance <= 0)
-                            continue;
-
-                        var angle = (elevation[cy * width + cx] - observerElevation) / distance;
-                        if (angle > maxAngle)
-                            maxAngle = angle;
-                        if (targetAngle < maxAngle)
-                        {
-                            blocked = true;
-                            break;
-                        }
-                    }
-
-                    var visible = (byte)(blocked ? 0 : 1);
+                    var visible = (byte)(IsVisible(request, observerElevation, tx, ty) ? 1 : 0);
                     visibility[ty * width + tx] = visible;
                     visibleCount += visible;
                 }
@@ -125,6 +93,42 @@ namespace Portfolio.Services.Services
                 NativeAccelerated = false,
                 Visibility = visibility.ToList()
             };
+        }
+
+        // Line-of-sight test from the observer to one target cell (not the observer's own cell).
+        private static bool IsVisible(ViewshedRequestDto request, double observerElevation, int tx, int ty)
+        {
+            var width = request.Width;
+            var elevation = request.Elevation;
+            var dx = (double)(tx - request.ObserverX);
+            var dy = (double)(ty - request.ObserverY);
+            var steps = (int)Math.Max(Math.Abs(dx), Math.Abs(dy));
+            var targetDistance = Math.Sqrt(dx * dx + dy * dy) * request.CellSize;
+            var targetAngle = (elevation[ty * width + tx] - observerElevation) / targetDistance;
+
+            var maxAngle = double.NegativeInfinity;
+            for (var i = 1; i < steps; i++)
+            {
+                var fraction = (double)i / steps;
+                // Half-up, stated explicitly. Math.Round rounds half to even and the
+                // native kernel's std::lround rounds half away from zero, so relying
+                // on either default made the two paths walk a different cell whenever
+                // a sample landed exactly on .5. Sample coordinates are always
+                // non-negative here, so Floor(v + 0.5) is unambiguous.
+                var cx = (int)Math.Floor(request.ObserverX + dx * fraction + 0.5);
+                var cy = (int)Math.Floor(request.ObserverY + dy * fraction + 0.5);
+                var distance = fraction * targetDistance;
+                if (distance <= 0)
+                    continue;
+
+                var angle = (elevation[cy * width + cx] - observerElevation) / distance;
+                if (angle > maxAngle)
+                    maxAngle = angle;
+                if (targetAngle < maxAngle)
+                    return false;
+            }
+
+            return true;
         }
 
         private static void ValidateRasterShape(int width, int height, int valueCount)

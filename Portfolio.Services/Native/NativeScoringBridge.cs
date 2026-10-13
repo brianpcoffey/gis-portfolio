@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
 using Portfolio.Common.Models;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
@@ -18,32 +17,7 @@ namespace Portfolio.Services.Native
     // managed fallback so no mock is needed in tests.
     internal static class NativeScoringBridge
     {
-        private static readonly bool _available;
-
-        static NativeScoringBridge()
-        {
-            try
-            {
-                // Attempt to load the library.  NativeLibrary.TryLoad looks in the
-                // AssemblyDirectory first (matching the DllImport search path) so the
-                // same resolution order applies whether we call it here or at P/Invoke time.
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "portfolio_scoring",
-                    typeof(NativeScoringBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("portfolio_scoring");
 
         // True when portfolio_scoring.(dll|so) was successfully loaded.
         internal static bool IsAvailable => _available;

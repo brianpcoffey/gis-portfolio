@@ -8,12 +8,6 @@ using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Controllers.Api;
 
-// GeocodeAddresses is [Obsolete] in favour of the async job endpoint, but it is still
-// routed and still serving callers, so it still needs coverage — deprecating an endpoint
-// is not the same as deleting it. Suppressed here rather than at each of the five call
-// sites; the day the endpoint is removed, this pragma and the tests go together.
-#pragma warning disable CS0618 // Type or member is obsolete
-
 namespace Portfolio.Tests.Controllers
 {
     public class BatchGeocodingControllerTests
@@ -208,6 +202,44 @@ namespace Portfolio.Tests.Controllers
             var problem = Assert.IsType<ProblemDetails>(status.Value);
             Assert.Equal(503, problem.Status);
             Assert.Contains("15", problem.Extensions["retryAfterSeconds"]?.ToString());
+        }
+
+        [Fact]
+        public async Task SubmitAsync_QueueFull_Returns503WithRetryAfterHeaderAndProblemDetails()
+        {
+            // Arrange
+            var file = BuildFile(128);
+            _serviceMock
+                .Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Portfolio.Services.Abstractions.BatchQueueFullException());
+
+            // Act
+            var result = await _controller.SubmitAsync(file, CancellationToken.None);
+
+            // Assert
+            var status = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(StatusCodes.Status503ServiceUnavailable, status.StatusCode);
+            var problem = Assert.IsType<ProblemDetails>(status.Value);
+            Assert.Equal(503, problem.Status);
+            Assert.Equal(30, problem.Extensions["retryAfterSeconds"]);
+            Assert.Equal("30", _controller.Response.Headers.RetryAfter.ToString());
+        }
+
+        [Fact]
+        public async Task SubmitAsync_CsvOverRowCap_ReturnsBadRequestWithServiceMessage()
+        {
+            // Arrange
+            var file = BuildFile(128);
+            _serviceMock
+                .Setup(s => s.EnqueueAsync(file, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ArgumentException("CSV exceeds the maximum of 1000 data rows."));
+
+            // Act
+            var result = await _controller.SubmitAsync(file, CancellationToken.None);
+
+            // Assert
+            var bad = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("{ error = CSV exceeds the maximum of 1000 data rows. }", bad.Value!.ToString());
         }
 
         // ── GetStatusAsync ─────────────────────────────────────────────────────

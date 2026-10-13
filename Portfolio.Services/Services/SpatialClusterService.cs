@@ -90,24 +90,38 @@ namespace Portfolio.Services.Services
                 labels[p] = clusterId;
                 seeds.Clear();
                 QueueSeeds(seeds, neighbors, queuedIn, clusterId);
-                for (var s = 0; s < seeds.Count; s++)
-                {
-                    var q = seeds[s];
-                    if (labels[q] == Noise)
-                        labels[q] = clusterId; // border point reclaimed from noise
-                    if (labels[q] != Unvisited)
-                        continue;
-
-                    labels[q] = clusterId;
-                    RegionQuery(points, q, epsilonSquared, neighbors);
-                    if (neighbors.Count >= request.MinPoints)
-                        QueueSeeds(seeds, neighbors, queuedIn, clusterId);
-                }
+                ExpandCluster(points, request.MinPoints, epsilonSquared, clusterId, labels, seeds, neighbors, queuedIn);
 
                 clusterId++;
             }
 
             return labels;
+        }
+
+        // Grows the cluster outward from its queued seeds; `seeds` grows while it is walked.
+        private static void ExpandCluster(
+            List<ClusterPointDto> points,
+            int minPoints,
+            double epsilonSquared,
+            int clusterId,
+            int[] labels,
+            List<int> seeds,
+            List<int> neighbors,
+            int[] queuedIn)
+        {
+            for (var s = 0; s < seeds.Count; s++)
+            {
+                var q = seeds[s];
+                if (labels[q] == Noise)
+                    labels[q] = clusterId; // border point reclaimed from noise
+                if (labels[q] != Unvisited)
+                    continue;
+
+                labels[q] = clusterId;
+                RegionQuery(points, q, epsilonSquared, neighbors);
+                if (neighbors.Count >= minPoints)
+                    QueueSeeds(seeds, neighbors, queuedIn, clusterId);
+            }
         }
 
         private static void QueueSeeds(List<int> seeds, List<int> neighbors, int[] queuedIn, int clusterId)

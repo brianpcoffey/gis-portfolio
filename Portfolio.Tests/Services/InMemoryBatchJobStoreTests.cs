@@ -107,6 +107,61 @@ namespace Portfolio.Tests.Services
             Assert.Equal("bbb", retB.JobId);
         }
 
+        // A job is gone 24 h after its last write; just before that it is still served.
+        [Fact]
+        public async Task GetAsync_AfterTtl_ReturnsNull()
+        {
+            // Arrange
+            var clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+            var store = new InMemoryBatchJobStore(clock);
+            await store.CreateAsync(MakeJob("ttl"));
+
+            // Act & Assert
+            clock.Advance(TimeSpan.FromHours(24) - TimeSpan.FromSeconds(1));
+            Assert.NotNull(await store.GetAsync("ttl"));
+            clock.Advance(TimeSpan.FromSeconds(1));
+            Assert.Null(await store.GetAsync("ttl"));
+        }
+
+        // An update restarts the 24 h window, like the Redis store's sliding expiry.
+        [Fact]
+        public async Task UpdateAsync_ResetsTheTtlWindow()
+        {
+            // Arrange
+            var clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+            var store = new InMemoryBatchJobStore(clock);
+            var job   = MakeJob("slide");
+            await store.CreateAsync(job);
+            clock.Advance(TimeSpan.FromHours(20));
+            await store.UpdateAsync(job);
+
+            // Act
+            clock.Advance(TimeSpan.FromHours(20));
+
+            // Assert
+            Assert.NotNull(await store.GetAsync("slide"));
+        }
+
+        // Writes prune expired jobs: after the old job expires, a write for another job evicts it
+        // even if the old one is never read again.
+        [Fact]
+        public async Task Write_PrunesExpiredJobs()
+        {
+            // Arrange
+            var clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+            var store = new InMemoryBatchJobStore(clock);
+            await store.CreateAsync(MakeJob("old"));
+            clock.Advance(TimeSpan.FromHours(25));
+
+            // Act
+            await store.CreateAsync(MakeJob("new"));
+            clock.Advance(TimeSpan.FromHours(-25)); // rewind: "old" would be live again if it were still stored
+
+            // Assert
+            Assert.Null(await store.GetAsync("old"));
+            Assert.NotNull(await store.GetAsync("new"));
+        }
+
         // Results list is stored and retrievable after UpdateAsync.
         [Fact]
         public async Task UpdateAsync_WithResults_ResultsAreRetrievable()

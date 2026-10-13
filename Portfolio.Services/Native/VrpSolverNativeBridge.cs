@@ -1,33 +1,10 @@
 using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class VrpSolverNativeBridge
     {
-        private static readonly bool _available;
-
-        static VrpSolverNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "vrp_solver_kernel",
-                    typeof(VrpSolverNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("vrp_solver_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -94,26 +71,7 @@ namespace Portfolio.Services.Native
                 if (routeCount > routeLengths.Length)
                     throw new InvalidOperationException("Native VRP solver kernel reported more routes than vehicles.");
 
-                var mapped = new List<List<int>>(routeCount);
-                var cursor = 0;
-                for (var r = 0; r < routeCount; r++)
-                {
-                    var length = routeLengths[r];
-                    if (length < 0 || cursor + length > routeStops.Length)
-                        throw new InvalidOperationException("Native VRP solver kernel returned an out-of-range route length.");
-
-                    var route = new List<int>(length);
-                    for (var k = 0; k < length; k++)
-                    {
-                        var stopIndex = routeStops[cursor + k];
-                        if (stopIndex < 0 || stopIndex >= stops.Length)
-                            throw new InvalidOperationException("Native VRP solver kernel returned an out-of-range stop index.");
-                        route.Add(stopIndex);
-                    }
-
-                    cursor += length;
-                    mapped.Add(route);
-                }
+                var mapped = MapRoutes(routeStops, routeLengths, routeCount, stops.Length);
 
                 var written = iterationCount[0];
                 if (written < 0 || written > costs.Length)
@@ -123,20 +81,36 @@ namespace Portfolio.Services.Native
                 iterationCosts = costs[..written];
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native CVRPTW solve failed; falling back to managed implementation.");
                 return false;
             }
         }
 
-        private static bool IsNativeInvocationException(Exception exception)
+        private static List<List<int>> MapRoutes(int[] routeStops, int[] routeLengths, int routeCount, int stopCount)
         {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
+            var mapped = new List<List<int>>(routeCount);
+            var cursor = 0;
+            for (var r = 0; r < routeCount; r++)
+            {
+                var length = routeLengths[r];
+                if (length < 0 || cursor + length > routeStops.Length)
+                    throw new InvalidOperationException("Native VRP solver kernel returned an out-of-range route length.");
+
+                var route = new List<int>(length);
+                for (var k = 0; k < length; k++)
+                {
+                    var stopIndex = routeStops[cursor + k];
+                    if (stopIndex < 0 || stopIndex >= stopCount)
+                        throw new InvalidOperationException("Native VRP solver kernel returned an out-of-range stop index.");
+                    route.Add(stopIndex);
+                }
+
+                cursor += length;
+                mapped.Add(route);
+            }
+            return mapped;
         }
     }
 }

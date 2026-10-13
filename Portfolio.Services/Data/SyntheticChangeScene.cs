@@ -1,3 +1,4 @@
+using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
 
 namespace Portfolio.Services.Data
@@ -28,7 +29,7 @@ namespace Portfolio.Services.Data
         // than picked as a round number. At sigma = 0.025 the unchanged population's CVA
         // magnitude sits around 0.07 while every planted change exceeds 0.30, which leaves
         // Otsu a genuinely bimodal histogram and morphological open real speckle to remove.
-        public const double DefaultNoiseLevel = 0.025;
+        public const double DefaultNoiseLevel = ChangeSceneDefaults.NoiseLevel;
 
         // Real acquisitions differ in illumination. A uniform brightness offset on epoch B
         // is what makes CVA the right tool rather than naive single-band differencing.

@@ -32,7 +32,18 @@ internal static class Pipeline
         {
             app.UseHttpsRedirection();
         }
-        app.UseStaticFiles();
+        // Versioned URLs (?v=..., from asp-append-version) change whenever the file does, so they can be
+        // cached for a year; unversioned assets get a 1 hour cache. ETag/304 handling is unchanged.
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            OnPrepareResponse = static ctx =>
+            {
+                ctx.Context.Response.Headers.CacheControl =
+                    ctx.Context.Request.Query.ContainsKey("v")
+                        ? "public,max-age=31536000,immutable"
+                        : "public,max-age=3600";
+            }
+        });
         app.UseRouting();
 
         // Rate limiting runs after routing (so per-endpoint policies resolve) but before the

@@ -182,38 +182,7 @@ namespace Portfolio.Services.Services
                 }
                 else
                 {
-                    var ctx = _httpContextAccessor.HttpContext;
-                    Guid? anonId = null;
-                    if (ctx != null &&
-                        ctx.Request.Cookies.TryGetValue("AnonUserId", out var cookieVal) &&
-                        Guid.TryParse(cookieVal, out var parsed))
-                    {
-                        // Only an anonymous (never Google-linked) profile may be adopted; a cookie
-                        // naming a linked profile must not let this sign-in take it over.
-                        var anonProfile = await _repo.GetProfileAsync(parsed, ct);
-                        if (anonProfile != null && !await _repo.HasClaimAsync(anonProfile.UserId, ProfileClaimTypes.GoogleId, ct))
-                            anonId = anonProfile.UserId;
-                    }
-
-                    if (anonId.HasValue)
-                    {
-                        userId = anonId.Value;
-                        var profile = (await _repo.GetProfileAsync(userId, ct))!;
-                        profile.LastActiveDate = now;
-                        await _repo.AddOrUpdateProfileAsync(profile, ct);
-                    }
-                    else
-                    {
-                        userId = Guid.NewGuid();
-                        await _repo.AddOrUpdateProfileAsync(new UserProfile
-                        {
-                            UserId = userId,
-                            CreatedDate = now,
-                            LastActiveDate = now
-                        }, ct);
-                    }
-
-                    await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, ct);
+                    userId = await CreateOrMergeProfileAsync(google, now, ct);
                 }
 
                 await _repo.SetClaimAsync(userId, ProfileClaimTypes.Email, google.Email, ct);
@@ -229,6 +198,53 @@ namespace Portfolio.Services.Services
             await TrySeedAsync(userId, cancellationToken);
 
             return userId;
+        }
+
+        // First Google sign-in for this GoogleId: adopt the visitor's anonymous profile when the
+        // cookie names one that is still unlinked, otherwise create a fresh profile, then link the
+        // GoogleId claim. Runs inside the caller's transaction; returns the resulting user id.
+        private async Task<Guid> CreateOrMergeProfileAsync(GoogleProfileDto google, DateTime now, CancellationToken ct)
+        {
+            Guid userId;
+            var anonId = await TryGetAnonymousProfileIdAsync(ct);
+
+            if (anonId.HasValue)
+            {
+                userId = anonId.Value;
+                var profile = (await _repo.GetProfileAsync(userId, ct))!;
+                profile.LastActiveDate = now;
+                await _repo.AddOrUpdateProfileAsync(profile, ct);
+            }
+            else
+            {
+                userId = Guid.NewGuid();
+                await _repo.AddOrUpdateProfileAsync(new UserProfile
+                {
+                    UserId = userId,
+                    CreatedDate = now,
+                    LastActiveDate = now
+                }, ct);
+            }
+
+            await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, ct);
+            return userId;
+        }
+
+        // The anonymous profile named by the AnonUserId cookie, or null when there is no usable one.
+        private async Task<Guid?> TryGetAnonymousProfileIdAsync(CancellationToken ct)
+        {
+            var ctx = _httpContextAccessor.HttpContext;
+            if (ctx == null ||
+                !ctx.Request.Cookies.TryGetValue("AnonUserId", out var cookieVal) ||
+                !Guid.TryParse(cookieVal, out var parsed))
+                return null;
+
+            // Only an anonymous (never Google-linked) profile may be adopted; a cookie
+            // naming a linked profile must not let this sign-in take it over.
+            var anonProfile = await _repo.GetProfileAsync(parsed, ct);
+            if (anonProfile != null && !await _repo.HasClaimAsync(anonProfile.UserId, ProfileClaimTypes.GoogleId, ct))
+                return anonProfile.UserId;
+            return null;
         }
 
         private async Task TrySeedAsync(Guid userId, CancellationToken cancellationToken)

@@ -141,21 +141,28 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException($"Analyses are limited to {MaxLocations} policy locations.", paramName);
 
             foreach (var location in locations)
-            {
-                if (!double.IsFinite(location.Latitude) || !double.IsFinite(location.Longitude))
-                    throw new ArgumentException("Location coordinates must be finite values.", paramName);
-                if (!double.IsFinite(location.InsuredValue) || location.InsuredValue <= 0)
-                    throw new ArgumentException("Insured value must be greater than zero.", paramName);
-                if (location.InsuredValue > MaxInsuredValue)
-                    throw new ArgumentException("Insured value must not exceed 1,000,000,000,000.", paramName);
-                if (!double.IsFinite(location.SiteHazard) || location.SiteHazard < 0 || location.SiteHazard > 1)
-                    throw new ArgumentException("Site hazard must be between 0 and 1.", paramName);
-                if (!double.IsFinite(location.DeductibleRate) || location.DeductibleRate < 0 || location.DeductibleRate > 1)
-                    throw new ArgumentException("Deductible rate must be between 0 and 1.", paramName);
-                if (!double.IsFinite(location.LimitRate) || location.LimitRate < 0 || location.LimitRate > 1)
-                    throw new ArgumentException("Limit rate must be between 0 and 1.", paramName);
-            }
+                ValidateLocation(location, paramName);
         }
+
+        private static void ValidateLocation(CatLocationDto location, string paramName)
+        {
+            if (!double.IsFinite(location.Latitude) || !double.IsFinite(location.Longitude))
+                throw new ArgumentException("Location coordinates must be finite values.", paramName);
+            if (!double.IsFinite(location.InsuredValue) || location.InsuredValue <= 0)
+                throw new ArgumentException("Insured value must be greater than zero.", paramName);
+            if (location.InsuredValue > MaxInsuredValue)
+                throw new ArgumentException("Insured value must not exceed 1,000,000,000,000.", paramName);
+            if (!IsUnitInterval(location.SiteHazard))
+                throw new ArgumentException("Site hazard must be between 0 and 1.", paramName);
+            if (!IsUnitInterval(location.DeductibleRate))
+                throw new ArgumentException("Deductible rate must be between 0 and 1.", paramName);
+            if (!IsUnitInterval(location.LimitRate))
+                throw new ArgumentException("Limit rate must be between 0 and 1.", paramName);
+        }
+
+        // True for a finite value in [0, 1].
+        private static bool IsUnitInterval(double value) =>
+            double.IsFinite(value) && value >= 0 && value <= 1;
 
         private static void ValidateEvents(List<CatEventDto> events, string paramName)
         {

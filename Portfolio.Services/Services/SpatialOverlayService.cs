@@ -25,10 +25,38 @@ namespace Portfolio.Services.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
+            ValidatePointCount(request);
+            ValidateZones(request);
+            ValidatePoints(request);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            bool nativeAccelerated;
+            int[] assignments;
+            if (SpatialOverlayNativeBridge.TryAssignPointsToZones(request, _logger, out var nativeAssignments))
+            {
+                assignments = nativeAssignments!;
+                nativeAccelerated = true;
+            }
+            else
+            {
+                assignments = AssignManaged(request, cancellationToken);
+                nativeAccelerated = false;
+            }
+
+            return Task.FromResult(BuildResult(request, assignments, nativeAccelerated));
+        }
+
+        private static void ValidatePointCount(SpatialJoinRequestDto request)
+        {
             if (request.Points is null || request.Points.Count == 0)
                 throw new ArgumentException("At least one point is required.", nameof(request));
             if (request.Points.Count > MaxPoints)
                 throw new ArgumentException($"Spatial joins are limited to {MaxPoints} points.", nameof(request));
+        }
+
+        private static void ValidateZones(SpatialJoinRequestDto request)
+        {
             if (request.Zones is null || request.Zones.Count == 0)
                 throw new ArgumentException("At least one zone is required.", nameof(request));
             if (request.Zones.Count > MaxZones)
@@ -48,29 +76,15 @@ namespace Portfolio.Services.Services
             }
             if (totalVertices > MaxTotalVertices)
                 throw new ArgumentException($"Zones are limited to {MaxTotalVertices} total vertices.", nameof(request));
+        }
 
+        private static void ValidatePoints(SpatialJoinRequestDto request)
+        {
             foreach (var point in request.Points)
             {
                 if (!double.IsFinite(point.X) || !double.IsFinite(point.Y))
                     throw new ArgumentException("Point coordinates must be finite values.", nameof(request));
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            bool nativeAccelerated;
-            int[] assignments;
-            if (SpatialOverlayNativeBridge.TryAssignPointsToZones(request, _logger, out var nativeAssignments))
-            {
-                assignments = nativeAssignments!;
-                nativeAccelerated = true;
-            }
-            else
-            {
-                assignments = AssignManaged(request, cancellationToken);
-                nativeAccelerated = false;
-            }
-
-            return Task.FromResult(BuildResult(request, assignments, nativeAccelerated));
         }
 
         private static int[] AssignManaged(SpatialJoinRequestDto request, CancellationToken cancellationToken)

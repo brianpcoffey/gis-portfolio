@@ -3,6 +3,7 @@ using Portfolio.Common.DTOs;
 using Portfolio.Services.Data;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Native;
+using Portfolio.Services.Services.Response;
 using System.Diagnostics;
 
 namespace Portfolio.Services.Services
@@ -14,10 +15,6 @@ namespace Portfolio.Services.Services
         private const int MaxStations = 20;
         private const int MaxIterations = 500;
         private const int MaxIsochroneBands = 12;
-
-        // An improvement must beat the incumbent by more than this to be accepted; mirrors
-        // kImprovementEpsilon in native/facility_location_kernel/src/facility_location_kernel.cpp.
-        private const double ImprovementEpsilon = 1e-12;
 
         // NFPA 1710 is written as "90% of the time"; the compliance flag is that literal.
         private const double Nfpa1710CompliancePercent = 90.0;
@@ -172,7 +169,7 @@ namespace Portfolio.Services.Services
             }
             else
             {
-                (chosenIndices, iterationObjectives) = SolveManaged(
+                (chosenIndices, iterationObjectives) = ManagedPMedianSolver.SolveManaged(
                     costMatrix, candidateCount, demandCount, weights,
                     request.StationCount, request.ObjectiveMode,
                     request.FirstThresholdMinutes, iterations, cancellationToken);
@@ -269,267 +266,7 @@ namespace Portfolio.Services.Services
             return bands.Count;
         }
 
-        // ── Managed p-median (mirrors the native kernel) ────────────────────────
-
-        // Greedy seeding followed by Teitz-Bart vertex substitution. Mirrors
-        // Facility_SolvePMedian line for line, including the tie-breaking comparator, so
-        // both paths choose the same stations.
-        private static (int[] Chosen, double[] Objectives) SolveManaged(
-            double[] costMatrix,
-            int candidateCount,
-            int demandCount,
-            double[] weights,
-            int facilityCount,
-            int objectiveMode,
-            double coverageThreshold,
-            int maxIterations,
-            CancellationToken cancellationToken)
-        {
-            var totalWeight = 0.0;
-            for (var d = 0; d < demandCount; d++)
-                totalWeight += weights[d];
-
-            var orderScratch = new int[demandCount];
-            var nearest = new double[demandCount];
-            var second = new double[demandCount];
-            var nearestSlot = new int[demandCount];
-            var trial = new double[demandCount];
-            var isChosen = new bool[candidateCount];
-            var chosen = new List<int>(facilityCount);
-
-            Array.Fill(nearest, double.PositiveInfinity);
-
-            for (var k = 0; k < facilityCount; k++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var best = -1;
-                var bestObjective = double.PositiveInfinity;
-
-                for (var c = 0; c < candidateCount; c++)
-                {
-                    if (isChosen[c])
-                        continue;
-
-                    var offset = c * demandCount;
-                    for (var d = 0; d < demandCount; d++)
-                        trial[d] = Math.Min(costMatrix[offset + d], nearest[d]);
-
-                    var objective = EvaluateObjective(
-                        trial, weights, demandCount, totalWeight, objectiveMode, coverageThreshold, orderScratch);
-
-                    if (best < 0 || objective < bestObjective - ImprovementEpsilon)
-                    {
-                        bestObjective = objective;
-                        best = c;
-                    }
-                }
-
-                if (best < 0)
-                    break;
-
-                isChosen[best] = true;
-                chosen.Add(best);
-
-                var bestOffset = best * demandCount;
-                for (var d = 0; d < demandCount; d++)
-                {
-                    if (costMatrix[bestOffset + d] < nearest[d])
-                        nearest[d] = costMatrix[bestOffset + d];
-                }
-            }
-
-            RebuildNearest(costMatrix, demandCount, chosen, nearest, nearestSlot, second);
-
-            var currentObjective = EvaluateObjective(
-                nearest, weights, demandCount, totalWeight, objectiveMode, coverageThreshold, orderScratch);
-
-            var objectives = new List<double>(maxIterations + 1) { currentObjective };
-
-            var p = chosen.Count;
-            for (var iteration = 0; iteration < maxIterations && p < candidateCount; iteration++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var bestSlot = -1;
-                var bestCandidate = -1;
-                var bestObjective = currentObjective;
-
-                for (var slot = 0; slot < p; slot++)
-                {
-                    for (var c = 0; c < candidateCount; c++)
-                    {
-                        if (isChosen[c])
-                            continue;
-
-                        var offset = c * demandCount;
-                        for (var d = 0; d < demandCount; d++)
-                        {
-                            // Dropping the facility in `slot` leaves the demand points it
-                            // served on their second-nearest; everything else keeps its
-                            // current nearest. That is what turns each trial from
-                            // O(demand x p) into O(demand).
-                            var baseCost = nearestSlot[d] == slot ? second[d] : nearest[d];
-                            trial[d] = Math.Min(costMatrix[offset + d], baseCost);
-                        }
-
-                        var objective = EvaluateObjective(
-                            trial, weights, demandCount, totalWeight, objectiveMode, coverageThreshold, orderScratch);
-
-                        if (objective < bestObjective - ImprovementEpsilon)
-                        {
-                            bestObjective = objective;
-                            bestSlot = slot;
-                            bestCandidate = c;
-                        }
-                    }
-                }
-
-                if (bestSlot < 0)
-                    break;
-
-                isChosen[chosen[bestSlot]] = false;
-                isChosen[bestCandidate] = true;
-                chosen[bestSlot] = bestCandidate;
-
-                RebuildNearest(costMatrix, demandCount, chosen, nearest, nearestSlot, second);
-                currentObjective = bestObjective;
-                objectives.Add(currentObjective);
-            }
-
-            chosen.Sort();
-            return ([.. chosen], [.. objectives]);
-        }
-
-        // Recomputes nearest and second-nearest open facility per demand point.
-        // nearestSlot holds the position within `chosen`, not the candidate index, because
-        // substitution removes facilities by position.
-        private static void RebuildNearest(
-            double[] costMatrix,
-            int demandCount,
-            List<int> chosen,
-            double[] nearest,
-            int[] nearestSlot,
-            double[] second)
-        {
-            Array.Fill(nearest, double.PositiveInfinity);
-            Array.Fill(second, double.PositiveInfinity);
-            Array.Fill(nearestSlot, -1);
-
-            for (var slot = 0; slot < chosen.Count; slot++)
-            {
-                var offset = chosen[slot] * demandCount;
-                for (var d = 0; d < demandCount; d++)
-                {
-                    var cost = costMatrix[offset + d];
-                    if (cost < nearest[d])
-                    {
-                        second[d] = nearest[d];
-                        nearest[d] = cost;
-                        nearestSlot[d] = slot;
-                    }
-                    else if (cost < second[d])
-                    {
-                        second[d] = cost;
-                    }
-                }
-            }
-        }
-
-        // Scores an assignment. Lower is better in every mode, so the search treats them
-        // uniformly — including coverage mode, which is expressed as uncovered demand.
-        private static double EvaluateObjective(
-            double[] distances,
-            double[] weights,
-            int count,
-            double totalWeight,
-            int objectiveMode,
-            double coverageThreshold,
-            int[] orderScratch)
-        {
-            if (count <= 0 || totalWeight <= 0)
-                return 0;
-
-            if (objectiveMode == 0)
-            {
-                var sum = 0.0;
-                for (var d = 0; d < count; d++)
-                    sum += weights[d] * distances[d];
-                return sum / totalWeight;
-            }
-
-            if (objectiveMode == 2)
-            {
-                var uncovered = 0.0;
-                for (var d = 0; d < count; d++)
-                {
-                    if (!(distances[d] <= coverageThreshold))
-                        uncovered += weights[d];
-                }
-                return uncovered / totalWeight;
-            }
-
-            BuildResponseOrder(distances, count, orderScratch);
-            return WeightedPercentile(distances, weights, orderScratch, count, totalWeight, 0.90);
-        }
-
-        // Orders demand points by response time, breaking ties on index so the ordering is
-        // a total order — that is what makes the managed and native percentiles identical
-        // despite different sort implementations.
-        private static void BuildResponseOrder(double[] distances, int count, int[] order)
-        {
-            for (var d = 0; d < count; d++)
-                order[d] = d;
-
-            Array.Sort(order, 0, count, Comparer<int>.Create((a, b) =>
-            {
-                var da = distances[a];
-                var db = distances[b];
-                if (da < db) return -1;
-                if (db < da) return 1;
-                return a.CompareTo(b);
-            }));
-        }
-
-        // Demand-weighted percentile: walk the response-time ordering accumulating call
-        // volume and return the response time at which cumulative volume first reaches the
-        // target fraction. This is NOT the percentile of the unweighted list — a single
-        // heavily weighted neighbourhood can set the p90 on its own, which is precisely
-        // the behaviour NFPA 1710 is written to capture.
-        private static double WeightedPercentile(
-            double[] distances,
-            double[] weights,
-            int[] order,
-            int count,
-            double totalWeight,
-            double fraction)
-        {
-            if (count <= 0 || totalWeight <= 0)
-                return 0;
-
-            var target = totalWeight * fraction;
-            var cumulative = 0.0;
-            for (var i = 0; i < count; i++)
-            {
-                var d = order[i];
-                cumulative += weights[d];
-                if (cumulative >= target)
-                    return distances[d];
-            }
-
-            return distances[order[count - 1]];
-        }
-
         // ── Coverage evaluation ─────────────────────────────────────────────────
-
-        private sealed record CoverageEvaluation(
-            int[] Assignment,
-            double[] ResponseTimes,
-            double Mean,
-            double P50,
-            double P90,
-            double PercentWithinFirst,
-            double PercentWithinSecond);
 
         // Prefers the native kernel; clears the caller's native flag when it falls back so
         // the reported flag describes the whole computation, not just the solve.
@@ -553,62 +290,8 @@ namespace Portfolio.Services.Services
             }
 
             nativeAccelerated = false;
-            return EvaluateManaged(
+            return ManagedPMedianSolver.EvaluateManaged(
                 costMatrix, demandCount, weights, chosenIndices, firstThreshold, secondThreshold);
-        }
-
-        // Mirrors Facility_EvaluateCoverage.
-        private static CoverageEvaluation EvaluateManaged(
-            double[] costMatrix,
-            int demandCount,
-            double[] weights,
-            int[] chosenIndices,
-            double firstThreshold,
-            double secondThreshold)
-        {
-            var responseTimes = new double[demandCount];
-            var assignment = new int[demandCount];
-            Array.Fill(responseTimes, double.PositiveInfinity);
-            Array.Fill(assignment, -1);
-
-            foreach (var candidate in chosenIndices)
-            {
-                var offset = candidate * demandCount;
-                for (var d = 0; d < demandCount; d++)
-                {
-                    if (costMatrix[offset + d] < responseTimes[d])
-                    {
-                        responseTimes[d] = costMatrix[offset + d];
-                        assignment[d] = candidate;
-                    }
-                }
-            }
-
-            var totalWeight = 0.0;
-            var weightedSum = 0.0;
-            var withinFirst = 0.0;
-            var withinSecond = 0.0;
-            for (var d = 0; d < demandCount; d++)
-            {
-                totalWeight += weights[d];
-                weightedSum += weights[d] * responseTimes[d];
-                if (responseTimes[d] <= firstThreshold)
-                    withinFirst += weights[d];
-                if (responseTimes[d] <= secondThreshold)
-                    withinSecond += weights[d];
-            }
-
-            var order = new int[demandCount];
-            BuildResponseOrder(responseTimes, demandCount, order);
-
-            return new CoverageEvaluation(
-                assignment,
-                responseTimes,
-                totalWeight > 0 ? weightedSum / totalWeight : 0,
-                WeightedPercentile(responseTimes, weights, order, demandCount, totalWeight, 0.50),
-                WeightedPercentile(responseTimes, weights, order, demandCount, totalWeight, 0.90),
-                totalWeight > 0 ? 100.0 * withinFirst / totalWeight : 0,
-                totalWeight > 0 ? 100.0 * withinSecond / totalWeight : 0);
         }
 
         // ── Result shaping ──────────────────────────────────────────────────────

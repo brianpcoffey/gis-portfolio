@@ -1,34 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class SpatialGeometryNativeBridge
     {
-        private static readonly bool _available;
-
-        static SpatialGeometryNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "spatial_geometry_kernel",
-                    typeof(SpatialGeometryNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("spatial_geometry_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -53,7 +30,7 @@ namespace Portfolio.Services.Native
                 result = Triangulate(request);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native spatial geometry triangulation failed; falling back to managed geometry implementation.");
                 return false;
@@ -74,7 +51,7 @@ namespace Portfolio.Services.Native
                 result = ClipToBoundingBox(request);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native spatial geometry clipping failed; falling back to managed geometry implementation.");
                 return false;
@@ -140,15 +117,6 @@ namespace Portfolio.Services.Native
         {
             if (status != 0)
                 throw new InvalidOperationException($"Native spatial geometry kernel failed with status {status}.");
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }

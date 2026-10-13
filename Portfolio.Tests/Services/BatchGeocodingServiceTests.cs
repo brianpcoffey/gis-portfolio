@@ -31,7 +31,7 @@ namespace Portfolio.Tests.Services
             var handler = new FakeHttpMessageHandler(responseJson);
             var httpClient = new HttpClient(handler);
 
-            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, options);
+            return new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, new Portfolio.Services.BoundedBatchJobQueue(), options);
         }
 
         private static IFormFile BuildCsvFile(string csvContent)
@@ -142,7 +142,7 @@ namespace Portfolio.Tests.Services
 
             var options = Options.Create(new BatchGeocodingOptions { MaxConcurrency = 1, MinMatchScore = 80 });
 
-            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, options);
+            var service = new BatchGeocodingService(httpClient, _memoryCache, _loggerMock.Object, _jobStoreMock.Object, new Portfolio.Services.BoundedBatchJobQueue(), options);
 
             cts.CancelAfter(50);
 
@@ -166,6 +166,100 @@ namespace Portfolio.Tests.Services
             // Assert
             Assert.Single(results);
             Assert.False(results[0].Matched);
+        }
+
+        // Characterization: a CSV at exactly the row cap is accepted (the cap itself changes in WP-36).
+        [Fact]
+        public async Task GeocodeAsync_CsvAtRowCap_IsAccepted()
+        {
+            // Arrange
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 1000; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Main St,Denver,CO,80201\n");
+            var service = CreateService(BuildGeocodeJson("1 Main St, Denver, CO 80201", 95.0, -104.9, 39.7));
+
+            // Act
+            var results = await service.GeocodeAsync(BuildCsvFile(sb.ToString()));
+
+            // Assert
+            Assert.Equal(1000, results.Count);
+        }
+
+        // 1,001 rows is one over the D-10 cap: the sync path rejects it with the public 400 message.
+        [Fact]
+        public async Task GeocodeAsync_CsvOverRowCap_ThrowsArgumentException()
+        {
+            // Arrange
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 1001; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Main St,Denver,CO,80201\n");
+            var service = CreateService("{}");
+
+            // Act
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => service.GeocodeAsync(BuildCsvFile(sb.ToString())));
+
+            // Assert
+            Assert.StartsWith("CSV exceeds the maximum of 1000 data rows.", ex.Message);
+        }
+
+        // The run writes one summary line and nothing per row (rows carry user-entered addresses).
+        [Fact]
+        public async Task GeocodeAsync_LogsOneSummaryAndNothingPerRow()
+        {
+            // Arrange
+            var sb = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 1; i <= 20; i++)
+                sb.Append(i).Append(',').Append(i).Append(" Secret Ln,Denver,CO,80201\n");
+            // Score 10 is below the match threshold, so every row is unmatched.
+            var service = CreateService(BuildGeocodeJson("x", 10.0, 0, 0));
+
+            // Act
+            await service.GeocodeAsync(BuildCsvFile(sb.ToString()));
+
+            // Assert
+            var logs = _loggerMock.Invocations
+                .Where(i => i.Method.Name == "Log")
+                .Select(i => i.Arguments[2]?.ToString() ?? string.Empty)
+                .ToList();
+            var summary = Assert.Single(logs);
+            Assert.Contains("20 rows", summary);
+            Assert.Contains("20 unmatched", summary);
+            Assert.DoesNotContain("Secret", summary);
+        }
+
+        [Fact]
+        public async Task ProcessJobAsync_EveryRowFaultsWithNonHttpException_JobFailsPromptly()
+        {
+            // Regression: when every per-row worker died on an exception other than
+            // HttpRequestException/OCE, the producer blocked forever on the bounded channel
+            // and the job stayed Processing, holding a BatchGeocodingWorker loop.
+            var csv = new StringBuilder("Id,Address,City,State,Zip\n");
+            for (var i = 0; i < 600; i++)
+                csv.Append($"{i:D4},{i} Main St,Denver,CO,80201\n");
+
+            var service = new BatchGeocodingService(
+                new HttpClient(new ThrowingHttpMessageHandler()), _memoryCache, _loggerMock.Object,
+                _jobStoreMock.Object, new Portfolio.Services.BoundedBatchJobQueue(),
+                Options.Create(new BatchGeocodingOptions { MaxConcurrency = 4, MinMatchScore = 80.0 }));
+            var job = new Portfolio.Common.Models.BatchJob
+            {
+                JobId = "faulty", Status = Portfolio.Common.Models.BatchJobStatus.Queued, FileName = "faulty.csv"
+            };
+
+            var run = service.ProcessJobAsync(
+                new BatchWorkItem(job, Encoding.UTF8.GetBytes(csv.ToString())), CancellationToken.None);
+            var finished = await Task.WhenAny(run, Task.Delay(TimeSpan.FromSeconds(30)));
+
+            Assert.Same(run, finished);
+            await run;
+            Assert.Equal(Portfolio.Common.Models.BatchJobStatus.Failed, job.Status);
+        }
+
+        private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request, CancellationToken cancellationToken) =>
+                throw new InvalidOperationException("simulated non-HTTP fault");
         }
 
         private sealed class FakeHttpMessageHandler(string json) : HttpMessageHandler

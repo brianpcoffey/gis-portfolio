@@ -36,6 +36,9 @@ namespace Portfolio.Web.Controllers.Api
         // ~2 MB cap on the uploaded CSV (paired with the row-count cap in the service).
         private const int MaxUploadBytes = 2 * 1024 * 1024;
 
+        // Suggested wait when the job queue is full, sent as the Retry-After header and in the body.
+        private const int QueueFullRetryAfterSeconds = 30;
+
         // Accept only .csv uploads — defence-in-depth alongside the size limit and row cap.
         // string.Equals is null-safe, so a multipart part with no filename yields a clean false.
         private static bool HasCsvExtension(IFormFile file) =>
@@ -74,6 +77,18 @@ namespace Portfolio.Web.Controllers.Api
             catch (ArgumentException ex)
             {
                 return BadRequest(new { error = ex.Message });
+            }
+            catch (BatchQueueFullException)
+            {
+                _logger.LogWarning("Batch geocoding queue is full. Rejecting the upload.");
+                Response.Headers.RetryAfter = QueueFullRetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
+                {
+                    Status = 503,
+                    Title  = "Batch Queue Full",
+                    Detail = $"Too many batch jobs are queued. Retry after {QueueFullRetryAfterSeconds} seconds.",
+                    Extensions = { ["retryAfterSeconds"] = QueueFullRetryAfterSeconds }
+                });
             }
             catch (Polly.CircuitBreaker.BrokenCircuitException)
             {
@@ -114,7 +129,6 @@ namespace Portfolio.Web.Controllers.Api
         [HttpPost("/api/batchgeocoding/sync")]
         [RequestSizeLimit(MaxUploadBytes)]
         [ApiExplorerSettings(IgnoreApi = true)]
-        [Obsolete("Use POST /api/v1/geocoding/batch for the recommended async job pattern.")] // kept for test compatibility
         [ProducesResponseType(typeof(List<BatchGeocodingResultDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
