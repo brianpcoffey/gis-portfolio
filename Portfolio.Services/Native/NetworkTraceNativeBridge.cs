@@ -1,34 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class NetworkTraceNativeBridge
     {
-        private static readonly bool _available;
-
-        static NetworkTraceNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "network_trace_kernel",
-                    typeof(NetworkTraceNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("network_trace_kernel");
 
         internal static bool IsAvailable => _available;
 
@@ -73,7 +50,7 @@ namespace Portfolio.Services.Native
                 customersAffected = affected;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native downstream trace failed; falling back to managed implementation.");
                 return false;
@@ -110,7 +87,7 @@ namespace Portfolio.Services.Native
                 upstreamIds = Take(output, count);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native upstream trace failed; falling back to managed implementation.");
                 return false;
@@ -147,7 +124,7 @@ namespace Portfolio.Services.Native
                 deviceIds = Take(output, count);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native isolation search failed; falling back to managed implementation.");
                 return false;
@@ -191,7 +168,7 @@ namespace Portfolio.Services.Native
                 customersServed = served;
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native energization sweep failed; falling back to managed implementation.");
                 return false;
@@ -222,15 +199,6 @@ namespace Portfolio.Services.Native
             var result = new int[count];
             Array.Copy(buffer, result, count);
             return result;
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }

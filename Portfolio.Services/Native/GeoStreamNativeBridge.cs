@@ -1,34 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
-using System.Runtime.InteropServices;
 
 namespace Portfolio.Services.Native
 {
     internal static class GeoStreamNativeBridge
     {
-        private static readonly bool _available;
-
-        static GeoStreamNativeBridge()
-        {
-            try
-            {
-                if (NativeToggle.Disabled)
-                {
-                    _available = false;
-                    return;
-                }
-
-                _available = NativeLibrary.TryLoad(
-                    "geostream_processor",
-                    typeof(GeoStreamNativeBridge).Assembly,
-                    DllImportSearchPath.AssemblyDirectory | DllImportSearchPath.ApplicationDirectory,
-                    out _);
-            }
-            catch
-            {
-                _available = false;
-            }
-        }
+        private static readonly bool _available = NativeKernelLoader.TryLoad("geostream_processor");
 
         internal static bool IsAvailable => _available;
 
@@ -53,7 +30,7 @@ namespace Portfolio.Services.Native
                 result = ProcessBatch(request);
                 return true;
             }
-            catch (Exception ex) when (IsNativeInvocationException(ex))
+            catch (Exception ex) when (NativeKernelLoader.IsNativeInvocationException(ex))
             {
                 logger.LogWarning(ex, "Native geostream processor failed; falling back to managed telemetry processing.");
                 return false;
@@ -123,15 +100,6 @@ namespace Portfolio.Services.Native
         {
             if (status != 0)
                 throw new InvalidOperationException($"Native geostream processor failed with status {status}.");
-        }
-
-        private static bool IsNativeInvocationException(Exception exception)
-        {
-            return exception is DllNotFoundException
-                or EntryPointNotFoundException
-                or BadImageFormatException
-                or SEHException
-                or InvalidOperationException;
         }
     }
 }
