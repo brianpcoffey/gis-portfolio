@@ -1,8 +1,10 @@
 using System.Net;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -42,6 +44,83 @@ public class HostingOptionsTests
         Assert.Equal(TimeSpan.FromDays(365), hsts.MaxAge);
         Assert.False(hsts.IncludeSubDomains);
         Assert.False(hsts.Preload);
+    }
+
+    private static IConfiguration Config(params (string Key, string? Value)[] values) =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(values.Select(v => new KeyValuePair<string, string?>(v.Key, v.Value)))
+            .Build();
+
+    [Fact]
+    public void ForwardedHeaders_Default_TrustsAnyProxy_WithForwardLimit1()
+    {
+        // Arrange
+        var options = new ForwardedHeadersOptions();
+
+        // Act
+        ForwardedHeadersSetup.Apply(options, Config());
+
+        // Assert
+        Assert.Equal(1, options.ForwardLimit);
+        Assert.Empty(options.KnownIPNetworks);
+        Assert.Empty(options.KnownProxies);
+        Assert.Equal(ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, options.ForwardedHeaders);
+    }
+
+    [Fact]
+    public void ForwardedHeaders_WithNetworks_KeepsTheTrustListInsteadOfClearingIt()
+    {
+        // Arrange
+        var options = new ForwardedHeadersOptions();
+
+        // Act
+        ForwardedHeadersSetup.Apply(options, Config(
+            ("ForwardedHeaders:ForwardLimit", "2"),
+            ("ForwardedHeaders:KnownNetworks:0", "10.0.0.0/8"),
+            ("ForwardedHeaders:KnownNetworks:1", "172.16.0.0/12")));
+
+        // Assert
+        Assert.Equal(2, options.ForwardLimit);
+        Assert.Contains(options.KnownIPNetworks, n => n.ToString() == "10.0.0.0/8");
+        Assert.Contains(options.KnownIPNetworks, n => n.ToString() == "172.16.0.0/12");
+        Assert.NotEmpty(options.KnownProxies);
+    }
+
+    [Fact]
+    public void ForwardedHeaders_CommaSeparatedSingleValue_IsAccepted()
+    {
+        // Arrange
+        var options = new ForwardedHeadersOptions();
+
+        // Act
+        ForwardedHeadersSetup.Apply(options, Config(("ForwardedHeaders:KnownNetworks", "10.0.0.0/8, 192.168.0.0/16")));
+
+        // Assert
+        Assert.Contains(options.KnownIPNetworks, n => n.ToString() == "10.0.0.0/8");
+        Assert.Contains(options.KnownIPNetworks, n => n.ToString() == "192.168.0.0/16");
+    }
+
+    [Fact]
+    public void ForwardedHeaders_InvalidCidr_FailsLoudly()
+    {
+        // Act & Assert
+        Assert.ThrowsAny<Exception>(() =>
+            ForwardedHeadersSetup.Apply(new ForwardedHeadersOptions(), Config(("ForwardedHeaders:KnownNetworks:0", "not-a-cidr"))));
+    }
+
+    [Fact]
+    public async Task ForwardedHeaders_HostDefaults_AreUnchanged()
+    {
+        // Arrange
+        await using var f = new PortfolioAppFactory();
+
+        // Act
+        var options = f.Services.GetRequiredService<IOptions<ForwardedHeadersOptions>>().Value;
+
+        // Assert
+        Assert.Equal(1, options.ForwardLimit);
+        Assert.Empty(options.KnownIPNetworks);
+        Assert.Empty(options.KnownProxies);
     }
 
     [Fact]

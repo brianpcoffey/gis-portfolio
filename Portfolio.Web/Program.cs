@@ -241,17 +241,14 @@ else
 // Forwarded Headers (Render / reverse-proxy TLS termination)
 // --------------------------
 // Render terminates TLS at its proxy and forwards plain HTTP to the container.
-// Clearing KnownNetworks and KnownProxies trusts the X-Forwarded-* headers
-// regardless of the proxy IP, making Request.IsHttps, HTTPS redirection,
-// and secure cookie detection accurate inside the container.
+// With no ForwardedHeaders:KnownNetworks configured (the default), KnownNetworks and
+// KnownProxies are cleared, which trusts the X-Forwarded-* headers regardless of the proxy IP,
+// making Request.IsHttps, HTTPS redirection, and secure cookie detection accurate inside the
+// container. Once the owner has verified Render's proxy range (findings-security 4.5), set
+// ForwardedHeaders:KnownNetworks (CIDRs) and, if a further proxy hop is confirmed,
+// ForwardedHeaders:ForwardLimit. Never raise ForwardLimit without KnownNetworks.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders =
-        ForwardedHeaders.XForwardedFor |
-        ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
-});
+    ForwardedHeadersSetup.Apply(options, builder.Configuration));
 
 // --------------------------
 // HSTS (non-Development only; see UseHsts below)
@@ -738,5 +735,40 @@ internal static class RateLimitKeys
     {
         var policy = ctx.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
         return policy is "compute" or "expensive" ? ComputeConcurrencyKey : null;
+    }
+}
+
+/// <summary>Applies the configurable forwarded-header trust. Internal static so tests can call it.</summary>
+internal static class ForwardedHeadersSetup
+{
+    internal static void Apply(ForwardedHeadersOptions options, IConfiguration configuration)
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor |
+            ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = configuration.GetValue("ForwardedHeaders:ForwardLimit", 1);
+
+        var networks = ReadNetworks(configuration);
+        if (networks.Count == 0)
+        {
+            // Today's behaviour: trust any proxy. See the comment at the registration.
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+            return;
+        }
+
+        foreach (var cidr in networks)
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
+    }
+
+    // Accepts an array (appsettings, or Name__0 environment variables) or a single
+    // comma-separated string (one Render environment variable).
+    private static List<string> ReadNetworks(IConfiguration configuration)
+    {
+        var section = configuration.GetSection("ForwardedHeaders:KnownNetworks");
+        var items = section.Get<string[]>() ?? [];
+        if (items.Length == 0 && !string.IsNullOrWhiteSpace(section.Value))
+            items = section.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return items.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).ToList();
     }
 }
