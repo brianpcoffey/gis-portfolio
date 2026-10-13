@@ -129,6 +129,12 @@ body.dark-mode {
     --status-warning-text: #f6c26b;
     --status-info-text: #90cdf4;
     --status-soft-alpha: 0.18;
+    /* A custom property resolves where it is declared, so the :root --status-*-soft above keep the
+       light alpha; they are declared again here so dark mode gets the 0.18 tint. */
+    --status-success-soft: rgba(var(--status-success-rgb), var(--status-soft-alpha));
+    --status-danger-soft: rgba(var(--status-danger-rgb), var(--status-soft-alpha));
+    --status-warning-soft: rgba(var(--status-warning-rgb), var(--status-soft-alpha));
+    --status-info-soft: rgba(var(--status-info-rgb), var(--status-soft-alpha));
     --status-caution-text: #fbd38d;
     --status-caution-soft: rgba(var(--status-caution-rgb), 0.2);
     --status-caution-border: rgba(var(--status-caution-rgb), 0.5);

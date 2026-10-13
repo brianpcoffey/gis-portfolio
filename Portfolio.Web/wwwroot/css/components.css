@@ -170,7 +170,7 @@ body.dark-mode .project-hero {
 }
 
 /* ======================================
-   Panel (additive; nothing uses it yet)
+   Panel (used by the 18 project Details pages)
    One surface/border/radius/shadow for result and control panels.
    ====================================== */
 .panel {
