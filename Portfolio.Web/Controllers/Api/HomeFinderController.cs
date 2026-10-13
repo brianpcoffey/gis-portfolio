@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
@@ -18,6 +19,7 @@ namespace Portfolio.Web.Controllers.Api
     // one silently neutered the [Authorize] on every saved-search action below (ASP0026).
     // The four genuinely public actions opt out individually instead.
     [EnableRateLimiting("expensive")] // scoring re-runs a DB query + native compute per call
+    [CpuBound]
     public class HomeFinderController : ControllerBase
     {
     private readonly IHomeScoringService _scoring;

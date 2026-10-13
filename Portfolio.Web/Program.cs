@@ -24,6 +24,7 @@ using Portfolio.Web.Middleware;
 using Portfolio.Web.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
+using Portfolio.Web.RateLimiting;
 using System.Threading.RateLimiting;
 using Scalar.AspNetCore;
 using System.Security.Claims;
@@ -454,13 +455,16 @@ builder.Services.AddControllers()
 // --------------------------
 // Partitioned per-client (IP) limiting. RemoteIpAddress reflects X-Forwarded-For here because
 // ForwardedHeaders is configured above, so this is the real client behind Render's proxy.
-//   Global   — a generous ceiling on every routed request (blocks blunt flooding), chained with
-//              a shared concurrency cap on the compute/expensive endpoints so total CPU stays
-//              bounded even if the per-IP partition key is spoofed (findings-security 4.4).
+//   Global   — a generous per-IP ceiling (300/min) on every routed request (blocks blunt flooding).
 //   "compute" — a sliding 60/min budget for the native-compute endpoints. Viewshed runs on
 //               every cell click, so a 15/min budget would break the UI.
-//   "expensive" — a tight budget for endpoints that call the paid ArcGIS API or run native
+//   "expensive" — a tight 15/min budget for endpoints that call the paid ArcGIS API or run native
 //                 compute, applied via [EnableRateLimiting("expensive")].
+//   Controllers marked [CpuBound] additionally pass through one process-wide concurrency limiter
+//   (after their per-IP window, so over-budget clients are rejected without queueing) so total CPU
+//   stays bounded even if the per-IP key is spoofed (findings-security 4.4). The ArcGIS proxy
+//   controllers are I/O-bound and are deliberately not [CpuBound]. Queue overflow returns 429
+//   with Retry-After: 5.
 //   "csp"    — the Content-Security-Policy report sink (30/min).
 // This runs EARLY in the pipeline (before auth and the anonymous-profile middleware) so a flood
 // is rejected before it can trigger per-request profile creation/seeding. That early placement
@@ -474,44 +478,28 @@ builder.Services.AddRateLimiter(options =>
     static string ClientKey(HttpContext ctx) =>
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
-        PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-            RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 300,
-                Window      = TimeSpan.FromMinutes(1),
-                QueueLimit  = 0
-            })),
-        PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
-            RateLimitKeys.ConcurrencyKey(ctx) is { } key
-                ? RateLimitPartition.GetConcurrencyLimiter(key, _ => new ConcurrencyLimiterOptions
-                {
-                    PermitLimit = Math.Max(2, Environment.ProcessorCount),
-                    QueueLimit  = 16
-                })
-                : RateLimitPartition.GetNoLimiter("none")));
-
-    options.AddPolicy("compute", ctx =>
-        RateLimitPartition.GetSlidingWindowLimiter(ClientKey(ctx), _ => new SlidingWindowRateLimiterOptions
+    // Global: one per-client window and nothing else. Concurrency is NOT chained here because the
+    // middleware evaluates the global limiter before the endpoint policy, which would queue an
+    // over-budget client in the shared slots before its own budget could reject it.
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit       = 60,
-            Window            = TimeSpan.FromMinutes(1),
-            SegmentsPerWindow = 6,
-            QueueLimit        = 0
+            PermitLimit = 300,
+            Window      = TimeSpan.FromMinutes(1),
+            QueueLimit  = 0
         }));
+
+    options.OnRejected = RateLimitRejection.Apply;
+
+    // "compute" and "expensive" check the client's own window first, then (for [CpuBound]
+    // controllers only) the process-wide shared concurrency limiter (findings-security 4.4).
+    options.AddPolicy<string>(ComputeRateLimiterPolicy.Name, new ComputeRateLimiterPolicy(SharedCpuConcurrency.Shared));
+    options.AddPolicy<string>(ExpensiveRateLimiterPolicy.Name, new ExpensiveRateLimiterPolicy(SharedCpuConcurrency.Shared));
 
     options.AddPolicy("csp", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 30,
-            Window      = TimeSpan.FromMinutes(1),
-            QueueLimit  = 0
-        }));
-
-    options.AddPolicy("expensive", ctx =>
-        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 15,
             Window      = TimeSpan.FromMinutes(1),
             QueueLimit  = 0
         }));
@@ -720,23 +708,6 @@ if (migrateOnly)
 
 app.Run();
 return 0;
-
-/// <summary>
-/// Selects which requests share the global compute concurrency cap. An internal static method
-/// (not an inline lambda) so it can be unit-tested.
-/// </summary>
-internal static class RateLimitKeys
-{
-    /// <summary>The shared partition key for compute/expensive endpoints.</summary>
-    internal const string ComputeConcurrencyKey = "compute-concurrency";
-
-    /// <summary>Returns the shared key for compute/expensive endpoints, or null for everything else.</summary>
-    internal static string? ConcurrencyKey(HttpContext ctx)
-    {
-        var policy = ctx.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
-        return policy is "compute" or "expensive" ? ComputeConcurrencyKey : null;
-    }
-}
 
 /// <summary>Applies the configurable forwarded-header trust. Internal static so tests can call it.</summary>
 internal static class ForwardedHeadersSetup
