@@ -395,8 +395,20 @@ public class PostgresMigrationTests
             return new ScratchDatabase(serverConnectionString, name, connectionString);
         }
 
-        public async ValueTask DisposeAsync() =>
-            await ExecuteAsync(_serverConnectionString, $"DROP DATABASE IF EXISTS \"{_name}\" WITH (FORCE)");
+        // A failed drop is only noted: this runs when the test ends, and an exception from here would replace the
+        // test's own failure with a cleanup error.
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                await ExecuteAsync(_serverConnectionString, $"DROP DATABASE IF EXISTS \"{_name}\" WITH (FORCE)");
+            }
+            catch (Exception e)
+            {
+                TestContext.Current.TestOutputHelper?.WriteLine(
+                    $"Could not drop the scratch database {_name}: {e.Message} Drop it by hand (see the class remarks).");
+            }
+        }
 
         // The name is a guid this class generated, so interpolating it into the statement carries no injection risk.
         private static async Task ExecuteAsync(string connectionString, string sql)
