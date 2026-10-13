@@ -35,11 +35,14 @@ function initSmoothScroll() {
 
                 // Move focus too, so keyboard and screen-reader users continue from
                 // the target rather than from the link they activated (WCAG 2.4.3).
+                let added = false;
                 if (!target.hasAttribute('tabindex') &&
                     !target.matches('a,button,input,select,textarea,[tabindex]')) {
                     target.setAttribute('tabindex', '-1');
+                    added = true;
                 }
                 target.focus({ preventScroll: true });
+                if (added) target.addEventListener('blur', () => target.removeAttribute('tabindex'), { once: true });
                 history.pushState(null, '', targetId);
 
                 // Close mobile menu if open
