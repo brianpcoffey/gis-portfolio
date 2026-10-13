@@ -5,9 +5,12 @@ namespace Portfolio.Web.Startup;
 
 internal static class RateLimitingRegistration
 {
-    // Partitioned per-client (IP) limiting. RemoteIpAddress reflects X-Forwarded-For here because
-    // ForwardedHeaders is configured first (AddPortfolioForwardedHeaders, UseForwardedHeaders), so
-    // this is the real client behind Render's proxy.
+    // Partitioned per-client (IP) limiting. RemoteIpAddress is the real client here because
+    // ForwardedHeaders runs first (AddPortfolioForwardedHeaders, UseForwardedHeaders). In production the
+    // request arrives as client -> Cloudflare -> Render (10.x) -> local proxy -> app, and
+    // appsettings.Production.json trusts those hops with ForwardLimit 3, so the middleware takes the
+    // client from X-Forwarded-For (see ForwardedHeadersSetup). If a Cloudflare range is missing from that
+    // list, the key for such a request is the Cloudflare edge address (shared, but never client-chosen).
     //   Global   — a generous per-IP ceiling (300/min) on every routed request (blocks blunt flooding).
     //   "compute" — a sliding 60/min budget for the native-compute endpoints. Viewshed runs on
     //               every cell click, so a 15/min budget would break the UI.
