@@ -148,12 +148,8 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException($"Distance matrices are limited to {MaxMatrixCells} cells.", nameof(sourceIds));
 
             var nodeIds = NodeIdSet(graph.Nodes);
-            foreach (var id in sourceIds)
-                if (!nodeIds.Contains(id))
-                    throw new ArgumentException("Every source node must exist in the graph.", nameof(sourceIds));
-            foreach (var id in targetIds)
-                if (!nodeIds.Contains(id))
-                    throw new ArgumentException("Every target node must exist in the graph.", nameof(targetIds));
+            RequireAllNodes(sourceIds, nodeIds, "Every source node must exist in the graph.", nameof(sourceIds));
+            RequireAllNodes(targetIds, nodeIds, "Every target node must exist in the graph.", nameof(targetIds));
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -442,6 +438,13 @@ namespace Portfolio.Services.Services
 
                 list.Add(new AdjEdge(to, cost));
             }
+        }
+
+        private static void RequireAllNodes(IReadOnlyList<int> ids, HashSet<int> nodeIds, string message, string paramName)
+        {
+            foreach (var id in ids)
+                if (!nodeIds.Contains(id))
+                    throw new ArgumentException(message, paramName);
         }
 
         private static HashSet<int> NodeIdSet(IReadOnlyList<GraphNodeDto> nodes)
