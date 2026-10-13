@@ -205,6 +205,8 @@ export const MapManager = {
 
     highlightFeature(featureId) {
 
+        if (!highlightLayer) return; // no map (the ArcGIS API failed to load)
+
         highlightLayer.removeAll();
 
         if (!featureId) return;

@@ -131,12 +131,41 @@
         return palette[clusterId % palette.length];
     }
 
+    // DBSCAN can find more clusters than the palette has colours. Clusters 1-8 are filled circles in
+    // --chart-1..8 (unchanged); clusters 9-16 reuse those colours as hollow rings and 17-24 as filled
+    // squares, so no two of the first 24 clusters share both colour and shape (the cycle then
+    // repeats). The legend swatch mirrors the marker, so shape - not only colour - tells them apart.
+    var PALETTE_SIZE = 8;
+    var MARKERS = ["circle", "ring", "square"];
+
+    function markerFor(clusterId) {
+        return MARKERS[Math.floor(clusterId / PALETTE_SIZE) % MARKERS.length];
+    }
+
+    // The ring and square markers for clusters beyond the first eight (same footprint as the circle).
+    function shapedMarker(p, color) {
+        var cx = p.x * 100;
+        var cy = 100 - p.y * 100;
+        if (markerFor(p.clusterId) === "square") {
+            return charts.svg.el("rect", {
+                x: (cx - 1.5).toFixed(2), y: (cy - 1.5).toFixed(2), width: "3", height: "3", fill: color
+            });
+        }
+        return charts.svg.el("circle", {
+            cx: cx.toFixed(2), cy: cy.toFixed(2), r: "1.4", fill: "none", stroke: color, "stroke-width": "0.6"
+        });
+    }
+
     function drawPoints(labelled) {
         charts.svg.clear(svg);
         var list = labelled || points.map(function (p) { return { x: p.x, y: p.y, clusterId: -2 }; });
         var palette = charts.palette(8);
         var unclustered = charts.status("info");
         list.forEach(function (p) {
+            if (p.clusterId >= 0 && markerFor(p.clusterId) !== "circle") {
+                svg.appendChild(shapedMarker(p, palette[p.clusterId % palette.length]));
+                return;
+            }
             var circle = charts.svg.el("circle", {
                 cx: (p.x * 100).toFixed(2),
                 cy: (100 - p.y * 100).toFixed(2),
@@ -163,5 +192,12 @@
             items.push({ color: "var(--text-muted)", label: "Noise · " + fmt.number(result.noiseCount) });
         }
         charts.legend(legend, items);
+        // Mirror the plot markers on the swatches (.legend__swatch--ring / --square, spatialcompute.css).
+        result.clusterSizes.forEach(function (size, index) {
+            var marker = markerFor(index);
+            if (marker !== "circle") {
+                legend.children[index].querySelector(".legend__swatch").classList.add("legend__swatch--" + marker);
+            }
+        });
     }
 }());

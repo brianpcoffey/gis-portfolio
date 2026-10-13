@@ -6,9 +6,71 @@
     const state = HF.state;
     const HOME_FINDER_ROUTES = HF.routes;
 
+    // Marks the name field invalid and links it to its error text, or clears both. aria-describedby is
+    // only present while invalid, so the hidden message is not read otherwise.
+    function setNameInvalid(input, invalid) {
+        input.classList.toggle("is-invalid", invalid);
+        if (invalid) {
+            input.setAttribute("aria-invalid", "true");
+            input.setAttribute("aria-describedby", "saveSearchNameError");
+        } else {
+            input.removeAttribute("aria-invalid");
+            input.removeAttribute("aria-describedby");
+        }
+    }
+
+    // Replaces window.prompt: a Bootstrap modal (#saveSearchModal in Index.cshtml) with one name field.
+    // Opens with the name selected, Enter submits, an empty name is refused in place, and focus goes
+    // back to the Save Search button when it closes. Resolves to the trimmed name on Save, or null when
+    // the dialog is dismissed.
+    function askSearchName(defaultName) {
+        const modalEl = document.getElementById("saveSearchModal");
+        const form = document.getElementById("saveSearchForm");
+        const input = document.getElementById("saveSearchName");
+        if (!modalEl || !form || !input) return Promise.resolve(null);
+
+        input.value = defaultName || "";
+        setNameInvalid(input, false);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        return new Promise((resolve) => {
+            let result = null;
+            const onSubmit = (e) => {
+                e.preventDefault();
+                const trimmed = input.value.trim();
+                if (!trimmed) {
+                    setNameInvalid(input, true);
+                    input.focus();
+                    return;
+                }
+                result = trimmed;
+                modal.hide();
+            };
+            const onInput = () => setNameInvalid(input, false);
+            const onShown = () => {
+                input.focus();
+                input.select();
+            };
+            const onHidden = () => {
+                form.removeEventListener("submit", onSubmit);
+                input.removeEventListener("input", onInput);
+                modalEl.removeEventListener("shown.bs.modal", onShown);
+                setNameInvalid(input, false);
+                resolve(result);
+                // Bootstrap only restores focus to data-api triggers, and this one is opened from script.
+                setTimeout(() => document.getElementById("btnSaveSearch")?.focus(), 0);
+            };
+            form.addEventListener("submit", onSubmit);
+            input.addEventListener("input", onInput);
+            modalEl.addEventListener("shown.bs.modal", onShown, { once: true });
+            modalEl.addEventListener("hidden.bs.modal", onHidden, { once: true });
+            modal.show();
+        });
+    }
+
     async function saveSearch() {
         const prefs = HF.getPreferences();
-        const name = prompt("Name this search:", `Search ${new Date().toLocaleDateString()}`);
+        const name = await askSearchName(`Search ${new Date().toLocaleDateString()}`);
         if (!name) return;
 
         try {

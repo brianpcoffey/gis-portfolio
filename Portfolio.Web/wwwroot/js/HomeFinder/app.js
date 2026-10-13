@@ -75,6 +75,8 @@
         HF.restorePreferences();
 
         HF.wireSliders();
+        // initMap never rejects: if the ArcGIS API cannot load it shows a notice in the map container,
+        // and the search, save and load controls below are wired regardless.
         await HF.initMap();
         HF.wireBasemapSelect();
 

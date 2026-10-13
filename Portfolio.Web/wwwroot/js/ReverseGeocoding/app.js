@@ -351,7 +351,18 @@
             });
 
             renderHistory(loadHistory());
-        }
-    ); });
+        },
+        mapUnavailable
+    ); }).catch(mapUnavailable);
+
+    // The ArcGIS API (or one of its modules) could not load. The lookup form is already wired and does
+    // not need the map, so say so in the map container and still show the recent lookups.
+    function mapUnavailable(err) {
+        console.error("Map failed to load:", err);
+        window.PortfolioEsri.showLoadError(
+            document.getElementById("rgMapView"),
+            "You can still look up an address by entering coordinates under Manual Lookup.");
+        renderHistory(loadHistory());
+    }
 
 }());

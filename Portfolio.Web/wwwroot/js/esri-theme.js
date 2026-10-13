@@ -4,6 +4,7 @@
 //   <script src="~/js/esri-theme.js"></script>
 //   <script>PortfolioEsri.load();</script>          // theme CSS now, API script appended
 //   PortfolioEsri.loadTheme();                      // theme CSS only (page loads the API itself)
+//   PortfolioEsri.load().catch(function () { PortfolioEsri.showLoadError(mapEl, "Search still works."); });
 //
 // Subresource Integrity (SEC-09, WP-46). `integrity` maps each absolute URL this loader requests
 // to its sha384 digest; a listed URL is fetched with integrity + crossorigin="anonymous" (both
@@ -88,5 +89,24 @@
     return loadPromise;
   }
 
-  g.PortfolioEsri = { version: VERSION, baseUrl: BASE, scriptUrl: SCRIPT_URL, themeHref: themeHref, integrity: integrity, loadTheme: loadTheme, load: load };
+  // Fills a map container with an inline notice when load() rejects (network failure, or the SRI pin
+  // blocking a changed file). The box is role="alert", so it is announced once. `hint` is an optional
+  // second sentence saying what still works on the page. Replaces whatever the container held (a
+  // loading spinner); returns the box, or null when there is no container.
+  function showLoadError(container, hint) {
+    if (!container) { return null; }
+    var box = document.createElement("div");
+    box.className = "alert alert-warning esri-load-error m-3";
+    box.setAttribute("role", "alert");
+    var icon = document.createElement("i");
+    icon.className = "fa-solid fa-triangle-exclamation me-1";
+    icon.setAttribute("aria-hidden", "true");
+    box.appendChild(icon);
+    box.appendChild(document.createTextNode(
+      "The map could not be loaded. Check your connection and reload the page to try again." + (hint ? " " + hint : "")));
+    container.replaceChildren(box);
+    return box;
+  }
+
+  g.PortfolioEsri = { version: VERSION, baseUrl: BASE, scriptUrl: SCRIPT_URL, themeHref: themeHref, integrity: integrity, loadTheme: loadTheme, load: load, showLoadError: showLoadError };
 }(window));
