@@ -154,7 +154,41 @@ namespace Portfolio.Services.Data
         // clump the stops, because OSM node order follows way order, not geography.
         private static List<int> SelectSpreadNodes(RoadGraphDto graph, int count, int depotIndex, uint seed)
         {
-            var nodes = graph.Nodes;
+            var cells = BucketIntoGrid(graph.Nodes, count, depotIndex);
+
+            var rng = new Lcg(seed);
+            var chosen = new List<int>(count);
+            var taken = new HashSet<int>();
+
+            // Repeated passes over the grid: one node per non-empty cell each time, so the
+            // stops fill the map evenly before any cell contributes a second stop.
+            for (var pass = 0; pass < 16 && chosen.Count < count; pass++)
+            {
+                for (var c = 0; c < cells.Length && chosen.Count < count; c++)
+                {
+                    var bucket = cells[c];
+                    if (bucket.Count == 0)
+                        continue;
+
+                    for (var attempt = 0; attempt < 8; attempt++)
+                    {
+                        var candidate = bucket[(int)(rng.NextDouble() * bucket.Count) % bucket.Count];
+                        if (taken.Add(candidate))
+                        {
+                            chosen.Add(candidate);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            chosen.Sort();
+            return chosen;
+        }
+
+        // Buckets every node except the depot into a square grid over the network's bounding box.
+        private static List<int>[] BucketIntoGrid(List<GraphNodeDto> nodes, int count, int depotIndex)
+        {
             double minLat = double.MaxValue, maxLat = double.MinValue;
             double minLon = double.MaxValue, maxLon = double.MinValue;
 
@@ -186,34 +220,7 @@ namespace Portfolio.Services.Data
                 cells[row * gridSize + col].Add(i);
             }
 
-            var rng = new Lcg(seed);
-            var chosen = new List<int>(count);
-            var taken = new HashSet<int>();
-
-            // Repeated passes over the grid: one node per non-empty cell each time, so the
-            // stops fill the map evenly before any cell contributes a second stop.
-            for (var pass = 0; pass < 16 && chosen.Count < count; pass++)
-            {
-                for (var c = 0; c < cells.Length && chosen.Count < count; c++)
-                {
-                    var bucket = cells[c];
-                    if (bucket.Count == 0)
-                        continue;
-
-                    for (var attempt = 0; attempt < 8; attempt++)
-                    {
-                        var candidate = bucket[(int)(rng.NextDouble() * bucket.Count) % bucket.Count];
-                        if (taken.Add(candidate))
-                        {
-                            chosen.Add(candidate);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            chosen.Sort();
-            return chosen;
+            return cells;
         }
 
         private static int NearestNodeIndex(RoadGraphDto graph, double latitude, double longitude)

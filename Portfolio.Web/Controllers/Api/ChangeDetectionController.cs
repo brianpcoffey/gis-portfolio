@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
+using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
@@ -46,7 +47,7 @@ namespace Portfolio.Web.Controllers.Api
         public async Task<ActionResult<ChangeSceneDto>> Scene(
             [FromQuery] int width = 256,
             [FromQuery] int height = 256,
-            [FromQuery] double noise = 0.025,
+            [FromQuery] double noise = ChangeSceneDefaults.NoiseLevel,
             CancellationToken cancellationToken = default)
         {
             try
