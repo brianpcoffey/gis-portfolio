@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!--
+      Same single suppression as Portfolio.Tests: xUnit1051 is an ergonomics advisory about passing
+      TestContext.Current.CancellationToken to every call that accepts one. Everything else is an error in CI.
+    -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    Browser end-to-end tests (EN-02a). This project is deliberately NOT part of the coverage run: it has no
+    coverlet.collector, and CI's `test` job runs `dotnet test Portfolio.Tests` only, so the coverage gate
+    measures exactly what it measured before this project existed. The tests here skip unless
+    PORTFOLIO_E2E=1 (see Infrastructure/E2EFactAttribute.cs), so a plain `dotnet test` at the repo root reports
+    them as Skipped.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Deque.AxeCore.Playwright" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Portfolio.Common\Portfolio.Common.csproj" />
+    <ProjectReference Include="..\Portfolio.Repositories\Portfolio.Repositories.csproj" />
+    <ProjectReference Include="..\Portfolio.Web\Portfolio.Web.csproj" />
+  </ItemGroup>
+
+  <!--
+    One source of truth for the host: the integration tests' factory already swaps the Npgsql DbContext for
+    EF InMemory, skips migrations and fakes every ArcGIS client, so the E2E host starts from the same class
+    instead of copying it.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Portfolio.Tests\Integration\PortfolioAppFactory.cs" Link="Infrastructure\PortfolioAppFactory.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Fixtures\features-layer3.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

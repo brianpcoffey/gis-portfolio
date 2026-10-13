@@ -3,6 +3,8 @@
 bin/
 obj/
 TestResults/
+# Playwright traces and screenshots that a failed browser test leaves behind (Portfolio.E2E).
+Portfolio.E2E/artifacts/
 native/build/
 # The documented CMake commands write to <repo>/build/native/<kernel>, not native/build/.
 build/
