@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Polly.CircuitBreaker;
+using Portfolio.Common.Enums;
 using Portfolio.Tests.Controllers;
 using Portfolio.Web.Controllers.Api;
 using Portfolio.Web.Filters;

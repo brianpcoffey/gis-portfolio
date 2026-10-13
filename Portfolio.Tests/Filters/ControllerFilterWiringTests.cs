@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
+using Portfolio.Common.Enums;
 using Portfolio.Web.Controllers.Api;
 using Portfolio.Web.Filters;
 

@@ -2,19 +2,10 @@ using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Polly.CircuitBreaker;
+using Portfolio.Common.Enums;
 using Portfolio.Web.Startup;
 
 namespace Portfolio.Web.Filters;
-
-/// <summary>The ArcGIS pipeline family whose circuit breaker an action's <c>[ArcGisUnavailable]</c> reports on.</summary>
-public enum ArcGisUpstream
-{
-    /// <summary>Batch, reverse and address geocoding.</summary>
-    Geocoding,
-
-    /// <summary>Feature-service queries.</summary>
-    Features
-}
 
 /// <summary>
 /// Turns a <see cref="BrokenCircuitException"/> (the ArcGIS circuit breaker is open) into a 503

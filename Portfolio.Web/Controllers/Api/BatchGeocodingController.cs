@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
+using Portfolio.Common.Enums;
 using Portfolio.Common.Models;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
