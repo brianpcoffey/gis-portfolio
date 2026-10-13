@@ -10,11 +10,12 @@ namespace Portfolio.Tests.Contracts;
 /// <summary>Guards "public routes don't change" with a golden list of every controller action endpoint.</summary>
 /// <remarks>
 /// Each entry is "VERB /path" (the API-version segment is shown as v1), taken from the real endpoint
-/// table. The list has 79 entries: the 77 versioned routes, three of which are hidden aliases
-/// (homefinder/score, homefinder/properties/{id}, geocoding/batch/sync), plus the one unversioned
-/// legacy route POST /api/batchgeocoding/sync that the same action (the live batch sync endpoint the
-/// demo calls) also exposes, and the version-neutral POST /csp-report (WP-20). Page endpoints are not
-/// listed. Every route string in wwwroot/js/api-config.js must also resolve to a controller route.
+/// table. The list has 78 entries: the 77 versioned routes, three of which are hidden from OpenAPI
+/// (the Home Finder aliases homefinder/score and homefinder/properties/{id}, and the live
+/// geocoding/batch/sync the demo calls), plus the version-neutral POST /csp-report (WP-20). The
+/// unversioned alias POST /api/batchgeocoding/sync was removed (it had answered 404 since API
+/// versioning began requiring a URL version). Page endpoints are not listed. Every route string in
+/// wwwroot/js/api-config.js must also resolve to a controller route.
 /// </remarks>
 public class RouteTableTests
 {
@@ -56,7 +57,6 @@ public class RouteTableTests
         GET /api/v1/users/me
         GET /api/v1/users/me/claims
         GET /api/v1/users/{userId:guid}
-        POST /api/batchgeocoding/sync
         POST /api/v1/addresses/parse
         POST /api/v1/addresses/validate
         POST /api/v1/catrisk/accumulation
@@ -120,7 +120,7 @@ public class RouteTableTests
         var expected = Expected.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
         // Act & Assert
-        Assert.Equal(79, expected.Count);
+        Assert.Equal(78, expected.Count);
         GoldenAssert.Equal(expected, ActionRoutes(f));
     }
 

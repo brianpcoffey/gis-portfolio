@@ -24,6 +24,15 @@ public class FiberOrderRepository : IFiberOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId, cancellationToken);
     }
 
+    public async Task<List<string>> GetOrderNumbersAsync(Guid userId, string prefix, CancellationToken cancellationToken = default)
+    {
+        return await _db.FiberOrders
+            .AsNoTracking()
+            .Where(o => o.UserId == userId && o.OrderNumber.StartsWith(prefix))
+            .Select(o => o.OrderNumber)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<FiberOrder> AddAsync(FiberOrder order, CancellationToken cancellationToken = default)
     {
         _db.FiberOrders.Add(order);

@@ -13,6 +13,10 @@ public interface IHomeScoringService
         int top = 10,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Returns the scored property with the given id, or <c>null</c> if not found.</summary>
+    /// <summary>
+    /// Returns the property with the given id, or <c>null</c> if not found. The result is <b>not</b> scored: it carries
+    /// the listing fields and <c>EstimatedMonthlyCost</c>, while the sub-scores, <c>CompositeScore</c> and <c>Rank</c>
+    /// are left at 0 (scoring needs preferences; use <see cref="GetTopPropertiesAsync"/> for ranked results).
+    /// </summary>
     Task<ScoredPropertyDto?> GetPropertyByIdAsync(int id, CancellationToken cancellationToken = default);
 }
