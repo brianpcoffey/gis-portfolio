@@ -46,13 +46,6 @@ namespace Portfolio.Tests.Controllers
             Assert.Equal(retryAfterSeconds, Assert.IsType<int>(extension.Value));
         }
 
-        /// <summary>Asserts the 500 ProblemDetails the Fiber controllers return from their catch-all.</summary>
-        public static void Unexpected(IActionResult? result)
-        {
-            var problem = Problem(result, 500, "An unexpected error occurred.", "See server logs for details.");
-            Assert.Empty(problem.Extensions);
-        }
-
         /// <summary>Asserts the 503 the geocoding controllers return when the ArcGIS breaker is open.</summary>
         public static void GeocodingUnavailable(IActionResult? result) =>
             Unavailable(result, "Geocoding Unavailable",
