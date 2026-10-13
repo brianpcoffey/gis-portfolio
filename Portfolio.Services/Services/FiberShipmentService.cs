@@ -18,7 +18,6 @@ public class FiberShipmentService : IFiberShipmentService
         _userProfileService = userProfileService;
     }
 
-    // Write-side limits.
     private static readonly string[] AllowedStatuses = ["Pending", "In Transit", "Delivered", "Exception"];
     private const int MaxTextLength = 100;
     private const int MaxStateLength = 50;

@@ -19,7 +19,6 @@ namespace Portfolio.Services.Services
             SpatialOverlayNativeBridge.LogAvailability(_logger);
         }
 
-        // Assigns each point to its containing zone, preferring the native kernel and falling back to managed code.
         public Task<SpatialJoinResultDto> SpatialJoinAsync(
             SpatialJoinRequestDto request,
             CancellationToken cancellationToken = default)

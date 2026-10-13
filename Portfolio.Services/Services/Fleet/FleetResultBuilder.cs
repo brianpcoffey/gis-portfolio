@@ -98,8 +98,9 @@ internal static class FleetResultBuilder
         };
     }
 
-    // Walks the route on the shift clock and records arrivals. Unlike the solver's
-    // feasibility test it keeps going after a violation, so the result still reports times.
+    // Walks the route on the shift clock and records arrivals. Unlike the solver's feasibility test it keeps
+    // going after a violation, so the result still reports times; an unreachable leg (infinite time) marks
+    // the route infeasible.
     internal static (List<double> Arrivals, double ReturnTime, bool Feasible) SimulateRoute(
         SolverContext context,
         List<int> route)

@@ -39,7 +39,6 @@ public class FiberOrderService : IFiberOrderService
     public async Task<FiberOrderDto> CreateAsync(CreateFiberOrderDto dto, CancellationToken cancellationToken = default)
     {
         var userId = CurrentUserId;
-        // OrderNumber will be generated in repository or here if needed
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var order = new FiberOrder
         {

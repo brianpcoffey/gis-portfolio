@@ -21,9 +21,9 @@ namespace Portfolio.Services.Interfaces
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Computes the shortest-path cost from one origin to every node. The result is
-        /// parallel to <paramref name="graph"/>.Nodes — index i is the cost to Nodes[i],
-        /// not to node id i — and unreachable nodes receive positive infinity.
+        /// Computes the shortest-path cost from one origin to every node, as an array parallel to
+        /// <paramref name="graph"/>.Nodes — index i is the cost to Nodes[i], not to node id i — with positive
+        /// infinity for unreachable nodes.
         /// </summary>
         Task<double[]> ComputeDistancesAsync(
             RoadGraphDto graph,
@@ -33,7 +33,7 @@ namespace Portfolio.Services.Interfaces
         /// <summary>
         /// Computes a row-major shortest-path cost matrix between the given source and
         /// target nodes: index <c>s * targetIds.Count + t</c> is the cost from
-        /// <c>sourceIds[s]</c> to <c>targetIds[t]</c>. Unreachable pairs receive infinity.
+        /// <c>sourceIds[s]</c> to <c>targetIds[t]</c>, with infinity for unreachable pairs.
         /// </summary>
         Task<double[]> ComputeDistanceMatrixAsync(
             RoadGraphDto graph,

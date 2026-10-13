@@ -36,8 +36,6 @@ namespace Portfolio.Services.Services
             _cacheSlidingExpirationMinutes = opts.CacheSlidingExpirationMinutes;
         }
 
-        // Validates coordinates, snaps to grid, checks cache, then calls ArcGIS if needed.
-        // Throws ArgumentException for invalid coordinates, KeyNotFoundException when no result is found.
         public async Task<ReverseGeocodingResultDto> ReverseGeocodeAsync(double latitude, double longitude, CancellationToken cancellationToken = default)
         {
             if (latitude < -90.0 || latitude > 90.0)
@@ -76,7 +74,6 @@ namespace Portfolio.Services.Services
             return result;
         }
 
-        // Makes the HTTP call to the ArcGIS World reverse geocoding REST API.
         // Throws KeyNotFoundException when ArcGIS returns no address result.
         private async Task<ReverseGeocodingResultDto> FetchReverseGeocodeAsync(double latitude, double longitude, CancellationToken cancellationToken)
         {
@@ -131,7 +128,6 @@ namespace Portfolio.Services.Services
             };
         }
 
-        // Snaps a coordinate value to the nearest multiple of the grid resolution.
         private static double SnapToGrid(double value, double resolution)
         {
             return Math.Round(value / resolution) * resolution;

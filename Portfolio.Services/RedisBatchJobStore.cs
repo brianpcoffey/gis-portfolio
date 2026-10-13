@@ -8,9 +8,8 @@ using System.Text.Json;
 namespace Portfolio.Services;
 
 /// <summary>
-/// <see cref="IBatchJobStore"/> implementation backed by Redis via <see cref="IDistributedCache"/>.
-/// Each job is serialized to JSON on every write and deserialized on every read, enabling
-/// any pod in the cluster to serve status polls for any job regardless of where it was submitted.
+/// <see cref="IBatchJobStore"/> backed by Redis via <see cref="IDistributedCache"/>, so any pod can serve a
+/// status poll for any job; each job is serialized to JSON on every write and deserialized on every read.
 /// </summary>
 public sealed class RedisBatchJobStore : IBatchJobStore
 {

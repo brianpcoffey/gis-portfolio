@@ -29,8 +29,8 @@ internal sealed class SolverContext
 }
 
 /// <summary>
-/// The managed CVRPTW solver. Mirrors native/vrp_solver_kernel move for move, so the
-/// iteration order and first-improvement return points here must not change.
+/// The managed CVRPTW solver, mirroring native/vrp_solver_kernel move for move, so its iteration order
+/// and first-improvement return points must not change.
 /// </summary>
 internal static class ManagedVrpSolver
 {

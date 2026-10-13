@@ -31,7 +31,6 @@ public class HomeScoringService : IHomeScoringService
         int top = 10,
         CancellationToken cancellationToken = default)
     {
-        // 1. Load and apply hard filters via repository
         var properties = await _propertyRepo.GetFilteredAsync(
             prefs.MaxPrice,
             prefs.MinBedrooms,
@@ -43,11 +42,9 @@ public class HomeScoringService : IHomeScoringService
         if (properties.Count == 0)
             return [];
 
-        // 2. Native fast path: delegate entire scoring loop to the C++ kernel.
         if (NativeScoringBridge.IsAvailable)
             return ScoreWithNativeKernel(properties, prefs, top);
 
-        // 3. Managed fallback: normalize weights and score in-process.
         var totalWeight = prefs.WeightAffordability + prefs.WeightNeighborhood
             + prefs.WeightSize + prefs.WeightAppreciation + prefs.WeightCondition
             + prefs.WeightCommute + prefs.WeightAmenities + prefs.WeightTaxUtilities
@@ -57,7 +54,6 @@ public class HomeScoringService : IHomeScoringService
 
         double Norm(double w) => w / totalWeight;
 
-        // Score each property
         var scored = properties.Select(p =>
         {
             var monthlyCost = EstimateMonthlyCost(p);
@@ -124,15 +120,12 @@ public class HomeScoringService : IHomeScoringService
         .Take(top)
         .ToList();
 
-        // Assign rank
         for (int i = 0; i < scored.Count; i++)
             scored[i].Rank = i + 1;
 
         return scored;
     }
 
-    // Uses the native C++ scoring kernel to score all properties in one batch call,
-    // then maps the output array to ScoredPropertyDto, sorts, and returns the top-N.
     private static List<ScoredPropertyDto> ScoreWithNativeKernel(
         IReadOnlyList<Property> properties,
         HomeSearchPreferencesDto prefs,
@@ -189,7 +182,7 @@ public class HomeScoringService : IHomeScoringService
         return result;
     }
 
-    // Gets a single property by ID and maps it to a ScoredPropertyDto (unscored, rank 0).
+    // Returned unscored (rank 0): only the property fields and the monthly-cost estimate are filled in.
     public async Task<ScoredPropertyDto?> GetPropertyByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var p = await _propertyRepo.GetByIdAsync(id, cancellationToken);
@@ -220,8 +213,6 @@ public class HomeScoringService : IHomeScoringService
             EstimatedMonthlyCost = monthlyCost
         };
     }
-
-    // --- Sub-score methods ---
 
     private static decimal EstimateMonthlyCost(Property p)
     {

@@ -71,12 +71,11 @@ namespace Portfolio.Services.Services
             return entities.Select(MapToDto).ToList();
         }
 
-        /// <summary>
-        /// Deletes a saved search by ID, scoped to its owner so a user can only delete
-        /// their own searches. Throws KeyNotFoundException if the search does not exist
-        /// or belongs to another user (indistinguishable by design, to avoid disclosing
-        /// the existence of other users' records).
-        /// </summary>
+        /// <summary>Deletes a saved search by ID, scoped to its owner.</summary>
+        /// <remarks>
+        /// Throws <see cref="KeyNotFoundException"/> when the search does not exist or belongs to another user; the two
+        /// cases are indistinguishable by design, so the existence of other users' records is not disclosed.
+        /// </remarks>
         public async Task DeleteSavedSearchAsync(int id, Guid userId, CancellationToken cancellationToken = default)
         {
             var deleted = await _repo.DeleteAsync(id, userId, cancellationToken);
