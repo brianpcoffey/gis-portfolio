@@ -719,6 +719,8 @@ Key settings in `appsettings.json`:
 
 Leaving `Redis:ConnectionString` empty activates the in-process `MemoryDistributedCache` fallback — Redis is only required in production. Set it via the `Redis__ConnectionString` environment variable (double-underscore is the .NET config hierarchy separator).
 
+**Telemetry (optional).** OpenTelemetry traces and metrics are exported over OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. With it unset (the default) nothing is registered and the app behaves exactly as without it. Logs are not exported; they stay on the console. The standard exporter variables apply (`OTEL_EXPORTER_OTLP_PROTOCOL`, and `OTEL_EXPORTER_OTLP_HEADERS` for a backend API key, which belongs in the host's environment and is never committed), plus `OTEL_SERVICE_NAME` (default `portfolio-web`); `RENDER_GIT_COMMIT` is reported as the service version. Spans cover incoming requests (health checks and static files are skipped), outgoing HTTP calls and PostgreSQL commands; metrics add the .NET runtime. Query-string values are exported as `Redacted`, the user identifier in `/users/...` paths is redacted, and the data-source name Npgsql derives from the connection string is dropped from spans and metrics (the standard `server.address` and `db.namespace` attributes stay). Request spans include the `User-Agent` header; nothing adds user ids, coordinates or addresses.
+
 ---
 
 ## Deployment
