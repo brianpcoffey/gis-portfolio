@@ -1,4 +1,4 @@
-namespace Portfolio.Services.Services
+namespace Portfolio.Services.Services.Response
 {
     internal sealed record CoverageEvaluation(
         int[] Assignment,
