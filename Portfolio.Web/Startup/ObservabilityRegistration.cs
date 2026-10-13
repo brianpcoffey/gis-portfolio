@@ -55,9 +55,10 @@ internal static partial class ObservabilityRegistration
     ];
 
     // Request paths that only add noise to a trace backend: health probes (Render hits /health/live every few
-    // seconds) and static assets. Segment-aware: "/js" matches "/js/site.js" but not "/jsx".
+    // seconds) and static assets: every top-level folder and file under wwwroot. Segment-aware: "/js" matches
+    // "/js/site.js" but not "/jsx".
     private static readonly string[] UntracedPaths =
-        ["/health", "/lib", "/css", "/js", "/img", "/files", "/favicon.ico"];
+        ["/health", "/lib", "/css", "/js", "/img", "/files", "/samples", "/favicon.ico", "/favicon.svg"];
 
     internal static IServiceCollection AddPortfolioObservability(
         this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)

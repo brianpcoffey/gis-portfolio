@@ -238,12 +238,15 @@ public class ObservabilityRegistrationTests
     [InlineData("/img/og-preview.jpg", true)]
     [InlineData("/files/Brian-Coffey-Resume.pdf", true)]
     [InlineData("/favicon.ico", true)]
+    [InlineData("/favicon.svg", true)]
+    [InlineData("/samples/batch-geocoding/us-landmarks.csv", true)]
     [InlineData("/", false)]
     [InlineData("/Projects/HomeFinder", false)]
     [InlineData("/api/v1/geometry/clip", false)]
     [InlineData("/api/v1/health-score", false)]
     [InlineData("/healthy", false)]
     [InlineData("/jsx/app.js", false)]
+    [InlineData("/sample", false)]
     [InlineData("/csp-report", false)]
     public void IsUntracedPath_HealthAndStaticAssetPaths_AreLeftOut(string path, bool expected)
     {
