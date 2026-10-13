@@ -53,6 +53,55 @@ Razor Page / API Controller  (Portfolio.Web)
 | `Portfolio.Tests` | xUnit + Moq tests: unit tests for services and controllers, golden and contract tests, and in-process host tests of the real pipeline |
 | `Portfolio.Benchmarks` | Console harness that times each native kernel against its managed fallback and checksums both results |
 
+**Runtime and delivery.** Solid arrows are the normal flow; dashed arrows are optional or not deployed.
+
+```mermaid
+flowchart LR
+    subgraph Client["Browser"]
+        UI["Razor pages, vanilla JS"]
+    end
+
+    CDN["ArcGIS JS, Leaflet (CDN)"]
+
+    subgraph Render["Render (Docker)"]
+        MW["Middleware pipeline"]
+        WEB["Razor Pages, API v1"]
+        SVC["Services"]
+        REPO["Repositories"]
+        HTTP["Typed HttpClients, Polly"]
+        MGD["Managed C# fallback"]
+        NAT["C++ kernels (not deployed)"]
+        MW --> WEB --> SVC
+        SVC --> REPO
+        SVC --> HTTP
+        SVC -->|"production path"| MGD
+        SVC -.->|"P/Invoke if library loads"| NAT
+    end
+
+    PG[("PostgreSQL (Neon)")]
+    REDIS[("Redis (Upstash, optional)")]
+    ARC["ArcGIS REST"]
+
+    UI -->|"HTTPS"| MW
+    UI -->|"loads scripts"| CDN
+    REPO -->|"EF Core"| PG
+    HTTP -->|"HTTPS"| ARC
+    Render -.->|"cache, job state, keys"| REDIS
+
+    subgraph GH["GitHub Actions"]
+        T["Test and coverage"]
+        P["Native parity"]
+        D["Docker build"]
+        H["Deploy hook"]
+        T --> H
+        P --> H
+        D --> H
+    end
+    H -->|"triggers deploy"| Render
+```
+
+The P/Invoke bridges ship in the image, but the C++ libraries are built only in the CI native-parity job and on a developer machine, so the deployed service always takes the managed path. Redis is optional: without `Redis:ConnectionString` the app uses in-memory caches and job state.
+
 ---
 
 ## Native Spatial Compute Architecture
