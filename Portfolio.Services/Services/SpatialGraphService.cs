@@ -78,7 +78,7 @@ namespace Portfolio.Services.Services
             foreach (var n in request.Nodes) nodeIds.Add(n.Id);
             if (!nodeIds.Contains(request.OriginNodeId))
                 throw new ArgumentException("Origin node must exist in the graph.", nameof(request));
-            if (request.MaxCost < 0 || double.IsNaN(request.MaxCost) || double.IsInfinity(request.MaxCost))
+            if (request.MaxCost < 0 || !double.IsFinite(request.MaxCost))
                 throw new ArgumentException("Maximum cost must be a finite non-negative value.", nameof(request));
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -187,7 +187,7 @@ namespace Portfolio.Services.Services
             ArgumentNullException.ThrowIfNull(graph);
             if (graph.Nodes is null || graph.Nodes.Count == 0)
                 throw new ArgumentException("Graph must contain at least one node.", nameof(graph));
-            if (double.IsNaN(latitude) || double.IsInfinity(latitude) || double.IsNaN(longitude) || double.IsInfinity(longitude))
+            if (!double.IsFinite(latitude) || !double.IsFinite(longitude))
                 throw new ArgumentException("Coordinates must be finite values.", nameof(latitude));
 
             var probe = new GraphNodeDto { Latitude = latitude, Longitude = longitude };
@@ -545,14 +545,14 @@ namespace Portfolio.Services.Services
             // Single pass for both coordinate and edge-cost validation.
             foreach (var n in nodes)
             {
-                if (double.IsNaN(n.Latitude) || double.IsInfinity(n.Latitude)
-                    || double.IsNaN(n.Longitude) || double.IsInfinity(n.Longitude))
+                if (!double.IsFinite(n.Latitude)
+                    || !double.IsFinite(n.Longitude))
                     throw new ArgumentException("Graph node coordinates must be finite numeric values.");
             }
 
             foreach (var e in edges)
             {
-                if (e.Cost < 0 || double.IsNaN(e.Cost) || double.IsInfinity(e.Cost))
+                if (e.Cost < 0 || !double.IsFinite(e.Cost))
                     throw new ArgumentException("Graph edge costs must be finite non-negative values.");
             }
         }

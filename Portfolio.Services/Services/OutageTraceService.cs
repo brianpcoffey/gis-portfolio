@@ -103,7 +103,7 @@ namespace Portfolio.Services.Services
                     throw new ArgumentException("An isolation device was not found in the network.", nameof(request));
             }
 
-            if (double.IsNaN(request.AssumedRepairMinutes) || double.IsInfinity(request.AssumedRepairMinutes)
+            if (!double.IsFinite(request.AssumedRepairMinutes)
                 || request.AssumedRepairMinutes < 0 || request.AssumedRepairMinutes > MaxRepairMinutes)
                 throw new ArgumentException($"Assumed repair minutes must be between 0 and {MaxRepairMinutes}.", nameof(request));
 

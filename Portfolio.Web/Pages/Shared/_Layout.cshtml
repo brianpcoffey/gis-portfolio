@@ -81,10 +81,6 @@
     <!-- Font Awesome 6.7.2 (local) -->
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
 
-    <!-- DataTables CSS (local) -->
-    <link rel="stylesheet" href="~/lib/datatables/css/jquery.dataTables.min.css" />
-    <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css" />
-
     @* Order matters: base.css defines the palette variables every later file
        consumes, utilities.css the shared helpers. Each is linked rather than
        @imported so asp-append-version can bust its cache independently. *@
@@ -94,6 +90,11 @@
     <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/preferences.css" asp-append-version="true" />
+
+    @* Page-level stylesheets (and vendor CSS such as DataTables) render here. The page Styles
+       section comes after preferences.css; the DataTables CSS used to load in <head> before
+       base.css. Computed styles on Batch Geocoding and Plant Ops are unchanged (reviewed). *@
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <script>document.body.classList.toggle('dark-mode', document.documentElement.getAttribute('data-bs-theme') === 'dark');</script>
@@ -168,20 +169,24 @@
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="~/lib/jquery/jquery-3.7.1.min.js"></script>
-    <script src="~/lib/datatables/js/jquery.dataTables.min.js"></script>
-    <script src="~/lib/datatables/js/dataTables.bootstrap5.min.js"></script>
-    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/api-config.js" asp-append-version="true"></script>
-    <script src="~/js/api-fetch.js" asp-append-version="true"></script>
-    <script src="~/js/dom-safe.js" asp-append-version="true"></script>
-    <script src="~/js/toasts.js" asp-append-version="true"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/preferences.js" asp-append-version="true"></script>
-    <script src="~/js/navigation.js" asp-append-version="true"></script>
-    <script src="~/js/animations.js" asp-append-version="true"></script>
+    <!-- Scripts: all external scripts are deferred; execution order == document order.
+         The two pre-paint inline scripts above stay inline and non-deferred. -->
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js" defer></script>
+    <script src="~/js/api-config.js" asp-append-version="true" defer></script>
+    <script src="~/js/api-fetch.js" asp-append-version="true" defer></script>
+    <script src="~/js/dom-safe.js" asp-append-version="true" defer></script>
+    <script src="~/js/toasts.js" asp-append-version="true" defer></script>
+    <script src="~/js/ui.js" asp-append-version="true" defer></script>
+    <script src="~/js/format.js" asp-append-version="true" defer></script>
+    <script src="~/js/charts.js" asp-append-version="true" defer></script>
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
+    <script src="~/js/preferences.js" asp-append-version="true" defer></script>
+    <script src="~/js/navigation.js" asp-append-version="true" defer></script>
+    <script src="~/js/animations.js" asp-append-version="true" defer></script>
 
+    @* Warning: inline <script> blocks in a page's Scripts section run immediately, BEFORE the
+       deferred layout scripts above (bootstrap, PortfolioApi, showToast, PortfolioDom). Page inline
+       code that needs them must wait for DOMContentLoaded or be an external deferred script. *@
     @RenderSection("Scripts", required: false)
 </body>
 </html>

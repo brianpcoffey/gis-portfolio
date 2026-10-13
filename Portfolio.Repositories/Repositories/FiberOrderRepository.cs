@@ -24,22 +24,6 @@ public class FiberOrderRepository : IFiberOrderRepository
             .FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId, cancellationToken);
     }
 
-    public async Task<List<FiberOrder>> GetByStatusAsync(string status, Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await _db.FiberOrders
-            .AsNoTracking()
-            .Where(o => o.Status == status && o.UserId == userId)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<List<FiberOrder>> GetByDateRangeAsync(DateTime start, DateTime end, Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await _db.FiberOrders
-            .AsNoTracking()
-            .Where(o => o.OrderDate >= start && o.OrderDate <= end && o.UserId == userId)
-            .ToListAsync(cancellationToken);
-    }
-
     public async Task<FiberOrder> AddAsync(FiberOrder order, CancellationToken cancellationToken = default)
     {
         _db.FiberOrders.Add(order);

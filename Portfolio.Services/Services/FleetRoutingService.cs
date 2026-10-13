@@ -148,29 +148,29 @@ namespace Portfolio.Services.Services
                 throw new ArgumentException($"Routing is limited to {MaxStops} stops.", nameof(request));
             if (request.VehicleCount < 1 || request.VehicleCount > MaxVehicles)
                 throw new ArgumentException($"Vehicle count must be between 1 and {MaxVehicles}.", nameof(request));
-            if (!IsFinite(request.VehicleCapacity) || request.VehicleCapacity <= 0)
+            if (!double.IsFinite(request.VehicleCapacity) || request.VehicleCapacity <= 0)
                 throw new ArgumentException("Vehicle capacity must be greater than zero.", nameof(request));
-            if (!IsFinite(request.ShiftStartMinutes) || !IsFinite(request.ShiftEndMinutes) ||
+            if (!double.IsFinite(request.ShiftStartMinutes) || !double.IsFinite(request.ShiftEndMinutes) ||
                 request.ShiftStartMinutes >= request.ShiftEndMinutes)
                 throw new ArgumentException("Shift start must be earlier than shift end.", nameof(request));
-            if (!IsFinite(request.VehicleFixedCost) || request.VehicleFixedCost < 0)
+            if (!double.IsFinite(request.VehicleFixedCost) || request.VehicleFixedCost < 0)
                 throw new ArgumentException("Vehicle fixed cost cannot be negative.", nameof(request));
             if (request.MaxIterations < 1 || request.MaxIterations > MaxIterations)
                 throw new ArgumentException($"Iterations must be between 1 and {MaxIterations}.", nameof(request));
-            if (!IsFinite(request.DepotLatitude) || !IsFinite(request.DepotLongitude))
+            if (!double.IsFinite(request.DepotLatitude) || !double.IsFinite(request.DepotLongitude))
                 throw new ArgumentException("Stop coordinates must be finite values.", nameof(request));
 
             foreach (var stop in request.Stops)
             {
-                if (!IsFinite(stop.Latitude) || !IsFinite(stop.Longitude))
+                if (!double.IsFinite(stop.Latitude) || !double.IsFinite(stop.Longitude))
                     throw new ArgumentException("Stop coordinates must be finite values.", nameof(request));
-                if (!IsFinite(stop.Demand) || stop.Demand <= 0)
+                if (!double.IsFinite(stop.Demand) || stop.Demand <= 0)
                     throw new ArgumentException("Stop demand must be greater than zero.", nameof(request));
                 if (stop.Demand > request.VehicleCapacity)
                     throw new ArgumentException("No vehicle can serve a stop whose demand exceeds capacity.", nameof(request));
-                if (!IsFinite(stop.ReadyMinutes) || !IsFinite(stop.DueMinutes) || stop.ReadyMinutes > stop.DueMinutes)
+                if (!double.IsFinite(stop.ReadyMinutes) || !double.IsFinite(stop.DueMinutes) || stop.ReadyMinutes > stop.DueMinutes)
                     throw new ArgumentException("Stop ready time must not be later than its due time.", nameof(request));
-                if (!IsFinite(stop.ServiceMinutes) || stop.ServiceMinutes < 0)
+                if (!double.IsFinite(stop.ServiceMinutes) || stop.ServiceMinutes < 0)
                     throw new ArgumentException("Stop service time cannot be negative.", nameof(request));
             }
         }
@@ -320,7 +320,7 @@ namespace Portfolio.Services.Services
             {
                 var stop = route[k];
                 t += context.LegTime(prev, context.Mi(stop));
-                if (!IsFinite(t))
+                if (!double.IsFinite(t))
                     return false;
                 if (t < context.Ready[stop])
                     t = context.Ready[stop];
@@ -331,7 +331,7 @@ namespace Portfolio.Services.Services
             }
 
             t += context.LegTime(prev, 0);
-            return IsFinite(t) && t <= context.ShiftEnd + Epsilon;
+            return double.IsFinite(t) && t <= context.ShiftEnd + Epsilon;
         }
 
         // Total travel distance plus a fixed penalty per vehicle used. The penalty is what
@@ -377,7 +377,7 @@ namespace Portfolio.Services.Services
                         continue;
                     var value = context.Leg(0, context.Mi(i)) + context.Leg(0, context.Mi(j))
                         - context.Leg(context.Mi(i), context.Mi(j));
-                    if (!IsFinite(value))
+                    if (!double.IsFinite(value))
                         continue;
                     savings.Add((value, i, j));
                 }
@@ -668,7 +668,7 @@ namespace Portfolio.Services.Services
                     t += context.LegTime(prev, context.Mi(stop));
                     if (t < context.Ready[stop])
                         t = context.Ready[stop];
-                    if (!IsFinite(t) || t > context.Due[stop] + Epsilon)
+                    if (!double.IsFinite(t) || t > context.Due[stop] + Epsilon)
                         feasible = false;
 
                     arrivals.Add(t);
@@ -677,7 +677,7 @@ namespace Portfolio.Services.Services
                 }
 
                 t += context.LegTime(prev, 0);
-                if (!IsFinite(t) || t > context.ShiftEnd + Epsilon)
+                if (!double.IsFinite(t) || t > context.ShiftEnd + Epsilon)
                     feasible = false;
 
                 var load = RouteLoad(context, route);
@@ -732,7 +732,5 @@ namespace Portfolio.Services.Services
                 PathExpandMs = pathExpandMs
             };
         }
-
-        private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     }
 }

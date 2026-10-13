@@ -27,12 +27,12 @@ namespace Portfolio.Services.Services
             if (request.Elevation is null)
                 throw new ArgumentException("Elevation values are required.", nameof(request));
             ValidateRasterShape(request.Width, request.Height, request.Elevation.Count);
-            if (request.CellSize <= 0 || double.IsNaN(request.CellSize) || double.IsInfinity(request.CellSize))
+            if (request.CellSize <= 0 || !double.IsFinite(request.CellSize))
                 throw new ArgumentException("Cell size must be a finite value greater than zero.", nameof(request));
             if (request.ObserverX < 0 || request.ObserverX >= request.Width ||
                 request.ObserverY < 0 || request.ObserverY >= request.Height)
                 throw new ArgumentException("Observer position must fall inside the grid.", nameof(request));
-            if (double.IsNaN(request.ObserverHeight) || double.IsInfinity(request.ObserverHeight))
+            if (!double.IsFinite(request.ObserverHeight))
                 throw new ArgumentException("Observer height must be a finite value.", nameof(request));
             foreach (var value in request.Elevation)
             {

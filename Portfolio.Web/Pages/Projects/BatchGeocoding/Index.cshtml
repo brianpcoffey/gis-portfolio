@@ -8,6 +8,11 @@
 <link rel="stylesheet" href="~/css/gis.css" />
 <link rel="stylesheet" href="~/css/batchgeocoding.css" />
 
+@section Styles {
+    <link rel="stylesheet" href="~/lib/datatables/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="~/lib/datatables/css/dataTables.bootstrap5.min.css" />
+}
+
 <div class="project-hero py-4 mb-4">
 	<div class="container">
 		<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
@@ -220,5 +225,8 @@
 </div>
 
 @section Scripts {
-	<script src="~/js/BatchGeocoding/app.js" asp-append-version="true"></script>
+	<script defer src="~/lib/jquery/jquery-3.7.1.min.js"></script>
+	<script defer src="~/lib/datatables/js/jquery.dataTables.min.js"></script>
+	<script defer src="~/lib/datatables/js/dataTables.bootstrap5.min.js"></script>
+	<script defer src="~/js/BatchGeocoding/app.js" asp-append-version="true"></script>
 }
