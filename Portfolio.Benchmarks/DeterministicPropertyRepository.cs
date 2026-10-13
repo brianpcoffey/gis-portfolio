@@ -84,9 +84,6 @@ internal sealed class DeterministicPropertyRepository : IPropertyRepository
         }
     }
 
-    public Task<List<Property>> GetAllAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_properties);
-
     public Task<Property?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         => Task.FromResult(_properties.FirstOrDefault(p => p.Id == id));
 
@@ -99,15 +96,4 @@ internal sealed class DeterministicPropertyRepository : IPropertyRepository
         CancellationToken cancellationToken = default)
         => Task.FromResult(_properties);
 
-    public Task<Property> AddAsync(Property property, CancellationToken cancellationToken = default)
-        => throw new NotSupportedException("The benchmark repository is read-only.");
-
-    public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
-        => throw new NotSupportedException("The benchmark repository is read-only.");
-
-    public Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
-        => Task.FromResult(_properties.Exists(p => p.Id == id));
-
-    public Task<int> CountAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_properties.Count);
 }
