@@ -32,8 +32,7 @@ internal static class AuthenticationRegistration
             options.Cookie.SameSite = SameSiteMode.Lax;
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
             options.SlidingExpiration = true;
-
-            options.Events = new PortfolioCookieEvents();
+            // Events are assigned below so they can take the registered TimeProvider.
         })
         .AddGoogle(options =>
         {
@@ -58,6 +57,9 @@ internal static class AuthenticationRegistration
             options.Events.OnRedirectToAuthorizationEndpoint = context =>
                 PortfolioCookieEvents.ApiAwareRedirect(context, StatusCodes.Status401Unauthorized);
         });
+
+        services.AddOptions<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme)
+            .Configure<TimeProvider>((options, time) => options.Events = new PortfolioCookieEvents(time));
 
         services.AddAuthorization(options =>
         {

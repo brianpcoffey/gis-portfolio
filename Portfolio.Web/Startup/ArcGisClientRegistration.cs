@@ -2,8 +2,10 @@ using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using Portfolio.Common.Configuration;
 using Portfolio.Services;
+using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
 using Portfolio.Services.Services;
+using Portfolio.Web.BackgroundServices;
 
 namespace Portfolio.Web.Startup;
 
@@ -65,6 +67,9 @@ internal static class ArcGisClientRegistration
 
         services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>()
             .AddArcGisResilience("arcgis-batch", ArcGisResilienceProfile.Geocoding);
+        // Bounded job queue (8) drained by 2 workers (D-10); the queue is per process.
+        services.AddSingleton<IBatchJobQueue>(_ => new BoundedBatchJobQueue());
+        services.AddHostedService<BatchGeocodingWorker>();
         services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService>()
             .AddArcGisResilience("arcgis-reverse", ArcGisResilienceProfile.Geocoding);
         services.AddHttpClient<IAddressStandardizationService, AddressStandardizationService>()
