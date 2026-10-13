@@ -126,8 +126,8 @@
         }).join("; ") + ". Outside all zones: " + result.unassignedCount + ".");
     }
 
-    function colorFor(index) {
-        var palette = charts.palette(8);
+    // `palette` is resolved once per draw (charts.palette reads computed styles), not once per point.
+    function colorFor(palette, index) {
         return palette[index % palette.length];
     }
 
@@ -135,6 +135,7 @@
 
     function drawScene(result) {
         charts.svg.clear(svg);
+        var palette = charts.palette(8);
         var maxCount = 1;
         if (result) {
             result.zones.forEach(function (z) { maxCount = Math.max(maxCount, z.pointCount); });
@@ -143,12 +144,12 @@
         zones.forEach(function (zone, index) {
             var polygon = charts.svg.el("polygon", {
                 points: zone.ring.map(toSvg).join(" "),
-                stroke: colorFor(index),
+                stroke: colorFor(palette, index),
                 "stroke-width": "0.5"
             });
             if (result) {
                 var intensity = result.zones[index].pointCount / maxCount;
-                polygon.setAttribute("fill", colorFor(index));
+                polygon.setAttribute("fill", colorFor(palette, index));
                 polygon.setAttribute("fill-opacity", (0.12 + intensity * 0.55).toFixed(2));
             } else {
                 polygon.setAttribute("fill", "var(--surface)");
@@ -165,7 +166,7 @@
                 r: "0.9"
             });
             if (p.zoneIndex >= 0) {
-                circle.setAttribute("fill", colorFor(p.zoneIndex));
+                circle.setAttribute("fill", colorFor(palette, p.zoneIndex));
             } else {
                 circle.setAttribute("fill", "var(--text-muted)");
                 circle.setAttribute("opacity", result ? "0.6" : "0.5");
@@ -177,9 +178,10 @@
     // One row per zone: colour swatch (--swatch via setProperty, CSP-safe), name, point count.
     function buildTable(result) {
         zoneTable.replaceChildren();
+        var palette = charts.palette(8);
         result.zones.forEach(function (z) {
             var swatch = PortfolioDom.el("span", { "class": "legend__swatch", "aria-hidden": "true" });
-            swatch.style.setProperty("--swatch", colorFor(z.zoneIndex));
+            swatch.style.setProperty("--swatch", colorFor(palette, z.zoneIndex));
             zoneTable.appendChild(PortfolioDom.el("div", { "class": "d-flex align-items-center justify-content-between geo-cell-item mb-1" },
                 PortfolioDom.el("span", { "class": "d-inline-flex align-items-center gap-2" },
                     swatch, z.name || ("Zone " + (z.zoneIndex + 1))),
