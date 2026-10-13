@@ -249,7 +249,7 @@ else
 // ForwardedHeaders:KnownNetworks (CIDRs) and, if a further proxy hop is confirmed,
 // ForwardedHeaders:ForwardLimit. Never raise ForwardLimit without KnownNetworks.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    ForwardedHeadersSetup.Apply(options, builder.Configuration));
+    ForwardedHeadersSetup.Apply(options, builder.Configuration, logger));
 
 // --------------------------
 // HSTS (non-Development only; see UseHsts below)
@@ -712,7 +712,7 @@ return 0;
 /// <summary>Applies the configurable forwarded-header trust. Internal static so tests can call it.</summary>
 internal static class ForwardedHeadersSetup
 {
-    internal static void Apply(ForwardedHeadersOptions options, IConfiguration configuration)
+    internal static void Apply(ForwardedHeadersOptions options, IConfiguration configuration, ILogger? logger = null)
     {
         options.ForwardedHeaders =
             ForwardedHeaders.XForwardedFor |
@@ -725,6 +725,16 @@ internal static class ForwardedHeadersSetup
             // Today's behaviour: trust any proxy. See the comment at the registration.
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
+
+            // With no trust list every client is a trusted proxy, so more than one hop would let
+            // a caller choose its own rate-limit key. Hold the limit at 1 whatever the config says.
+            if (options.ForwardLimit != 1)
+            {
+                logger?.LogWarning(
+                    "ForwardedHeaders:ForwardLimit {Requested} ignored: it is forced to 1 while ForwardedHeaders:KnownNetworks is empty.",
+                    options.ForwardLimit);
+                options.ForwardLimit = 1;
+            }
             return;
         }
 

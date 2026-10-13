@@ -68,6 +68,20 @@ public class HostingOptionsTests
     }
 
     [Fact]
+    public void ForwardedHeaders_NoTrustList_ForcesForwardLimit1_DespiteConfig()
+    {
+        // Arrange
+        var options = new ForwardedHeadersOptions();
+
+        // Act
+        ForwardedHeadersSetup.Apply(options, Config(("ForwardedHeaders:ForwardLimit", "3")));
+
+        // Assert
+        Assert.Equal(1, options.ForwardLimit);
+        Assert.Empty(options.KnownIPNetworks);
+    }
+
+    [Fact]
     public void ForwardedHeaders_WithNetworks_KeepsTheTrustListInsteadOfClearingIt()
     {
         // Arrange
