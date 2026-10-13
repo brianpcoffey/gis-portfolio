@@ -165,7 +165,7 @@ public class PostgresMigrationTests
         Assert.Equal(PostgresErrorCodes.UniqueViolation, duplicate.SqlState);
         Assert.Equal(FiberOrderMapping.OrderNumberIndexName, duplicate.ConstraintName);
 
-        // Assert: another user may hold the same number, and blank numbers are exempt.
+        // Act + Assert: another user may hold the same number, and blank numbers are exempt (none of these inserts may throw).
         await InsertOrderAsync(scratch.ConnectionString, Guid.NewGuid(), TakenNumber);
         await InsertOrderAsync(scratch.ConnectionString, user, string.Empty);
         await InsertOrderAsync(scratch.ConnectionString, user, string.Empty);
