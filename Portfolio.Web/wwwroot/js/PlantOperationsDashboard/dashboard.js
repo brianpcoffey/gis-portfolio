@@ -191,7 +191,9 @@ function loadDashboardStats() {
         .catch(err => {
             const message = plantOpsFailure('Failed to load dashboard data', err);
             ['#plantOpsRevenueChart', '#plantOpsOrdersChart', '#plantOpsInventoryChart'].forEach(sel => {
-                $(sel).empty().append($('<div class="text-danger small" role="alert"></div>').text(message));
+                // role="img" prunes its children from the accessibility tree, which would silence the
+                // alert, so the container stops being an image while it shows the error.
+                $(sel).empty().removeAttr('role aria-label').append($('<div class="text-danger small" role="alert"></div>').text(message));
             });
             showToast(plantOpsFailure('Failed to load dashboard', err), 'danger');
         })

@@ -255,8 +255,7 @@
         if (!graph) return;
         var start = parseInt(startSelect.value, 10);
         if (isNaN(start) || start === graph.destinationNodeId) {
-            alertUi.show("Please pick an origin — click the map or choose an intersection.");
-            PortfolioUi.announce("Please pick an origin first.");
+            alertUi.show("Please pick an origin — click the map or choose an intersection.");   // role="alert": speaks itself
             return;
         }
         originNodeId = start;
@@ -283,7 +282,8 @@
                 setNativeStatus(result.nativeAccelerated);
             },
             function (result) {
-                if (!result.found) return "No route found between the selected nodes.";
+                // No route: the inline alert (role="alert") shown by renderRoute already says so; announcing it too would speak it twice.
+                if (!hasRoute(result)) return "";
                 return "Route found: " + Fmt.unit(result.distanceKm, "km") + ", " + Fmt.unit(result.estimatedMinutes, "min") +
                     ", " + algoLabel(result.algorithmUsed) + " explored " + Fmt.number(result.exploredNodes) + " nodes.";
             });
@@ -294,8 +294,7 @@
         if (!graph) return;
         var origin = parseInt(startSelect.value, 10);
         if (isNaN(origin)) {
-            alertUi.show("Please select an origin first.");
-            PortfolioUi.announce("Please select an origin first.");
+            alertUi.show("Please select an origin first.");   // role="alert": speaks itself
             return;
         }
 
@@ -344,8 +343,12 @@
     }
 
     // ── Route rendering ────────────────────────────────────────────────────
+    function hasRoute(result) {
+        return !!(result.found && result.path && result.path.length >= 2);
+    }
+
     function renderRoute(result) {
-        if (!result.found || !result.path || result.path.length < 2) {
+        if (!hasRoute(result)) {
             alertUi.show("No route found between selected nodes.");
             return;
         }
