@@ -6,9 +6,97 @@
     const state = HF.state;
     const HOME_FINDER_ROUTES = HF.routes;
 
+    // Marks the name field invalid and links it to its error text, or clears both. aria-describedby is
+    // only present while invalid, so the hidden message is not read otherwise.
+    function setNameInvalid(input, invalid) {
+        input.classList.toggle("is-invalid", invalid);
+        if (invalid) {
+            input.setAttribute("aria-invalid", "true");
+            input.setAttribute("aria-describedby", "saveSearchNameError");
+        } else {
+            input.removeAttribute("aria-invalid");
+            input.removeAttribute("aria-describedby");
+        }
+    }
+
+    // The open name dialog's promise. While it is set a second request (Enter or Space again on the Save
+    // Search button during the modal's fade) gets the same promise instead of a second set of listeners.
+    let pendingName = null;
+
+    // Replaces window.prompt: a Bootstrap modal (#saveSearchModal in Index.cshtml) with one name field.
+    // Opens with the name selected, Enter submits, an empty name is refused in place, and focus goes
+    // back to the Save Search button when it closes. Resolves to the trimmed name on Save, or null when
+    // the dialog is dismissed.
+    function askSearchName(defaultName) {
+        if (pendingName) return pendingName;
+        const modalEl = document.getElementById("saveSearchModal");
+        const form = document.getElementById("saveSearchForm");
+        const input = document.getElementById("saveSearchName");
+        if (!modalEl || !form || !input) return Promise.resolve(null);
+
+        input.value = defaultName || "";
+        setNameInvalid(input, false);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        pendingName = new Promise((resolve) => {
+            let result = null;
+            const onSubmit = (e) => {
+                e.preventDefault();
+                const trimmed = input.value.trim();
+                if (!trimmed) {
+                    setNameInvalid(input, true);
+                    input.focus();
+                    // Re-focusing the field that already has focus, and flipping aria-invalid, are not spoken
+                    // by most screen readers, so say the error through the live region as well.
+                    PortfolioUi.announce("Enter a name for the search.");
+                    return;
+                }
+                result = trimmed;
+                modal.hide();
+            };
+            const onInput = () => setNameInvalid(input, false);
+            const onShown = () => {
+                input.focus();
+                input.select();
+            };
+            const onHidden = () => {
+                form.removeEventListener("submit", onSubmit);
+                input.removeEventListener("input", onInput);
+                modalEl.removeEventListener("shown.bs.modal", onShown);
+                setNameInvalid(input, false);
+                resolve(result);
+                // Bootstrap only restores focus to data-api triggers, and this one is opened from script.
+                setTimeout(() => document.getElementById("btnSaveSearch")?.focus(), 0);
+            };
+            form.addEventListener("submit", onSubmit);
+            input.addEventListener("input", onInput);
+            modalEl.addEventListener("shown.bs.modal", onShown, { once: true });
+            modalEl.addEventListener("hidden.bs.modal", onHidden, { once: true });
+            modal.show();
+        });
+        // Registered before any caller's await, so the guard is released before they resume; also on rejection.
+        const release = () => { pendingName = null; };
+        pendingName.then(release, release);
+        return pendingName;
+    }
+
+    // True from the click on Save Search until the save finishes. A second caller of askSearchName gets the
+    // same promise, so without this each caller would POST the name it resolves to.
+    let saving = false;
+
     async function saveSearch() {
+        if (saving) return;
+        saving = true;
+        try {
+            await saveSearchOnce();
+        } finally {
+            saving = false;
+        }
+    }
+
+    async function saveSearchOnce() {
         const prefs = HF.getPreferences();
-        const name = prompt("Name this search:", `Search ${new Date().toLocaleDateString()}`);
+        const name = await askSearchName(`Search ${new Date().toLocaleDateString()}`);
         if (!name) return;
 
         try {

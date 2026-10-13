@@ -11,6 +11,9 @@ namespace Portfolio.Tests.Golden
     // timestamps), idempotency, and isolation between users.
     //
     // The Properties table is global (no UserId), so it is asserted in its own test.
+    //
+    // Deliberate change (follow-up: order numbers): the seeded orders used to have an empty OrderNumber; each
+    // now carries its own ORD-<yyyyMMdd>-0001 and the "orders" block below was re-sorted accordingly.
     public class UserProfileSeedGoldenTests
     {
         private static PortfolioDbContext NewDb() =>
@@ -88,6 +91,24 @@ namespace Portfolio.Tests.Golden
             // Assert
             var actual = await CanonicalAsync(db, userId);
             Assert.Equal(ExpectedCanonical.ReplaceLineEndings("\n"), actual);
+        }
+
+        // The seeded orders follow the same ORD-<yyyyMMdd>-<NNNN> scheme FiberOrderService issues, dated by
+        // the order's own (historical) date, so none can collide with a number issued later.
+        [Fact]
+        public async Task SeededOrders_HaveUniqueNumbers_DatedByTheirOrderDate()
+        {
+            // Arrange
+            using var db = NewDb();
+            var userId = Guid.NewGuid();
+
+            // Act
+            await NewService(db).SeedForUserAsync(userId);
+
+            // Assert
+            var orders = await db.FiberOrders.Where(o => o.UserId == userId).ToListAsync();
+            Assert.Equal(orders.Count, orders.Select(o => o.OrderNumber).Distinct().Count());
+            Assert.All(orders, o => Assert.Matches($@"^ORD-{o.OrderDate:yyyyMMdd}-\d{{4}}$", o.OrderNumber));
         }
 
         [Fact]
@@ -184,23 +205,23 @@ namespace Portfolio.Tests.Golden
             RM-SF|Stainless Steel Flange Inserts 4"|each||200|40|80|11.25|Apex Composites LLC|E1
             RM-VE|Vinyl Ester Resin|drums|Resins|18|5|10|415.00|ChemSource Direct|B1
             ## orders
-            |Appalachian Containment Systems|2500-Gallon FRP Double-Wall Tank|3|11200.00|Pending|null|null
-            |Bayou Industrial Group|500-Gallon FRP Containment Basin|10|3200.00|Delivered|null|null
-            |Bayou Industrial Group|FRP Grating — Clear Span 1" x 4"|300|41.00|Delivered|null|null
-            |Coastal Pipe & Fittings|12" FRP Straight Pipe (20 ft)|60|165.00|Shipped|null|null
-            |Delta Tank & Vessel|1000-Gallon Vinyl Ester Tank|6|5400.00|Delivered|null|null
-            |Great Lakes Fiberglass Works|10" Round Fiberglass Duct|90|44.00|Delivered|null|null
-            |Gulf Coast Chemical|3000-Gallon FRP Storage Tank|4|8750.00|Delivered|null|null
-            |Gulf Coast Chemical|4" Round Fiberglass Duct|200|14.50|Delivered|null|null
-            |Gulf Coast Chemical|6" Vinyl Ester Elbow 90°|80|62.00|In Production|null|null
-            |Lone Star Refining|6" Round Fiberglass Duct|120|22.75|Shipped|null|null
-            |Lone Star Refining|8" FRP Straight Pipe (20 ft)|150|88.00|Delivered|null|null
-            |Pacific Rim Tank Systems|5000-Gallon FRP Chemical Storage Tank|2|17800.00|Shipped|null|null
-            |Permian Basin Composites|4" FRP Flange Set (Pair)|200|38.50|Pending|null|null
-            |Permian Basin Composites|4" FRP Straight Pipe (20 ft)|400|54.00|Delivered|null|null
-            |Saguaro Structural Composites|FRP Composite Panel 4' x 8' x 1/4"|250|78.00|Delivered|null|null
-            |Sunbelt Process Equipment|FRP Scrubber Tower 24" Dia|2|14500.00|In Production|null|null
-            |Tri-State Corrosion Solutions|FRP Structural I-Beam 4"|100|92.00|Delivered|null|null
+            ORD-20240510-0001|Permian Basin Composites|4" FRP Straight Pipe (20 ft)|400|54.00|Delivered|null|null
+            ORD-20240601-0001|Bayou Industrial Group|500-Gallon FRP Containment Basin|10|3200.00|Delivered|null|null
+            ORD-20240720-0001|Lone Star Refining|8" FRP Straight Pipe (20 ft)|150|88.00|Delivered|null|null
+            ORD-20240805-0001|Gulf Coast Chemical|4" Round Fiberglass Duct|200|14.50|Delivered|null|null
+            ORD-20240822-0001|Great Lakes Fiberglass Works|10" Round Fiberglass Duct|90|44.00|Delivered|null|null
+            ORD-20240912-0001|Gulf Coast Chemical|3000-Gallon FRP Storage Tank|4|8750.00|Delivered|null|null
+            ORD-20240928-0001|Saguaro Structural Composites|FRP Composite Panel 4' x 8' x 1/4"|250|78.00|Delivered|null|null
+            ORD-20241005-0001|Bayou Industrial Group|FRP Grating — Clear Span 1" x 4"|300|41.00|Delivered|null|null
+            ORD-20241114-0001|Delta Tank & Vessel|1000-Gallon Vinyl Ester Tank|6|5400.00|Delivered|null|null
+            ORD-20241203-0001|Tri-State Corrosion Solutions|FRP Structural I-Beam 4"|100|92.00|Delivered|null|null
+            ORD-20250108-0001|Lone Star Refining|6" Round Fiberglass Duct|120|22.75|Shipped|null|null
+            ORD-20250122-0001|Coastal Pipe & Fittings|12" FRP Straight Pipe (20 ft)|60|165.00|Shipped|null|null
+            ORD-20250130-0001|Pacific Rim Tank Systems|5000-Gallon FRP Chemical Storage Tank|2|17800.00|Shipped|null|null
+            ORD-20250201-0001|Sunbelt Process Equipment|FRP Scrubber Tower 24" Dia|2|14500.00|In Production|null|null
+            ORD-20250214-0001|Gulf Coast Chemical|6" Vinyl Ester Elbow 90°|80|62.00|In Production|null|null
+            ORD-20250301-0001|Permian Basin Composites|4" FRP Flange Set (Pair)|200|38.50|Pending|null|null
+            ORD-20250305-0001|Appalachian Containment Systems|2500-Gallon FRP Double-Wall Tank|3|11200.00|Pending|null|null
             ## shipments
             FX-2024-10041|FedEx Freight|Delivered|29.7604|-95.3698|29.7604|-95.3698|Houston|TX|null
             FX-2024-10558|FedEx Freight|Delivered|29.7604|-95.3698|30.086|-94.1018|Beaumont|TX|null

@@ -355,11 +355,16 @@ namespace Portfolio.Services.Data
         ];
 
         /// <summary>Each order is seeded only if the client named by its <c>ClientName</c> exists.</summary>
+        /// <remarks>
+        /// Order numbers follow the scheme <c>FiberOrderService</c> issues (<c>ORD-yyyyMMdd-NNNN</c>), dated by the order's own
+        /// historical <c>OrderDate</c>; every seeded order is on a different day, so each is sequence 0001.
+        /// </remarks>
         public static IReadOnlyList<FiberOrder> Orders(Guid userId) =>
         [
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20240805-0001",
                 ClientName = "Gulf Coast Chemical",
                 ProductName = "4\" Round Fiberglass Duct",
                 Quantity = 200,
@@ -371,6 +376,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20240912-0001",
                 ClientName = "Gulf Coast Chemical",
                 ProductName = "3000-Gallon FRP Storage Tank",
                 Quantity = 4,
@@ -382,6 +388,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20250214-0001",
                 ClientName = "Gulf Coast Chemical",
                 ProductName = "6\" Vinyl Ester Elbow 90°",
                 Quantity = 80,
@@ -393,6 +400,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20240720-0001",
                 ClientName = "Lone Star Refining",
                 ProductName = "8\" FRP Straight Pipe (20 ft)",
                 Quantity = 150,
@@ -404,6 +412,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20250108-0001",
                 ClientName = "Lone Star Refining",
                 ProductName = "6\" Round Fiberglass Duct",
                 Quantity = 120,
@@ -415,6 +424,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20240601-0001",
                 ClientName = "Bayou Industrial Group",
                 ProductName = "500-Gallon FRP Containment Basin",
                 Quantity = 10,
@@ -426,6 +436,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20241005-0001",
                 ClientName = "Bayou Industrial Group",
                 ProductName = "FRP Grating — Clear Span 1\" x 4\"",
                 Quantity = 300,
@@ -437,6 +448,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20240510-0001",
                 ClientName = "Permian Basin Composites",
                 ProductName = "4\" FRP Straight Pipe (20 ft)",
                 Quantity = 400,
@@ -448,6 +460,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20250301-0001",
                 ClientName = "Permian Basin Composites",
                 ProductName = "4\" FRP Flange Set (Pair)",
                 Quantity = 200,
@@ -459,6 +472,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20241114-0001",
                 ClientName = "Delta Tank & Vessel",
                 ProductName = "1000-Gallon Vinyl Ester Tank",
                 Quantity = 6,
@@ -470,6 +484,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20250122-0001",
                 ClientName = "Coastal Pipe & Fittings",
                 ProductName = "12\" FRP Straight Pipe (20 ft)",
                 Quantity = 60,
@@ -481,6 +496,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20250201-0001",
                 ClientName = "Sunbelt Process Equipment",
                 ProductName = "FRP Scrubber Tower 24\" Dia",
                 Quantity = 2,
@@ -492,6 +508,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20241203-0001",
                 ClientName = "Tri-State Corrosion Solutions",
                 ProductName = "FRP Structural I-Beam 4\"",
                 Quantity = 100,
@@ -503,6 +520,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20240928-0001",
                 ClientName = "Saguaro Structural Composites",
                 ProductName = "FRP Composite Panel 4' x 8' x 1/4\"",
                 Quantity = 250,
@@ -514,6 +532,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20250305-0001",
                 ClientName = "Appalachian Containment Systems",
                 ProductName = "2500-Gallon FRP Double-Wall Tank",
                 Quantity = 3,
@@ -525,6 +544,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20240822-0001",
                 ClientName = "Great Lakes Fiberglass Works",
                 ProductName = "10\" Round Fiberglass Duct",
                 Quantity = 90,
@@ -536,6 +556,7 @@ namespace Portfolio.Services.Data
             new FiberOrder
             {
                 UserId = userId,
+                OrderNumber = "ORD-20250130-0001",
                 ClientName = "Pacific Rim Tank Systems",
                 ProductName = "5000-Gallon FRP Chemical Storage Tank",
                 Quantity = 2,

@@ -28,6 +28,11 @@ function formatCurrency(val) {
     return '$' + val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Orders created before order numbers were issued have an empty orderNumber; show "#<id>" for those.
+function orderLabel(row) {
+    return row.orderNumber || '#' + row.id;
+}
+
 function loadOrdersTable() {
     if (typeof $.fn.DataTable !== 'function') {
         showToast('DataTables library is not loaded. Please check your script order.', 'danger');
@@ -45,7 +50,7 @@ function loadOrdersTable() {
             ordersTable = $('#plantOpsOrdersTable').DataTable({
                 data: data,
                 columns: [
-                    { title: 'Order #', data: 'orderNumber', render: $.fn.dataTable.render.text() },
+                    { title: 'Order #', data: orderLabel, render: $.fn.dataTable.render.text() },
                     { title: 'Client', data: 'clientName', render: $.fn.dataTable.render.text() },
                     { title: 'Product', data: 'productName', render: $.fn.dataTable.render.text() },
                     { title: 'Qty', data: 'quantity', className: 'text-end' },
@@ -61,7 +66,7 @@ function loadOrdersTable() {
                         render: function (data, type, row) {
                             // The icons carry no text, so each button needs a name that also
                             // identifies its row — otherwise every row reads as the same "Edit".
-                            let rowLabel = PortfolioDom.escapeHtml(row.orderNumber || row.id);
+                            let rowLabel = PortfolioDom.escapeHtml(orderLabel(row));
                             return `<button class="btn btn-sm btn-outline-primary me-1" data-action="edit" data-id="${Number(row.id)}" aria-label="Edit order ${rowLabel}"><i class='fa fa-edit' aria-hidden="true"></i></button>
                                     <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${Number(row.id)}" aria-label="Delete order ${rowLabel}"><i class='fa fa-trash' aria-hidden="true"></i></button>`;
                         }
@@ -152,8 +157,12 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
     let modal = new bootstrap.Modal(document.getElementById(modalId));
     modal.show();
 
+    // One save in flight at a time: a double click or a double Enter would otherwise POST twice, and two
+    // overlapping creates can be issued the same order number (FiberOrderService.NextOrderNumberAsync).
+    let saving = false;
     $('#orderForm').on('submit', function (e) {
         e.preventDefault();
+        if (saving) return;
         let formData = Object.fromEntries(new FormData(this).entries());
         // Build payload for CreateFiberOrderDto
         let payload = {
@@ -167,6 +176,10 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
         };
         let method = isEdit ? 'PUT' : 'POST';
         let url = isEdit ? `${window.PortfolioApi.routes.fiber.orders}/${order.id}` : window.PortfolioApi.routes.fiber.orders;
+        saving = true;
+        // aria-disabled rather than disabled keeps focus on the button; busy() also swallows the click that
+        // Enter in a field fires at the form's default button.
+        const done = PortfolioUi.busy({ buttons: [this.querySelector('button[type="submit"]')] });
         window.apiFetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
@@ -174,11 +187,14 @@ function renderOrderModal(order, isEdit, modalId, $modals) {
         })
         .then(plantOpsJson)
         .then(() => {
+            // The modal is closing and its form is thrown away, so the button stays busy: no second save.
             modal.hide();
             showToast(isEdit ? 'Order updated' : 'Order created', 'success');
             loadOrdersTable();
         })
         .catch(err => {
+            saving = false;
+            done();
             showToast(plantOpsFailure('Failed to save order', err), 'danger');
         });
     });

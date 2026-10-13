@@ -245,14 +245,21 @@
     color: #fff;
 }
 
+/* --status-success-text on the success tint is 4.46:1 over --surface and 4.27:1 over --background in
+   light mode (under 4.5), so light mode uses the darker --accent-on-fill-h (6.71:1 / 6.42:1); dark
+   mode keeps --status-success-text (5.62:1 / 7.41:1). Same fix as the Network .destination-chip. */
 .profile-alert {
     background-color: var(--status-success-soft);
-    color: var(--status-success-text);
+    color: var(--accent-on-fill-h);
     border: 1px solid rgba(var(--status-success-rgb), 0.3);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
     font-weight: 500;
+}
+
+body.dark-mode .profile-alert {
+    color: var(--status-success-text);
 }
 
 .profile-alert .btn-close {
