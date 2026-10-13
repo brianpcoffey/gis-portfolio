@@ -6,6 +6,7 @@ using Portfolio.Web.RateLimiting;
 using Portfolio.Common.Constants;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -23,14 +24,10 @@ namespace Portfolio.Web.Controllers.Api
     public class ChangeDetectionController : ControllerBase
     {
         private readonly IChangeDetectionService _changeDetectionService;
-        private readonly ILogger<ChangeDetectionController> _logger;
 
-        public ChangeDetectionController(
-            IChangeDetectionService changeDetectionService,
-            ILogger<ChangeDetectionController> logger)
+        public ChangeDetectionController(IChangeDetectionService changeDetectionService)
         {
             _changeDetectionService = changeDetectionService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -42,6 +39,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="noise">Gaussian noise standard deviation applied to both epochs.</param>
         /// <returns>Both epochs, band names, and the ground-truth change boxes.</returns>
         [HttpGet("scene")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(ChangeSceneDto), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<ChangeSceneDto>> Scene(
@@ -50,16 +48,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromQuery] double noise = ChangeSceneDefaults.NoiseLevel,
             CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var result = await _changeDetectionService.GetSceneAsync(width, height, noise, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid change detection scene request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _changeDetectionService.GetSceneAsync(width, height, noise, cancellationToken));
         }
 
         /// <summary>
@@ -70,6 +59,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Both epochs plus threshold, morphology, and filtering settings.</param>
         /// <returns>CVA magnitude, change mask, histogram, and ranked change blobs.</returns>
         [HttpPost("detect")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(DetectResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -78,16 +68,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] DetectRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _changeDetectionService.DetectAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid change detection request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _changeDetectionService.DetectAsync(request, cancellationToken));
         }
     }
 }

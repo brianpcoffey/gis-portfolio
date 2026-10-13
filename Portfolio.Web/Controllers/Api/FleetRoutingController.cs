@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -21,14 +22,10 @@ namespace Portfolio.Web.Controllers.Api
     public class FleetRoutingController : ControllerBase
     {
         private readonly IFleetRoutingService _fleetRoutingService;
-        private readonly ILogger<FleetRoutingController> _logger;
 
-        public FleetRoutingController(
-            IFleetRoutingService fleetRoutingService,
-            ILogger<FleetRoutingController> logger)
+        public FleetRoutingController(IFleetRoutingService fleetRoutingService)
         {
             _fleetRoutingService = fleetRoutingService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -38,6 +35,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="preset">Scenario key: "morning", "fullday", or "tight".</param>
         /// <returns>The scenario, ready to post straight back to the optimize endpoint.</returns>
         [HttpGet("scenario")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(FleetScenarioDto), 200)]
         [ProducesResponseType(400)]
         // No VaryByQueryKeys: that requires the response-caching middleware, which this app
@@ -48,16 +46,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromQuery] string preset,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _fleetRoutingService.GetScenarioAsync(preset ?? string.Empty, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid fleet scenario request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _fleetRoutingService.GetScenarioAsync(preset ?? string.Empty, cancellationToken));
         }
 
         /// <summary>
@@ -68,6 +57,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Depot, stops, fleet parameters, and search budget.</param>
         /// <returns>Routes, unserved stops, objective trace, and honest timings.</returns>
         [HttpPost("optimize")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(OptimizeResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -76,16 +66,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] OptimizeRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _fleetRoutingService.OptimizeAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid fleet optimization request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _fleetRoutingService.OptimizeAsync(request, cancellationToken));
         }
     }
 }

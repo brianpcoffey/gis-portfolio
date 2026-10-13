@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -10,7 +9,7 @@ namespace Portfolio.Tests.Controllers
     public class FleetRoutingControllerTests
     {
         private static FleetRoutingController NewController(Mock<IFleetRoutingService> service) =>
-            new(service.Object, NullLogger<FleetRoutingController>.Instance);
+            new(service.Object);
 
         [Fact]
         public async Task FleetScenario_ValidPreset_ReturnsOk()
@@ -31,19 +30,20 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task FleetScenario_UnknownPreset_ReturnsBadRequest()
+        public async Task FleetScenario_UnknownPreset_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IFleetRoutingService>();
             service.Setup(s => s.GetScenarioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Unknown scenario preset."));
+                .ThrowsAsync(new ArgumentException("Unknown preset.", "presetName"));
             var controller = NewController(service);
 
             // Act
-            var result = await controller.Scenario("nope", CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Scenario("nope", CancellationToken.None));
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
+            Assert.Equal("Unknown preset. (Parameter 'presetName')", ex.Message);
         }
 
         [Fact]
@@ -65,51 +65,20 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task FleetOptimize_ServiceArgumentException_ReturnsBadRequest()
+        public async Task FleetOptimize_ServiceArgumentException_Propagates()
         {
-            // Arrange
-            var service = new Mock<IFleetRoutingService>();
-            service.Setup(s => s.OptimizeAsync(It.IsAny<OptimizeRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("At least one stop is required."));
-            var controller = NewController(service);
-
-            // Act
-            var result = await controller.Optimize(new OptimizeRequestDto(), CancellationToken.None);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
-        }
-
-        [Fact]
-        public async Task FleetScenario_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var service = new Mock<IFleetRoutingService>();
-            service.Setup(s => s.GetScenarioAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Unknown preset.", "presetName"));
-            var controller = NewController(service);
-
-            // Act
-            var result = await controller.Scenario("nope", CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Unknown preset. (Parameter 'presetName')");
-        }
-
-        [Fact]
-        public async Task FleetOptimize_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IFleetRoutingService>();
             service.Setup(s => s.OptimizeAsync(It.IsAny<OptimizeRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Bad fleet.", "request"));
             var controller = NewController(service);
 
             // Act
-            var result = await controller.Optimize(new OptimizeRequestDto(), CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Optimize(new OptimizeRequestDto(), CancellationToken.None));
 
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad fleet. (Parameter 'request')");
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
+            Assert.Equal("Bad fleet. (Parameter 'request')", ex.Message);
         }
     }
 }

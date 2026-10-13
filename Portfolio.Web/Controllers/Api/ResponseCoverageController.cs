@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -21,14 +22,10 @@ namespace Portfolio.Web.Controllers.Api
     public class ResponseCoverageController : ControllerBase
     {
         private readonly IResponseCoverageService _responseCoverageService;
-        private readonly ILogger<ResponseCoverageController> _logger;
 
-        public ResponseCoverageController(
-            IResponseCoverageService responseCoverageService,
-            ILogger<ResponseCoverageController> logger)
+        public ResponseCoverageController(IResponseCoverageService responseCoverageService)
         {
             _responseCoverageService = responseCoverageService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -51,6 +48,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Origin node, apparatus speed, and ascending band bounds in minutes.</param>
         /// <returns>Every reachable node with its travel time and band index.</returns>
         [HttpPost("isochrone")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(IsochroneResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -59,16 +57,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] IsochroneRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _responseCoverageService.ComputeIsochroneAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid isochrone request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _responseCoverageService.ComputeIsochroneAsync(request, cancellationToken));
         }
 
         /// <summary>
@@ -78,6 +67,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Demand points, candidate sites, station count, and objective.</param>
         /// <returns>Chosen stations, optimized and baseline coverage statistics, and assignments.</returns>
         [HttpPost("optimize")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(OptimizeCoverageResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -86,16 +76,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] OptimizeCoverageRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _responseCoverageService.OptimizeAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid coverage optimization request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _responseCoverageService.OptimizeAsync(request, cancellationToken));
         }
     }
 }

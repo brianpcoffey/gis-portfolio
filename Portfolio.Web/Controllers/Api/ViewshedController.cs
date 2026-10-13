@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -20,14 +21,10 @@ namespace Portfolio.Web.Controllers.Api
     public class ViewshedController : ControllerBase
     {
         private readonly IViewshedService _viewshedService;
-        private readonly ILogger<ViewshedController> _logger;
 
-        public ViewshedController(
-            IViewshedService viewshedService,
-            ILogger<ViewshedController> logger)
+        public ViewshedController(IViewshedService viewshedService)
         {
             _viewshedService = viewshedService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -36,6 +33,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Elevation grid, observer position, and observer height.</param>
         /// <returns>Per-cell visibility flags plus a visible-cell count.</returns>
         [HttpPost("compute")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(ViewshedResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -44,16 +42,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] ViewshedRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _viewshedService.ComputeAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid viewshed request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _viewshedService.ComputeAsync(request, cancellationToken));
         }
     }
 }

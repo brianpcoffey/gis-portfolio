@@ -1185,8 +1185,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange — use real service so the static cache path is exercised.
             var service    = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
-            var controller = new Portfolio.Web.Controllers.Api.SpatialNetworkController(
-                service, NullLogger<Portfolio.Web.Controllers.Api.SpatialNetworkController>.Instance);
+            var controller = new Portfolio.Web.Controllers.Api.SpatialNetworkController(service);
 
             // Act
             var result = await controller.GetGraph(CancellationToken.None);

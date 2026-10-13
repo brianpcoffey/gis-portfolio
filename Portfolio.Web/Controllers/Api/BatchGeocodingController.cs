@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
+using Portfolio.Common.Enums;
 using Portfolio.Common.Models;
 using Portfolio.Services.Abstractions;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -52,6 +54,8 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="file">CSV file containing addresses to geocode.</param>
         /// <returns>Job ID and status polling URL.</returns>
         [HttpPost]
+        [BadRequestOnArgumentException]
+        [ArcGisUnavailable(ArcGisUpstream.Geocoding)]
         [RequestSizeLimit(MaxUploadBytes)]
         [ProducesResponseType(typeof(BatchJobAcceptedDto), StatusCodes.Status202Accepted)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -74,10 +78,6 @@ namespace Portfolio.Web.Controllers.Api
                     StatusUrl: $"{baseUrl}/api/v1/geocoding/batch/{jobId}/status"
                 ));
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
             catch (BatchQueueFullException)
             {
                 _logger.LogWarning("Batch geocoding queue is full. Rejecting the upload.");
@@ -88,17 +88,6 @@ namespace Portfolio.Web.Controllers.Api
                     Title  = "Batch Queue Full",
                     Detail = $"Too many batch jobs are queued. Retry after {QueueFullRetryAfterSeconds} seconds.",
                     Extensions = { ["retryAfterSeconds"] = QueueFullRetryAfterSeconds }
-                });
-            }
-            catch (Polly.CircuitBreaker.BrokenCircuitException)
-            {
-                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
-                {
-                    Status = 503,
-                    Title  = "Geocoding Unavailable",
-                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
-                    Extensions = { ["retryAfterSeconds"] = 15 }
                 });
             }
         }
@@ -127,6 +116,8 @@ namespace Portfolio.Web.Controllers.Api
         /// <returns>List of geocoding results with match status, coordinates, and score.</returns>
         [HttpPost("sync")]
         [HttpPost("/api/batchgeocoding/sync")]
+        [BadRequestOnArgumentException]
+        [ArcGisUnavailable(ArcGisUpstream.Geocoding)]
         [RequestSizeLimit(MaxUploadBytes)]
         [ApiExplorerSettings(IgnoreApi = true)]
         [ProducesResponseType(typeof(List<BatchGeocodingResultDto>), StatusCodes.Status200OK)]
@@ -140,26 +131,7 @@ namespace Portfolio.Web.Controllers.Api
             if (!HasCsvExtension(file))
                 return BadRequest(new { error = "A .csv file is required." });
 
-            try
-            {
-                var results = await _batchGeocodingService.GeocodeAsync(file, cancellationToken);
-                return Ok(results);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-            catch (Polly.CircuitBreaker.BrokenCircuitException)
-            {
-                _logger.LogWarning("ArcGIS circuit breaker is open. Geocoding temporarily unavailable.");
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
-                {
-                    Status = 503,
-                    Title  = "Geocoding Unavailable",
-                    Detail = "The upstream geocoding service is temporarily unavailable. Retry after 15 seconds.",
-                    Extensions = { ["retryAfterSeconds"] = 15 }
-                });
-            }
+            return Ok(await _batchGeocodingService.GeocodeAsync(file, cancellationToken));
         }
     }
 }

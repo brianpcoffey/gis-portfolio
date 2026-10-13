@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -10,7 +9,7 @@ namespace Portfolio.Tests.Controllers
     public class OutageControllerTests
     {
         private static OutageController NewController(Mock<IOutageTraceService> service) =>
-            new(service.Object, NullLogger<OutageController>.Instance);
+            new(service.Object);
 
         [Fact]
         public async Task OutageGetNetwork_ReturnsOk()
@@ -49,19 +48,20 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task OutageTrace_ServiceArgumentException_ReturnsBadRequest()
+        public async Task OutageTrace_ServiceArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IOutageTraceService>();
             service.Setup(s => s.TraceAsync(It.IsAny<TraceRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("The faulted element was not found in the network."));
+                .ThrowsAsync(new ArgumentException("Bad trace.", "request"));
             var controller = NewController(service);
 
             // Act
-            var result = await controller.Trace(new TraceRequestDto(), CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Trace(new TraceRequestDto(), CancellationToken.None));
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
+            Assert.Equal("Bad trace. (Parameter 'request')", ex.Message);
         }
 
         [Fact]
@@ -84,51 +84,20 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task OutageRestore_ServiceArgumentException_ReturnsBadRequest()
+        public async Task OutageRestore_ServiceArgumentException_Propagates()
         {
-            // Arrange
-            var service = new Mock<IOutageTraceService>();
-            service.Setup(s => s.ProposeRestorationAsync(It.IsAny<RestoreRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Networks are limited to 5000 elements."));
-            var controller = NewController(service);
-
-            // Act
-            var result = await controller.Restore(new RestoreRequestDto(), CancellationToken.None);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
-        }
-
-        [Fact]
-        public async Task OutageTrace_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var service = new Mock<IOutageTraceService>();
-            service.Setup(s => s.TraceAsync(It.IsAny<TraceRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Bad trace.", "request"));
-            var controller = NewController(service);
-
-            // Act
-            var result = await controller.Trace(new TraceRequestDto(), CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad trace. (Parameter 'request')");
-        }
-
-        [Fact]
-        public async Task OutageRestore_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IOutageTraceService>();
             service.Setup(s => s.ProposeRestorationAsync(It.IsAny<RestoreRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Bad restore.", "request"));
             var controller = NewController(service);
 
             // Act
-            var result = await controller.Restore(new RestoreRequestDto(), CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Restore(new RestoreRequestDto(), CancellationToken.None));
 
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad restore. (Parameter 'request')");
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
+            Assert.Equal("Bad restore. (Parameter 'request')", ex.Message);
         }
     }
 }

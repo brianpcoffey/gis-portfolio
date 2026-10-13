@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
@@ -16,7 +15,7 @@ namespace Portfolio.Tests.Controllers
             var service = new Mock<IChangeDetectionService>();
             service.Setup(s => s.GetSceneAsync(256, 256, 0.025, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ChangeSceneDto { Width = 256, Height = 256, BandCount = 4 });
-            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
+            var controller = new ChangeDetectionController(service.Object);
 
             // Act
             var result = await controller.Scene(256, 256, 0.025, CancellationToken.None);
@@ -28,19 +27,16 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task ChangeScene_ServiceArgumentException_ReturnsBadRequest()
+        public async Task ChangeScene_ServiceArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IChangeDetectionService>();
             service.Setup(s => s.GetSceneAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentException("Raster dimensions are limited to 512."));
-            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
+            var controller = new ChangeDetectionController(service.Object);
 
-            // Act
-            var result = await controller.Scene(4096, 4096, 0.025, CancellationToken.None);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => controller.Scene(4096, 4096, 0.025, CancellationToken.None));
         }
 
         [Fact]
@@ -50,7 +46,7 @@ namespace Portfolio.Tests.Controllers
             var service = new Mock<IChangeDetectionService>();
             service.Setup(s => s.DetectAsync(It.IsAny<DetectRequestDto>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new DetectResultDto { Width = 8, Height = 8, ThresholdMode = "otsu" });
-            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
+            var controller = new ChangeDetectionController(service.Object);
 
             // Act
             var result = await controller.Detect(new DetectRequestDto(), CancellationToken.None);
@@ -62,68 +58,36 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task ChangeDetect_ServiceArgumentException_ReturnsBadRequest()
+        public async Task ChangeDetect_ServiceArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var service = new Mock<IChangeDetectionService>();
             service.Setup(s => s.DetectAsync(It.IsAny<DetectRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Epoch raster length must equal width * height * bandCount."));
-            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
+                .ThrowsAsync(new ArgumentException("Epoch raster length must equal width * height * bandCount.", "request"));
+            var controller = new ChangeDetectionController(service.Object);
 
             // Act
-            var result = await controller.Detect(new DetectRequestDto(), CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => controller.Detect(new DetectRequestDto(), CancellationToken.None));
 
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
+            Assert.Equal("Epoch raster length must equal width * height * bandCount. (Parameter 'request')", ex.Message);
         }
 
         [Fact]
-        public async Task ChangeDetect_NullRequest_ReturnsBadRequest()
+        public async Task ChangeDetect_NullRequest_Propagates()
         {
-            // Arrange — ArgumentNullException derives from ArgumentException, so ThrowIfNull
-            // is covered by the same catch clause.
+            // Arrange: ArgumentNullException derives from ArgumentException, so the same
+            // [BadRequestOnArgumentException] handles it. The filter shows a message only when Portfolio
+            // code threw it; a BCL throw helper such as ArgumentNullException.ThrowIfNull gets the
+            // generic "The request was invalid." text instead.
             var service = new Mock<IChangeDetectionService>();
             service.Setup(s => s.DetectAsync(It.IsAny<DetectRequestDto>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ArgumentNullException("request"));
-            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
+            var controller = new ChangeDetectionController(service.Object);
 
-            // Act
-            var result = await controller.Detect(null!, CancellationToken.None);
-
-            // Assert
-            Assert.IsType<BadRequestObjectResult>(result.Result);
-        }
-
-        [Fact]
-        public async Task ChangeScene_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var service = new Mock<IChangeDetectionService>();
-            service.Setup(s => s.GetSceneAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Bad scene size."));
-            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
-
-            // Act
-            var result = await controller.Scene(0, 0, 0.5, CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad scene size.");
-        }
-
-        [Fact]
-        public async Task ChangeDetect_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            var service = new Mock<IChangeDetectionService>();
-            service.Setup(s => s.DetectAsync(It.IsAny<DetectRequestDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Bad detect.", "request"));
-            var controller = new ChangeDetectionController(service.Object, NullLogger<ChangeDetectionController>.Instance);
-
-            // Act
-            var result = await controller.Detect(new DetectRequestDto(), CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Bad detect. (Parameter 'request')");
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(() => controller.Detect(null!, CancellationToken.None));
         }
     }
 }

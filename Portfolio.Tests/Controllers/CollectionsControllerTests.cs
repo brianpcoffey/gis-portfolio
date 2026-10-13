@@ -83,19 +83,19 @@ namespace Portfolio.Tests.Controllers
         }
 
         [Fact]
-        public async Task Create_WhenArgumentException_ReturnsBadRequest()
+        public async Task Create_WhenArgumentException_Propagates()
         {
-            // Arrange
+            // Arrange: [BadRequestOnArgumentException] turns it into the 400 body (see the filter tests).
             var dto = new CollectionCreateDto { Name = "" };
             _serviceMock.Setup(s => s.CreateAsync(dto, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Name required"));
+                .ThrowsAsync(new ArgumentException("Name is required.", "dto"));
 
             // Act
-            var result = await _controller.Create(dto, CancellationToken.None);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _controller.Create(dto, CancellationToken.None));
 
-            // Assert
-            var bad = Assert.IsType<BadRequestObjectResult>(result.Result);
-            Assert.NotNull(bad.Value);
+            // Assert: the exception propagates from the action unchanged. The filter shows its message only
+            // when Portfolio code threw it; an exception handed back by a mock is rethrown by .NET, so it gets the generic text.
+            Assert.Equal("Name is required. (Parameter 'dto')", ex.Message);
         }
 
         [Fact]
@@ -171,20 +171,6 @@ namespace Portfolio.Tests.Controllers
         }
 
         // ── Exact error bodies ─────────────────────────────────────────────────
-
-        [Fact]
-        public async Task Create_ArgumentException_PinsExactErrorBody()
-        {
-            // Arrange
-            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<CollectionCreateDto>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new ArgumentException("Name is required.", "dto"));
-
-            // Act
-            var result = await _controller.Create(new CollectionCreateDto(), CancellationToken.None);
-
-            // Assert
-            ControllerBodyAssert.ErrorBody(result.Result, 400, "Name is required. (Parameter 'dto')");
-        }
 
         [Fact]
         public async Task Create_InvalidOperation_PinsExactConflictBody()

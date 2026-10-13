@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -20,14 +21,10 @@ namespace Portfolio.Web.Controllers.Api
     public class SpatialOverlayController : ControllerBase
     {
         private readonly ISpatialOverlayService _overlayService;
-        private readonly ILogger<SpatialOverlayController> _logger;
 
-        public SpatialOverlayController(
-            ISpatialOverlayService overlayService,
-            ILogger<SpatialOverlayController> logger)
+        public SpatialOverlayController(ISpatialOverlayService overlayService)
         {
             _overlayService = overlayService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -36,6 +33,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Points and candidate zone polygons.</param>
         /// <returns>Tagged points plus per-zone summaries and an unassigned tally.</returns>
         [HttpPost("spatial-join")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(SpatialJoinResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -44,16 +42,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] SpatialJoinRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _overlayService.SpatialJoinAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid spatial join request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _overlayService.SpatialJoinAsync(request, cancellationToken));
         }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Web.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
+using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
@@ -21,14 +22,10 @@ namespace Portfolio.Web.Controllers.Api
     public class OutageController : ControllerBase
     {
         private readonly IOutageTraceService _outageTraceService;
-        private readonly ILogger<OutageController> _logger;
 
-        public OutageController(
-            IOutageTraceService outageTraceService,
-            ILogger<OutageController> logger)
+        public OutageController(IOutageTraceService outageTraceService)
         {
             _outageTraceService = outageTraceService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -52,6 +49,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Network elements, source node, and faulted element.</param>
         /// <returns>Downstream, upstream, and isolation element ids plus the customer impact.</returns>
         [HttpPost("trace")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(TraceResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -60,16 +58,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] TraceRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _outageTraceService.TraceAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid outage trace request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _outageTraceService.TraceAsync(request, cancellationToken));
         }
 
         /// <summary>
@@ -79,6 +68,7 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="request">Network elements, faulted element, and the isolation devices to open.</param>
         /// <returns>An ordered switching plan with the customers it restores.</returns>
         [HttpPost("restore")]
+        [BadRequestOnArgumentException]
         [ProducesResponseType(typeof(RestoreResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(413)]
@@ -87,16 +77,7 @@ namespace Portfolio.Web.Controllers.Api
             [FromBody] RestoreRequestDto request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _outageTraceService.ProposeRestorationAsync(request, cancellationToken);
-                return Ok(result);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid outage restoration request.");
-                return BadRequest(new { error = ex.Message });
-            }
+            return Ok(await _outageTraceService.ProposeRestorationAsync(request, cancellationToken));
         }
     }
 }
