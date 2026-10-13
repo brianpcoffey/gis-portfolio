@@ -36,11 +36,13 @@
   integrity[themeHref(false)] = "sha384-f8NuhFNMt2lrnbQ6jdNBW6hKxHKLYtpdjcsOCTSsZ5EjQhZV5dNWU7T1WSqHF7qT";
   integrity[themeHref(true)] = "sha384-FsBIl6r6hx6Km/SGKQLxOr+6GTq9lySC0kcfk+ln29alVyYnhOrL3xscLDka048v";
 
-  // Must run before the element's src/href is set: that assignment is what starts the fetch.
+  // Must run before the element's src/href is set and before it is inserted: a new element starts
+  // fetching when it is inserted, the theme link when its href changes. crossOrigin is only set
+  // when it changes, because touching it on a connected <link> can trigger a re-fetch.
   function applyIntegrity(el, url) {
     if (integrity[url]) {
       el.integrity = integrity[url];
-      el.crossOrigin = "anonymous";
+      if (el.crossOrigin !== "anonymous") { el.crossOrigin = "anonymous"; }
     }
   }
 
@@ -55,10 +57,15 @@
     themeLink.href = href;
     document.head.appendChild(themeLink);
     g.addEventListener("themeChanged", function (e) {
-      // The two themes have different hashes, so drop integrity unless one is registered.
+      // themeChanged also fires on page load and on every display-preference change; only a real
+      // light/dark switch changes the URL. The two themes have different hashes, so the new one is
+      // applied before the href; an unpinned URL drops the attributes instead.
       var next = themeHref(!!(e.detail && e.detail.dark));
-      themeLink.removeAttribute("integrity");
-      themeLink.removeAttribute("crossorigin");
+      if (themeLink.getAttribute("href") === next) { return; }
+      if (!integrity[next]) {
+        themeLink.removeAttribute("integrity");
+        themeLink.removeAttribute("crossorigin");
+      }
       applyIntegrity(themeLink, next);
       themeLink.href = next;
     });
