@@ -54,9 +54,9 @@ namespace Portfolio.Web.Controllers
             {
                 body = await ReadBodyAsync(cancellationToken);
             }
-            catch (BadHttpRequestException)
+            catch (BadHttpRequestException ex)
             {
-                return StatusCode(StatusCodes.Status413PayloadTooLarge);
+                return StatusCode(ex.StatusCode);
             }
             if (body.Length > MaxBodyBytes)
             {
