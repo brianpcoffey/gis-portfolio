@@ -20,8 +20,12 @@ namespace Portfolio.Web.Startup;
 /// export logs, which stay on the console. Standard <c>OTEL_EXPORTER_OTLP_*</c> variables (protocol, headers)
 /// are read by the exporter itself, so a backend key lives in the host's environment only and is never logged.
 /// There is no EF Core instrumentation (still a prerelease): <c>Npgsql.OpenTelemetry</c> supplies the database
-/// spans and metrics. No enrichment adds user ids, coordinates or addresses, and exceptions are not recorded on
-/// spans. Query strings are redacted by the instrumentations themselves (ObservabilityRegistrationTests pins it).
+/// spans and metrics. No enrichment adds user ids, coordinates or addresses. The ASP.NET Core instrumentation does
+/// not record exceptions on server spans, but a failed span can still carry an exception event (message and stack
+/// trace): Npgsql adds one to a failed database span and .NET's HttpClient to a failed outgoing call. The worst
+/// realistic content is a host name or IP, or a <c>password authentication failed for user "name"</c> message;
+/// never a password, a query string or a row value ("Include Error Detail" is off). Query strings are redacted by
+/// the instrumentations themselves (ObservabilityRegistrationTests pins it).
 /// Two things the defaults would leak are removed here: the user identifier in <c>/users/{userId}</c> and
 /// <c>/users/google/{googleId}</c> paths, and the Npgsql data-source / pool name, which is the connection string
 /// minus its password (host, port, database, user name).
