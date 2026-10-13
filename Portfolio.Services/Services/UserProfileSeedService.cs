@@ -26,7 +26,7 @@ public class UserProfileSeedService
         IDbContextTransaction? tx = null;
         try
         {
-            // EF InMemory has no transactions.
+            // The EF InMemory provider (used by the tests) does not support transactions, so seed without one there.
             if (string.IsNullOrEmpty(providerName) ||
                 !string.Equals(providerName, InMemoryProviderName, StringComparison.OrdinalIgnoreCase))
             {

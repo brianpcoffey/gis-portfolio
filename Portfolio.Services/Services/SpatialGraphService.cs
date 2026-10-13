@@ -26,14 +26,12 @@ namespace Portfolio.Services.Services
             SpatialGraphNativeBridge.LogAvailability(_logger);
         }
 
-        // Returns the pre-built Redlands road network graph (served from cache).
         public Task<RoadGraphDto> GetRedlandsGraphAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(_cachedGraph);
         }
 
-        // Finds the least-cost path through a spatial graph using native code when available.
         public Task<RouteResultDto> FindShortestPathAsync(
             RouteRequestDto request,
             CancellationToken cancellationToken = default)
@@ -66,7 +64,6 @@ namespace Portfolio.Services.Services
             return Task.FromResult(result);
         }
 
-        // Computes all nodes reachable from an origin within the supplied cost budget.
         public Task<ServiceAreaResultDto> ComputeServiceAreaAsync(
             ServiceAreaRequestDto request,
             CancellationToken cancellationToken = default)
@@ -100,9 +97,8 @@ namespace Portfolio.Services.Services
             });
         }
 
-        // Computes the cost from one origin to every node, parallel to graph.Nodes.
-        // Unlike ComputeServiceAreaAsync this keeps the costs, which is what isochrone
-        // banding and facility-location assignment need.
+        // Unlike ComputeServiceAreaAsync this keeps the costs, which is what isochrone banding and
+        // facility-location assignment need.
         public Task<double[]> ComputeDistancesAsync(
             RoadGraphDto graph,
             int originNodeId,
@@ -128,9 +124,8 @@ namespace Portfolio.Services.Services
             return Task.FromResult(result);
         }
 
-        // Row-major cost matrix between two node sets. The managed fallback builds the
-        // adjacency structure once and reuses it across every source, mirroring the native
-        // kernel — rebuilding it per source is what makes a naive matrix quadratic.
+        // The managed fallback builds the adjacency structure once and reuses it across every source,
+        // mirroring the native kernel — rebuilding it per source is what makes a naive matrix quadratic.
         public Task<double[]> ComputeDistanceMatrixAsync(
             RoadGraphDto graph,
             IReadOnlyList<int> sourceIds,
@@ -315,7 +310,6 @@ namespace Portfolio.Services.Services
             return dto;
         }
 
-        // Computes haversine great-circle distance in km between two graph nodes.
         private static double Haversine(GraphNodeDto a, GraphNodeDto b)
             => HaversineKm(a.Latitude, a.Longitude, b.Latitude, b.Longitude);
 
@@ -333,7 +327,6 @@ namespace Portfolio.Services.Services
 
         private static double ToRad(double deg) => deg * Math.PI / 180.0;
 
-        // Fills DistanceKm and EstimatedMinutes from the node coordinate path.
         private static void EnrichMetrics(RouteResultDto dto, IReadOnlyList<GraphNodeDto> nodes)
         {
             if (dto.Path.Count < 2)
@@ -454,7 +447,6 @@ namespace Portfolio.Services.Services
             return ids;
         }
 
-        // Builds a node-id → node lookup dictionary from the request node list.
         private static Dictionary<int, GraphNodeDto> BuildNodeLookup(IReadOnlyList<GraphNodeDto> nodes)
         {
             var lookup = new Dictionary<int, GraphNodeDto>(nodes.Count);

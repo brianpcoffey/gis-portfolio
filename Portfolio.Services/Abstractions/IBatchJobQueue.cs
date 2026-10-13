@@ -7,10 +7,7 @@ namespace Portfolio.Services.Abstractions;
 /// <param name="CsvBytes">The raw uploaded CSV, read on the request thread.</param>
 public sealed record BatchWorkItem(BatchJob Job, byte[] CsvBytes);
 
-/// <summary>
-/// Thrown when the batch job queue is at capacity. The controller maps it to 503 with
-/// <c>Retry-After</c>.
-/// </summary>
+/// <summary>Thrown when the batch job queue is full; the controller maps it to 503 with <c>Retry-After</c>.</summary>
 public sealed class BatchQueueFullException : Exception
 {
     /// <summary>Initializes a new instance of <see cref="BatchQueueFullException"/>.</summary>
@@ -21,8 +18,8 @@ public sealed class BatchQueueFullException : Exception
 }
 
 /// <summary>
-/// A bounded, in-process queue of batch geocoding jobs. Producers never wait: a full queue
-/// rejects the job so callers can answer 503 instead of piling up unbounded background work.
+/// A bounded, in-process queue of batch geocoding jobs; producers never wait, so a full queue rejects
+/// the job and callers can answer 503 instead of piling up unbounded background work.
 /// </summary>
 public interface IBatchJobQueue
 {

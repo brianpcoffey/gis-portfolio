@@ -3,7 +3,7 @@ using Portfolio.Services.Native;
 namespace Portfolio.Services.Services.ChangeDetection
 {
     /// <summary>
-    /// Managed fallbacks for the change-detection pipeline. They mirror the native kernel exactly.
+    /// Managed fallbacks for the change-detection pipeline, mirroring the native kernel exactly.
     /// </summary>
     internal static class ManagedChangeKernels
     {

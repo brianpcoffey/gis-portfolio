@@ -20,7 +20,7 @@ namespace Portfolio.Services.Services
             RasterTerrainNativeBridge.LogAvailability(_logger);
         }
 
-        // Generates an 8-bit hillshade intensity grid from an elevation raster.
+        // Intensities are 8-bit values (0-255).
         public Task<RasterHillshadeResultDto> GenerateHillshadeAsync(
             RasterHillshadeRequestDto request,
             CancellationToken cancellationToken = default)
@@ -47,7 +47,6 @@ namespace Portfolio.Services.Services
             return Task.FromResult(GenerateHillshadeManaged(request, cancellationToken));
         }
 
-        // Generates a normalized heatmap over the requested raster extent.
         public Task<HeatmapResultDto> GenerateHeatmapAsync(
             HeatmapRequestDto request,
             CancellationToken cancellationToken = default)

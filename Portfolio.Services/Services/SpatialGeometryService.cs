@@ -16,7 +16,7 @@ namespace Portfolio.Services.Services
             SpatialGeometryNativeBridge.LogAvailability(_logger);
         }
 
-        // Builds a deterministic fan triangulation for map visualization; native code can replace the hot path.
+        // The managed path is a deterministic fan triangulation from the first point.
         public Task<TriangulationResultDto> TriangulateAsync(
             GeometryPointSetDto request,
             CancellationToken cancellationToken = default)
@@ -53,7 +53,6 @@ namespace Portfolio.Services.Services
             });
         }
 
-        // Clips polygon vertices to a bounding box for a simple demonstrable geometry operation.
         public Task<PolygonOperationResultDto> ClipToBoundingBoxAsync(
             PolygonClipRequestDto request,
             CancellationToken cancellationToken = default)
@@ -73,9 +72,9 @@ namespace Portfolio.Services.Services
                 return Task.FromResult(nativeResult!);
 
             // Sutherland–Hodgman: clip the subject polygon against each of the four box
-            // half-planes in turn. Unlike per-vertex clamping this computes true edge/box
-            // intersection points, emits box-corner vertices, and yields an EMPTY polygon
-            // when the subject lies entirely outside the box.
+            // half-planes in turn, in the same order as the native kernel so the two paths agree.
+            // Unlike per-vertex clamping this computes true edge/box intersection points, emits box-corner
+            // vertices, and yields an EMPTY polygon when the subject lies entirely outside the box.
             var poly = request.Subject.Select(p => new CoordinateDto { X = p.X, Y = p.Y }).ToList();
             poly = ClipHalfPlane(poly, p => p.X >= request.MinX, (a, b) => IntersectX(a, b, request.MinX));
             poly = ClipHalfPlane(poly, p => p.X <= request.MaxX, (a, b) => IntersectX(a, b, request.MaxX));
@@ -91,7 +90,6 @@ namespace Portfolio.Services.Services
             });
         }
 
-        // Clips a closed polygon against a single half-plane (Sutherland–Hodgman step).
         private static List<CoordinateDto> ClipHalfPlane(
             List<CoordinateDto> polygon,
             Func<CoordinateDto, bool> inside,
@@ -131,7 +129,6 @@ namespace Portfolio.Services.Services
             return new CoordinateDto { X = x, Y = a.Y + t * (b.Y - a.Y) };
         }
 
-        // Intersection of segment a→b with the horizontal line Y = y.
         private static CoordinateDto IntersectY(CoordinateDto a, CoordinateDto b, double y)
         {
             var t = (y - a.Y) / (b.Y - a.Y);

@@ -27,9 +27,7 @@ namespace Portfolio.Services.Services
             return QueryFeaturesCoreAsync(layerId, "1=1", bbox, cancellationToken);
         }
 
-        // Core query shared by the public list query and the single-feature lookup. whereClause is
-        // always code-supplied ("1=1" or "OBJECTID=<validated int>"), never raw user input, so it
-        // cannot inject into the ArcGIS where filter.
+        // Core query shared by the public list query and the single-feature lookup.
         private async Task<List<FeatureDto>> QueryFeaturesCoreAsync(string layerId, string whereClause, string? bbox, CancellationToken cancellationToken)
         {
             // Encode the caller-supplied layerId to prevent URL injection. whereClause is NOT
@@ -61,7 +59,7 @@ namespace Portfolio.Services.Services
                     FeatureId = f.Attributes.TryGetValue("OBJECTID", out var id) ? id?.ToString() ?? "" : "",
                     Name = GetFeatureName(f.Attributes),
                     GeometryJson = JsonSerializer.Serialize(f.Geometry),
-                    Attributes = f.Attributes // Include all attributes from ArcGIS
+                    Attributes = f.Attributes
                 })];
             }
             catch (OperationCanceledException)

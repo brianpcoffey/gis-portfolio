@@ -9,11 +9,8 @@ using System.Diagnostics;
 namespace Portfolio.Services.Services
 {
     /// <summary>
-    /// Capacitated vehicle routing with time windows over the real Redlands road network.
-    ///
-    /// The client sends only the scenario — depot, stops, fleet parameters. The graph is
-    /// fetched server-side, the road-distance matrix is built once, and each solved leg is
-    /// expanded back into a street-following polyline, so nothing large crosses the wire.
+    /// Capacitated vehicle routing with time windows over the real Redlands road network; the client sends only the
+    /// scenario, and the server builds the road-distance matrix and the street-following polylines.
     /// </summary>
     public class FleetRoutingService : IFleetRoutingService
     {
@@ -146,8 +143,6 @@ namespace Portfolio.Services.Services
             }
             return mapped;
         }
-
-        // ── Road-following polylines ────────────────────────────────────────────
 
         // Expands each solved leg into a real street path, so the drawn routes trace actual
         // roads rather than straight lines between stops.

@@ -34,9 +34,6 @@ namespace Portfolio.Services.Services
             });
         }
 
-        // Traces a fault three ways — downstream (who is out), upstream (what feeds the
-        // fault), and the isolation frontier — preferring the native kernel and falling
-        // back to managed code.
         public Task<TraceResultDto> TraceAsync(
             TraceRequestDto request,
             CancellationToken cancellationToken = default)
@@ -82,9 +79,8 @@ namespace Portfolio.Services.Services
             return Task.FromResult(BuildTraceResult(request, downstream, upstream, isolation, customersAffected, nativeAccelerated));
         }
 
-        // Evaluates every open tie one at a time and keeps the switching plan that serves
-        // the most customers. The search loop is managed and readable; each evaluation is
-        // a full connectivity sweep, which is the work worth pushing into the kernel.
+        // The search loop is managed and readable; each evaluation is a full connectivity sweep, which is the
+        // work worth pushing into the kernel.
         public Task<RestoreResultDto> ProposeRestorationAsync(
             RestoreRequestDto request,
             CancellationToken cancellationToken = default)
@@ -98,8 +94,8 @@ namespace Portfolio.Services.Services
             var source = request.SourceNodeId;
             var totalCustomers = elements.Sum(e => e.CustomerCount);
 
-            // Step 1 — apply the isolation devices as OPEN overrides and measure the
-            // post-isolation baseline. Everything beyond this point is upside.
+            // Apply the isolation devices as OPEN overrides and measure the post-isolation baseline;
+            // everything beyond this point is upside.
             var baseIds = isolationDevices.Distinct().ToArray();
             var baseStates = new int[baseIds.Length];
             Array.Fill(baseStates, 1);
@@ -107,7 +103,6 @@ namespace Portfolio.Services.Services
             var nativeAccelerated = true;
             var (baseEnergized, baseServed) = Energize(elements, source, baseIds, baseStates, ref nativeAccelerated, cancellationToken);
 
-            // Step 2 — try each normally-open tie in turn.
             var bestServed = baseServed;
             var bestEnergized = baseEnergized;
             NetworkElementDto? bestTie = null;
@@ -148,8 +143,6 @@ namespace Portfolio.Services.Services
                 request, elements, baseIds, bestTie, bestEnergized, baseServed, bestServed, totalCustomers, nativeAccelerated));
         }
 
-        // ── Dispatch helper ─────────────────────────────────────────────────────
-
         // One energization sweep, native when the kernel is loaded. `nativeAccelerated`
         // latches to false the first time any sweep falls back, so a partially managed
         // search never reports itself as accelerated.
@@ -172,8 +165,6 @@ namespace Portfolio.Services.Services
             nativeAccelerated = false;
             return EnergizedManaged(elements, sourceNodeId, overrideIds, overrideStates);
         }
-
-        // ── Validation ──────────────────────────────────────────────────────────
 
         // Validates a restoration request and returns the (possibly empty) isolation device list.
         private static List<int> ValidateRestoreRequest(RestoreRequestDto request)
@@ -231,8 +222,7 @@ namespace Portfolio.Services.Services
             return false;
         }
 
-        // ── Managed fallbacks (mirror the native kernel exactly) ────────────────
-
+        // Managed fallbacks; these mirror the native kernel exactly.
         private static Dictionary<int, List<int>> BuildAdjacency(List<NetworkElementDto> elements)
         {
             var adjacency = new Dictionary<int, List<int>>(elements.Count * 2);
@@ -498,8 +488,6 @@ namespace Portfolio.Services.Services
 
             return visitedNodes;
         }
-
-        // ── Result shaping ──────────────────────────────────────────────────────
 
         private static TraceResultDto BuildTraceResult(
             TraceRequestDto request,

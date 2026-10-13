@@ -19,7 +19,6 @@ namespace Portfolio.Services.Services
             SpatialClusterNativeBridge.LogAvailability(_logger);
         }
 
-        // Clusters points with DBSCAN, preferring the native kernel and falling back to managed code.
         public Task<DbscanResultDto> RunDbscanAsync(
             DbscanRequestDto request,
             CancellationToken cancellationToken = default)

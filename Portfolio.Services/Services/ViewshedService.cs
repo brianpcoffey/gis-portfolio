@@ -18,7 +18,6 @@ namespace Portfolio.Services.Services
             ViewshedNativeBridge.LogAvailability(_logger);
         }
 
-        // Computes a line-of-sight viewshed, preferring the native kernel and falling back to managed code.
         public Task<ViewshedResultDto> ComputeAsync(
             ViewshedRequestDto request,
             CancellationToken cancellationToken = default)
