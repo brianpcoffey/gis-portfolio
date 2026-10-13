@@ -36,7 +36,6 @@ namespace Portfolio.Web.Controllers.Api
         /// time windows, and the fleet available to cover them.
         /// </summary>
         /// <param name="preset">Scenario key: "morning", "fullday", or "tight".</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>The scenario, ready to post straight back to the optimize endpoint.</returns>
         [HttpGet("scenario")]
         [ProducesResponseType(typeof(FleetScenarioDto), 200)]
@@ -67,7 +66,6 @@ namespace Portfolio.Web.Controllers.Api
         /// per-stop arrival schedule, and the convergence trace.
         /// </summary>
         /// <param name="request">Depot, stops, fleet parameters, and search budget.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Routes, unserved stops, objective trace, and honest timings.</returns>
         [HttpPost("optimize")]
         [ProducesResponseType(typeof(OptimizeResultDto), 200)]

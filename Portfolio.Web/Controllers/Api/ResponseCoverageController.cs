@@ -35,7 +35,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Returns the demo response scenario: clustered call demand, candidate station
         /// sites, and the stations operating today.
         /// </summary>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Demand points, candidate sites, and the existing station ids.</returns>
         [HttpGet("scenario")]
         [ProducesResponseType(typeof(ResponseScenarioDto), 200)]
@@ -50,7 +49,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Computes drive-time bands over the road network from one origin node.
         /// </summary>
         /// <param name="request">Origin node, apparatus speed, and ascending band bounds in minutes.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Every reachable node with its travel time and band index.</returns>
         [HttpPost("isochrone")]
         [ProducesResponseType(typeof(IsochroneResultDto), 200)]
@@ -78,7 +76,6 @@ namespace Portfolio.Web.Controllers.Api
         /// result beside the stations operating today.
         /// </summary>
         /// <param name="request">Demand points, candidate sites, station count, and objective.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Chosen stations, optimized and baseline coverage statistics, and assignments.</returns>
         [HttpPost("optimize")]
         [ProducesResponseType(typeof(OptimizeCoverageResultDto), 200)]

@@ -35,7 +35,6 @@ namespace Portfolio.Web.Controllers.Api
         /// Returns the demo distribution network: one substation, two radial feeders, and
         /// the normally-open tie switch between them.
         /// </summary>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Every network element with its device type, state, and geometry.</returns>
         [HttpGet("network")]
         [ProducesResponseType(typeof(DistributionNetworkDto), 200)]
@@ -51,7 +50,6 @@ namespace Portfolio.Web.Controllers.Api
         /// the upstream path back to the source, and the devices that isolate it.
         /// </summary>
         /// <param name="request">Network elements, source node, and faulted element.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>Downstream, upstream, and isolation element ids plus the customer impact.</returns>
         [HttpPost("trace")]
         [ProducesResponseType(typeof(TraceResultDto), 200)]
@@ -79,7 +77,6 @@ namespace Portfolio.Web.Controllers.Api
         /// fault by closing one normally-open tie.
         /// </summary>
         /// <param name="request">Network elements, faulted element, and the isolation devices to open.</param>
-        /// <param name="cancellationToken">Request cancellation token.</param>
         /// <returns>An ordered switching plan with the customers it restores.</returns>
         [HttpPost("restore")]
         [ProducesResponseType(typeof(RestoreResultDto), 200)]
