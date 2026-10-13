@@ -21,16 +21,19 @@
                 <h1 class="mb-1">
                     @if (!string.IsNullOrEmpty(Model.IconClass))
                     {
-                        <i class="@Model.IconClass me-2"></i>
+                        <i class="@Model.IconClass me-2"></i>@:@Model.Title
                     }
-                    @Model.Title
+                    else
+                    {
+                        @Model.Title
+                    }
                 </h1>
                 @if (!string.IsNullOrEmpty(Model.Subtitle))
                 {
                     <p class="text-muted theme-text-muted mb-0">@Model.Subtitle</p>
                 }
             </div>
-            <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
                 @if (Model.Badges is not null)
                 {
                     foreach (var badge in Model.Badges)
