@@ -57,80 +57,14 @@ builder.Services.AddPortfolioRepositories();
 builder.Services.AddPortfolioServices();
 builder.Services.AddPortfolioArcGisClients(builder.Configuration);
 
-// --------------------------
-// Redis Configuration & Job Store
-// --------------------------
-var redisConnectionString = Portfolio.Web.Infrastructure.ConnectionStrings.NormalizeRedis(
-    builder.Configuration["Redis__ConnectionString"] 
-    ?? builder.Configuration["Redis:ConnectionString"] 
-    ?? string.Empty);
+var redis = builder.Services.AddPortfolioRedis(builder.Configuration, logger);
 
-var isRedisEnabled = !string.IsNullOrWhiteSpace(redisConnectionString);
+builder.Services.AddPortfolioForwardedHeaders(builder.Configuration, logger);
 
-if (isRedisEnabled)
-{
-    logger.LogInformation("Redis ENABLED - Connection: {RedisConnection}", 
-        Portfolio.Web.Infrastructure.ConnectionStrings.MaskRedisPassword(redisConnectionString));
-    builder.Services.AddSingleton<IBatchJobStore, RedisBatchJobStore>();
-}
-else
-{
-    logger.LogWarning("Redis DISABLED - using in-memory fallback for caching and job store");
-    builder.Services.AddSingleton<IBatchJobStore, InMemoryBatchJobStore>();
-}
+builder.Services.AddPortfolioHsts();
 
-// --------------------------
-// Forwarded Headers (Render / reverse-proxy TLS termination)
-// --------------------------
-// Render terminates TLS at its proxy and forwards plain HTTP to the container.
-// With no ForwardedHeaders:KnownNetworks configured (the default), KnownNetworks and
-// KnownProxies are cleared, which trusts the X-Forwarded-* headers regardless of the proxy IP,
-// making Request.IsHttps, HTTPS redirection, and secure cookie detection accurate inside the
-// container. Once the owner has verified Render's proxy range (findings-security 4.5), set
-// ForwardedHeaders:KnownNetworks (CIDRs) and, if a further proxy hop is confirmed,
-// ForwardedHeaders:ForwardLimit. Never raise ForwardLimit without KnownNetworks.
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    ForwardedHeadersSetup.Apply(options, builder.Configuration, logger));
-
-// --------------------------
-// HSTS (non-Development only; see UseHsts below)
-// --------------------------
-// One year, current host only. includeSubDomains and preload are deliberately off:
-// preload is effectively irreversible, and subdomains are not all under this app's control.
-builder.Services.AddHsts(options =>
-{
-    options.MaxAge = TimeSpan.FromDays(365);
-    options.IncludeSubDomains = false;
-    options.Preload = false;
-});
-
-// --------------------------
-// Caching & Session
-// --------------------------
-if (isRedisEnabled)
-{
-    // Production / staging: shared Redis cache
-    builder.Services.AddStackExchangeRedisCache(options =>
-    {
-        options.Configuration = redisConnectionString;
-        options.InstanceName  = "portfolio:";
-    });
-}
-else
-{
-    // Local dev fallback: in-process distributed cache
-    builder.Services.AddDistributedMemoryCache();
-}
-
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
-});
+builder.Services.AddPortfolioCaching(redis);
+builder.Services.AddPortfolioSession(builder.Environment);
 
 // --------------------------
 // Authentication & Authorization
@@ -342,14 +276,7 @@ builder.Services.AddRateLimiter(options =>
         }));
 });
 
-// --------------------------
-// Health Checks (Kubernetes probes)
-// --------------------------
-// Liveness (/health/live) runs no checks — it only proves the process is responsive.
-// Readiness (/health/ready) runs checks tagged "ready" (DB connectivity) so a pod is
-// kept out of the Service until its dependencies are up.
-builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseReadyHealthCheck>("database", tags: new[] { "ready" });
+builder.Services.AddPortfolioHealthChecks();
 
 // --------------------------
 // API Versioning
@@ -377,41 +304,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddPortfolioDatabase(builder.Configuration);
 
-// --------------------------
-// Data Protection Key Persistence
-// --------------------------
-if (isRedisEnabled)
-{
-    // Production: persist keys to Redis so all replicas share the same key ring
-    try
-    {
-        var redis = ConnectionMultiplexer.Connect(redisConnectionString!);
-        builder.Services.AddDataProtection()
-            .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys")
-            .SetApplicationName("portfolio");
-        logger.LogInformation("Data Protection keys will be stored in Redis");
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Failed to connect to Redis for Data Protection keys. Falling back to filesystem.");
-        builder.Services.AddDataProtection()
-            .PersistKeysToFileSystem(new DirectoryInfo("/app/DataProtection-Keys"))
-            .SetApplicationName("portfolio");
-    }
-}
-else
-{
-    // Local dev: persist keys to filesystem
-    var keysPath = builder.Environment.IsDevelopment() 
-        ? Path.Combine(Directory.GetCurrentDirectory(), "DataProtection-Keys")
-        : "/app/DataProtection-Keys";
-
-    Directory.CreateDirectory(keysPath);
-    builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
-        .SetApplicationName("portfolio");
-    logger.LogInformation("Data Protection keys will be stored in filesystem: {KeysPath}", keysPath);
-}
+builder.Services.AddPortfolioDataProtection(redis, builder.Environment, logger);
 
 var app = builder.Build();
 
@@ -535,48 +428,3 @@ if (migrateOnly)
 
 app.Run();
 return 0;
-
-/// <summary>Applies the configurable forwarded-header trust. Internal static so tests can call it.</summary>
-internal static class ForwardedHeadersSetup
-{
-    internal static void Apply(ForwardedHeadersOptions options, IConfiguration configuration, ILogger? logger = null)
-    {
-        options.ForwardedHeaders =
-            ForwardedHeaders.XForwardedFor |
-            ForwardedHeaders.XForwardedProto;
-        options.ForwardLimit = configuration.GetValue("ForwardedHeaders:ForwardLimit", 1);
-
-        var networks = ReadNetworks(configuration);
-        if (networks.Count == 0)
-        {
-            // Today's behaviour: trust any proxy. See the comment at the registration.
-            options.KnownIPNetworks.Clear();
-            options.KnownProxies.Clear();
-
-            // With no trust list every client is a trusted proxy, so more than one hop would let
-            // a caller choose its own rate-limit key. Hold the limit at 1 whatever the config says.
-            if (options.ForwardLimit != 1)
-            {
-                logger?.LogWarning(
-                    "ForwardedHeaders:ForwardLimit {Requested} ignored: it is forced to 1 while ForwardedHeaders:KnownNetworks is empty.",
-                    options.ForwardLimit);
-                options.ForwardLimit = 1;
-            }
-            return;
-        }
-
-        foreach (var cidr in networks)
-            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
-    }
-
-    // Accepts an array (appsettings, or Name__0 environment variables) or a single
-    // comma-separated string (one Render environment variable).
-    private static List<string> ReadNetworks(IConfiguration configuration)
-    {
-        var section = configuration.GetSection("ForwardedHeaders:KnownNetworks");
-        var items = section.Get<string[]>() ?? [];
-        if (items.Length == 0 && !string.IsNullOrWhiteSpace(section.Value))
-            items = section.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return items.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).ToList();
-    }
-}
