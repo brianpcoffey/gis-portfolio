@@ -222,10 +222,10 @@ namespace Portfolio.Tests.Services
         }
 
         [Fact]
-        public async Task SpatialGraphService_DijkstraOnRedlandsGraph_ReachesEsriHqFromRowA()
+        public async Task SpatialGraphService_DijkstraOnRedlandsGraph_RoutesFromNode1ToNode105AndReportsMetrics()
         {
             // Full round-trip: fetch the Redlands graph and route from node 1 to node 105 with Dijkstra.
-            // Node 105 is an ordinary intersection; Esri HQ is node 2530 in the OSM-generated network.
+            // Node 105 is an ordinary intersection, not the Esri HQ destination (node 2530 in the OSM-generated network).
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var graph = await service.GetRedlandsGraphAsync();
 
@@ -251,7 +251,7 @@ namespace Portfolio.Tests.Services
         }
 
         [Fact]
-        public async Task SpatialGraphService_AStarOnRedlandsGraph_ReachesEsriHqFromRowA()
+        public async Task SpatialGraphService_AStarOnRedlandsGraph_RoutesFromNode1ToNode105ReportingAStar()
         {
             var service = new SpatialGraphService(NullLogger<SpatialGraphService>.Instance);
             var graph = await service.GetRedlandsGraphAsync();
