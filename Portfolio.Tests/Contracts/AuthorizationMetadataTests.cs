@@ -151,9 +151,7 @@ public class AuthorizationMetadataTests
 
         // Assert
         Assert.NotNull(limit);
-        // The attribute exposes no getter; read the stored value.
-        var bytes = (long)typeof(RequestSizeLimitAttribute)
-            .GetField("_bytes", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(limit)!;
-        Assert.Equal(expected, bytes);
+        var metadata = Assert.IsAssignableFrom<Microsoft.AspNetCore.Http.Metadata.IRequestSizeLimitMetadata>(limit);
+        Assert.Equal(expected, metadata.MaxRequestBodySize);
     }
 }
