@@ -27,9 +27,11 @@ namespace Portfolio.Services.Native
 
             try
             {
+                var elevation = request.Elevation.ToArray();
                 var output = new byte[request.Width * request.Height];
                 var status = ViewshedNativeInterop.Compute(
-                    request.Elevation.ToArray(),
+                    elevation,
+                    elevation.Length,
                     request.Width,
                     request.Height,
                     request.CellSize,

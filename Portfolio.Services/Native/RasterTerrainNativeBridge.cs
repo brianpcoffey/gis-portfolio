@@ -60,9 +60,11 @@ namespace Portfolio.Services.Native
 
         internal static RasterHillshadeResultDto GenerateHillshade(RasterHillshadeRequestDto request)
         {
+            var elevation = request.Elevation.ToArray();
             var output = new byte[request.Width * request.Height];
             var status = RasterTerrainNativeInterop.GenerateHillshade(
-                request.Elevation.ToArray(),
+                elevation,
+                elevation.Length,
                 request.Width,
                 request.Height,
                 request.CellSize,
