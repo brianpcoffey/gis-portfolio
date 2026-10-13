@@ -197,7 +197,6 @@ function updateWeightStatus() {
     if (!statusEl) return;
 
     const textEl = document.getElementById("weightStatusText");
-    const srEl = document.getElementById("weightStatusSr");
     const state = total === 100 ? "valid" : (remaining > 0 ? "under" : "over");
     const hint = remaining > 0 ? `${remaining}% remaining` : `${Math.abs(remaining)}% over`;
 
@@ -209,11 +208,12 @@ function updateWeightStatus() {
     }
     if (btnSearch) btnSearch.disabled = state !== "valid";
 
-    // role="status" text changes only when validity flips, not on every slider step.
-    if (srEl && state !== lastWeightState) {
-        srEl.textContent = state === "valid"
+    // The visible total (#weightStatusText) is read as plain text; only a validity flip is announced,
+    // never every slider step, and not the first evaluation on page load.
+    if (lastWeightState !== null && state !== lastWeightState) {
+        announce(state === "valid"
             ? "Weights total 100%, ready to search."
-            : `Weights total ${total}%: ${hint}, must equal 100%.`;
+            : `Weights total ${total}%: ${hint}, must equal 100%.`);
     }
     lastWeightState = state;
 }
