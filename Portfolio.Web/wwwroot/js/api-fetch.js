@@ -32,6 +32,10 @@
         }
     }
 
+    function isRequest(input) {
+        return typeof global.Request === "function" && input instanceof global.Request;
+    }
+
     /**
      * Core fetch wrapper.
      * - On 401: redirects the whole page to /Login?returnUrl=<current path>,
@@ -41,7 +45,7 @@
      * - Adds X-Requested-With: XMLHttpRequest to same-origin requests (see the file header).
      * - Returns the raw Response so callers can inspect status before parsing.
      *
-     * @param {string}      url
+     * @param {string|URL|Request} url
      * @param {RequestInit} [options]
      * @returns {Promise<Response>}
      */
@@ -61,9 +65,10 @@
         // Second CSRF layer: the server requires this header on state-changing calls that carry an identity cookie.
         // Set on every same-origin request, whatever the method and body (apiPostForm's multipart upload included);
         // new Headers() accepts a plain object, an array or a Headers instance. Never added to a cross-origin URL,
-        // where a custom header would force a preflight.
-        if (isSameOrigin(url)) {
-            var headers = new Headers(opts.headers || undefined);
+        // where a custom header would force a preflight. A Request is judged by its own URL, and when options.headers
+        // is absent its headers are the starting point (fetch(request, { headers }) would otherwise replace them).
+        if (isSameOrigin(isRequest(url) ? url.url : url)) {
+            var headers = new Headers(opts.headers || (isRequest(url) ? url.headers : undefined));
             if (!headers.has(REQUESTED_WITH)) {
                 headers.set(REQUESTED_WITH, "XMLHttpRequest");
             }
