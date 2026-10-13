@@ -12,7 +12,9 @@
 
 <partial name="_ProjectHero" model='new ProjectHero("US State Explorer", "fa-solid fa-map", "Explore, compare, and save U.S. states using interactive GIS tools.", new[] { new ProjectHeroBadge("fa-solid fa-globe", "ArcGIS Feature Layer") }, "/Projects/StateExplorer/Details")' />
 
-<div class="container-fluid py-3 theme-root state-explorer-page">
+@* data-signed-in: rendered from the server so app.js can skip the collections request for anonymous
+   visitors (the API answers them with an expected 401 that would log to the console). *@
+<div class="container-fluid py-3 theme-root state-explorer-page" data-signed-in="@(User.Identity?.IsAuthenticated == true ? "true" : "false")">
     <div class="row mb-3">
         @* Align search with the left sidebar (same col sizes as below). *@
         <div class="col-lg-3 col-md-4">

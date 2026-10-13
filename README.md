@@ -541,7 +541,7 @@ Leaving `Redis:ConnectionString` empty activates the in-process `MemoryDistribut
 ### Render (current production)
 - Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/gis-portfolio). The CI `deploy` job triggers Render after the test, native-parity and Docker jobs pass (it needs the `RENDER_DEPLOY_HOOK` repository secret, with Render's own Auto-Deploy switched off); a push to `main` is therefore a production deploy. See [`docs/render-deployment.md`](docs/render-deployment.md).
 - Database hosted on **Neon.tech** PostgreSQL.
-- EF Core migrations run at startup by default. To keep the schema check off the cold-start path, run `dotnet Portfolio.Web.dll --migrate` as Render's Pre-Deploy Command and set `RunMigrationsOnStartup=false` — set both or neither.
+- EF Core migrations run at startup, which is what production does: Render's free plan locks the Pre-Deploy Command field (observed in the Render dashboard, October 2026), so it stays empty. On a host or plan that has a pre-deploy step, `dotnet Portfolio.Web.dll --migrate` there plus `RunMigrationsOnStartup=false` keeps the schema check off the cold-start path — set both or neither (see [`docs/render-deployment.md`](docs/render-deployment.md)).
 - HSTS enabled in non-development environments; HTTPS redirection runs only in development (Render terminates TLS at its proxy, so the container serves plain HTTP).
 - Secrets (`DATABASE_URL`, `Redis__ConnectionString`, Google OAuth credentials) are injected as environment variables.
 

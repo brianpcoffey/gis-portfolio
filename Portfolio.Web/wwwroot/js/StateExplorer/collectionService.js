@@ -1,16 +1,20 @@
 // small client wrapper for collection CRUD API
 const _COLLECTIONS = window.PortfolioApi.routes.collections;
 export const CollectionService = {
-    // True after a 401 from the collections API: the visitor is anonymous (FE-A07).
+    // True when the visitor is anonymous (FE-A07): the server rendered the page as signed out, or the
+    // collections API answered 401 (a session that expired after the page loaded).
     requiresSignIn: false,
 
-    async getCollections() {
+    // signedIn: whether the server rendered the page for a signed-in visitor (data-signed-in on the
+    // page root). An anonymous visitor gets no request at all, so the console shows no 401.
+    async getCollections({ signedIn = true } = {}) {
         // Collections require auth; for anonymous visitors (or any transient error)
         // return an empty list rather than throwing, so a failed collections fetch
         // never rejects the Promise.all in initialize() and bricks the whole page.
         // redirectOn401:false keeps an anonymous visitor on this page instead of
         // bouncing them to /Login; the UI shows a sign-in hint instead.
-        this.requiresSignIn = false;
+        this.requiresSignIn = !signedIn;
+        if (!signedIn) return [];
         try {
             const res = await window.apiFetch(_COLLECTIONS, { redirectOn401: false });
             if (res.status === 401) {

@@ -92,6 +92,17 @@
     cursor: pointer;
 }
 
+/* Clustering legend: clusters beyond the 8-colour palette reuse its colours with another marker shape
+   (Clustering/app.js markerFor): 9-16 hollow rings, 17-24 squares. The base swatch is a filled circle. */
+.spatial-compute-page .legend__swatch--ring {
+    background: transparent;
+    border: 2px solid var(--swatch);
+}
+
+.spatial-compute-page .legend__swatch--square {
+    border-radius: 2px;
+}
+
 .spatial-compute-page .viewshed-swatch {
     display: inline-block;
     width: 0.85rem;

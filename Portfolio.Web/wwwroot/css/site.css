@@ -269,17 +269,6 @@ body.dark-mode .btn-google {
     color: var(--accent-text);
 }
 
-/* Legacy: nothing references .login-card now (the login page uses .login-card-wrapper and
-   .login-card-inner). */
-.login-card {
-    max-width: 350px;
-    border-radius: 1rem;
-    background: var(--surface);
-    border: none;
-    box-shadow: 0 4px 20px var(--shadow);
-    color: var(--text);
-}
-
 .modal-content {
     background-color: var(--surface);
     color: var(--text);

@@ -109,7 +109,6 @@ namespace Portfolio.Web.Controllers.Api
         /// <param name="file">CSV file containing addresses to geocode.</param>
         /// <returns>List of geocoding results with match status, coordinates, and score.</returns>
         [HttpPost("sync")]
-        [HttpPost("/api/batchgeocoding/sync")]
         [BadRequestOnArgumentException]
         [ArcGisUnavailable(ArcGisUpstream.Geocoding)]
         [RequestSizeLimit(MaxUploadBytes)]
