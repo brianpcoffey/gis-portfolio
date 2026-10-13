@@ -101,16 +101,16 @@ if (typeof loadPlantOpsMap !== 'function') {
                     });
                 }
 
-                const timeout = setTimeout(() => reject(new Error('Map timed out')), 15000);
+                const timeout = window.PortfolioEsri.visibleTimeout(15000, () => reject(new Error('Map timed out')));
                 plantOpsMapView.when(() => {
-                    clearTimeout(timeout);
+                    timeout.clear();
                     // ArcGIS nests its own role="application" surface in the container; name that one.
                     const surface = plantOpsMapView.container.querySelector('.esri-view-surface');
                     const label = mapContainer.dataset.mapLabel;
                     if (surface && label) surface.setAttribute('aria-label', label);
                     resolve(true);
                 }, err => {
-                    clearTimeout(timeout);
+                    timeout.clear();
                     reject(err);
                 });
             }, reject);

@@ -108,5 +108,29 @@
     return box;
   }
 
-  g.PortfolioEsri = { version: VERSION, baseUrl: BASE, scriptUrl: SCRIPT_URL, themeHref: themeHref, integrity: integrity, loadTheme: loadTheme, load: load, showLoadError: showLoadError };
+  // A start-up timeout that only counts while the page is visible. Browsers pause rendering in a
+  // background tab, so a map opened there cannot become ready; counting that time would report a
+  // working map as failed. Returns { clear() }.
+  function visibleTimeout(ms, onTimeout) {
+    var remaining = ms, startedAt = 0, timer = null, done = false;
+    function start() {
+      if (done || timer !== null || document.visibilityState !== "visible") { return; }
+      startedAt = Date.now();
+      timer = setTimeout(fire, remaining);
+    }
+    function pause() {
+      if (timer === null) { return; }
+      clearTimeout(timer);
+      timer = null;
+      remaining -= Date.now() - startedAt;
+    }
+    function onVisibility() { if (document.visibilityState === "visible") { start(); } else { pause(); } }
+    function stop() { done = true; pause(); document.removeEventListener("visibilitychange", onVisibility); }
+    function fire() { timer = null; stop(); onTimeout(); }
+    document.addEventListener("visibilitychange", onVisibility);
+    start();
+    return { clear: stop };
+  }
+
+  g.PortfolioEsri = { version: VERSION, baseUrl: BASE, scriptUrl: SCRIPT_URL, themeHref: themeHref, integrity: integrity, loadTheme: loadTheme, load: load, showLoadError: showLoadError, visibleTimeout: visibleTimeout };
 }(window));

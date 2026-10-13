@@ -78,10 +78,10 @@ export const MapManager = {
         return new Promise((resolve, reject) => {
 
             let timedOut = false;
-            const timer = setTimeout(() => {
+            const timer = window.PortfolioEsri.visibleTimeout(MAP_READY_TIMEOUT_MS, () => {
                 timedOut = true;
                 reject(new Error("Map timed out"));
-            }, MAP_READY_TIMEOUT_MS);
+            });
 
             window.require([
                 "esri/Map",
@@ -96,7 +96,7 @@ export const MapManager = {
                     // wired without a map, so do not build one into that container now.
                     if (timedOut) return;
 
-                    clearTimeout(timer);
+                    timer.clear();
 
                     EsriMapClass = EsriMap;
                     MapView = EsriMapView;
@@ -136,7 +136,7 @@ export const MapManager = {
 
                 }, (err) => {
 
-                    clearTimeout(timer);
+                    timer.clear();
 
                     reject(err);
 

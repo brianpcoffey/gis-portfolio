@@ -21,12 +21,12 @@
             await window.PortfolioEsri.load();
             await new Promise((resolve, reject) => {
                 let timedOut = false;
-                const timer = setTimeout(() => {
+                const timer = window.PortfolioEsri.visibleTimeout(MAP_READY_TIMEOUT_MS, () => {
                     timedOut = true;
                     reject(new Error("Map timed out"));
-                }, MAP_READY_TIMEOUT_MS);
-                const ready = () => { clearTimeout(timer); resolve(); };
-                const failed = (err) => { clearTimeout(timer); reject(err); };
+                });
+                const ready = () => { timer.clear(); resolve(); };
+                const failed = (err) => { timer.clear(); reject(err); };
                 require([
                     "esri/Map",
                     "esri/views/MapView",
