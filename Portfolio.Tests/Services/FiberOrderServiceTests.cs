@@ -11,7 +11,6 @@ namespace Portfolio.Tests.Services
     public class FiberOrderServiceTests
     {
         private readonly Mock<IFiberOrderRepository> _orderRepoMock;
-        private readonly Mock<IFiberClientRepository> _clientRepoMock;
         private readonly Mock<IUserProfileService> _userProfileServiceMock;
         private readonly FakeTimeProvider _timeProvider;
         private readonly FiberOrderService _service;
@@ -20,11 +19,10 @@ namespace Portfolio.Tests.Services
         public FiberOrderServiceTests()
         {
             _orderRepoMock = new Mock<IFiberOrderRepository>();
-            _clientRepoMock = new Mock<IFiberClientRepository>();
             _userProfileServiceMock = new Mock<IUserProfileService>();
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns(_testUserId);
             _timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
-            _service = new FiberOrderService(_orderRepoMock.Object, _clientRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
+            _service = new FiberOrderService(_orderRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
         }
 
         [Fact]
@@ -62,7 +60,7 @@ namespace Portfolio.Tests.Services
         public async Task Throws_WhenUserNotIdentified()
         {
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
-            var service = new FiberOrderService(_orderRepoMock.Object, _clientRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
+            var service = new FiberOrderService(_orderRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.GetAllAsync());
         }
 
@@ -115,7 +113,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
-            var service = new FiberOrderService(_orderRepoMock.Object, _clientRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
+            var service = new FiberOrderService(_orderRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -244,7 +242,7 @@ namespace Portfolio.Tests.Services
         {
             // Arrange
             _userProfileServiceMock.Setup(x => x.GetCurrentUserId()).Returns((Guid?)null);
-            var service = new FiberOrderService(_orderRepoMock.Object, _clientRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
+            var service = new FiberOrderService(_orderRepoMock.Object, _userProfileServiceMock.Object, _timeProvider);
 
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteAsync(1));

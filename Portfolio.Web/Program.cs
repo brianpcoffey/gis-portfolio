@@ -65,7 +65,6 @@ builder.Services.AddSingleton(TimeProvider.System);
 
 // Repositories
 
-builder.Services.AddScoped<IFiberClientRepository, FiberClientRepository>();
 builder.Services.AddScoped<IFiberOrderRepository, FiberOrderRepository>();
 builder.Services.AddScoped<IFiberShipmentRepository, FiberShipmentRepository>();
 builder.Services.AddScoped<IFiberMaterialRepository, FiberMaterialRepository>();
@@ -140,7 +139,6 @@ builder.Services.AddOptions<ReverseGeocodingOptions>()
     .Bind(builder.Configuration.GetSection(ReverseGeocodingOptions.SectionName))
     .ValidateDataAnnotations();
 
-builder.Services.AddScoped<IBatchGeocodingService, BatchGeocodingService>();
 builder.Services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>()
     .AddResilienceHandler("arcgis-batch", pipeline =>
     {
@@ -165,7 +163,6 @@ builder.Services.AddHttpClient<IBatchGeocodingService, BatchGeocodingService>()
             BreakDuration     = TimeSpan.FromSeconds(15)
         });
     });
-builder.Services.AddScoped<IReverseGeocodingService, ReverseGeocodingService>();
 builder.Services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService>()
     .AddResilienceHandler("arcgis-reverse", pipeline =>
     {
@@ -190,7 +187,6 @@ builder.Services.AddHttpClient<IReverseGeocodingService, ReverseGeocodingService
             BreakDuration     = TimeSpan.FromSeconds(15)
         });
     });
-builder.Services.AddScoped<IAddressStandardizationService, AddressStandardizationService>();
 builder.Services.AddHttpClient<IAddressStandardizationService, AddressStandardizationService>()
     .AddResilienceHandler("arcgis-address", pipeline =>
     {
@@ -280,9 +276,6 @@ else
     // Local dev fallback: in-process distributed cache
     builder.Services.AddDistributedMemoryCache();
 }
-
-// AddMemoryCache kept for compatibility with any remaining IMemoryCache consumers.
-builder.Services.AddMemoryCache();
 
 builder.Services.AddSession(options =>
 {
@@ -386,8 +379,7 @@ builder.Services.AddAuthentication(options =>
                 GoogleId = googleId,
                 Email = email ?? string.Empty,
                 Name = name ?? string.Empty,
-                Picture = picture,
-                AnonymousUserId = anonId // Pass anonId for merge logic and testability
+                Picture = picture
             });
 
             // Remove anonymous cookie after merge

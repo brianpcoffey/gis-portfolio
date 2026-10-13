@@ -16,8 +16,5 @@ namespace Portfolio.Common.DTOs
 
         /// <summary>URL of the account's profile picture, if provided.</summary>
         public string? Picture { get; init; }
-
-        /// <summary>Id of the pre-login anonymous user to merge into this account, if any.</summary>
-        public Guid? AnonymousUserId { get; set; }
     }
 }
