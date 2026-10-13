@@ -53,8 +53,14 @@ public sealed class E2EHost : IAsyncLifetime
     /// <summary>The shared headless Chromium. Create a context per test through <see cref="NewSessionAsync"/>.</summary>
     public IBrowser Browser => _browser ?? throw NotStarted();
 
-    /// <summary>Why the third-party scripts could not be fetched at start-up, or <c>null</c> when they could.</summary>
-    public string? CdnProblem { get; private set; }
+    /// <summary>Why the third-party scripts could not be fetched at start-up (an outage), or <c>null</c> when they could.</summary>
+    public string? CdnOutage { get; private set; }
+
+    /// <summary>
+    /// Set when a CDN answered but refused a pinned URL (403, 404, 410 ...): the version was retired or this client is
+    /// blocked, which would break the production maps too. <c>null</c> when nothing was refused.
+    /// </summary>
+    public string? CdnRejection { get; private set; }
 
     public async ValueTask InitializeAsync()
     {
@@ -83,7 +89,7 @@ public sealed class E2EHost : IAsyncLifetime
         }
 
         await E2ESeed.RunAsync(_host.Services);
-        CdnProblem = await CheckCdnAsync();
+        await PreflightCdnAsync();
 
         _playwright = await Playwright.CreateAsync();
         _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
@@ -104,12 +110,24 @@ public sealed class E2EHost : IAsyncLifetime
     public Task<BrowserSession> NewSessionAsync(BrowserSessionOptions? options = null) =>
         BrowserSession.StartAsync(this, options ?? new BrowserSessionOptions());
 
-    /// <summary>Skips the calling test when the ArcGIS or Leaflet CDN was unreachable at start-up.</summary>
-    /// <remarks>An outage becomes a skip; a CDN file that CHANGED still fails, through its SRI pin.</remarks>
+    /// <summary>
+    /// Skips the calling test when the ArcGIS or Leaflet CDN was unreachable at start-up, and fails it when a CDN
+    /// refused a pinned URL.
+    /// </summary>
+    /// <remarks>
+    /// Only an outage (transport error, timeout, 5xx, 408, 429) becomes a skip. A retired or blocked URL fails, and
+    /// so does a CDN file that CHANGED, through its SRI pin.
+    /// </remarks>
     public void RequireCdn()
     {
-        if (CdnProblem is not null)
-            Assert.Skip($"CDN unreachable: {CdnProblem}");
+        if (CdnRejection is not null)
+        {
+            Assert.Fail(
+                $"A pinned third-party URL was refused, so the production maps would break too (this is not an outage): {CdnRejection}");
+        }
+
+        if (CdnOutage is not null)
+            Assert.Skip($"CDN unreachable: {CdnOutage}");
     }
 
     private static void ConfigureServices(IServiceCollection services, string database)
@@ -127,8 +145,9 @@ public sealed class E2EHost : IAsyncLifetime
     }
 
     // Looks up the pinned third-party URLs from the app's own files, then does a plain GET of each. This runs
-    // once, before any test: a failure here is an outage (skip), never a reason to fail the build.
-    private async Task<string?> CheckCdnAsync()
+    // once, before any test, and only records what it saw: an outage (transport error, timeout, 5xx, 408, 429) is
+    // a skip for the tests that need the CDN, any other refusal is a failure for them (see RequireCdn).
+    private async Task PreflightCdnAsync()
     {
         using var local = _host!.CreateClient();
         var themeScript = await local.GetStringAsync("/js/esri-theme.js");
@@ -148,16 +167,22 @@ public sealed class E2EHost : IAsyncLifetime
             try
             {
                 using var response = await external.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                if (!response.IsSuccessStatusCode)
-                    return $"{url} answered {(int)response.StatusCode}";
+                var answer = $"{url} answered {(int)response.StatusCode} {response.StatusCode}";
+                switch (CdnPreflight.Classify(response.StatusCode))
+                {
+                    case CdnVerdict.Outage:
+                        CdnOutage ??= answer;
+                        break;
+                    case CdnVerdict.Rejected:
+                        CdnRejection ??= answer;
+                        break;
+                }
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
-                return $"{url} could not be fetched ({ex.GetType().Name})";
+                CdnOutage ??= $"{url} could not be fetched ({ex.GetType().Name})";
             }
         }
-
-        return null;
     }
 
     private static InvalidOperationException NotStarted() =>
