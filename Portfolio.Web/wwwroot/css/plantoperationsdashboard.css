@@ -116,6 +116,11 @@ tr.plant-ops-low-stock > td {
     color: var(--status-danger-text);
     font-weight: 600;
 }
+/* components.css sets the dark-mode cell colour on every .table cell (and again on striped / hovered
+   rows), all more specific than the rule above; this one outranks them so the tint shows in dark mode. */
+body.dark-mode .table > tbody > tr.plant-ops-low-stock > td {
+    color: var(--status-danger-text);
+}
 
 /* Map frame (was an inline style on the wrapper div) */
 .plant-ops-map-frame {
