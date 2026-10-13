@@ -53,13 +53,6 @@
 
   <ItemGroup>
     <Using Include="Microsoft.EntityFrameworkCore" />
-    <Using Include="Microsoft.EntityFrameworkCore.Metadata.Builders" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="Microsoft.EntityFrameworkCore.Migrations" />
-    <Using Include="Npgsql.EntityFrameworkCore.PostgreSQL.Metadata" />
-    <Using Include="Microsoft.EntityFrameworkCore.Storage.ValueConversion" />
   </ItemGroup>
 
 </Project>
