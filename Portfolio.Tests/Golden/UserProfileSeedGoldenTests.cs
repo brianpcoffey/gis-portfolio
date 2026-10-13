@@ -135,10 +135,10 @@ namespace Portfolio.Tests.Golden
             Assert.Equal(0, await db.FiberInventoryTransactions.CountAsync(t => t.UserId != userA && t.UserId != userB));
         }
 
-        // Kept separate on purpose: Properties has no UserId, and decision D-07 may
-        // remove the Properties seeding from this service. Delete this test with it.
+        // Properties has no UserId. Decision D-07 removed the legacy Properties block from
+        // the seeder (a migration replaced those listings), so seeding adds none.
         [Fact]
-        public async Task Properties_AreSeededOnceGlobally_NotPerUser()
+        public async Task Seeding_AddsNoProperties()
         {
             // Arrange
             using var db = NewDb();
@@ -146,65 +146,16 @@ namespace Portfolio.Tests.Golden
 
             // Act
             await service.SeedForUserAsync(Guid.NewGuid());
-            Assert.Equal(ExpectedPropertyCount, await db.Properties.CountAsync());
-            var streets = (await db.Properties.Select(p => p.Street).ToListAsync()).Order(StringComparer.Ordinal).ToList();
-
             await service.SeedForUserAsync(Guid.NewGuid());
 
             // Assert
-            Assert.Equal(ExpectedPropertyCount, await db.Properties.CountAsync());
-            Assert.Equal(streets, (await db.Properties.Select(p => p.Street).ToListAsync()).Order(StringComparer.Ordinal).ToList());
-            Assert.Equal(ExpectedPropertyStreets, streets);
+            Assert.Equal(0, await db.Properties.CountAsync());
         }
 
         private static async Task<int> TotalRowsAsync(PortfolioDbContext db) =>
             await db.FiberClients.CountAsync() + await db.FiberMaterials.CountAsync() +
             await db.FiberOrders.CountAsync() + await db.FiberShipments.CountAsync() +
             await db.FiberInventoryTransactions.CountAsync() + await db.Properties.CountAsync();
-
-        private const int ExpectedPropertyCount = 40;
-        private static readonly string[] ExpectedPropertyStreets = [
-            "1076 Occidental Cir",
-            "120 Franklin Ave",
-            "135 E Cypress Ave",
-            "14 Paseo Verde",
-            "1412 Medallion St",
-            "1427 Laramie Ave",
-            "1469 Moore St",
-            "1510 Karon St",
-            "1525 Garden St",
-            "1539 Robyn St",
-            "1582 Franklin Ave",
-            "1612 Bellevue Rd",
-            "162 Lakeside Ave",
-            "1641 Ford Ave",
-            "1678 Harrison Ln",
-            "171 Bellevue Ave",
-            "1802 Pummelo Dr",
-            "2060 Tangelo Ln",
-            "2072 Tangelo Ln",
-            "254 E Fern Ave APT 212",
-            "261 E Crescent Ave",
-            "31397 Mesa Dr",
-            "356 Campbell Ave",
-            "37 Citrus Ct",
-            "414 Myrtle Ave",
-            "48 N Center St",
-            "527 W Palm Ave",
-            "543 E Mariposa Dr",
-            "622 Esther Way",
-            "626 N Dearborn St Spc 56",
-            "837 Railway Ln",
-            "838 W Brockton Ave",
-            "839 Railway Ln",
-            "847 Railway Ln",
-            "859 Railway Ln",
-            "875 Railway Ln",
-            "915 Alta St",
-            "93 Kansas St APT 202",
-            "936 Judson St",
-            "947 Nottingham Dr"
-        ];
 
         private const string ExpectedCanonical = """
             ## clients
