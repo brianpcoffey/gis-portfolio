@@ -15,14 +15,9 @@ internal static class AuthenticationRegistration
         services.AddAuthentication(options =>
         {
             options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            // Challenge with the cookie scheme, NOT Google. An [Authorize] page or controller
-            // that denies an unauthenticated request must land on the app's own /Login page
-            // (via the cookie LoginPath / OnRedirectToLogin handler below), which then offers
-            // an explicit "Continue with Google" button. Making Google the default challenge
-            // scheme instead sends users straight to accounts.google.com — bypassing /Login and
-            // surfacing a raw Google error (e.g. redirect_uri_mismatch) — and leaves the cookie
-            // OnRedirectToLogin API-vs-page handling as dead code. Google is still invoked
-            // explicitly by the Login page handler (Challenge(props, "Google")).
+            // Challenge with the cookie scheme, NOT Google, so a denied [Authorize] request lands on
+            // the app's own /Login page (which offers "Continue with Google") instead of going straight
+            // to accounts.google.com. Google is challenged explicitly by the Login page handler.
             options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         })
         .AddCookie(options =>
@@ -56,12 +51,10 @@ internal static class AuthenticationRegistration
             options.Scope.Add("email");
             options.ClaimActions.MapJsonKey("picture", "picture");
 
-            // Google is the default challenge scheme, so an unauthenticated request to a
-            // protected endpoint would otherwise 302 straight to accounts.google.com. For
-            // API calls that produces a cross-origin redirect the browser's fetch cannot
-            // follow (no CORS headers), surfacing as an opaque failure instead of a clean
-            // 401. Return 401 for /api paths so the client can react (redirect to /Login);
-            // full-page navigations still get the normal Google redirect.
+            // Defensive: the cookie scheme is the default challenge, so nothing challenges Google on an
+            // /api path today. If something ever does, answer 401 rather than a cross-origin redirect to
+            // accounts.google.com that the browser's fetch cannot follow. Page navigations still get
+            // the normal Google redirect.
             options.Events.OnRedirectToAuthorizationEndpoint = context =>
                 PortfolioCookieEvents.ApiAwareRedirect(context, StatusCodes.Status401Unauthorized);
         });

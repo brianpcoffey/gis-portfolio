@@ -52,7 +52,7 @@ internal static class DataRegistration
     }
 
     // --------------------------
-    // Database Context (PostgreSQL via Render / Supabase)
+    // Database Context (PostgreSQL on Neon)
     // --------------------------
     internal static IServiceCollection AddPortfolioDatabase(this IServiceCollection services, IConfiguration configuration)
     {

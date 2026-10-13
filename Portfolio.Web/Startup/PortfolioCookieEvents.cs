@@ -12,14 +12,12 @@ namespace Portfolio.Web.Startup;
 internal sealed class PortfolioCookieEvents : CookieAuthenticationEvents
 {
     // -------------------------------------------------------
-    // Return 401 for unauthenticated API requests instead of
-    // a 302 redirect to the login page. This prevents fetch/XHR
-    // calls from silently following a redirect to Google OAuth,
-    // which causes CORS errors because accounts.google.com
-    // does not include the caller's origin in its CORS headers.
+    // Return 401/403 for API requests instead of a 302 to the /Login
+    // page, so fetch/XHR callers get a status they can react to
+    // (the client then sends the user to /Login) instead of silently
+    // following the redirect and parsing the login page as JSON.
     //
-    // Non-API (Razor Pages) requests still get the normal 302
-    // redirect so full-page navigation to Google OAuth works.
+    // Non-API (Razor Pages) requests still get the normal 302 redirect.
     // -------------------------------------------------------
     public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context) =>
         ApiAwareRedirect(context, StatusCodes.Status401Unauthorized);

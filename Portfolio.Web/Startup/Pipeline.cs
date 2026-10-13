@@ -14,7 +14,7 @@ internal static class Pipeline
     {
         // Apply X-Forwarded-For / X-Forwarded-Proto from Render's TLS-terminating proxy.
         // Must be first so every downstream middleware sees the correct scheme and IP.
-        // Options (KnownNetworks/KnownProxies cleared) are registered in the services section above.
+        // Options are registered by AddPortfolioForwardedHeaders.
         app.UseForwardedHeaders();
 
         // Emit security headers on every response (before static files / endpoints run).

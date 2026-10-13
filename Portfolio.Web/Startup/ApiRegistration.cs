@@ -19,7 +19,7 @@ internal static class ApiRegistration
     // --------------------------
     // API Versioning
     // --------------------------
-    // Also registers OpenAPI (Swagger / API Explorer section) so the call order is unchanged.
+    // Versioning, the API Explorer and OpenAPI are registered together, in that order.
     internal static IServiceCollection AddPortfolioApiVersioning(this IServiceCollection services)
     {
         services.AddApiVersioning(options =>
@@ -38,7 +38,7 @@ internal static class ApiRegistration
         });
 
         // --------------------------
-        // Swagger / API Explorer
+        // OpenAPI / API Explorer (the document is served by Scalar)
         // --------------------------
         services.AddEndpointsApiExplorer();
         services.AddOpenApi();
