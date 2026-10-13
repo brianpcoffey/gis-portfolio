@@ -8,7 +8,8 @@ namespace Portfolio.Repositories.Maintenance;
 /// <remarks>
 /// A generated EF migration holds schema operations only, so this data fix cannot live inside
 /// <c>UniqueOrderNumberPerUser</c>. The startup migration step runs it just before <c>Migrate()</c>, and only while
-/// that migration is still pending.
+/// that migration is still pending. Two processes running it at the same time could give one row a double suffix
+/// (<c>-57-57</c>); the result is still unique, and production runs a single instance.
 /// </remarks>
 public static class FiberOrderNumberDedupe
 {

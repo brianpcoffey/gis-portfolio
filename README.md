@@ -1,21 +1,23 @@
 # Brian Patrick Coffey – Software Engineering Portfolio
 
 [![CI](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/ci.yml)
-![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-10.0-512BD4?style=flat&logo=dotnet&logoColor=white)
-![C#](https://img.shields.io/badge/C%23-14.0-239120?style=flat&logo=csharp&logoColor=white)
-![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat&logo=cplusplus&logoColor=white)
-![CMake](https://img.shields.io/badge/CMake-Build-064F8C?style=flat&logo=cmake&logoColor=white)
-![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=flat&logo=bootstrap&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon.tech-4169E1?style=flat&logo=postgresql&logoColor=white)
-![Entity Framework Core](https://img.shields.io/badge/EF_Core-Code--First-512BD4?style=flat&logo=dotnet&logoColor=white)
-![ArcGIS](https://img.shields.io/badge/ArcGIS-JS_API-2C7AC3?style=flat&logo=esri&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-Cache_%26_Job_State-DC382D?style=flat&logo=redis&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-Manifests-326CE5?style=flat&logo=kubernetes&logoColor=white)
-![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
-![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
-![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
-![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
+[![CodeQL](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/brianpcoffey/gis-portfolio/actions/workflows/github-code-scanning/codeql)
+[![Live site](https://img.shields.io/badge/Live_site-brianpcoffey.com-2C7AC3?style=flat)](https://brianpcoffey.com)
+
+A live, full-stack .NET 10 portfolio: 18 interactive demos, mostly GIS and spatial compute, on a layered ASP.NET Core API with PostgreSQL, plus 13 C++ kernels whose benchmarks are published in full, losses included.
+
+**Try it:** [All projects](https://brianpcoffey.com/Projects) · [Home Finder](https://brianpcoffey.com/Projects/HomeFinder) · [Route Planner](https://brianpcoffey.com/Projects/Network) · [Fleet Route Optimizer](https://brianpcoffey.com/Projects/Fleet) · [US State Explorer](https://brianpcoffey.com/Projects/StateExplorer) · [API reference (Scalar)](https://brianpcoffey.com/scalar)
+
+## At a glance
+
+- **Live site.** A .NET 10 Razor Pages app and a versioned JSON API (`/api/v1/...`, documented with OpenAPI and a [Scalar](https://brianpcoffey.com/scalar) reference) host 18 interactive demos, each with a demo page and a technical Details page.
+- **Layered architecture.** Razor Pages and controllers call service interfaces, which call repository interfaces over EF Core and PostgreSQL. ArcGIS is reached through typed `HttpClient`s with Polly timeout, retry and circuit-breaker policies. See [Solution Architecture](#solution-architecture).
+- **CI gates.** Every push and pull request to `main` runs a format check, a warnings-as-errors build with a complexity gate, the tests with ratcheting coverage floors, a native-parity job (all 13 kernels loaded, then native disabled) and a production Docker build. Render deploys only after those pass. CodeQL (GitHub default setup), dependency review on PRs and a weekly vulnerable-package sweep run alongside.
+- **13 C++ kernels with managed fallbacks.** Each kernel is a C++20 library behind P/Invoke, with a managed C# fallback whose results are checksum-compared against it on every benchmark workload. Measured against that fallback across 21 workloads, native runs at **0.37× to 2.26×** the managed speed: **9 wins, 5 losses, 7 ties** (win ≥ 1.15×, loss ≤ 0.85×, tie within ±15%). **Production runs the managed paths**; the container image ships no native code. Table and method: [Measured speedup](#measured-speedup).
+- **Security and identity.** Security headers on every response, a nonce-based Content-Security-Policy in Report-Only mode beside an enforced baseline policy, per-IP rate limiting plus a shared CPU concurrency limiter on the compute endpoints, and two deliberately separate identity systems (an anonymous cookie identity and Google sign-in) with a single `Authenticated` authorization policy. See [Features](#features).
+- **Hosting.** Render (Docker) with PostgreSQL on Neon and optional Redis (Upstash) for cache, batch-job state and Data Protection keys. On Render's free plan the service spins down when idle. A scheduled keep-warm ping keeps it awake from 12:00 to 03:59 UTC; outside that window the first request after a quiet period can take 30-90 seconds ([details](docs/render-deployment.md#cold-starts-and-the-keep-warm-ping)). Azure, AKS and Azure Container Apps are future targets, not current dependencies.
+
+---
 
 ## Overview
 
@@ -33,13 +35,13 @@ The solution follows a classic 4-layer architecture across 6 projects:
 Razor Page / API Controller  (Portfolio.Web)
         │
         ▼
-   Service (interface)       (Portfolio.Services)
+   Service (interface)       (Portfolio.Services)  ──▶ typed HttpClient ──▶ ArcGIS REST
         │
         ▼
  Repository (interface)      (Portfolio.Repositories)
         │
         ▼
-  PortfolioDbContext (EF Core) / HttpClient (ArcGIS)
+  PortfolioDbContext (EF Core) ──▶ PostgreSQL
 ```
 
 | Project | Role |
@@ -50,6 +52,55 @@ Razor Page / API Controller  (Portfolio.Web)
 | `Portfolio.Common` | POCO entity models, DTOs, enums, and ArcGIS wire models |
 | `Portfolio.Tests` | xUnit + Moq tests: unit tests for services and controllers, golden and contract tests, and in-process host tests of the real pipeline |
 | `Portfolio.Benchmarks` | Console harness that times each native kernel against its managed fallback and checksums both results |
+
+**Runtime and delivery.** Solid arrows are the normal flow; dashed arrows are optional or not deployed.
+
+```mermaid
+flowchart LR
+    subgraph Client["Browser"]
+        UI["Server-rendered HTML, vanilla JS"]
+    end
+
+    CDN["ArcGIS JS, Leaflet (CDN)"]
+
+    subgraph Render["Render (Docker)"]
+        MW["Middleware pipeline"]
+        WEB["Razor Pages, API v1"]
+        SVC["Services"]
+        REPO["Repositories"]
+        HTTP["Typed HttpClients, Polly"]
+        MGD["Managed C# fallback"]
+        NAT["C++ kernels (not deployed)"]
+        MW --> WEB --> SVC
+        SVC --> REPO
+        SVC --> HTTP
+        SVC -->|"production path"| MGD
+        SVC -.->|"P/Invoke if library loads"| NAT
+    end
+
+    PG[("PostgreSQL (Neon)")]
+    REDIS[("Redis (Upstash, optional)")]
+    ARC["ArcGIS REST"]
+
+    UI -->|"HTTPS"| MW
+    UI -->|"loads scripts"| CDN
+    REPO -->|"EF Core"| PG
+    HTTP -->|"HTTPS"| ARC
+    Render -.->|"cache, job state, keys"| REDIS
+
+    subgraph GH["GitHub Actions"]
+        T["Test and coverage"]
+        P["Native parity"]
+        D["Docker build"]
+        H["Deploy hook"]
+        T --> H
+        P --> H
+        D --> H
+    end
+    H -->|"triggers deploy"| Render
+```
+
+The P/Invoke bridges ship in the image, but the C++ libraries are built only in the CI native-parity job and on a developer machine, so the deployed service always takes the managed path. Redis is optional: without `Redis:ConnectionString` the app uses in-memory caches and job state.
 
 ---
 
@@ -585,6 +636,22 @@ Last-mile dispatch planning as an actual optimization problem rather than a shor
 
 ## Technology Stack
 
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-10.0-512BD4?style=flat&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-14.0-239120?style=flat&logo=csharp&logoColor=white)
+![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat&logo=cplusplus&logoColor=white)
+![CMake](https://img.shields.io/badge/CMake-Build-064F8C?style=flat&logo=cmake&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=flat&logo=bootstrap&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon.tech-4169E1?style=flat&logo=postgresql&logoColor=white)
+![Entity Framework Core](https://img.shields.io/badge/EF_Core-Code--First-512BD4?style=flat&logo=dotnet&logoColor=white)
+![ArcGIS](https://img.shields.io/badge/ArcGIS-JS_API-2C7AC3?style=flat&logo=esri&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-Cache_%26_Job_State-DC382D?style=flat&logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Manifests-326CE5?style=flat&logo=kubernetes&logoColor=white)
+![Google OAuth](https://img.shields.io/badge/Google-OAuth_2.0-4285F4?style=flat&logo=google&logoColor=white)
+![Polly](https://img.shields.io/badge/Polly-Resilience-512BD4?style=flat&logo=dotnet&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-Scalar-6BA539?style=flat&logo=openapiinitiative&logoColor=white)
+![Hosted on Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat&logo=render&logoColor=white)
+
 | Layer | Technology |
 |---|---|
 | Backend | ASP.NET Core 10, C# 14 |
@@ -595,7 +662,7 @@ Last-mile dispatch planning as an actual optimization problem rather than a shor
 | GIS | ArcGIS JavaScript API, ArcGIS REST `sampleserver6.arcgisonline.com` |
 | Authentication | Google OAuth 2.0, Cookie Authentication |
 | Caching | `IDistributedCache` — Redis in production, `MemoryDistributedCache` in dev (geocoding + job state) |
-| Native Performance | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across thirteen kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`, `spatial_overlay_kernel`, `cat_risk_kernel`, `change_detection_kernel`, `network_trace_kernel`, `facility_location_kernel`, `vrp_solver_kernel`) |
+| Native interop | C++20 native-kernel pattern with stable C ABI, P/Invoke bridge, `IsAvailable` guard, and managed C# fallback across thirteen kernels (`portfolio_scoring`, `geostream_processor`, `spatial_geometry_kernel`, `raster_terrain_kernel`, `spatial_graph_engine`, `spatial_cluster_kernel`, `viewshed_kernel`, `spatial_overlay_kernel`, `cat_risk_kernel`, `change_detection_kernel`, `network_trace_kernel`, `facility_location_kernel`, `vrp_solver_kernel`) |
 | API Docs | Scalar / OpenAPI (all environments), XML doc comments |
 | Styling | Custom CSS with dark/light mode support |
 | Hosting | Render (continuous deployment from GitHub) |
@@ -726,6 +793,7 @@ Leaving `Redis:ConnectionString` empty activates the in-process `MemoryDistribut
 ### Render (current production)
 - Continuous deployment from the [`main` branch on GitHub](https://github.com/brianpcoffey/gis-portfolio). The CI `deploy` job triggers Render after the test, native-parity and Docker jobs pass (it needs the `RENDER_DEPLOY_HOOK` repository secret, with Render's own Auto-Deploy switched off); a push to `main` is therefore a production deploy. See [`docs/render-deployment.md`](docs/render-deployment.md).
 - Database hosted on **Neon.tech** PostgreSQL.
+- Cold starts: on the free plan the service sleeps after 15 minutes without traffic. A scheduled GitHub Actions workflow (`.github/workflows/keep-warm.yml`) pings `/health/live` every 5 minutes from 12:00 to 03:59 UTC to keep it awake in working hours. See [Cold starts and the keep-warm ping](docs/render-deployment.md#cold-starts-and-the-keep-warm-ping).
 - EF Core migrations run at startup, which is what production does: Render's free plan locks the Pre-Deploy Command field (observed in the Render dashboard, October 2026), so it stays empty. On a host or plan that has a pre-deploy step, `dotnet Portfolio.Web.dll --migrate` there plus `RunMigrationsOnStartup=false` keeps the schema check off the cold-start path — set both or neither (see [`docs/render-deployment.md`](docs/render-deployment.md)).
 - HSTS enabled in non-development environments; HTTPS redirection runs only in development (Render terminates TLS at its proxy, so the container serves plain HTTP).
 - Secrets (`DATABASE_URL`, `Redis__ConnectionString`, Google OAuth credentials) are injected as environment variables.
