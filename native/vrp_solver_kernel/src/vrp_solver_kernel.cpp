@@ -11,8 +11,8 @@ namespace
 	constexpr double kEpsilon = 1e-9;
 
 	// Everything the objective and the feasibility walk need, gathered once so the move
-	// operators stay short. Mirrored by FleetRoutingService.SolverContext on the managed
-	// path — the two implementations must agree move for move.
+	// operators stay short. Mirrored by SolverContext (Fleet/ManagedVrpSolver.cs) on the
+	// managed path — the two implementations must agree move for move.
 	struct Solver
 	{
 		const double* cost;

@@ -186,9 +186,8 @@ extern "C" FACLOC_API int Facility_SolvePMedian(
 		std::vector<int> chosen;
 		chosen.reserve(facilityCount);
 
-		// ── Greedy seed ────────────────────────────────────────────────────────
-		// Open the single best facility, then repeatedly open whichever remaining
-		// candidate improves the objective most given everything already open.
+		// Greedy seed: open the single best facility, then repeatedly open whichever
+		// remaining candidate improves the objective most given everything already open.
 		for (int k = 0; k < facilityCount; ++k)
 		{
 			int best = -1;
@@ -240,12 +239,12 @@ extern "C" FACLOC_API int Facility_SolvePMedian(
 		outIterationObjectives[0] = currentObjective;
 		*outIterationCount = 1;
 
-		// ── Teitz-Bart vertex substitution ─────────────────────────────────────
-		// Each pass evaluates every (open facility, closed candidate) swap and applies
-		// the single best improving one. Because nearest and second-nearest are cached,
-		// a trial costs O(demand) instead of O(demand x p): dropping facility `slot`
-		// leaves a demand point on its second-nearest, and everything else keeps its
-		// current nearest, so one pass over the candidate's row finishes the job.
+		// Teitz-Bart vertex substitution: each pass evaluates every (open facility, closed
+		// candidate) swap and applies the single best improving one. Because nearest and
+		// second-nearest are cached, a trial costs O(demand) instead of O(demand x p):
+		// dropping facility `slot` leaves a demand point on its second-nearest, and
+		// everything else keeps its current nearest, so one pass over the candidate's row
+		// finishes the job.
 		const int p = static_cast<int>(chosen.size());
 		for (int iteration = 0; iteration < maxIterations && p < candidateCount; ++iteration)
 		{

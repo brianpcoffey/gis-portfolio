@@ -22,15 +22,11 @@
 #include <algorithm>  /* std::clamp */
 #include <cstdint>
 
-/* -----------------------------------------------------------------------
- * Internal helpers (not exported)
- * ----------------------------------------------------------------------- */
 namespace
 {
 	constexpr double kAnnualInterestRate = 0.065;
 	constexpr int    kLoanTermMonths     = 360;  // 30-year fixed
 
-	/* clamp to [0, 100] */
 	inline double clamp100(double v) noexcept
 	{
 		return std::clamp(v, 0.0, 100.0);
@@ -59,7 +55,6 @@ namespace
 			mortgage = loan_amount / static_cast<double>(kLoanTermMonths);
 		}
 
-		/* mortgage + annual_tax/12 + monthly_hoa + monthly_utilities */
 		return std::round((mortgage + (p.propertyTax / 12.0) + p.hoaFee + p.utilities) * 100.0) / 100.0;
 	}
 
@@ -166,7 +161,6 @@ namespace
 
 		const double denom = (total_weight > 0.0) ? total_weight : 1.0;
 
-		/* Sub-scores */
 		const double monthly_cost = estimate_monthly_cost(p);
 
 		out.estimatedMonthlyCost = monthly_cost;
@@ -181,7 +175,6 @@ namespace
 		out.resale         = clamp100(p.resalePotential);
 		out.environment    = score_environment(p);
 
-		/* Weighted composite */
 		out.composite = clamp100(
 			(prefs.wAffordability / denom) * out.affordability
 		  + (prefs.wNeighborhood  / denom) * out.neighborhood
@@ -196,10 +189,6 @@ namespace
 	}
 
 } /* anonymous namespace */
-
-/* -----------------------------------------------------------------------
- * Exported entry points
- * ----------------------------------------------------------------------- */
 
 extern "C"
 {
