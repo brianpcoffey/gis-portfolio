@@ -15,6 +15,14 @@
     return out;
   }
 
+  // --map-series-1..8: the light series colours for marks drawn over basemap tiles, which stay light
+  // in both themes (so, unlike palette(), the result does not change with the theme).
+  function mapPalette(n) {
+    var out = [], count = n === undefined ? 8 : n;
+    for (var i = 0; i < count; i++) { out.push(token("map-series-" + ((i % 8) + 1))); }
+    return out;
+  }
+
   // 'success'|'danger'|'warning'|'info' -> resolved --status-*-fill
   function status(kind) { return token("status-" + kind + "-fill"); }
 
@@ -130,7 +138,7 @@
   }
 
   g.PortfolioCharts = {
-    token: token, palette: palette, status: status, onThemeChange: onThemeChange,
+    token: token, palette: palette, mapPalette: mapPalette, status: status, onThemeChange: onThemeChange,
     svg: svg, scale: scale, ticks: ticks, mix: mix, rng: rng, legend: legend, describe: describe
   };
 }(window));
