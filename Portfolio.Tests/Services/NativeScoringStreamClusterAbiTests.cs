@@ -205,6 +205,151 @@ namespace Portfolio.Tests.Services
         }
 
         // ---------------------------------------------------------------------------------------
+        // geostream: float-to-int edge values. The kernel used static_cast<int> on an unbounded
+        // quotient, which is undefined behaviour in C++; it must now give the result .NET gives.
+        // ---------------------------------------------------------------------------------------
+
+        // Runs a native call that must return a status code and must not throw: no C++ exception
+        // (or managed marshalling failure) may surface as an exception on this side of the boundary.
+        private static void AssertStatus(int expected, Func<int> nativeCall)
+        {
+            var status = int.MinValue;
+            var exception = Record.Exception(() => status = nativeCall());
+
+            Assert.Null(exception);
+            Assert.Equal(expected, status);
+        }
+
+        public static TheoryData<double> NonFiniteOrNonPositiveGrids => new()
+        {
+            double.NaN,
+            double.PositiveInfinity,
+            double.NegativeInfinity,
+            0.0,
+            -0.0,
+            -1.0,
+            -1e300
+        };
+
+        [Theory]
+        [MemberData(nameof(NonFiniteOrNonPositiveGrids))]
+        public void NativeGeoStream_GridThatIsNotFiniteAndPositive_ReturnsMinusOne(double grid)
+        {
+            Assert.SkipUnless(GeoStreamNativeBridge.IsAvailable, "native library not loaded");
+
+            var events = new[] { NativeEvent(34, -117, 10) };
+            var options = NativeOptions(grid);
+            var aggregates = new GridAggregateNative[1];
+
+            AssertStatus(-1, () => GeoStreamNativeInterop.ProcessTelemetryBatch(events, 1, in options, aggregates, 1, out _));
+        }
+
+        [Theory]
+        [MemberData(nameof(NonFiniteOrNonPositiveGrids))]
+        public void GeoStreamBridge_GridThatIsNotFiniteAndPositive_FallsBackInsteadOfThrowing(double grid)
+        {
+            Assert.SkipUnless(GeoStreamNativeBridge.IsAvailable, "native library not loaded");
+
+            var request = new GeoStreamBatchRequestDto
+            {
+                GridSizeDegrees = grid,
+                Events = SampleEvents(10, 5304)
+            };
+
+            // The native -1 status becomes an InvalidOperationException inside the bridge, which the
+            // Try... wrapper classifies as a native failure: it reports false so the service runs the
+            // managed path, and the exception never reaches the caller.
+            Assert.False(GeoStreamNativeBridge.TryProcessBatch(request, NullLogger.Instance, out var result));
+            Assert.Null(result);
+
+            var thrown = Assert.Throws<InvalidOperationException>(() => GeoStreamNativeBridge.ProcessBatch(request));
+            Assert.Contains("status -1", thrown.Message);
+        }
+
+        // Grids far below the managed service minimum (1e-6), so the quotient overflows int32 for every
+        // event but those on the lower edge (numerator 0) - or overflows double itself to +Infinity.
+        // Denormal grids are left out on purpose: -ffast-math on GCC flushes denormals to zero when
+        // the library loads, so how the platform treats one is not part of this contract.
+        public static TheoryData<double> SaturatingGrids => new()
+        {
+            1e-9,
+            1e-12,
+            1e-100,
+            1e-300,
+            2.2250738585072014E-308
+        };
+
+        [Theory]
+        [MemberData(nameof(SaturatingGrids))]
+        public void NativeGeoStream_GridTooSmallForInt32_SaturatesLikeDotNet(double grid)
+        {
+            Assert.SkipUnless(GeoStreamNativeBridge.IsAvailable, "native library not loaded");
+
+            var request = new GeoStreamBatchRequestDto
+            {
+                GridSizeDegrees = grid,
+                AnomalySpeedThresholdMetersPerSecond = 30,
+                Events =
+                [
+                    Event(-90, -180, 5),    // numerator 0: cell (0, 0) at any grid
+                    Event(0, 0, 40),        // quotient 180/grid and 90/grid
+                    Event(90, 180, 20),     // largest valid quotient
+                    Event(34.05, -117.18, 31),
+                    Event(34.05, -117.18, 10)
+                ]
+            };
+
+            var native = GeoStreamNativeBridge.ProcessBatch(request);
+
+            AssertSameGeoStreamResult(ReferenceGeoStream(request), native);
+            Assert.Contains(native.Aggregates, a => a.CellX == int.MaxValue && a.CellY == int.MaxValue);
+        }
+
+        private static TelemetryEventDto Event(double latitude, double longitude, double speed) => new()
+        {
+            EntityId = 1,
+            TimestampUtc = DateTime.UnixEpoch,
+            Latitude = latitude,
+            Longitude = longitude,
+            SpeedMetersPerSecond = speed
+        };
+
+        [Theory]
+        [InlineData(0.5)]
+        [InlineData(1e-6)]
+        [InlineData(1e-12)]
+        public void NativeGeoStream_NonFiniteAndHugePositions_AreInvalidLikeManaged(double grid)
+        {
+            Assert.SkipUnless(GeoStreamNativeBridge.IsAvailable, "native library not loaded");
+
+            var request = new GeoStreamBatchRequestDto
+            {
+                GridSizeDegrees = grid,
+                Events =
+                [
+                    Event(34.05, -117.18, 12),
+                    Event(double.NaN, -117.18, 12),
+                    Event(34.05, double.NaN, 12),
+                    Event(double.PositiveInfinity, -117.18, 12),
+                    Event(34.05, double.NegativeInfinity, 12),
+                    Event(1e300, 0, 12),
+                    Event(0, -1e300, 12),
+                    Event(90.0000001, 0, 12),
+                    Event(0, -180.0000001, 12),
+                    Event(double.NaN, double.NaN, 12),
+                    Event(-90, 180, 12)
+                ]
+            };
+
+            var native = GeoStreamNativeBridge.ProcessBatch(request);
+
+            Assert.Equal(11, native.TotalEvents);
+            Assert.Equal(2, native.ValidEvents);
+            Assert.Equal(9, native.InvalidEvents);
+            AssertSameGeoStreamResult(ReferenceGeoStream(request), native);
+        }
+
+        // ---------------------------------------------------------------------------------------
         // cluster: status codes that already existed must keep their meaning.
         // ---------------------------------------------------------------------------------------
 
