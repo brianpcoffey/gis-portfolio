@@ -23,11 +23,13 @@ public sealed class PlantOpsOrderFormTests(E2EHost host) : BrowserTestBase(host)
     {
         // Arrange
         await StartAsync();
-        var posts = new ConcurrentQueue<IRequest>();
+        // Kept as text ("POST url"), so a failing assertion prints what was sent where and not the request objects (their headers
+        // carry the sign-in cookie).
+        var posts = new ConcurrentQueue<string>();
         Page.Request += (_, request) =>
         {
-            if (request.Method == "POST" && new Uri(request.Url).AbsolutePath == OrdersPath)
-                posts.Enqueue(request);
+            if (IsOrderPost(request.Method, request.Url))
+                posts.Enqueue($"{request.Method} {request.Url}");
         };
         await Loader.LoadAsync(PageCatalog.Find("/Projects/PlantOperationsDashboard"));
         // The orders arrive after the page's start-up requests; the seed gives a new visitor a set of demo orders.
@@ -49,9 +51,12 @@ public sealed class PlantOpsOrderFormTests(E2EHost host) : BrowserTestBase(host)
         // which shows the test really delivers two clicks to the button.
         await Page.EvaluateAsync(
             "() => { window.submitClicks = 0; window.addEventListener('click', e => { if (e.target.closest && e.target.closest('#orderForm button[type=submit]')) window.submitClicks++; }, true); }");
-        await form.Locator("button[type=submit]").DblClickAsync();
-        // The table is reloaded after the save, so a row more is the end of the flow.
-        await Page.WaitForFunctionAsync($"n => ({OrderCount})() === n + 1", before);
+        var saved = await Page.RunAndWaitForResponseAsync(
+            () => form.Locator("button[type=submit]").DblClickAsync(),
+            response => IsOrderPost(response.Request.Method, response.Url));
+        // The table is reloaded after the save, so a row more is the end of the flow. "At least": with the guards gone the second
+        // save adds a second row, and the test should then fail at the POST count below, in about a second, not time out here.
+        await Page.WaitForFunctionAsync($"n => ({OrderCount})() >= n + 1", before);
         // The table shows ten rows a page, so the new one is found through the table's own search box.
         await Page.Locator("#plantOpsOrdersTable_filter input").FillAsync(ClientName);
         var created = Page.Locator("#plantOpsOrdersTable tbody tr", new PageLocatorOptions { HasText = ClientName });
@@ -60,13 +65,14 @@ public sealed class PlantOpsOrderFormTests(E2EHost host) : BrowserTestBase(host)
         // Assert: counted after the table has changed, which needs the first response, so a second POST (issued within
         // milliseconds of the first, before that response) would be queued by now.
         Assert.Equal(2, await Page.EvaluateAsync<int>("() => window.submitClicks"));
-        var post = Assert.Single(posts);
-        var response = await post.ResponseAsync();
-        Assert.NotNull(response);
-        Assert.Equal(201, response.Status);
+        Assert.Single(posts);
+        Assert.Equal(201, saved.Status);
         Assert.Equal(before + 1, await Page.EvaluateAsync<int>(OrderCount));
         Assert.Equal(1, await created.CountAsync());
         Assert.Matches(new Regex(@"^ORD-\d{8}-\d{4}$", RegexOptions.None, TimeSpan.FromSeconds(1)), orderNumber);
         Session.AssertClean(ConsoleAllowList.ForPage(await Page.EvaluateAsync<string?>("() => window.PortfolioEsri?.baseUrl ?? null")));
     }
+
+    private static bool IsOrderPost(string method, string url) =>
+        method == "POST" && new Uri(url).AbsolutePath == OrdersPath;
 }
