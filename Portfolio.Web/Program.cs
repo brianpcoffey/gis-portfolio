@@ -1,4 +1,4 @@
-﻿using Portfolio.Web.Startup;
+using Portfolio.Web.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.ConfigurePortfolioKestrel();
