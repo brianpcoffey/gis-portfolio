@@ -13,6 +13,25 @@ internal static class Pipeline
         // Options are registered by AddPortfolioForwardedHeaders.
         app.UseForwardedHeaders();
 
+        // TEMPORARY (WP-52 diagnostic; remove in the next PR): for a request carrying the one-off token
+        // below, log what UseForwardedHeaders saw, to identify the proxy hops in front of the app. After the
+        // middleware, X-Original-For is the connecting peer, RemoteIpAddress the entry it selected, and
+        // X-Forwarded-For the entries it left unconsumed. No other request is logged.
+        var xffProbe = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("XffProbe");
+        app.Use(async (ctx, next) =>
+        {
+            if (ctx.Request.Query["xffprobe"] == "968b5dc37bd16382bcf19dabbd0e534b")
+            {
+                var h = ctx.Request.Headers;
+                xffProbe.LogWarning(
+                    "XFF probe: peer={Peer} selected={Selected} remainingXff={Xff} realIp={RealIp} trueClientIp={TrueClientIp} cfConnectingIp={CfIp} cfRay={CfRay} via={Via} host={Host}",
+                    h["X-Original-For"].ToString(), ctx.Connection.RemoteIpAddress?.ToString(), h["X-Forwarded-For"].ToString(),
+                    h["X-Real-IP"].ToString(), h["True-Client-IP"].ToString(), h["CF-Connecting-IP"].ToString(),
+                    h["CF-Ray"].ToString().Length > 0, h["Via"].ToString(), ctx.Request.Host.Value);
+            }
+            await next();
+        });
+
         // Emit security headers on every response (before static files / endpoints run).
         app.UseMiddleware<SecurityHeadersMiddleware>();
 
