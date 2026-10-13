@@ -28,21 +28,11 @@ using Portfolio.Web.RateLimiting;
 using System.Threading.RateLimiting;
 using Scalar.AspNetCore;
 using System.Security.Claims;
+using Portfolio.Web.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --------------------------
-// Kestrel limits
-// --------------------------
-// 1 MB is the default request-body ceiling for every endpoint; the compute and upload actions
-// that legitimately need more raise it per endpoint with [RequestSizeLimit] (a Kestrel-level
-// limit, so only a live run enforces it, not TestServer). The Server response header is dropped
-// so the stack is not advertised.
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.MaxRequestBodySize = 1_000_000;
-    options.AddServerHeader = false;
-});
+builder.ConfigurePortfolioKestrel();
 
 // --------------------------
 // Startup Diagnostics
@@ -52,12 +42,7 @@ var logger = loggerFactory.CreateLogger("Startup");
 // NOTE: never log the connection string here — it carries the DB password and
 // would leak into stdout/log aggregation. Redis is masked below; the DB string
 // must not be logged at all.
-// --------------------------
-// Razor Pages & Services
-// --------------------------
-builder.Services.AddRazorPages();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddPortfolioCore();
 
 // --------------------------
 // Dependency Injection
