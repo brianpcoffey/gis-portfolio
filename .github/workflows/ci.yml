@@ -61,6 +61,14 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # Whitespace, final newline, charset and using order per .editorconfig. Migrations and the generated
+      # road network are never reformatted. To fix a failure locally, run the same command without
+      # --verify-no-changes and --no-restore.
+      - name: Verify formatting
+        run: >
+          dotnet format Portfolio.sln --verify-no-changes --no-restore
+          --exclude Portfolio.Repositories/Migrations Portfolio.Services/Data/RedlandsRoadNetwork.cs
+
       # Warnings are errors here. Locally they stay warnings so a half-finished
       # edit does not block the inner loop.
       - name: Build (warnings are errors)
