@@ -39,6 +39,8 @@
     var serviceAreaLayer = null;
     var exploredLayer    = null;   // L.LayerGroup of settled-node dots
     var lastResult       = null;
+    var lastServiceAreaIds = null; // reachable node ids of the service area on the map (null when none)
+    var lastDark         = document.body.classList.contains("dark-mode");
     var C                = readColors();
 
     // Canvas/Leaflet need concrete colours, so resolve the theme tokens (re-read on theme change).
@@ -93,7 +95,15 @@
         if (id != null) setOrigin(id);
     });
 
-    Charts.onThemeChange(function () { C = readColors(); restyleAll(); });
+    // themeChanged also fires for display preferences (text size, contrast, motion): only a
+    // light/dark switch needs the map restyled.
+    Charts.onThemeChange(function (e) {
+        var dark = e && e.detail ? !!e.detail.dark : document.body.classList.contains("dark-mode");
+        if (dark === lastDark) return;
+        lastDark = dark;
+        C = readColors();
+        restyleAll();
+    });
 
     fetchGraph();
 
@@ -214,6 +224,7 @@
         if (originNodeId != null && nodeMarkers[originNodeId]) {
             nodeMarkers[originNodeId].setStyle({ fillColor: C.origin, radius: 8 });
         }
+        if (lastServiceAreaIds) renderServiceArea(lastServiceAreaIds);
         if (lastResult) {
             renderExplored(lastResult);
             if (routePolyline) routePolyline.setStyle({ color: C.route });
@@ -299,6 +310,7 @@
             function () { return apiPost(window.PortfolioApi.routes.spatialCompute.network.route, request); },
             function (result) {
                 lastResult = result;
+                lastServiceAreaIds = null;
                 renderExplored(result);
                 renderRoute(result);
                 updateKpis(result);
@@ -391,6 +403,7 @@
     }
 
     function renderServiceArea(reachableIds) {
+        lastServiceAreaIds = reachableIds;   // so a theme switch can redraw it
         var idSet = {};
         reachableIds.forEach(function (id) { idSet[id] = true; });
         junctionIds.forEach(function (id) {
@@ -409,6 +422,7 @@
         if (serviceAreaLayer) { map.removeLayer(serviceAreaLayer); serviceAreaLayer = null; }
         if (exploredLayer) { map.removeLayer(exploredLayer); exploredLayer = null; }
         lastResult = null;
+        lastServiceAreaIds = null;
 
         junctionIds.forEach(function (id) {
             if (id === originNodeId) return;
