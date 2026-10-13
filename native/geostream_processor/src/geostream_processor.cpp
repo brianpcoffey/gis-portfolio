@@ -20,9 +20,11 @@ namespace
 	};
 
 	// The two tests below read the IEEE-754 bit pattern instead of calling std::isfinite / std::isnan
-	// or comparing the value with itself. The build uses -ffast-math (GCC) and /fp:fast (MSVC), which
-	// allow the compiler to assume no NaN or infinity exists and to fold those tests to a constant.
-	// Integer operations on the bits cannot be folded that way.
+	// or comparing the value with itself. This kernel is built without fast math (see its CMakeLists.txt:
+	// the cell-index division has to stay a division), so those calls would work today. The bit tests
+	// stay so that the validation does not depend on the build flags: under -ffast-math (GCC) or
+	// /fp:fast (MSVC) the compiler may assume no NaN or infinity exists and fold a float test to a
+	// constant, and integer operations on the bits cannot be folded that way.
 	constexpr std::uint64_t kExponentMask = 0x7FF0000000000000ULL;
 	constexpr std::uint64_t kMantissaMask = 0x000FFFFFFFFFFFFFULL;
 

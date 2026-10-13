@@ -208,6 +208,88 @@ namespace Portfolio.Tests.Services
         }
 
         // ---------------------------------------------------------------------------------------
+        // geostream: cell boundaries. The kernel used to be built with fast math, which turns
+        // (coordinate + offset) / grid into a multiplication by 1 / grid. The two differ in the last
+        // bit, so a coordinate on a cell boundary landed one cell away from the managed service. The
+        // kernel is built without fast math now and must give the managed cell for every one of them.
+        // ---------------------------------------------------------------------------------------
+
+        // latitude, longitude, grid, and the cell the managed service computes for them. The first
+        // four are the cases a reciprocal multiplication gets wrong (it gives 516, 284, 1047 and
+        // 4856999 for the first coordinate of each row below); the last is an ordinary point.
+        public static TheoryData<double, double, double, int, int> BoundaryCells => new()
+        {
+            { 0.0, -128.4, 0.1, 515, 900 },
+            { -61.6, 0.0, 0.1, 1800, 283 },
+            { 0.0, -169.53, 0.01, 1046, 9000 },
+            { 0.0, -175.143, 0.000001, 4857000, 90000000 },
+            { 34.05, -117.18, 0.01, 6281, 12405 }
+        };
+
+        [Theory]
+        [MemberData(nameof(BoundaryCells))]
+        public void DotNetCellIndex_OnACellBoundary_IsTheIeeeQuotient(double latitude, double longitude, double grid, int cellX, int cellY)
+        {
+            Assert.Equal(cellX, (int)Math.Floor((longitude + 180.0) / grid));
+            Assert.Equal(cellY, (int)Math.Floor((latitude + 90.0) / grid));
+        }
+
+        [Theory]
+        [MemberData(nameof(BoundaryCells))]
+        public void NativeGeoStream_CoordinateOnACellBoundary_LandsInTheManagedCell(double latitude, double longitude, double grid, int cellX, int cellY)
+        {
+            Assert.SkipUnless(GeoStreamNativeBridge.IsAvailable, "native library not loaded");
+
+            var events = new[] { NativeEvent(latitude, longitude, 1) };
+            var options = NativeOptions(grid);
+            var aggregates = new GridAggregateNative[1];
+
+            AssertStatus(0, () => GeoStreamNativeInterop.ProcessTelemetryBatch(events, 1, in options, aggregates, 1, out _));
+
+            Assert.Equal((cellX, cellY), (aggregates[0].CellX, aggregates[0].CellY));
+        }
+
+        // Every longitude and every latitude from -180/-90 to 180/90 in steps of 0.001 degrees, which is
+        // the kind of value a client sends, so a great many of them sit on a cell boundary at these grids
+        // (reciprocal multiplication put 1,080 of the longitudes in the wrong cell at grid 0.1, 2,598 at
+        // 0.01 and 22,108 at 1e-6). The native cells are compared with the managed ones as a histogram:
+        // one event in the wrong cell changes it.
+        [Theory]
+        [InlineData(0.1)]
+        [InlineData(0.01)]
+        [InlineData(0.000001)]
+        public void NativeGeoStream_SweepOfDecimalCoordinates_FillsTheManagedCells(double grid)
+        {
+            Assert.SkipUnless(GeoStreamNativeBridge.IsAvailable, "native library not loaded");
+
+            const int stepsPerDegree = 1000;
+            var events = new List<TelemetryEventNative>();
+            for (var k = -180 * stepsPerDegree; k <= 180 * stepsPerDegree; k++)
+                events.Add(NativeEvent(0.0, k / (double)stepsPerDegree, 1));
+            for (var k = -90 * stepsPerDegree; k <= 90 * stepsPerDegree; k++)
+                events.Add(NativeEvent(k / (double)stepsPerDegree, 0.0, 1));
+
+            var expected = new Dictionary<(int CellX, int CellY), int>();
+            foreach (var e in events)
+            {
+                var cell = ((int)Math.Floor((e.Longitude + 180.0) / grid), (int)Math.Floor((e.Latitude + 90.0) / grid));
+                expected[cell] = expected.GetValueOrDefault(cell) + 1;
+            }
+
+            var eventArray = events.ToArray();
+            var options = NativeOptions(grid);
+            var aggregates = new GridAggregateNative[eventArray.Length];
+            var result = new GeoStreamResultNative();
+
+            AssertStatus(0, () => GeoStreamNativeInterop.ProcessTelemetryBatch(eventArray, eventArray.Length, in options, aggregates, aggregates.Length, out result));
+
+            Assert.Equal(eventArray.Length, result.ValidEvents);
+            var actual = aggregates.Take(result.AggregateCount).ToDictionary(a => (a.CellX, a.CellY), a => a.Count);
+            var differing = expected.Keys.Union(actual.Keys).Count(cell => expected.GetValueOrDefault(cell) != actual.GetValueOrDefault(cell));
+            Assert.True(differing == 0, $"{differing} grid cells differ from the managed cells at grid {grid}");
+        }
+
+        // ---------------------------------------------------------------------------------------
         // geostream: float-to-int edge values. The kernel used static_cast<int> on an unbounded
         // quotient, which is undefined behaviour in C++; it must now give the result .NET gives.
         // ---------------------------------------------------------------------------------------

@@ -85,8 +85,8 @@ Across 21 workloads: **9 are a clear win (≥ 1.15×), 5 a clear loss (≤ 0.85�
 |---|---|---:|
 | Fastest | `vrp_solver_kernel` — CVRPTW, 120 stops | **2.26×** |
 | | `spatial_overlay_kernel` — point-in-polygon join | **1.90×** |
-| Slowest | `geostream_processor` — telemetry aggregation | **0.59×** |
-| | `spatial_geometry_kernel` — fan triangulation | **0.37×** |
+| Slowest | `spatial_geometry_kernel` — fan triangulation | **0.37×** |
+| | `geostream_processor` — telemetry aggregation | **0.41×** |
 
 Native wins where the inner loop is flat, branch-free, and allocation-free, and where the work is large relative to the number of P/Invoke crossings. It loses where marshalling dominates — fan triangulation's "computation" is three index assignments per triangle, so copying the array in and out saves nothing. `portfolio_scoring` measures 0.99× **despite genuinely compiling with `/arch:AVX2`**: setting the flag is not the same as being vectorised.
 
@@ -217,7 +217,7 @@ Authenticated operations dashboard for fiber orders, materials, shipments, and K
 ---
 
 ### 📡 Live Location Stream
-GPS-style telemetry batch processing pipeline that reduces high-volume sensor or vehicle events into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard. A native C++ kernel handles the numeric loops when the shared library is present; the managed fallback activates automatically when it is not. **Measured at 0.59× — this is the worst-performing kernel of the thirteen**, because the service caps a batch at 10,000 events, so the per-call marshalling is paid far more often than the aggregation work amortises it.
+GPS-style telemetry batch processing pipeline that reduces high-volume sensor or vehicle events into spatial grid aggregates, speed metrics, and anomaly counts for a live-feed style GIS dashboard. A native C++ kernel handles the numeric loops when the shared library is present; the managed fallback activates automatically when it is not. **Measured at 0.41× — the second-slowest of the 21 workloads** (only geometry fan triangulation, at 0.37×, is slower), because the service caps a batch at 10,000 events, so the per-call marshalling is paid far more often than the aggregation work amortises it.
 
 - Channel-oriented GPS event batching with configurable grid size and anomaly threshold
 - Native C++ telemetry kernel (`geostream_processor`) processes contiguous event arrays via a stable C ABI

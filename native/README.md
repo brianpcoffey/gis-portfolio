@@ -37,12 +37,13 @@ high priority. Every workload folds its result into a deterministic checksum, an
 paths' checksums are compared; a row whose checksums disagree is a correctness defect and its
 speedup means nothing.
 
-Measured on 20 logical cores, .NET 10.0.9, Windows 11:
+Measured on 20 logical cores, .NET 10.0.9, Windows 11 (the row marked † was re-measured later, on .NET 10.0.12;
+see the notes):
 
 | Kernel | Workload | Native median | Managed median | Speedup | Native min–max | Managed min–max | Parity |
 |---|---|---:|---:|---:|---:|---:|---|
 | `portfolio_scoring` | weighted scoring, 200,000 properties, top 50 | 108 ms | 107 ms | 0.99x | 98.4 ms–112 ms | 79.3 ms–117 ms | exact |
-| `geostream_processor` | parse + filter + grid aggregate, 40 x 10,000 events | 92.4 ms | 54.9 ms | 0.59x | 73.1 ms–153 ms | 32.0 ms–114 ms | exact |
+| `geostream_processor` † | parse + filter + grid aggregate, 40 x 10,000 events | 80.4 ms | 33.1 ms | 0.41x | 65.4 ms–103 ms | 31.2 ms–113 ms | exact |
 | `spatial_geometry_kernel` | fan triangulation, 400 x 5,000 vertices | 188 ms | 70.2 ms | 0.37x | 170 ms–192 ms | 66.0 ms–86.4 ms | exact |
 | `spatial_geometry_kernel` | bounding-box clip, 400 x 5,000-vertex polygon | 81.5 ms | 62.5 ms | 0.77x | 75.4 ms–93.3 ms | 61.1 ms–63.1 ms | exact |
 | `raster_terrain_kernel` | hillshade, 20 x 500x500 elevation grid | 196 ms | 164 ms | 0.83x | 183 ms–202 ms | 156 ms–185 ms | exact |
@@ -82,6 +83,19 @@ Reading notes:
   noisier managed path (274 ms–364 ms, 1.54x); the first run, with the tighter spread and the
   lower speedup, is the one published. Every other row is unchanged from the earlier run, which
   is why they were measured on .NET 10.0.9.
+- The geostream row (†) was re-measured on 2026-10-13 (.NET 10.0.12, 20 logical cores, Windows 11,
+  the methodology above) after the kernel stopped being built with `/fp:fast`. The fast-math build
+  compiled the cell-index division as a multiplication by `1 / grid`, which differs in the last bit,
+  so a coordinate on a cell boundary landed one cell from the managed path (longitude -128.4 at a
+  0.1 degree grid is cell 515 in managed code and was 516 natively). The old and the new build were
+  run alternately, three full harness runs each. The fast-math build measured 0.59x, 0.40x and
+  0.38x (native medians 80.3, 85.7 and 87.7 ms; managed 47.2, 34.5 and 33.1 ms). The precise build
+  measured 0.39x, 0.44x and 0.41x (native 90.1, 78.8 and 80.4 ms; managed 34.9, 34.4 and 33.1 ms).
+  The published row is the middle run of the three precise ones. The two builds' native times
+  overlap, so the change itself is not measurable here; what moved is the managed median. The
+  earlier 0.59x had a managed median of 54.9 ms, against 33.1 to 34.9 ms in five of these six
+  runs. The row is still a clear loss, and the 9 / 5 / 7 split and the 0.37x to 2.26x range are
+  unchanged. Only this row was replaced; every other row is as previously published.
 - `portfolio_scoring` is the only native-backed service whose public entry point reads from a
   repository. The harness supplies a fixed-seed in-memory one; every other kernel runs on an
   in-repo deterministic dataset reached through its public API.
@@ -195,9 +209,15 @@ batching to amortise the crossing — none of which any kernel does today.
 
 ### Two compilers' worth of flags
 
-Most kernels build with `/fp:fast` (`-ffast-math`). Two deliberately do not, and the reasons
+Most kernels build with `/fp:fast` (`-ffast-math`). Three deliberately do not, and the reasons
 are worth knowing before you "fix" them:
 
+- `geostream_processor` — the cell index is `floor((coordinate + offset) / grid)`, and fast
+  math turns that division into a multiplication by `1 / grid`. The two differ in the last bit, so
+  a coordinate that sits on a cell boundary landed in the neighbouring cell, one away from the
+  managed path. The parity tests pin four such coordinates and a sweep of every 0.001 degree
+  position at three grid sizes. Its finite-value tests read the IEEE-754 bit pattern, so they do
+  not depend on the flag.
 - `facility_location_kernel` — unreachable demand carries `+∞` through the search, and fast
   math permits assuming infinities do not occur.
 - `vrp_solver_kernel` — the local-search accept/reject test is an epsilon comparison, and

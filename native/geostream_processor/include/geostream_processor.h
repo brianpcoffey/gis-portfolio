@@ -124,6 +124,10 @@ extern "C"
 	 * INT32_MAX and NaN becomes 0 - never with a raw C++ cast, whose behaviour for such a value is
 	 * undefined. With a grid of at least 1e-6 degrees (the managed service minimum) the index
 	 * always fits, so saturation only matters for a smaller grid supplied directly to the kernel.
+	 * The division is a true IEEE-754 division: the library is built without fast math (see its
+	 * CMakeLists.txt), which would otherwise multiply by 1 / grid and move a coordinate that sits
+	 * on a cell boundary into the neighbouring cell. The index is therefore exactly the one the
+	 * managed service computes.
 	 *
 	 * Speeds: the kernel does not validate speedMetersPerSecond or the anomaly threshold. The
 	 * managed service rejects non-finite values before any call. A non-finite value passed
