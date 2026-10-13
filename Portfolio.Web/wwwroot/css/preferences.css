@@ -18,6 +18,7 @@ html {
     }
 }
 
+/* Skip link: keep it the first focusable element in <body> (_Layout.cshtml) so it is the first Tab stop. */
 .skip-link {
     position: absolute;
     left: 0.75rem;

@@ -57,7 +57,7 @@ public async Task<UserProfile?> GetProfileByClaimAsync(string claimType, string 
 }
 
 
-        // Overwrites every field of an existing profile; persists before returning.
+        // Inserts the profile, or overwrites every field of the existing one; persists before returning.
         public async Task<UserProfile> AddOrUpdateProfileAsync(UserProfile profile, CancellationToken cancellationToken = default)
         {
             var existing = await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == profile.UserId, cancellationToken);
