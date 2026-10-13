@@ -210,10 +210,10 @@ namespace Portfolio.Services.Services
                         job.TotalRows = total;
                         await _jobStore.UpdateAsync(job, ct);
                     },
-                    // Report incremental progress so pollers see ProcessedRows climb.
-                    // Persist on every row for small demo batches; throttle for larger ones.
                     onProgress: async done =>
                     {
+                        // Report incremental progress so pollers see ProcessedRows climb.
+                        // Persist on every row for small demo batches; throttle for larger ones.
                         job.ProcessedRows = done;
                         if (job.TotalRows <= 50 || done % 5 == 0 || done == job.TotalRows)
                             await _jobStore.UpdateAsync(job, ct);
