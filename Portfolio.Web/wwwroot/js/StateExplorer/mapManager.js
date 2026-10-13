@@ -7,9 +7,9 @@ let map, view, graphicsLayer, highlightLayer;
 
 const graphicsById = new Map(); // featureId => Graphic
 
-// How long the map gets, once the ArcGIS API script has loaded, to fetch its modules. The Dojo loader may
-// never call the require errback when a module fetch fails, which would leave init() pending and the rest
-// of the page unwired; the timeout turns that into the rejection app.js already reports.
+// How long the map gets, once the ArcGIS API script has loaded, to fetch its modules. $arcgis.import may never
+// settle when a module fetch fails (it neither resolves nor rejects), which would leave init() pending and the
+// rest of the page unwired; the timeout turns that into the rejection app.js already reports.
 const MAP_READY_TIMEOUT_MS = 15000;
 
 let clickHandle = null;
@@ -75,72 +75,57 @@ export const MapManager = {
         // Load the ArcGIS API (and its theme) through the shared loader.
         await window.PortfolioEsri.load();
 
-        return new Promise((resolve, reject) => {
-
-            let timedOut = false;
-            const timer = window.PortfolioEsri.visibleTimeout(MAP_READY_TIMEOUT_MS, () => {
-                timedOut = true;
+        let timer = null;
+        const timeout = new Promise((_, reject) => {
+            timer = window.PortfolioEsri.visibleTimeout(MAP_READY_TIMEOUT_MS, () => {
                 reject(new Error("Map timed out"));
             });
+        });
 
-            window.require([
-                "esri/Map",
-                "esri/views/MapView",
-                "esri/Graphic",
-                "esri/layers/GraphicsLayer"
-            ],
+        // Whichever settles first decides. If the timeout wins, init() rejects and nothing below runs, so modules
+        // that arrive late never build a map into the container that now holds the error notice.
+        const [EsriMap, EsriMapView, EsriGraphic, EsriGraphicsLayer] = await Promise.race([
+            window.$arcgis.import([
+                "@arcgis/core/Map.js",
+                "@arcgis/core/views/MapView.js",
+                "@arcgis/core/Graphic.js",
+                "@arcgis/core/layers/GraphicsLayer.js"
+            ]),
+            timeout
+        ]).finally(() => timer.clear());
 
-                (EsriMap, EsriMapView, EsriGraphic, EsriGraphicsLayer) => {
+        EsriMapClass = EsriMap;
+        MapView = EsriMapView;
+        Graphic = EsriGraphic;
+        GraphicsLayer = EsriGraphicsLayer;
 
-                    // Modules arrived after the timeout: the error notice is up and the page is already
-                    // wired without a map, so do not build one into that container now.
-                    if (timedOut) return;
+        graphicsLayer = new GraphicsLayer();
+        highlightLayer = new GraphicsLayer();
 
-                    timer.clear();
+        map = new EsriMapClass({
+            basemap: "streets-navigation-vector",
+            layers: [graphicsLayer, highlightLayer]
+        });
 
-                    EsriMapClass = EsriMap;
-                    MapView = EsriMapView;
-                    Graphic = EsriGraphic;
-                    GraphicsLayer = EsriGraphicsLayer;
+        view = new MapView({
+            container: "mapView",
+            map: map,
+            center: [-98, 39],
+            zoom: 4
+        });
 
-                    graphicsLayer = new GraphicsLayer();
-                    highlightLayer = new GraphicsLayer();
+        this.view = view;
+        this.map = map;
 
-                    map = new EsriMapClass({
-                        basemap: "streets-navigation-vector",
-                        layers: [graphicsLayer, highlightLayer]
-                    });
+        // ArcGIS nests its own role="application" surface in the container; name that one.
+        view.when(() => {
+            const surface = view.container.querySelector(".esri-view-surface");
+            const label = document.getElementById("mapView")?.dataset.mapLabel;
+            if (surface && label) surface.setAttribute("aria-label", label);
+        });
 
-                    view = new MapView({
-                        container: "mapView",
-                        map: map,
-                        center: [-98, 39],
-                        zoom: 4
-                    });
-
-                    this.view = view;
-                    this.map = map;
-
-                    // ArcGIS nests its own role="application" surface in the container; name that one.
-                    view.when(() => {
-                        const surface = view.container.querySelector(".esri-view-surface");
-                        const label = document.getElementById("mapView")?.dataset.mapLabel;
-                        if (surface && label) surface.setAttribute("aria-label", label);
-                    });
-
-                    subscribe(state => {
-                        this.renderFeatures(state);
-                    });
-
-                    resolve();
-
-                }, (err) => {
-
-                    timer.clear();
-
-                    reject(err);
-
-                });
+        subscribe(state => {
+            this.renderFeatures(state);
         });
     },
 

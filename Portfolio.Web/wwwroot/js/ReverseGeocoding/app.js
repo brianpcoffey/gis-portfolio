@@ -1,5 +1,6 @@
 // Self-contained IIFE for the Reverse Geocoding page.
-// Loads ArcGIS JS SDK 4.29 via require() and manages map, marker, API calls, and history.
+// Loads the ArcGIS Maps SDK through PortfolioEsri.load() and $arcgis.import(), and manages map, marker, API calls,
+// and history.
 
 (function () {
     "use strict";
@@ -205,8 +206,9 @@
             title: PortfolioDom.escapeHtml(dto.matchedAddress || "Address"),
             content: dto.locationType ? "Location type: " + PortfolioDom.escapeHtml(dto.locationType) : ""
         };
-        if (mapView && mapView.popup) {
-            mapView.popup.open({ features: [markerGraphic], location: markerGraphic.geometry });
+        // view.popup is lazy (since 4.27), so open the popup through the view rather than through view.popup.
+        if (mapView) {
+            mapView.openPopup({ features: [markerGraphic], location: markerGraphic.geometry }).catch(console.error);
         }
     }
 
@@ -293,67 +295,71 @@
         });
     }
 
-    window.PortfolioEsri.load().then(function () { window.require(
-        [
-            "esri/Map",
-            "esri/views/MapView",
-            "esri/Graphic",
-            "esri/layers/GraphicsLayer",
-            "esri/geometry/support/webMercatorUtils"
-        ],
-        function (EsriMap, MapView, Graphic, GraphicsLayer, WmUtils) {
+    async function initMap() {
+        await window.PortfolioEsri.load();
 
-            GraphicClass = Graphic;
-            webMercatorUtils = WmUtils;
+        var [EsriMap, MapView, Graphic, GraphicsLayer, WmUtils] = await window.$arcgis.import([
+            "@arcgis/core/Map.js",
+            "@arcgis/core/views/MapView.js",
+            "@arcgis/core/Graphic.js",
+            "@arcgis/core/layers/GraphicsLayer.js",
+            "@arcgis/core/geometry/support/webMercatorUtils.js"
+        ]);
 
-            graphicsLayer = new GraphicsLayer();
+        GraphicClass = Graphic;
+        webMercatorUtils = WmUtils;
 
-            var map = new EsriMap({
-                basemap: "streets-navigation-vector",
-                layers: [graphicsLayer]
-            });
+        graphicsLayer = new GraphicsLayer();
 
-            mapView = new MapView({
-                container: "rgMapView",
-                map: map,
-                center: [-98.5795, 39.8283],
-                zoom: 4
-            });
+        var map = new EsriMap({
+            basemap: "streets-navigation-vector",
+            layers: [graphicsLayer]
+        });
 
-            mapView.on("click", function (event) {
-                var mapPoint = event.mapPoint;
-                if (!mapPoint) return;
+        mapView = new MapView({
+            container: "rgMapView",
+            map: map,
+            center: [-98.5795, 39.8283],
+            zoom: 4,
+            // Every click moves the marker and re-runs the lookup, and that opens the popup (updateMarkerPopup).
+            // The view's own click-to-open popup would race it: a fast answer lands first and the view closes it again.
+            popupEnabled: false
+        });
 
-                var lat, lng;
+        mapView.on("click", function (event) {
+            var mapPoint = event.mapPoint;
+            if (!mapPoint) return;
 
-                // Project to WGS84 if Web Mercator (wkid 102100 or 3857)
-                if (mapPoint.spatialReference &&
-                    (mapPoint.spatialReference.wkid === 102100 ||
-                     mapPoint.spatialReference.wkid === 3857)) {
-                    var geo = webMercatorUtils.webMercatorToGeographic(mapPoint);
-                    lat = geo.latitude;
-                    lng = geo.longitude;
-                } else {
-                    lat = mapPoint.latitude;
-                    lng = mapPoint.longitude;
-                }
+            var lat, lng;
 
-                updateCoordinateDisplay(lat, lng);
-                placeMarker(lat, lng);
-                fetchReverseGeocode(lat, lng);
-            });
+            // Project to WGS84 if Web Mercator (wkid 102100 or 3857)
+            if (mapPoint.spatialReference &&
+                (mapPoint.spatialReference.wkid === 102100 ||
+                 mapPoint.spatialReference.wkid === 3857)) {
+                var geo = webMercatorUtils.webMercatorToGeographic(mapPoint);
+                lat = geo.latitude;
+                lng = geo.longitude;
+            } else {
+                lat = mapPoint.latitude;
+                lng = mapPoint.longitude;
+            }
 
-            // ArcGIS nests its own role="application" surface in the container; name that one.
-            mapView.when(function () {
-                var surface = mapView.container.querySelector(".esri-view-surface");
-                var label = document.getElementById("rgMapView").getAttribute("data-map-label");
-                if (surface && label) surface.setAttribute("aria-label", label);
-            });
+            updateCoordinateDisplay(lat, lng);
+            placeMarker(lat, lng);
+            fetchReverseGeocode(lat, lng);
+        });
 
-            renderHistory(loadHistory());
-        },
-        mapUnavailable
-    ); }).catch(mapUnavailable);
+        // ArcGIS nests its own role="application" surface in the container; name that one.
+        mapView.when(function () {
+            var surface = mapView.container.querySelector(".esri-view-surface");
+            var label = document.getElementById("rgMapView").getAttribute("data-map-label");
+            if (surface && label) surface.setAttribute("aria-label", label);
+        });
+
+        renderHistory(loadHistory());
+    }
+
+    initMap().catch(mapUnavailable);
 
     // The ArcGIS API (or one of its modules) could not load. The lookup form is already wired and does
     // not need the map, so say so in the map container and still show the recent lookups.
