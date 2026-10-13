@@ -61,24 +61,8 @@ namespace Portfolio.Web.Middleware
             var now = timeProvider.GetUtcNow().UtcDateTime;
             Guid userId;
 
-            var authResult = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            if (authResult.Succeeded && authResult.Principal?.Identity?.IsAuthenticated == true)
+            if (await TryResolveAuthenticatedAsync(context, db))
             {
-                context.User = authResult.Principal;
-            }
-
-            if (context.User?.Identity?.IsAuthenticated == true)
-            {
-                // Authenticated user: resolve their internal UserId from the GoogleId claim and store it.
-                var googleId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!string.IsNullOrEmpty(googleId))
-                {
-                    var claim = await db.UserClaims
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(c => c.ClaimType == ProfileClaimTypes.GoogleId && c.ClaimValue == googleId);
-                    if (claim != null)
-                        context.Items[HttpContextItemKey] = claim.UserId;
-                }
                 await _next(context);
                 return;
             }
@@ -110,24 +94,11 @@ namespace Portfolio.Web.Middleware
                         return;
                     }
 
-                    profile = new UserProfile
-                    {
-                        UserId = userId,
-                        CreatedDate = now,
-                        LastActiveDate = now
-                    };
-                    db.UserProfiles.Add(profile);
-                    await db.SaveChangesAsync();
+                    await CreateAnonymousAsync(db, userId, now);
                 }
                 else
                 {
-                    // Throttle the write: only refresh LastActiveDate when it is already stale,
-                    // so an active session does not trigger a DB write on every single request.
-                    if (now - profile.LastActiveDate >= TimeSpan.FromMinutes(5))
-                    {
-                        profile.LastActiveDate = now;
-                        await db.SaveChangesAsync();
-                    }
+                    await TouchProfileAsync(db, profile, now);
                 }
             }
             else
@@ -142,27 +113,8 @@ namespace Portfolio.Web.Middleware
                 }
 
                 userId = Guid.NewGuid();
-                var profile = new UserProfile
-                {
-                    UserId = userId,
-                    CreatedDate = now,
-                    LastActiveDate = now
-                };
-                db.UserProfiles.Add(profile);
-                await db.SaveChangesAsync();
-                var cookieOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    // Always Secure in production: Render terminates TLS at the proxy, so
-                    // Request.IsHttps is false for internal health probes even on a live HTTPS
-                    // deployment. Tying Secure to IsHttps would produce a non-Secure cookie
-                    // whenever a probe triggers the new-user path. Use the environment instead.
-                    Secure = !_environment.IsDevelopment(),
-                    SameSite = SameSiteMode.Lax,
-                    Expires = timeProvider.GetUtcNow().AddYears(1),
-                    IsEssential = true
-                };
-                context.Response.Cookies.Append(CookieName, userId.ToString(), cookieOptions);
+                await CreateAnonymousAsync(db, userId, now);
+                context.Response.Cookies.Append(CookieName, userId.ToString(), BuildCookieOptions(timeProvider));
                 _logger.LogInformation(
                     "Created anon profile and cookie for {UserId} (Scheme={Scheme})",
                     LogRedaction.UserId(userId),
@@ -173,6 +125,67 @@ namespace Portfolio.Web.Middleware
 
             await _next(context);
         }
+
+        // Returns true when the request is authenticated (the caller then just continues the
+        // pipeline). The identity is stored only if the principal's GoogleId maps to a profile.
+        private static async Task<bool> TryResolveAuthenticatedAsync(HttpContext context, PortfolioDbContext db)
+        {
+            var authResult = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (authResult.Succeeded && authResult.Principal?.Identity?.IsAuthenticated == true)
+            {
+                context.User = authResult.Principal;
+            }
+
+            if (context.User?.Identity?.IsAuthenticated != true)
+                return false;
+
+            // Authenticated user: resolve their internal UserId from the GoogleId claim and store it.
+            var googleId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(googleId))
+            {
+                var claim = await db.UserClaims
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.ClaimType == ProfileClaimTypes.GoogleId && c.ClaimValue == googleId);
+                if (claim != null)
+                    context.Items[HttpContextItemKey] = claim.UserId;
+            }
+            return true;
+        }
+
+        private static async Task TouchProfileAsync(PortfolioDbContext db, UserProfile profile, DateTime now)
+        {
+            // Throttle the write: only refresh LastActiveDate when it is already stale,
+            // so an active session does not trigger a DB write on every single request.
+            if (now - profile.LastActiveDate >= TimeSpan.FromMinutes(5))
+            {
+                profile.LastActiveDate = now;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        private static async Task CreateAnonymousAsync(PortfolioDbContext db, Guid userId, DateTime now)
+        {
+            db.UserProfiles.Add(new UserProfile
+            {
+                UserId = userId,
+                CreatedDate = now,
+                LastActiveDate = now
+            });
+            await db.SaveChangesAsync();
+        }
+
+        private CookieOptions BuildCookieOptions(TimeProvider timeProvider) => new()
+        {
+            HttpOnly = true,
+            // Always Secure in production: Render terminates TLS at the proxy, so
+            // Request.IsHttps is false for internal health probes even on a live HTTPS
+            // deployment. Tying Secure to IsHttps would produce a non-Secure cookie
+            // whenever a probe triggers the new-user path. Use the environment instead.
+            Secure = !_environment.IsDevelopment(),
+            SameSite = SameSiteMode.Lax,
+            Expires = timeProvider.GetUtcNow().AddYears(1),
+            IsEssential = true
+        };
 
         // Gate for both identity-creation paths. API paths never create an identity, and each
         // client address may create NewIdentitiesPerMinute new ones per minute.
