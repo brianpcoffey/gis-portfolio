@@ -34,7 +34,13 @@ public class NetworkPolicyTests
     [InlineData("https://arcgis.com.evil.test/x", RouteKind.Unexpected)]
     [InlineData("https://evilarcgis.com/x", RouteKind.Unexpected)]
     [InlineData("https://fonts.googleapis.com/css2?family=Inter", RouteKind.Unexpected)]
-    [InlineData("https://developers.google.com/identity/images/g-logo.png", RouteKind.Unexpected)]
+    [InlineData("https://developers.google.com/identity/images/g-logo.png", RouteKind.GoogleLogo)]
+    [InlineData("https://developers.google.com/identity/images/g-logo.png?v=2", RouteKind.GoogleLogo)]
+    [InlineData("https://developers.google.com/identity/images/other.png", RouteKind.Unexpected)]
+    [InlineData("https://developers.google.com/", RouteKind.Unexpected)]
+    [InlineData("http://developers.google.com/identity/images/g-logo.png", RouteKind.Unexpected)]
+    [InlineData("https://developers.google.com.evil.test/identity/images/g-logo.png", RouteKind.Unexpected)]
+    [InlineData("https://accounts.google.com/gsi/client", RouteKind.Unexpected)]
     public void Classify_Url_ReturnsTheExpectedKind(string url, RouteKind expected)
     {
         // Arrange
