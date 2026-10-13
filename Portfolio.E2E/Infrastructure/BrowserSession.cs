@@ -71,10 +71,15 @@ public sealed class BrowserSession : IAsyncDisposable
 
     /// <summary>
     /// Signs in through the test-only endpoint (<see cref="E2ESignIn"/>), which runs the app's real cookie
-    /// sign-in, and lands on <paramref name="returnUrl"/>.
+    /// sign-in, then navigates to <paramref name="returnUrl"/> and returns that page's response.
     /// </summary>
-    public Task<IResponse?> SignInAsync(string returnUrl = "/") =>
-        Page.GotoAsync($"{E2ESignIn.SignInPath}?returnUrl={Uri.EscapeDataString(returnUrl)}");
+    public async Task<IResponse?> SignInAsync(string returnUrl = "/")
+    {
+        var signIn = await Page.GotoAsync(E2ESignIn.SignInPath);
+        if (signIn is null || !signIn.Ok)
+            throw new InvalidOperationException($"E2E sign-in failed with HTTP {signIn?.Status}.");
+        return await Page.GotoAsync(returnUrl);
+    }
 
     /// <summary>
     /// Fails when the page logged a console error or threw, when any request went to a host the policy does not

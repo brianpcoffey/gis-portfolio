@@ -13,11 +13,12 @@ namespace Portfolio.E2E.Infrastructure;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Google OAuth cannot run in a test, so a browser test visits <c>GET /__e2e/signin?returnUrl=/path</c>. The
+/// Google OAuth cannot run in a test, so a browser test visits <c>GET /__e2e/signin</c>. The
 /// middleware signs a principal in through the REAL cookie scheme, so <c>PortfolioCookieEvents.SignedIn</c>
 /// runs exactly as it does after Google: the anonymous profile is adopted, the demo data is seeded, and the
 /// auth cookie is issued and validated by the production handler. Each visit uses a fresh Google id
-/// (<c>e2e-google-&lt;n&gt;</c>), i.e. a fresh user.
+/// (<c>e2e-google-&lt;n&gt;</c>), i.e. a fresh user. It answers 200 and never redirects, so no request value
+/// can choose where the browser goes next; <see cref="BrowserSession.SignInAsync"/> navigates on afterwards.
 /// </para>
 /// <para>
 /// It is wired with <c>app.Use</c> and an exact path check, deliberately not <c>app.Map</c>: Map moves the
@@ -53,23 +54,11 @@ internal sealed class E2ESignIn : IStartupFilter
                 authenticationType: "E2E");
 
             await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-            context.Response.Redirect(SafeReturnUrl(context.Request.Query["returnUrl"].ToString()));
+            context.Response.ContentType = "text/plain";
+            await context.Response.WriteAsync("signed in");
         });
 
         next(app);
     };
 
-    /// <summary>Only a local path is honoured; anything else (absolute URL, <c>//host</c>, <c>/\host</c>) becomes <c>/</c>.</summary>
-    internal static string SafeReturnUrl(string? returnUrl)
-    {
-        if (string.IsNullOrEmpty(returnUrl) ||
-            returnUrl[0] != '/' ||
-            returnUrl.StartsWith("//", StringComparison.Ordinal) ||
-            returnUrl.StartsWith("/\\", StringComparison.Ordinal))
-        {
-            return "/";
-        }
-
-        return returnUrl;
-    }
 }
