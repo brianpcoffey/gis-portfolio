@@ -90,7 +90,7 @@ In the Render dashboard, go to **Environment** and add these variables:
 
 ### Database migrations
 
-**What happens today.** The service runs on Render's free plan, where the **Pre-Deploy Command** field in the service settings is locked and empty (observed in the dashboard in October 2026; the repository cannot confirm dashboard settings). So nothing migrates before a deploy. Instead the app migrates itself at startup: `StartupMigrations.Run` calls `db.Database.Migrate()` unless the `RunMigrationsOnStartup` setting is `false`. That setting defaults to `true`, and the service logs show the migration line at startup, so it has not been turned off. Every process start (each deploy, and each cold start after the free instance spins down when idle) logs `Database migration successful.` and pays one round trip to Neon to check the migration history before serving its first request.
+**What happens today.** The service runs on Render's free plan, where the **Pre-Deploy Command** field in the service settings is locked and empty (observed in the dashboard in October 2026; the repository cannot confirm dashboard settings). So nothing migrates before a deploy. Instead the app migrates itself at startup: `StartupMigrations.Run` calls `db.Database.Migrate()` unless the `RunMigrationsOnStartup` setting is `false`. That setting defaults to `true`, and the service logs show the migration line at startup (observed in the Render logs, October 2026), so it has not been turned off. Every process start (each deploy, and each cold start after the free instance spins down when idle) logs `Database migration successful.` and pays one round trip to Neon to check the migration history before serving its first request.
 
 Two behaviours follow from that:
 
