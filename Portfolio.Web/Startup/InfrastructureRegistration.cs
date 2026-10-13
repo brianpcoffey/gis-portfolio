@@ -35,13 +35,12 @@ internal static class InfrastructureRegistration
         return new RedisSettings(isRedisEnabled, redisConnectionString);
     }
 
-    // Render terminates TLS at its proxy and forwards plain HTTP to the container.
-    // With no ForwardedHeaders:KnownNetworks configured (the default), KnownNetworks and
-    // KnownProxies are cleared, which trusts the X-Forwarded-* headers regardless of the proxy IP,
-    // making Request.IsHttps, HTTPS redirection, and secure cookie detection accurate inside the
-    // container. Once the owner has verified Render's proxy range (findings-security 4.5), set
-    // ForwardedHeaders:KnownNetworks (CIDRs) and, if a further proxy hop is confirmed,
-    // ForwardedHeaders:ForwardLimit. Never raise ForwardLimit without KnownNetworks.
+    // Render terminates TLS at its proxy and forwards plain HTTP to the container, so the
+    // X-Forwarded-* headers make Request.IsHttps, HTTPS redirection, secure cookies and the client IP
+    // (the rate-limit key) accurate. Production trusts the Render and Cloudflare hops listed in
+    // appsettings.Production.json (ForwardLimit 3; see ForwardedHeadersSetup for the chain). With no
+    // ForwardedHeaders:KnownNetworks (Development, tests) every proxy is trusted and the limit is held
+    // at 1. Never raise ForwardLimit without KnownNetworks.
     internal static IServiceCollection AddPortfolioForwardedHeaders(this IServiceCollection services, IConfiguration configuration, ILogger logger)
     {
         services.Configure<ForwardedHeadersOptions>(options =>
