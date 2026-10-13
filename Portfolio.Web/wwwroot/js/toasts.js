@@ -164,9 +164,10 @@
                 wrap.remove();
                 resolve(result);
             });
+            // Focus the safe choice (Cancel), not the destructive one. Wait for the shown
+            // event so Bootstrap's focus trap (which activates after the transition) doesn't override it.
+            wrap.addEventListener("shown.bs.modal", () => cancelBtn.focus(), { once: true });
             modal.show();
-            // Focus the safe choice (Cancel), not the destructive one.
-            setTimeout(function () { cancelBtn.focus(); }, 150);
         });
     }
     window.confirmDialog = confirmDialog;
