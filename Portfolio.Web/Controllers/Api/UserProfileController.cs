@@ -47,6 +47,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Updates editable fields on the current user's profile.
         /// </summary>
         [HttpPut("me")]
+        [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(typeof(ProfileDto), 200)]
         [ProducesResponseType(400)]
@@ -120,6 +121,7 @@ namespace Portfolio.Web.Controllers.Api
         /// Sets a claim for the current user.
         /// </summary>
         [HttpPut("me/claims")]
+        [RequestSizeLimit(8_192)]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
@@ -130,15 +132,7 @@ namespace Portfolio.Web.Controllers.Api
                 return BadRequest(new { error = "Type and Value are required." });
 
             // Prevent overwriting Google-sourced identity claims
-            HashSet<string> protectedTypes = new(StringComparer.OrdinalIgnoreCase)
-            {
-                ProfileClaimTypes.GoogleId,
-                ProfileClaimTypes.Email,
-                ProfileClaimTypes.Name,
-                ProfileClaimTypes.Picture
-            };
-
-            if (protectedTypes.Contains(dto.Type))
+            if (ProfileClaimTypes.Protected.Contains(dto.Type))
                 return BadRequest(new { error = $"Claim type '{dto.Type}' is managed by Google OAuth and cannot be set manually." });
 
             await _profileService.SetClaimAsync(dto.Type, dto.Value, cancellationToken);
@@ -153,10 +147,15 @@ namespace Portfolio.Web.Controllers.Api
         [HttpDelete("me/claims/{type}")]
         [Authorize(Policy = "Authenticated")]
         [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RemoveClaim(string type, CancellationToken cancellationToken)
         {
+            // Google-sourced identity claims are managed by sign-in and cannot be deleted by hand.
+            if (ProfileClaimTypes.Protected.Contains(type))
+                return BadRequest(new { error = $"Claim type '{type}' is managed by Google OAuth and cannot be removed manually." });
+
             var removed = await _profileService.RemoveClaimAsync(type, cancellationToken);
             return removed ? NoContent() : NotFound();
         }

@@ -284,6 +284,23 @@ namespace Portfolio.Tests.Controllers
             Assert.IsType<NoContentResult>(result);
         }
 
+        [Theory]
+        [InlineData("google_id")]
+        [InlineData("email")]
+        [InlineData("name")]
+        [InlineData("picture")]
+        [InlineData("EMAIL")]
+        public async Task RemoveClaim_ProtectedType_Returns400_AndNeverCallsTheService(string type)
+        {
+            // Act
+            var result = await _controller.RemoveClaim(type, CancellationToken.None);
+
+            // Assert
+            ControllerBodyAssert.ErrorBody(result, 400,
+                $"Claim type '{type}' is managed by Google OAuth and cannot be removed manually.");
+            _serviceMock.Verify(s => s.RemoveClaimAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
         [Fact]
         public async Task RemoveClaim_WhenNotFound_ReturnsNotFound()
         {

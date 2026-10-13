@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Portfolio.Common.DTOs;
 using Portfolio.Services.Interfaces;
 
@@ -13,6 +14,7 @@ namespace Portfolio.Web.Controllers.Api
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]
+    [EnableRateLimiting("compute")]
     [Route("api/v{version:apiVersion}/geostream")]
     public class GeoStreamController : ControllerBase
     {

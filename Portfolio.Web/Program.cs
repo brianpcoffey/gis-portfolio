@@ -31,6 +31,19 @@ using System.Security.Claims;
 var builder = WebApplication.CreateBuilder(args);
 
 // --------------------------
+// Kestrel limits
+// --------------------------
+// 1 MB is the default request-body ceiling for every endpoint; the compute and upload actions
+// that legitimately need more raise it per endpoint with [RequestSizeLimit] (a Kestrel-level
+// limit, so only a live run enforces it, not TestServer). The Server response header is dropped
+// so the stack is not advertised.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 1_000_000;
+    options.AddServerHeader = false;
+});
+
+// --------------------------
 // Startup Diagnostics
 // --------------------------
 using var loggerFactory = LoggerFactory.Create(config => config.AddConsole());
@@ -228,16 +241,25 @@ else
 // Forwarded Headers (Render / reverse-proxy TLS termination)
 // --------------------------
 // Render terminates TLS at its proxy and forwards plain HTTP to the container.
-// Clearing KnownNetworks and KnownProxies trusts the X-Forwarded-* headers
-// regardless of the proxy IP, making Request.IsHttps, HTTPS redirection,
-// and secure cookie detection accurate inside the container.
+// With no ForwardedHeaders:KnownNetworks configured (the default), KnownNetworks and
+// KnownProxies are cleared, which trusts the X-Forwarded-* headers regardless of the proxy IP,
+// making Request.IsHttps, HTTPS redirection, and secure cookie detection accurate inside the
+// container. Once the owner has verified Render's proxy range (findings-security 4.5), set
+// ForwardedHeaders:KnownNetworks (CIDRs) and, if a further proxy hop is confirmed,
+// ForwardedHeaders:ForwardLimit. Never raise ForwardLimit without KnownNetworks.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    ForwardedHeadersSetup.Apply(options, builder.Configuration));
+
+// --------------------------
+// HSTS (non-Development only; see UseHsts below)
+// --------------------------
+// One year, current host only. includeSubDomains and preload are deliberately off:
+// preload is effectively irreversible, and subdomains are not all under this app's control.
+builder.Services.AddHsts(options =>
 {
-    options.ForwardedHeaders =
-        ForwardedHeaders.XForwardedFor |
-        ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = false;
+    options.Preload = false;
 });
 
 // --------------------------
@@ -432,9 +454,14 @@ builder.Services.AddControllers()
 // --------------------------
 // Partitioned per-client (IP) limiting. RemoteIpAddress reflects X-Forwarded-For here because
 // ForwardedHeaders is configured above, so this is the real client behind Render's proxy.
-//   Global   — a generous ceiling on every routed request (blocks blunt flooding).
+//   Global   — a generous ceiling on every routed request (blocks blunt flooding), chained with
+//              a shared concurrency cap on the compute/expensive endpoints so total CPU stays
+//              bounded even if the per-IP partition key is spoofed (findings-security 4.4).
+//   "compute" — a sliding 60/min budget for the native-compute endpoints. Viewshed runs on
+//               every cell click, so a 15/min budget would break the UI.
 //   "expensive" — a tight budget for endpoints that call the paid ArcGIS API or run native
 //                 compute, applied via [EnableRateLimiting("expensive")].
+//   "csp"    — the Content-Security-Policy report sink (30/min).
 // This runs EARLY in the pipeline (before auth and the anonymous-profile middleware) so a flood
 // is rejected before it can trigger per-request profile creation/seeding. That early placement
 // means no authenticated identity is available yet, so partitioning is by IP. Trade-off: clients
@@ -447,10 +474,36 @@ builder.Services.AddRateLimiter(options =>
     static string ClientKey(HttpContext ctx) =>
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+        PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+            RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window      = TimeSpan.FromMinutes(1),
+                QueueLimit  = 0
+            })),
+        PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+            RateLimitKeys.ConcurrencyKey(ctx) is { } key
+                ? RateLimitPartition.GetConcurrencyLimiter(key, _ => new ConcurrencyLimiterOptions
+                {
+                    PermitLimit = Math.Max(2, Environment.ProcessorCount),
+                    QueueLimit  = 16
+                })
+                : RateLimitPartition.GetNoLimiter("none")));
+
+    options.AddPolicy("compute", ctx =>
+        RateLimitPartition.GetSlidingWindowLimiter(ClientKey(ctx), _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit       = 60,
+            Window            = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueLimit        = 0
+        }));
+
+    options.AddPolicy("csp", ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx), _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 300,
+            PermitLimit = 30,
             Window      = TimeSpan.FromMinutes(1),
             QueueLimit  = 0
         }));
@@ -500,9 +553,8 @@ builder.Services.AddOpenApi();
 // --------------------------
 // Database Context (PostgreSQL via Render / Supabase)
 // --------------------------
-var databaseUrl = builder.Configuration.GetConnectionString("DefaultConnection")
-                  ?? Environment.GetEnvironmentVariable("DATABASE_URL")
-                  ?? throw new InvalidOperationException("Database connection string not set.");
+var databaseUrl = Portfolio.Web.Infrastructure.ConnectionStrings.ResolveDatabaseUrl(
+    builder.Configuration, Environment.GetEnvironmentVariable);
 
 var npgsqlBuilder = Portfolio.Web.Infrastructure.ConnectionStrings.ParsePostgres(databaseUrl);
 
@@ -668,3 +720,55 @@ if (migrateOnly)
 
 app.Run();
 return 0;
+
+/// <summary>
+/// Selects which requests share the global compute concurrency cap. An internal static method
+/// (not an inline lambda) so it can be unit-tested.
+/// </summary>
+internal static class RateLimitKeys
+{
+    /// <summary>The shared partition key for compute/expensive endpoints.</summary>
+    internal const string ComputeConcurrencyKey = "compute-concurrency";
+
+    /// <summary>Returns the shared key for compute/expensive endpoints, or null for everything else.</summary>
+    internal static string? ConcurrencyKey(HttpContext ctx)
+    {
+        var policy = ctx.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+        return policy is "compute" or "expensive" ? ComputeConcurrencyKey : null;
+    }
+}
+
+/// <summary>Applies the configurable forwarded-header trust. Internal static so tests can call it.</summary>
+internal static class ForwardedHeadersSetup
+{
+    internal static void Apply(ForwardedHeadersOptions options, IConfiguration configuration)
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor |
+            ForwardedHeaders.XForwardedProto;
+        options.ForwardLimit = configuration.GetValue("ForwardedHeaders:ForwardLimit", 1);
+
+        var networks = ReadNetworks(configuration);
+        if (networks.Count == 0)
+        {
+            // Today's behaviour: trust any proxy. See the comment at the registration.
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+            return;
+        }
+
+        foreach (var cidr in networks)
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
+    }
+
+    // Accepts an array (appsettings, or Name__0 environment variables) or a single
+    // comma-separated string (one Render environment variable).
+    private static List<string> ReadNetworks(IConfiguration configuration)
+    {
+        var section = configuration.GetSection("ForwardedHeaders:KnownNetworks");
+        var items = section.Get<string[]>() ?? [];
+        if (items.Length == 0 && !string.IsNullOrWhiteSpace(section.Value))
+            items = section.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return items.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).ToList();
+    }
+}
