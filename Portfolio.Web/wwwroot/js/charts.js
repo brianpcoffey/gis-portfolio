@@ -72,7 +72,7 @@
     var step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
     var out = [];
     for (var v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) {
-      out.push(Math.round(v / step) * step);
+      out.push(+(Math.round(v / step) * step).toPrecision(12));
     }
     return out;
   }
