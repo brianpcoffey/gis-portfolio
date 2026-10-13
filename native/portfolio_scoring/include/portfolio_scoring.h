@@ -9,8 +9,7 @@
  * without any marshalling copies.
  *
  * Thread-safety: ScoreProperty and ScorePropertyBatch are fully reentrant
- * (no global state).  Safe to call from any thread, including the .NET
- * thread-pool workers used by the Channel-based batch pipeline.
+ * (no global state), so they are safe to call from any thread.
  */
 
 #include <stdint.h>
@@ -135,8 +134,9 @@ PS_API void ScoreProperty(
  * `properties` and `scores` must each point to arrays of at least `count`
  * elements.  The same `prefs` pointer is shared across all rows.
  *
- * Designed so that the compiler can auto-vectorise the inner loop with
- * AVX2 (MSVC /arch:AVX2 or GCC/Clang -march=haswell -ffast-math).
+ * A plain loop over contiguous structs; the build enables AVX2, so the compiler
+ * may vectorise it. The measured gain over the managed path is small
+ * (native/README.md).
  */
 PS_API void ScorePropertyBatch(
 	const PropertyInputNative*    properties,

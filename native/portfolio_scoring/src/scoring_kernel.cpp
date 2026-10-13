@@ -9,9 +9,9 @@
  *  - No global mutable state; fully reentrant.
  *  - All helpers are file-scoped (anonymous namespace) to avoid symbol
  *    pollution and allow aggressive inlining.
- *  - ScorePropertyBatch iterates a plain for-loop over contiguous structs.
- *    With /arch:AVX2 (MSVC) or -march=haswell (GCC/Clang) the compiler
- *    auto-vectorises the bulk of the arithmetic to 4-wide double SIMD lanes.
+ *  - ScorePropertyBatch iterates a plain for-loop over contiguous structs,
+ *    which leaves the compiler free to vectorise it under AVX2; the measured
+ *    speedup over managed code is small (native/README.md).
  *  - LoanTermMonths and AnnualInterestRate are constexpr to match the C#
  *    constants and allow compile-time evaluation where possible.
  */
@@ -207,14 +207,9 @@ extern "C"
 		ScoreOutputNative*            scores)
 	{
 		/*
-		 * Plain indexed loop over contiguous input/output arrays.
-		 * The compiler can auto-vectorise this loop because:
-		 *  - All sub-score functions are inlined.
-		 *  - There are no data dependencies between iterations.
-		 *  - Input and output arrays cannot alias (separate pointers).
-		 *
-		 * With /arch:AVX2 or -march=haswell -ffast-math the inner arithmetic
-		 * on doubles maps to VFMADD231PD / VMULPD instructions.
+		 * Plain indexed loop over contiguous input/output arrays. Iterations are
+		 * independent, the helpers inline and the arrays cannot alias, so the
+		 * compiler may vectorise it; whether it does depends on compiler and flags.
 		 */
 		for (int32_t i = 0; i < count; ++i)
 		{
