@@ -15,8 +15,8 @@ for base in ("Pages", os.path.join("Areas", "Account", "Pages")):
 pages.sort()
 
 link_re = re.compile(r'<link\b[^>]*>', re.I | re.S)
-script_re = re.compile(r'<script\b([^>]*)>(.*?)</script>', re.I | re.S)
-style_block_re = re.compile(r'<style\b[^>]*>(.*?)</style>', re.I | re.S)
+script_re = re.compile(r'<script\b([^>]*)>(.*?)</script\b[^>]*>', re.I | re.S)
+style_block_re = re.compile(r'<style\b[^>]*>(.*?)</style\b[^>]*>', re.I | re.S)
 style_attr_re = re.compile(r'\bstyle\s*=\s*"[^"]*"', re.I)
 onattr_re = re.compile(r'\son[a-z]+\s*=\s*"', re.I)
 href_re = re.compile(r'href\s*=\s*"([^"]+)"', re.I)

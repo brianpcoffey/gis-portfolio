@@ -44,7 +44,7 @@ namespace Portfolio.Repositories.Repositories
             _db.SavedFeatures.Add(feature);
             await _db.SaveChangesAsync(cancellationToken);
             await _db.Entry(feature).Reference(f => f.Collection).LoadAsync(cancellationToken);
-            _logger.LogInformation("SavedFeature {FeatureId} persisted with DB id {Id}", feature.FeatureId, feature.Id);
+            _logger.LogInformation("SavedFeature {FeatureId} persisted with DB id {Id}", LogRedaction.SingleLine(feature.FeatureId), feature.Id);
             return feature;
         }
 

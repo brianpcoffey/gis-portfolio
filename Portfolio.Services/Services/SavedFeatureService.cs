@@ -107,7 +107,8 @@ namespace Portfolio.Services.Services
             };
 
             var saved = await _repo.AddAsync(entity, cancellationToken);
-            _logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}", saved.FeatureId, saved.LayerId, LogRedaction.UserId(userId));
+            _logger.LogInformation("Feature {FeatureId} (layer {LayerId}) saved for user {UserId}",
+                LogRedaction.SingleLine(saved.FeatureId), LogRedaction.SingleLine(saved.LayerId), LogRedaction.UserId(userId));
             return MapToDto(saved);
         }
 
@@ -126,7 +127,8 @@ namespace Portfolio.Services.Services
             var sf = await _repo.GetByFeatureKeyAsync(featureKey, userId, cancellationToken);
             if (sf == null)
             {
-                _logger.LogWarning("Saved feature key {FeatureKey} not found for user {UserId} during delete", featureKey, LogRedaction.UserId(userId));
+                _logger.LogWarning("Saved feature key {FeatureKey} not found for user {UserId} during delete",
+                    LogRedaction.SingleLine(featureKey), LogRedaction.UserId(userId));
                 return false;
             }
             return await _repo.DeleteAsync(sf.Id, userId, cancellationToken);

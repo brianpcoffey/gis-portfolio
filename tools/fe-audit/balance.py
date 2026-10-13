@@ -21,8 +21,8 @@ for base in ("Pages", os.path.join("Areas", "Account", "Pages")):
                 return re.sub(r'[^\n]', ' ', m.group(0))
             src2 = re.sub(r'@\*.*?\*@', blank, src, flags=re.S)
             src2 = re.sub(r'<!--.*?-->', blank, src2, flags=re.S)
-            src2 = re.sub(r'(<script\b[^>]*>)(.*?)(</script>)', lambda m: m.group(1) + blank(re.match(r'.*', m.group(2), re.S)) + m.group(3), src2, flags=re.S)
-            src2 = re.sub(r'(<style\b[^>]*>)(.*?)(</style>)', lambda m: m.group(1) + blank(re.match(r'.*', m.group(2), re.S)) + m.group(3), src2, flags=re.S)
+            src2 = re.sub(r'(<script\b[^>]*>)(.*?)(</script\b[^>]*>)', lambda m: m.group(1) + blank(re.match(r'.*', m.group(2), re.S)) + m.group(3), src2, flags=re.S | re.I)
+            src2 = re.sub(r'(<style\b[^>]*>)(.*?)(</style\b[^>]*>)', lambda m: m.group(1) + blank(re.match(r'.*', m.group(2), re.S)) + m.group(3), src2, flags=re.S | re.I)
             stack, problems = [], []
             for m in tok.finditer(src2):
                 closing, name, _, selfclose = m.group(1), m.group(2).lower(), m.group(3), m.group(4)

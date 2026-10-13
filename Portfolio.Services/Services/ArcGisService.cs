@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Portfolio.Common.DTOs;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Services.Services
@@ -45,7 +46,7 @@ namespace Portfolio.Services.Services
 
             try
             {
-                _logger.LogInformation("Querying ArcGIS features: {Url}", url);
+                _logger.LogInformation("Querying ArcGIS features: {Url}", LogRedaction.SingleLine(url));
                 var response = await _httpClient.GetAsync(url, cancellationToken);
                 response.EnsureSuccessStatusCode();
 

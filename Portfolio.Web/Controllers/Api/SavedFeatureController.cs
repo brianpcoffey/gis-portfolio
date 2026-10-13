@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Portfolio.Common.DTOs;
+using Portfolio.Repositories.Diagnostics;
 using Portfolio.Services.Interfaces;
 using Portfolio.Web.Filters;
 
@@ -53,7 +54,8 @@ namespace Portfolio.Web.Controllers.Api
             }
             catch (InvalidOperationException)
             {
-                _logger.LogWarning("Conflict saving feature: layer={LayerId} feature={FeatureId}", dto.LayerId, dto.FeatureId);
+                _logger.LogWarning("Conflict saving feature: layer={LayerId} feature={FeatureId}",
+                    LogRedaction.SingleLine(dto.LayerId), LogRedaction.SingleLine(dto.FeatureId));
                 return Conflict(new { error = "Feature already saved" });
             }
         }

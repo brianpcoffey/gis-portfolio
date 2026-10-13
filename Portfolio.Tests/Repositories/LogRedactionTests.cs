@@ -64,6 +64,26 @@ namespace Portfolio.Tests.Repositories
             Assert.DoesNotContain(LogRedaction.UserId(a), a.ToString("D"), StringComparison.OrdinalIgnoreCase);
         }
 
+        [Theory]
+        [InlineData("a\rb", "a b")]
+        [InlineData("a\nb", "a b")]
+        [InlineData("a\r\nb", "a  b")]
+        [InlineData("a\u0085b", "a b")]
+        [InlineData("a\u2028b", "a b")]
+        [InlineData("a\u2029b", "a b")]
+        [InlineData("/api/v1/features/saved/layer-3:42", "/api/v1/features/saved/layer-3:42")]
+        public void SingleLine_ReplacesEveryLineBreakWithASpace(string value, string expected)
+        {
+            Assert.Equal(expected, LogRedaction.SingleLine(value));
+        }
+
+        [Fact]
+        public void SingleLine_KeepsNullAndEmpty()
+        {
+            Assert.Null(LogRedaction.SingleLine(null));
+            Assert.Equal(string.Empty, LogRedaction.SingleLine(string.Empty));
+        }
+
         private static PortfolioDbContext NewDb() =>
             new(new DbContextOptionsBuilder<PortfolioDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
