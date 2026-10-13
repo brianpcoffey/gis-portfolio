@@ -83,7 +83,7 @@
 		<h2 class="h4 mb-3">Engineering Decisions and Tradeoffs</h2>
 		<ul>
 			<li><strong>MVP algorithm choice:</strong> Fan triangulation is not a replacement for Delaunay triangulation, but it validates the API shape, native bridge, output-buffer contract, and frontend rendering pipeline.</li>
-			<li><strong>Correctness over SIMD:</strong> Geometry is often branch-heavy and numerically sensitive. The C++ value is robust algorithms and data structures more than blanket AVX2 acceleration.</li>
+			<li><strong>Correctness over SIMD:</strong> Geometry is often branch-heavy and numerically sensitive. The C++ value is robust algorithms and data structures more than raw compiler optimisation.</li>
 			<li><strong>Output-buffer ownership:</strong> C# owns buffers and native code fills them, avoiding cross-runtime allocation/free bugs.</li>
 			<li><strong>Future improvements:</strong> Add Delaunay/Voronoi, polygon intersection, topology validation, coordinate projection, native benchmarks, and ArcGIS sketch-tool integration.</li>
 		</ul>

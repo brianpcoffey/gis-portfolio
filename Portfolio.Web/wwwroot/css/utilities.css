@@ -1,33 +1,7 @@
 /* ======================================
-   Animations
+   Utilities
+   --------------------------------------
+   .fade-in and the hero responsive overrides live in components.css
+   (the copies that win in load order); this file is intentionally
+   empty of rules, kept so _Layout's link keeps resolving.
    ====================================== */
-.fade-in {
-    opacity: 0;
-    transform: translateY(16px);
-    transition-property: opacity, transform;
-    transition-duration: 0.5s;
-    transition-timing-function: ease;
-    /* transition-delay is set per-element by animations.js for stagger */
-}
-
-.fade-in.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* ======================================
-   Responsive Overrides
-   ====================================== */
-@media (max-width: 768px) {
-    .hero-title {
-        font-size: 2.5rem;
-    }
-
-    .hero-subtitle {
-        font-size: 1.25rem;
-    }
-
-    .hero-desc {
-        font-size: 1rem;
-    }
-}
