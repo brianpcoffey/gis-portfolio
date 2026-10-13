@@ -46,7 +46,7 @@
         drawExposure(lastAccumulation, lastSimulation);
     });
 
-    loadBook();
+    loadBook(true);
 
     // ── Data ────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,9 @@
         return ui.runAction(opts).then(function (r) { releaseOther(); return r; });
     }
 
-    function loadBook() {
+    // `onLoad === true` is the page-load call: it renders but does not announce. Reload Book passes the
+    // click event, which is not `true`, so a visitor's own reload is still announced.
+    function loadBook(onLoad) {
         return runExclusive(reloadBtn, runBtn, {
             request: function () { return apiGet(window.PortfolioApi.routes.spatialCompute.catRisk.book); },
             render: function (result) {
@@ -77,7 +79,7 @@
                     events: book.events.length
                 }, null, 2);
             },
-            summary: function (result) {
+            summary: onLoad === true ? undefined : function (result) {
                 return "Policy book loaded: " + result.locationCount + " locations, total insured value " +
                     fmt.money(result.totalInsuredValue, { compact: true }) + ".";
             }

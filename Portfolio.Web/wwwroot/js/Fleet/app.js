@@ -71,7 +71,7 @@
         if (scenario) { drawMap(lastResult, true); }
     });
 
-    loadScenario();
+    loadScenario(true);
 
     // ── Data ────────────────────────────────────────────────────────────────
 
@@ -95,7 +95,9 @@
         });
     }
 
-    function loadScenario() {
+    // `onLoad === true` is the page-load call: it renders but does not announce. Reset Scenario passes the
+    // click event, which is not `true`, so a visitor's own reset or preset change is still announced.
+    function loadScenario(onLoad) {
         runExclusive(resetBtn, {
             request: function () {
                 presetRequested = presetSelect.value;
@@ -123,7 +125,7 @@
                     shift: fmt.clock(scenario.shiftStartMinutes) + "–" + fmt.clock(scenario.shiftEndMinutes)
                 }, null, 2);
             },
-            summary: function (result) {
+            summary: onLoad === true ? undefined : function (result) {
                 return "Scenario loaded: " + result.name + ", " + result.stops.length + " stops.";
             }
         });

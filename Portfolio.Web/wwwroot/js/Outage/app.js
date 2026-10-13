@@ -104,11 +104,8 @@
                 projection = buildProjection(network.elements);
                 populateFaultOptions();
                 clearFault();
-            },
-            summary: function (result) {
-                return "Distribution network loaded: " + result.elements.length + " elements, " +
-                    fmt.number(result.totalCustomers) + " customers.";
             }
+            // No summary: this runs once on page load, not because the visitor asked for it.
         });
     }
 

@@ -106,11 +106,8 @@
                     existingStations: scenario.existingStationIds.length,
                     totalCallVolume: scenario.totalCallVolume
                 }, null, 2);
-            },
-            summary: function () {
-                return "Scenario loaded: " + scenario.demandPoints.length + " demand points and " +
-                    scenario.existingStationIds.length + " stations in service today.";
             }
+            // No summary: this runs once on page load, not because the visitor asked for it.
         });
     }
 

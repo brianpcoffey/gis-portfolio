@@ -124,7 +124,7 @@
     }
 
     syncThresholdMode();
-    loadScene();
+    loadScene(true);
 
     // ── Data ────────────────────────────────────────────────────────────────
 
@@ -137,7 +137,9 @@
         return ui.runAction(opts).then(function (r) { release(); return r; });
     }
 
-    function loadScene() {
+    // `onLoad === true` is the page-load call: it renders but does not announce. The listeners pass an
+    // event, which is not `true`, so a visitor's own New Scene / size / noise change is still announced.
+    function loadScene(onLoad) {
         var size = parseInt(sizeSelect.value, 10);
         var noise = parseFloat(noiseInput.value);
         var route = window.PortfolioApi.routes.spatialCompute.change.scene +
@@ -164,7 +166,7 @@
                     plantedChanges: scene.groundTruth.length
                 }, null, 2);
             },
-            summary: function (result) {
+            summary: onLoad === true ? undefined : function (result) {
                 return "Scene ready: " + result.width + " by " + result.height + " pixels, " +
                     result.groundTruth.length + " planted changes.";
             }
