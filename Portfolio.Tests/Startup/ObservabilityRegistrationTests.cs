@@ -123,12 +123,17 @@ public class ObservabilityRegistrationTests
         }
     }
 
-    private sealed class CapturingProcessor : BaseProcessor<Activity>
+    private sealed class CapturingProcessor(string source, string spanName) : BaseProcessor<Activity>
     {
         public ConcurrentQueue<Dictionary<string, string?>> Spans { get; } = new();
 
-        public override void OnEnd(Activity data) =>
-            Spans.Enqueue(data.TagObjects.ToDictionary(t => t.Key, t => t.Value?.ToString()));
+        // The instrumentations are process-global, so a request from a test class running in parallel can reach this
+        // processor too; only the span this test started (its source and its one-off name) is kept.
+        public override void OnEnd(Activity data)
+        {
+            if (data.Source.Name == source && data.OperationName == spanName)
+                Spans.Enqueue(data.TagObjects.ToDictionary(t => t.Key, t => t.Value?.ToString()));
+        }
     }
 
     private sealed class CapturingMetricExporter : BaseExporter<Metric>
@@ -347,7 +352,8 @@ public class ObservabilityRegistrationTests
     public void TracerPipeline_NpgsqlSpan_ReachesLaterProcessorsWithoutTheDataSourceTag()
     {
         // Arrange
-        var captured = new CapturingProcessor();
+        var spanName = "portfolio.tests." + Guid.NewGuid().ToString("N");
+        var captured = new CapturingProcessor("Npgsql", spanName);
         var config = Config((ObservabilityRegistration.EndpointKey, UnreachableEndpoint));
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(config);
@@ -358,12 +364,17 @@ public class ObservabilityRegistrationTests
         using var source = new ActivitySource("Npgsql");
 
         // Act
-        using (var span = source.StartActivity("postgresql", ActivityKind.Client))
+        using (var span = source.StartActivity(spanName, ActivityKind.Client))
         {
             Assert.NotNull(span);
             span.SetTag(ObservabilityRegistration.DataSourceTag, "Host=db.example.test;Port=5432;Database=app;Username=app_owner");
             span.SetTag("db.system.name", "postgresql");
             span.SetTag("db.query.text", "SELECT 1");
+        }
+
+        // Stands in for a span from a test class running in parallel, which the capture must not pick up.
+        using (source.StartActivity("portfolio.tests.other", ActivityKind.Client))
+        {
         }
 
         // Assert
