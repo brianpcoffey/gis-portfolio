@@ -30,10 +30,8 @@ namespace Portfolio.Web.Controllers.Api
             _changeDetectionService = changeDetectionService;
         }
 
-        /// <summary>
-        /// Builds the deterministic synthetic two-epoch, four-band scene with four planted
-        /// changes exposed as ground truth.
-        /// </summary>
+        /// <summary>Builds the deterministic synthetic two-epoch, four-band scene.</summary>
+        /// <remarks>Four planted changes are exposed as ground truth.</remarks>
         /// <param name="width">Raster width in pixels, up to 512.</param>
         /// <param name="height">Raster height in pixels, up to 512.</param>
         /// <param name="noise">Gaussian noise standard deviation applied to both epochs.</param>
@@ -51,11 +49,10 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _changeDetectionService.GetSceneAsync(width, height, noise, cancellationToken));
         }
 
-        /// <summary>
-        /// Runs the change detection pipeline over a co-registered two-epoch stack and
-        /// returns the magnitude raster, the change mask, the Otsu histogram, and the
-        /// ranked detections.
-        /// </summary>
+        /// <summary>Runs the change detection pipeline over a co-registered two-epoch stack.</summary>
+        /// <remarks>
+        /// Returns the magnitude raster, the change mask, the Otsu histogram, and the ranked detections.
+        /// </remarks>
         /// <param name="request">Both epochs plus threshold, morphology, and filtering settings.</param>
         /// <returns>CVA magnitude, change mask, histogram, and ranked change blobs.</returns>
         [HttpPost("detect")]

@@ -8,9 +8,7 @@ using Portfolio.Services.Interfaces;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for Redlands property scoring/search and user-scoped saved searches.
-    /// </summary>
+    /// <summary>API endpoints for Redlands property scoring/search and user-scoped saved searches.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/homefinder")]

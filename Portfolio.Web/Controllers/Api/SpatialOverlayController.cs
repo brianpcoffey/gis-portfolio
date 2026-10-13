@@ -9,9 +9,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for point-in-polygon spatial joins (assigning points to zones).
-    /// </summary>
+    /// <summary>API endpoints for point-in-polygon spatial joins (assigning points to zones).</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [AllowAnonymous]
@@ -27,9 +25,7 @@ namespace Portfolio.Web.Controllers.Api
             _overlayService = overlayService;
         }
 
-        /// <summary>
-        /// Tags each point with the first zone that contains it and rolls up per-zone counts.
-        /// </summary>
+        /// <summary>Tags each point with the first zone that contains it and rolls up per-zone counts.</summary>
         /// <param name="request">Points and candidate zone polygons.</param>
         /// <returns>Tagged points plus per-zone summaries and an unassigned tally.</returns>
         [HttpPost("spatial-join")]

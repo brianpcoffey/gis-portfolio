@@ -28,10 +28,10 @@ namespace Portfolio.Web.Controllers.Api
             _responseCoverageService = responseCoverageService;
         }
 
-        /// <summary>
-        /// Returns the demo response scenario: clustered call demand, candidate station
-        /// sites, and the stations operating today.
-        /// </summary>
+        /// <summary>Returns the demo response scenario.</summary>
+        /// <remarks>
+        /// The scenario has clustered call demand, candidate station sites, and the stations operating today.
+        /// </remarks>
         /// <returns>Demand points, candidate sites, and the existing station ids.</returns>
         [HttpGet("scenario")]
         [ProducesResponseType(typeof(ResponseScenarioDto), 200)]
@@ -42,9 +42,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(result);
         }
 
-        /// <summary>
-        /// Computes drive-time bands over the road network from one origin node.
-        /// </summary>
+        /// <summary>Computes drive-time bands over the road network from one origin node.</summary>
         /// <param name="request">Origin node, apparatus speed, and ascending band bounds in minutes.</param>
         /// <returns>Every reachable node with its travel time and band index.</returns>
         [HttpPost("isochrone")]
@@ -60,10 +58,8 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _responseCoverageService.ComputeIsochroneAsync(request, cancellationToken));
         }
 
-        /// <summary>
-        /// Sites the requested number of stations against weighted demand and reports the
-        /// result beside the stations operating today.
-        /// </summary>
+        /// <summary>Sites the requested number of stations against weighted demand.</summary>
+        /// <remarks>Reports the result beside the stations operating today.</remarks>
         /// <param name="request">Demand points, candidate sites, station count, and objective.</param>
         /// <returns>Chosen stations, optimized and baseline coverage statistics, and assignments.</returns>
         [HttpPost("optimize")]

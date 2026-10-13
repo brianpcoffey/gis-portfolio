@@ -60,8 +60,8 @@ public class OpenApiContractTests
         POST /api/v1/catrisk/simulate | Policy locations, event catalog, and vulnerability curve shape.
         POST /api/v1/change/detect | Both epochs plus threshold, morphology, and filtering settings.
         POST /api/v1/clustering/dbscan | Points plus epsilon and minimum-points parameters.
-        POST /api/v1/collections | Collection data.
-        POST /api/v1/features/saved | Feature data.
+        POST /api/v1/collections | (none)
+        POST /api/v1/features/saved | (none)
         POST /api/v1/fiber/materials | (none)
         POST /api/v1/fiber/materials/{id}/receive | (none)
         POST /api/v1/fiber/orders | (none)
@@ -84,7 +84,7 @@ public class OpenApiContractTests
         POST /api/v1/response/isochrone | Origin node, apparatus speed, and ascending band bounds in minutes.
         POST /api/v1/response/optimize | Demand points, candidate sites, station count, and objective.
         POST /api/v1/viewshed/compute | Elevation grid, observer position, and observer height.
-        PUT /api/v1/collections/{id} | Update data.
+        PUT /api/v1/collections/{id} | (none)
         PUT /api/v1/fiber/materials/{id} | (none)
         PUT /api/v1/fiber/orders/{id} | (none)
         PUT /api/v1/fiber/shipments/{id} | (none)

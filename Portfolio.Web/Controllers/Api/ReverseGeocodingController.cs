@@ -9,9 +9,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for reverse geocoding a coordinate to structured place data.
-    /// </summary>
+    /// <summary>API endpoints for reverse geocoding a coordinate to structured place data.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/geocoding/reverse")]

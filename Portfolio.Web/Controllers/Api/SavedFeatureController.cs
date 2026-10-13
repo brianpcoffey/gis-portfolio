@@ -7,9 +7,7 @@ using Portfolio.Web.Filters;
 
 namespace Portfolio.Web.Controllers.Api
 {
-    /// <summary>
-    /// API endpoints for managing saved features.
-    /// </summary>
+    /// <summary>API endpoints for managing saved features.</summary>
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/features/saved")]
@@ -25,10 +23,7 @@ namespace Portfolio.Web.Controllers.Api
             _logger = logger;
         }
 
-        /// <summary>
-        /// Gets all saved features for the current user.
-        /// </summary>
-        /// <returns>List of saved features.</returns>
+        /// <summary>Gets all saved features for the current user.</summary>
         [HttpGet]
         [ProducesResponseType(typeof(List<SavedFeatureDto>), 200)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -38,11 +33,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(items);
         }
 
-        /// <summary>
-        /// Creates a new saved feature for the current user.
-        /// </summary>
-        /// <param name="dto">Feature data.</param>
-        /// <returns>The created feature.</returns>
+        /// <summary>Creates a new saved feature for the current user.</summary>
         [HttpPost]
         [BadRequestOnArgumentException]
         [RequestSizeLimit(1_065_536)]  // WP-08 GeometryJson cap + 64 KB
@@ -67,9 +58,7 @@ namespace Portfolio.Web.Controllers.Api
             }
         }
 
-        /// <summary>
-        /// Deletes a saved feature by database ID or feature key.
-        /// </summary>
+        /// <summary>Deletes a saved feature by database ID or feature key.</summary>
         /// <param name="id">Feature database ID or feature key.</param>
         /// <returns>No content if deleted, NotFound if not found.</returns>
         [HttpDelete("{id}")]

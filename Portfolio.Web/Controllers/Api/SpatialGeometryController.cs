@@ -28,9 +28,7 @@ namespace Portfolio.Web.Controllers.Api
             _spatialGeometryService = spatialGeometryService;
         }
 
-        /// <summary>
-        /// Triangulates a point set for map visualization.
-        /// </summary>
+        /// <summary>Triangulates a point set for map visualization.</summary>
         /// <param name="request">Point set to triangulate.</param>
         /// <returns>Triangle mesh result.</returns>
         [HttpPost("triangulate")]
@@ -46,9 +44,7 @@ namespace Portfolio.Web.Controllers.Api
             return Ok(await _spatialGeometryService.TriangulateAsync(request, cancellationToken));
         }
 
-        /// <summary>
-        /// Clips polygon vertices to a bounding box.
-        /// </summary>
+        /// <summary>Clips polygon vertices to a bounding box.</summary>
         /// <param name="request">Polygon and bounding box request.</param>
         /// <returns>Clipped polygon operation result.</returns>
         [HttpPost("clip")]
