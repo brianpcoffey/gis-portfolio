@@ -8,8 +8,21 @@
 	#define VIEWSHED_API __attribute__((visibility("default")))
 #endif
 
+// Version of this library's exported C ABI. The managed bridge calls Viewshed_AbiVersion before anything
+// else and does not use a library that reports another version or has no such export, so a library built
+// before an ABI change is never called with the new argument list (a call made against the wrong
+// signature takes whatever is left in the registers for pointers and lengths).
+//   (no export)  Viewshed_Compute without elevationLength
+//   2            elevationLength added after `elevation`
+// Bump it whenever an exported signature or struct layout changes, together with
+// ViewshedNativeInterop.ExpectedAbiVersion in Portfolio.Services/Native.
+#define VIEWSHED_ABI_VERSION 2
+
 extern "C"
 {
+	// Returns VIEWSHED_ABI_VERSION. Takes no arguments and touches no memory.
+	VIEWSHED_API std::int32_t Viewshed_AbiVersion(void);
+
 	// Computes a line-of-sight viewshed over an elevation grid from an observer cell.
 	// `elevation` is row-major: cell (x, y) is elevation[y * width + x]. The observer sits at
 	// (observerX, observerY) at elevation[cell] + observerHeight. Every cell is

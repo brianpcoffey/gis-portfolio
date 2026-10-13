@@ -138,6 +138,21 @@ typedef struct ScoreOutputNative
 #endif
 
 /*
+ * Version of this library's exported C ABI. The managed bridge calls Scoring_AbiVersion before anything
+ * else and does not use a library that reports another version or has no such export, so a library built
+ * before an ABI change is never called with the new argument list (a call made against the wrong
+ * signature takes whatever is left in the registers for pointers and lengths).
+ *   (no export)  ScoreProperty and ScorePropertyBatch returned void and took no outputLength
+ *   2            both take outputLength after their output pointer and return a status code
+ * Bump it whenever an exported signature or struct layout changes, together with
+ * NativeScoringInterop.ExpectedAbiVersion in Portfolio.Services/Native.
+ */
+#define PS_ABI_VERSION 2
+
+/* Returns PS_ABI_VERSION. Takes no arguments and touches no memory. */
+PS_API int32_t Scoring_AbiVersion(void);
+
+/*
  * Status codes returned by ScoreProperty and ScorePropertyBatch
  * (docs/agent-context.md section 5; -2, "not found", does not apply here).
  *

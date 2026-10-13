@@ -8,6 +8,16 @@
 	#define RASTER_API __attribute__((visibility("default")))
 #endif
 
+// Version of this library's exported C ABI. The managed bridge calls Raster_AbiVersion before anything
+// else and does not use a library that reports another version or has no such export, so a library built
+// before an ABI change is never called with the new argument list (a call made against the wrong
+// signature takes whatever is left in the registers for pointers and lengths).
+//   (no export)  Raster_GenerateHillshade without elevationLength
+//   2            elevationLength added after `elevation`
+// Bump it whenever an exported signature or struct layout changes, together with
+// RasterTerrainNativeInterop.ExpectedAbiVersion in Portfolio.Services/Native.
+#define RASTER_ABI_VERSION 2
+
 #pragma pack(push, 8)
 struct WeightedPointNative
 {
@@ -32,7 +42,8 @@ struct RasterExtentNative
 //   * Grids are row-major: cell (x, y) of a width x height grid is element y * width + x.
 //   * width and height must both be > 0 and width * height must fit in a 32-bit int. The product
 //     is formed in 64 bits, so it can neither overflow nor wrap to a small value.
-//   * Return value: 0 on success, otherwise a negative status.
+//   * Return value: 0 on success, otherwise a negative status (Raster_AbiVersion is the exception: it
+//     returns the version number).
 //        -1  invalid argument (null pointer; width or height <= 0; width * height larger than
 //            INT_MAX; a non-positive cellSize or radius; a length that does not fit the grid;
 //            a negative pointCount)
@@ -44,6 +55,9 @@ struct RasterExtentNative
 //     so NaN and infinity are not detected; the managed service rejects them before any call.
 extern "C"
 {
+	// Returns RASTER_ABI_VERSION. Takes no arguments and touches no memory.
+	RASTER_API std::int32_t Raster_AbiVersion(void);
+
 	// Shaded relief of an elevation grid. Each cell's slope and aspect come from the central
 	// differences of its neighbours (the grid edge is clamped) and are lit by a sun at
 	// azimuthDegrees and altitudeDegrees. Writes one intensity byte (0 = dark, 255 = fully lit)

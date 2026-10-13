@@ -130,3 +130,8 @@ extern "C" RASTER_API int Raster_GenerateHeatmap(
 		return -99;
 	}
 }
+
+extern "C" RASTER_API std::int32_t Raster_AbiVersion(void)
+{
+	return RASTER_ABI_VERSION;
+}

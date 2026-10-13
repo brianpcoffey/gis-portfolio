@@ -302,6 +302,28 @@ Repeat for each kernel directory you want to enable natively.
 
 ---
 
+## After pulling a change to a kernel's C ABI
+
+A kernel whose exported signatures change keeps its export names, so a library built before the
+change still loads and resolves every entry point. Called with the new argument list it would
+read whatever is left in the registers as pointers and lengths, and write through them.
+
+Every kernel whose ABI has changed therefore exports a version function, and its bridge calls it
+before anything else: `Viewshed_AbiVersion`, `Raster_AbiVersion` and `Scoring_AbiVersion`, all
+returning 2 (the `*_ABI_VERSION` macro in the kernel's header, which the bridge mirrors in
+`ExpectedAbiVersion` in `Portfolio.Services/Native/*NativeInterop.cs`). A library with another
+version, or with no such export, is treated as unavailable: the bridge logs a warning
+naming it, and the service runs its managed path. That makes a stale library harmless; it does
+not make it work.
+
+After pulling a change that touches a kernel's header, **rebuild all kernels**, or delete the
+copies under `Portfolio.Services/bin` and `Portfolio.Web/bin` (and wherever else you staged them,
+for example the test or benchmark output) so that no old build is left behind. When you change an
+exported signature or struct layout, bump the version in the header and in the interop file
+together, and give the kernel a version function if it has none yet.
+
+---
+
 ## Running with the .NET application
 
 Each bridge calls `NativeLibrary.TryLoad("<kernel_name>")` at startup. The runtime
@@ -312,7 +334,8 @@ resolves the library in this order:
 2. Standard OS library paths (`PATH` on Windows, `LD_LIBRARY_PATH` on Linux).
 
 If a library is not found the bridge logs a warning and the corresponding service
-falls back transparently to its managed C# implementation. Kernels are independent —
+falls back transparently to its managed C# implementation. The same happens to a library
+whose ABI version is not the one the bridge expects (see above). Kernels are independent —
 you can build and ship any subset; the rest simply run managed.
 
 ---

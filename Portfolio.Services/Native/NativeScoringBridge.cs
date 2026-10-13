@@ -11,7 +11,11 @@ namespace Portfolio.Services.Native
     // so no mock is needed in tests.
     internal static class NativeScoringBridge
     {
-        private static readonly bool _available = NativeKernelLoader.TryLoad("portfolio_scoring");
+        // Loaded only when the library reports the ABI version this assembly was written against.
+        private static readonly NativeLoadResult _load = NativeKernelLoader.Load(
+            "portfolio_scoring", NativeScoringInterop.AbiVersion, NativeScoringInterop.ExpectedAbiVersion);
+
+        private static readonly bool _available = _load == NativeLoadResult.Loaded;
 
         internal static bool IsAvailable => _available;
 
@@ -99,7 +103,9 @@ namespace Portfolio.Services.Native
 
         internal static void LogAvailability(ILogger logger)
         {
-            if (_available)
+            if (_load == NativeLoadResult.AbiMismatch)
+                NativeKernelLoader.LogAbiMismatch(logger, "portfolio_scoring", NativeScoringInterop.ExpectedAbiVersion);
+            else if (_available)
                 logger.LogInformation(
                     "Native scoring kernel loaded. Batch scoring will use the C++ fast path.");
             else

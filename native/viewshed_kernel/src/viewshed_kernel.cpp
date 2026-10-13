@@ -110,3 +110,8 @@ extern "C" VIEWSHED_API int Viewshed_Compute(
 		return -99;
 	}
 }
+
+extern "C" VIEWSHED_API std::int32_t Viewshed_AbiVersion(void)
+{
+	return VIEWSHED_ABI_VERSION;
+}

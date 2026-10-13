@@ -5,12 +5,22 @@ namespace Portfolio.Services.Native
 {
     internal static class RasterTerrainNativeBridge
     {
-        private static readonly bool _available = NativeKernelLoader.TryLoad("raster_terrain_kernel");
+        // Loaded only when the library reports the ABI version this assembly was written against.
+        private static readonly NativeLoadResult _load = NativeKernelLoader.Load(
+            "raster_terrain_kernel", RasterTerrainNativeInterop.AbiVersion, RasterTerrainNativeInterop.ExpectedAbiVersion);
+
+        private static readonly bool _available = _load == NativeLoadResult.Loaded;
 
         internal static bool IsAvailable => _available;
 
         internal static void LogAvailability(ILogger logger)
         {
+            if (_load == NativeLoadResult.AbiMismatch)
+            {
+                NativeKernelLoader.LogAbiMismatch(logger, "raster_terrain_kernel", RasterTerrainNativeInterop.ExpectedAbiVersion);
+                return;
+            }
+
             logger.LogInformation(_available
                 ? "Native raster terrain kernel loaded. Raster operations will use the C++ fast path."
                 : "Native raster terrain kernel unavailable; using managed raster implementation.");

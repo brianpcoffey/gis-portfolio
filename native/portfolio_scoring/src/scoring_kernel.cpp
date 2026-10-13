@@ -266,4 +266,9 @@ extern "C"
 			return PS_ERR_EXCEPTION;
 		}
 	}
+
+	PS_API int32_t Scoring_AbiVersion(void)
+	{
+		return PS_ABI_VERSION;
+	}
 }
