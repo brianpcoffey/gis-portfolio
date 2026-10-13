@@ -214,4 +214,67 @@ public class IdentityTests
         Assert.True(await db.FiberClients.AnyAsync(c => c.UserId == anon));
         Assert.Equal("g-new", (await db.UserClaims.SingleAsync(c => c.UserId == anon && c.ClaimType == ProfileClaimTypes.GoogleId)).ClaimValue);
     }
+
+    [Fact]
+    public async Task SignIn_ExistingButUnseededProfile_IsSeededOnTheNextSignIn()
+    {
+        // Arrange: a linked profile whose earlier seed never happened.
+        using var rig = new SignInRig();
+        var existing = await rig.AddProfile("g-old");
+
+        // Act
+        var result = await rig.Service.CreateOrUpdateFromGoogleAsync(Google("g-old"));
+
+        // Assert
+        Assert.Equal(existing, result);
+        await using var db = rig.Fresh();
+        Assert.True(await db.FiberClients.AnyAsync(c => c.UserId == existing));
+    }
+
+    [Fact]
+    public async Task SignIn_Again_ReSeedsNothing()
+    {
+        // Arrange
+        using var rig = new SignInRig();
+        await rig.Service.CreateOrUpdateFromGoogleAsync(Google("g-twice"));
+        // The rig holds a single user, so whole-table counts are that user's rows.
+        int Rows(PortfolioDbContext db) => db.FiberClients.Count() + db.FiberMaterials.Count() + db.FiberOrders.Count()
+            + db.FiberShipments.Count() + db.FiberInventoryTransactions.Count() + db.Properties.Count();
+        await using var before = rig.Fresh();
+        var rowsBefore = Rows(before);
+
+        // Act
+        await rig.Service.CreateOrUpdateFromGoogleAsync(Google("g-twice"));
+
+        // Assert
+        await using var after = rig.Fresh();
+        Assert.True(rowsBefore > 0);
+        Assert.Equal(rowsBefore, Rows(after));
+    }
+
+    [Fact]
+    public async Task SignIn_WhenSeedingFails_StillSucceedsAndLinksTheAccount()
+    {
+        // Arrange: a seed service over a disposed context throws on first use.
+        var options = new DbContextOptionsBuilder<PortfolioDbContext>()
+            .UseInMemoryDatabase($"Identity_{Guid.NewGuid()}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        await using var db = new PortfolioDbContext(options);
+        var broken = new PortfolioDbContext(options);
+        await broken.DisposeAsync();
+        var service = new UserProfileService(
+            new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+            new UserProfileRepository(db, NullLogger<UserProfileRepository>.Instance),
+            TimeProvider.System,
+            new UserProfileSeedService(broken, NullLogger<UserProfileSeedService>.Instance),
+            NullLogger<UserProfileService>.Instance);
+
+        // Act
+        var id = await service.CreateOrUpdateFromGoogleAsync(Google("g-noseed"));
+
+        // Assert
+        Assert.True(await db.UserClaims.AnyAsync(c => c.UserId == id && c.ClaimType == ProfileClaimTypes.GoogleId));
+        Assert.False(await db.FiberClients.AnyAsync(c => c.UserId == id));
+    }
 }

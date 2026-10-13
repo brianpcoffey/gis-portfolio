@@ -164,7 +164,6 @@ namespace Portfolio.Services.Services
 
             var now = _timeProvider.GetUtcNow().UtcDateTime;
             Guid userId = Guid.Empty;
-            var needsSeed = false;
 
             // Atomic: the profile upsert and claim writes commit together, so a
             // mid-sequence failure never leaves a half-provisioned account.
@@ -200,7 +199,6 @@ namespace Portfolio.Services.Services
                         var profile = (await _repo.GetProfileAsync(userId, ct))!;
                         profile.LastActiveDate = now;
                         await _repo.AddOrUpdateProfileAsync(profile, ct);
-                        needsSeed = true;
                     }
                     else
                     {
@@ -211,7 +209,6 @@ namespace Portfolio.Services.Services
                             CreatedDate = now,
                             LastActiveDate = now
                         }, ct);
-                        needsSeed = true;
                     }
 
                     await _repo.SetClaimAsync(userId, ProfileClaimTypes.GoogleId, google.GoogleId, ct);
@@ -224,11 +221,24 @@ namespace Portfolio.Services.Services
             }, cancellationToken);
 
             // Visitors are seeded at sign-in, not first visit. SeedForUserAsync is idempotent and
-            // opens its own transaction on relational providers, so it runs after ours commits.
-            if (needsSeed)
-                await _seedService.SeedForUserAsync(userId, cancellationToken);
+            // opens its own transaction on relational providers, so it runs after ours commits,
+            // for new, adopted and returning profiles alike (a returning one may have missed an
+            // earlier seed). A seed failure must not block the sign-in.
+            await TrySeedAsync(userId, cancellationToken);
 
             return userId;
+        }
+
+        private async Task TrySeedAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _seedService.SeedForUserAsync(userId, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Seeding sample data failed for user {UserId}; sign-in continues", LogRedaction.UserId(userId));
+            }
         }
 
         public async Task<bool> IsGoogleLinkedAsync(CancellationToken cancellationToken = default)
