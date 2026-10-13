@@ -15,6 +15,9 @@ public enum RouteKind
     /// <summary>An OpenStreetMap tile. Answered with a 1x1 PNG; the tile servers are never contacted.</summary>
     OsmTile,
 
+    /// <summary>The Google "G" logo on the sign-in page. Answered with a 1x1 PNG; Google is never contacted.</summary>
+    GoogleLogo,
+
     /// <summary>An ArcGIS geocoding endpoint. Aborted and recorded; any hit fails the test.</summary>
     Geocoding,
 
@@ -36,6 +39,9 @@ public enum RouteKind
 /// no test may reach ArcGIS geocoding.</description></item>
 /// <item><description>OpenStreetMap tiles: fulfil with a 1x1 PNG (the OSM tile usage policy forbids bulk automated
 /// fetching, and a stub is deterministic).</description></item>
+/// <item><description>The Google "G" logo that <c>/Login</c> shows on its sign-in button
+/// (<c>developers.google.com/identity/images/g-logo.png</c>, one exact URL: no query string, the default HTTPS port): fulfil with the same 1x1 PNG, so the
+/// page can be tested without contacting Google.</description></item>
 /// <item><description><c>js.arcgis.com</c>, other <c>*.arcgis.com</c> / <c>*.arcgisonline.com</c> hosts and the pinned
 /// <c>unpkg.com/leaflet@1.9.4/</c> path: continue to the real CDN, so the SRI pins are really checked.</description></item>
 /// <item><description>Everything else: abort and record in <see cref="UnexpectedRequests"/>.</description></item>
@@ -45,6 +51,9 @@ public sealed class NetworkPolicy
 {
     // The Leaflet path the CSP and the pages pin. A new Leaflet version is a deliberate change here too.
     private const string LeafletPathPrefix = "/leaflet@1.9.4/";
+
+    // The one image /Login loads from Google. An exact URL, not a host rule: nothing else from Google is expected.
+    private const string GoogleLogoPath = "/identity/images/g-logo.png";
 
     // A valid 1x1 opaque light-gray PNG (RGB 229,229,229): a stubbed tile is visibly different from a broken image.
     private static readonly byte[] TilePng = Convert.FromBase64String(
@@ -91,6 +100,9 @@ public sealed class NetworkPolicy
 
         if (host == "tile.openstreetmap.org" || host.EndsWith(".tile.openstreetmap.org", StringComparison.Ordinal))
             return RouteKind.OsmTile;
+
+        if (host == "developers.google.com" && url.AbsolutePath == GoogleLogoPath && url.Query.Length == 0 && url.IsDefaultPort)
+            return RouteKind.GoogleLogo;
 
         if (IsArcGisHost(host) ||
             (host == "unpkg.com" && url.AbsolutePath.StartsWith(LeafletPathPrefix, StringComparison.Ordinal)))
@@ -146,6 +158,7 @@ public sealed class NetworkPolicy
                     await route.ContinueAsync();
                     break;
                 case RouteKind.OsmTile:
+                case RouteKind.GoogleLogo:
                     await route.FulfillAsync(new RouteFulfillOptions
                     {
                         Status = 200,

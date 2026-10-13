@@ -17,7 +17,7 @@ public sealed record BrowserSessionOptions(ColorScheme ColorScheme = ColorScheme
 /// </summary>
 public sealed class BrowserSession : IAsyncDisposable
 {
-    private readonly ConcurrentQueue<string> _consoleErrors = new();
+    private readonly ConcurrentQueue<ConsoleEntry> _consoleErrors = new();
     private readonly ConcurrentQueue<string> _pageErrors = new();
     private readonly ConcurrentQueue<string> _requestFailures = new();
 
@@ -29,7 +29,7 @@ public sealed class BrowserSession : IAsyncDisposable
         page.Console += (_, message) =>
         {
             if (message.Type == "error")
-                _consoleErrors.Enqueue($"{message.Text} [{message.Location}]");
+                _consoleErrors.Enqueue(new ConsoleEntry(message.Text, message.Location ?? string.Empty));
         };
         page.PageError += (_, error) => _pageErrors.Enqueue(error);
         page.RequestFailed += (_, request) => _requestFailures.Enqueue($"{request.Method} {request.Url} {request.Failure}");
@@ -43,7 +43,11 @@ public sealed class BrowserSession : IAsyncDisposable
     public NetworkPolicy Network { get; }
 
     /// <summary>Console messages of type <c>error</c>.</summary>
-    public IReadOnlyList<string> ConsoleErrors => [.. _consoleErrors];
+    public IReadOnlyList<string> ConsoleErrors => [.. _consoleErrors.Select(e => e.ToString())];
+
+    /// <summary>The console errors that <paramref name="allowed"/> does not accept.</summary>
+    public IReadOnlyList<string> UnexpectedConsoleErrors(ConsoleAllowList allowed) =>
+        [.. _consoleErrors.Where(e => !allowed.IsAllowed(e)).Select(e => e.ToString())];
 
     /// <summary>Uncaught exceptions in the page.</summary>
     public IReadOnlyList<string> PageErrors => [.. _pageErrors];
@@ -85,15 +89,18 @@ public sealed class BrowserSession : IAsyncDisposable
     /// Fails when the page logged a console error or threw, when any request went to a host the policy does not
     /// allow, or when anything tried to reach ArcGIS geocoding. The message lists every offender.
     /// </summary>
+    /// <param name="allowedConsoleErrors">
+    /// Console errors the test expects (each entry carries its reason); <c>null</c> accepts none.
+    /// </param>
     /// <remarks>
     /// Disposing the session repeats the two network checks (not the console and page ones, which a test may
     /// legitimately expect) for a test that otherwise passed, so a test that forgets this call cannot reach a
     /// forbidden host unnoticed.
     /// </remarks>
-    public void AssertClean()
+    public void AssertClean(ConsoleAllowList? allowedConsoleErrors = null)
     {
         var problems = new List<string>();
-        AddSection(problems, "Console errors", ConsoleErrors);
+        AddSection(problems, "Console errors", UnexpectedConsoleErrors(allowedConsoleErrors ?? ConsoleAllowList.None));
         AddSection(problems, "Page errors", PageErrors);
         AddNetworkSections(problems);
 
