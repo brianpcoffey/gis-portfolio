@@ -467,6 +467,33 @@ namespace Portfolio.Tests.Services
             Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Warning);
         }
 
+        // The test constructor stands in for the native library, so it must report the availability it was
+        // given, not whatever the real library happens to be on this machine.
+        [Fact]
+        public void Constructor_WhenGivenNativeAvailable_LogsTheKernelAsLoaded()
+        {
+            var logger = new Repositories.CapturingLogger<HomeScoringService>();
+
+            _ = new HomeScoringService(_propertyRepoMock.Object, logger, TimeProvider.System, true,
+                (_, _) => throw new InvalidOperationException("not called"));
+
+            var entry = Assert.Single(logger.Entries);
+            Assert.Equal(LogLevel.Information, entry.Level);
+            Assert.Contains("kernel loaded", entry.Message);
+        }
+
+        [Fact]
+        public void Constructor_WhenGivenNativeUnavailable_DoesNotLogTheKernelAsLoaded()
+        {
+            var logger = new Repositories.CapturingLogger<HomeScoringService>();
+
+            _ = new HomeScoringService(_propertyRepoMock.Object, logger, TimeProvider.System, false,
+                (_, _) => throw new InvalidOperationException("not called"));
+
+            var entry = Assert.Single(logger.Entries);
+            Assert.DoesNotContain("kernel loaded", entry.Message);
+        }
+
         private HomeScoringService ManagedOnlyService() =>
             new(_propertyRepoMock.Object, new Repositories.CapturingLogger<HomeScoringService>(), TimeProvider.System, false,
                 (_, _) => throw new InvalidOperationException("the native batch must not be called when native is unavailable"));

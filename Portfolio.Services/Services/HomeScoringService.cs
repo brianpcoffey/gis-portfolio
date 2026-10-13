@@ -40,7 +40,7 @@ public class HomeScoringService : IHomeScoringService
         _timeProvider = timeProvider;
         _nativeAvailable = nativeAvailable;
         _scoreNativeBatch = scoreNativeBatch;
-        NativeScoringBridge.LogAvailability(_logger);
+        NativeScoringBridge.LogAvailability(_logger, _nativeAvailable);
     }
 
     public async Task<List<ScoredPropertyDto>> GetTopPropertiesAsync(

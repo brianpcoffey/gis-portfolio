@@ -101,13 +101,16 @@ namespace Portfolio.Services.Native
             };
         }
 
-        internal static void LogAvailability(ILogger logger)
+        // Logs the availability the caller is going to use. HomeScoringService passes the value it was
+        // constructed with, so its test constructor, which stands in for the library, does not report the
+        // state of the real library next to results that never touched it.
+        internal static void LogAvailability(ILogger logger, bool available)
         {
-            if (_load == NativeLoadResult.AbiMismatch)
-                NativeKernelLoader.LogAbiMismatch(logger, "portfolio_scoring", NativeScoringInterop.ExpectedAbiVersion);
-            else if (_available)
+            if (available)
                 logger.LogInformation(
                     "Native scoring kernel loaded. Batch scoring will use the C++ fast path.");
+            else if (_load == NativeLoadResult.AbiMismatch)
+                NativeKernelLoader.LogAbiMismatch(logger, "portfolio_scoring", NativeScoringInterop.ExpectedAbiVersion);
             else
                 logger.LogInformation(
                     "Native scoring kernel unavailable; using managed scoring implementation.");
