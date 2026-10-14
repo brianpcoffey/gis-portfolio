@@ -34,7 +34,7 @@
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <!-- Browser E2E (Portfolio.E2E only; never referenced by shipped projects). -->
     <PackageVersion Include="Deque.AxeCore.Playwright" Version="4.13.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
     <PackageVersion Include="Moq" Version="4.21.0" />
     <!-- Held on xunit.v3 3.x: 4.x runs on Microsoft.Testing.Platform 2, which drops the VSTest
