@@ -48,7 +48,7 @@
             }
 
             state.currentResults = await res.json();
-            HF.plotResults(state.currentResults);
+            HF.plotResults(state.currentResults).catch(console.error);
             HF.renderResults(state.currentResults);
             HF.persistPreferences();
             showToast(`Found ${state.currentResults.length} matching properties.`, "success");

@@ -46,6 +46,11 @@ internal static class Pipeline
         // endpoints. Static files (served above) are intentionally not rate-limited.
         app.UseRateLimiter();
 
+        // Second CSRF layer: a state-changing /api request that carries an identity cookie needs X-Requested-With.
+        // After the limiter so a rejected request still counts against the limits; before the session, the
+        // anonymous-identity middleware and authentication so nothing downstream runs (no profile touch, no new cookie).
+        app.UseMiddleware<ApiRequestHeaderMiddleware>();
+
         app.UseSession();
 
         // Global exception handler — returns RFC 7807 ProblemDetails for all unhandled exceptions.
@@ -62,7 +67,9 @@ internal static class Pipeline
     {
         // OpenAPI & Scalar UI are intentionally available in production for public API documentation.
         app.MapOpenApi();
-        app.MapScalarApiReference();
+        // scalar-config.js adds X-Requested-With to every Try-it request, so a browser holding an identity cookie
+        // can still send POST/PUT/DELETE from the reference (the header is required by ApiRequestHeaderMiddleware).
+        app.MapScalarApiReference(options => options.WithJavaScriptConfiguration("/js/scalar-config.js"));
 
         // Health probes are anonymous. Liveness: process is up. Run NO checks so a transient DB blip
         // never restarts the pod. Probes hit these frequently from the kubelet, so they opt out of

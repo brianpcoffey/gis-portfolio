@@ -84,6 +84,8 @@ public class FiberErrorTests
     {
         var req = new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) };
         if (user is not null) req.Headers.TryAddWithoutValidation("Cookie", $"{CookieName}={user}");
+        // The browser client always sends this (api-fetch.js); a cookie-bearing unsafe /api call without it is a 403 (EN-06).
+        req.Headers.TryAddWithoutValidation("X-Requested-With", "XMLHttpRequest");
         return req;
     }
 

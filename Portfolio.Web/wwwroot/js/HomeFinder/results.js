@@ -65,23 +65,22 @@
         });
 
         panel.querySelectorAll("[data-property-id]").forEach(card => {
-            const handler = () => {
+            const handler = async () => {
                 const id = parseInt(card.dataset.propertyId, 10);
                 const match = state.currentResults.find(r => r.propertyId === id);
                 if (match && state.mapView) {
-                    require(["esri/geometry/Point"], (Point) => {
-                        const point = new Point({ longitude: match.longitude, latitude: match.latitude });
-                        state.mapView.goTo({ target: point, zoom: 16 });
-                        state.mapView.openPopup({ title: `#${match.rank} \u2014 ${PortfolioDom.escapeHtml(match.street)}`, location: point });
-                    });
+                    const [Point] = await window.$arcgis.import(["@arcgis/core/geometry/Point.js"]);
+                    const point = new Point({ longitude: match.longitude, latitude: match.latitude });
+                    state.mapView.goTo({ target: point, zoom: 16 });
+                    await state.mapView.openPopup({ title: `#${match.rank} \u2014 ${PortfolioDom.escapeHtml(match.street)}`, location: point });
                 }
             };
 
-            card.addEventListener("click", handler);
+            card.addEventListener("click", () => handler().catch(console.error));
             card.addEventListener("keydown", (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    handler();
+                    handler().catch(console.error);
                 }
             });
         });

@@ -1,11 +1,15 @@
 using System.Net;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Portfolio.Common.Models;
+using Portfolio.Repositories;
 
 namespace Portfolio.Tests.Integration;
 
 /// <summary>
 /// Characterizes the middleware order (see Startup/Pipeline.cs) by observing
-/// it from outside: forwarded headers, security headers, static files, rate limiter, exception
-/// middleware, anonymous identity, authentication.
+/// it from outside: forwarded headers, security headers, static files, rate limiter, request-header check,
+/// exception middleware, anonymous identity, authentication.
 /// </summary>
 /// <remarks>Every assertion holds on the pipeline built by UsePortfolioPipeline (Startup/Pipeline.cs).</remarks>
 public class PipelineOrderTests
@@ -119,6 +123,60 @@ public class PipelineOrderTests
         // Health probes opt out of rate limiting.
         var health = await c.GetAsync("/health/live", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, health.StatusCode);
+    }
+
+    [Fact]
+    public async Task HeaderCheck_RunsAfterTheRateLimiter_AndBeforeTheAnonymousIdentity()
+    {
+        // Arrange
+        // A profile that is a day stale: AnonymousUserMiddleware would refresh it, so an untouched
+        // LastActiveDate proves the rejected request never got that far.
+        await using var f = new PortfolioAppFactory();
+        var c = f.Client();
+        var user = Guid.NewGuid();
+        var stale = DateTime.UtcNow.AddDays(-1);
+        using (var scope = f.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PortfolioDbContext>();
+            db.UserProfiles.Add(new UserProfile { UserId = user, CreatedDate = stale, LastActiveDate = stale });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        HttpRequestMessage CookieBearingPost()
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/features/saved")
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+            req.Headers.TryAddWithoutValidation("Cookie", $"{CookieName}={user}");
+            return req;
+        }
+
+        // 299 requests spend most of the global budget (an unrouted path never reaches MVC, so they are cheap).
+        for (var i = 0; i < 299; i++)
+        {
+            var ok = await c.GetAsync("/api/v1/no-such-route", TestContext.Current.CancellationToken);
+            Assert.True(ok.StatusCode == HttpStatusCode.NotFound, $"#{i}: {(int)ok.StatusCode}");
+        }
+
+        // Act: the 300th permit goes to a rejected request, so rejected requests do count against the limit.
+        var rejected = await c.SendAsync(CookieBearingPost(), TestContext.Current.CancellationToken);
+        var limited = await c.SendAsync(CookieBearingPost(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, rejected.StatusCode);
+        Assert.Equal("{\"error\":\"This request must include the X-Requested-With header.\"}",
+            await rejected.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        AssertSecurityHeaders(rejected);
+        Assert.False(HasAnonCookie(rejected), "a header-rejected request must not issue an AnonUserId");
+        Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+        AssertSecurityHeaders(limited);
+        using (var scope = f.Services.CreateScope())
+        {
+            var profile = scope.ServiceProvider.GetRequiredService<PortfolioDbContext>().UserProfiles.Single(p => p.UserId == user);
+            Assert.Equal(stale, profile.LastActiveDate);
+        }
+        Assert.Equal(1, f.ProfileCount());
     }
 
     [Fact]
