@@ -15,22 +15,17 @@ namespace Portfolio.E2E.Tests;
 /// </summary>
 /// <remarks>
 /// An instant answer finishes inside the same turn of the page's event loop that handled the click, which is the case that
-/// can race the map view's own click handling. The marker popup is not asserted here: it is a separate behaviour, and it does
-/// not open at all on ArcGIS 4.29 today.
+/// can race the map view's own click handling. Every lookup also opens the marker popup with the matched address as its
+/// title, and the page raises no uncaught error: the page turns the view's own click popup off (<c>popupEnabled: false</c>),
+/// which used to race the marker reset and leave an unhandled ArcGIS AbortError.
 /// </remarks>
 public sealed class ReverseGeocodingClickTests(E2EHost host) : BrowserTestBase(host)
 {
     private const string ReversePath = "/api/v1/geocoding/reverse";
 
-    // The one uncaught page error this scenario tolerates, and only here, and at most once per run. It is an unhandled promise
-    // rejection that Playwright reports as "AbortError: f" (the ArcGIS API's own abort error, with a minified message), and it
-    // is a real bug in the page, not noise: the map view's built-in click popup is still looking up the features under the click
-    // when the page resets its marker (graphicsLayer.removeAll in placeMarker) and opens its own popup (updateMarkerPopup), which
-    // cancels that lookup. Unmodified, three runs in a row each gave exactly one. It does not stop the lookups or the card.
-    // PR #76 (EN-05a) turns the view's popup off (popupEnabled: false), which removes it: once that has merged, delete this
-    // tolerance (the constants and the two assertions that use them) so that any page error fails the test.
-    private const string KnownPageError = "AbortError";
-    private const int KnownPageErrorLimit = 1;
+    // The marker popup's title element; the class differs between ArcGIS releases, so all three are listed.
+    private const string PopupHeading =
+        ".esri-popup .esri-widget__heading, .esri-popup .esri-popup__header-title, .esri-popup .esri-features__heading";
 
     // The centre, then three points below it. Clicks on the same spot in quick succession read as a double click (zoom), so each
     // later click is well away from the one before; every click still gets its own coordinates and its own answer. Each point is
@@ -78,17 +73,15 @@ public sealed class ReverseGeocodingClickTests(E2EHost host) : BrowserTestBase(h
             await Assertions.Expect(card).ToBeVisibleAsync();
             await Assertions.Expect(address).ToHaveTextAsync(AddressFor(asked.Lat, asked.Lng));
             await Assertions.Expect(Page.Locator("#rgSpinner")).ToBeHiddenAsync();
+            // The popup widget renders lazily on its first open, which can take a moment under software rendering.
+            await Assertions.Expect(Page.Locator(PopupHeading).First)
+                .ToHaveTextAsync(AddressFor(asked.Lat, asked.Lng), new() { Timeout = 10_000 });
         }
 
         Assert.Equal(ClickOffsets.Length, lookups.Count);
         Assert.Empty(Session.UnexpectedConsoleErrors(ConsoleAllowList.ForPage(await Page.EvaluateAsync<string?>("() => window.PortfolioEsri?.baseUrl ?? null"))));
-        // Every other page error fails the test; the one tolerated here is described above, and only once. Requests to hosts the
-        // policy does not know are checked when the session is disposed.
-        var pageErrors = Session.PageErrors;
-        Assert.All(pageErrors, error => Assert.StartsWith(KnownPageError, error, StringComparison.Ordinal));
-        Assert.True(
-            pageErrors.Count <= KnownPageErrorLimit,
-            $"Expected at most {KnownPageErrorLimit} {KnownPageError} page error, got {pageErrors.Count}:{Environment.NewLine}  - {string.Join(Environment.NewLine + "  - ", pageErrors)}");
+        // No uncaught page error at all. Requests to hosts the policy does not know are checked when the session is disposed.
+        Assert.Empty(Session.PageErrors);
     }
 
     // A different answer for every point, so a card that was not updated cannot pass for one that was.

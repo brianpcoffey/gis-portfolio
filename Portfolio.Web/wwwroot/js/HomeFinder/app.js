@@ -83,10 +83,14 @@
 
         document.getElementById("btnSearch")?.addEventListener("click", performSearch);
         document.getElementById("btnSaveSearch")?.addEventListener("click", HF.saveSearch);
-        document.getElementById("btnLoadSearches")?.addEventListener("click", () => {
-            const modal = new bootstrap.Modal(document.getElementById("savedSearchesModal"));
-            modal.show();
+        const loadSearchesButton = document.getElementById("btnLoadSearches");
+        const savedSearchesModal = document.getElementById("savedSearchesModal");
+        loadSearchesButton?.addEventListener("click", () => {
+            bootstrap.Modal.getOrCreateInstance(savedSearchesModal).show();
             HF.loadSavedSearches();
         });
+        // Bootstrap only restores focus to data-api triggers, and this dialog is opened from script, so without this
+        // closing it leaves focus on <body> (WCAG 2.4.3). One listener for the page, not one per opening.
+        savedSearchesModal?.addEventListener("hidden.bs.modal", () => loadSearchesButton?.focus());
     });
 }(window.HomeFinder));

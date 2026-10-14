@@ -303,6 +303,13 @@ body.dark-mode .btn-outline-secondary:focus {
     border-color: var(--border);
 }
 
+/* Bootstrap puts a table caption at the bottom (caption-side: bottom). The 1px box of a visually hidden
+   caption there makes a .table-responsive wrapper overflow by 1px vertically, so at desktop width it is a
+   keyboard stop with nothing to scroll. Putting the caption at the top keeps it inside the wrapper. */
+.table-responsive > .table > caption.visually-hidden {
+    caption-side: top;
+}
+
 body.dark-mode .table {
     --bs-table-bg: var(--surface);
     --bs-table-striped-bg: var(--background);

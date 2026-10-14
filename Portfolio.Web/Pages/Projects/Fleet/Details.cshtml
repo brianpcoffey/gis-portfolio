@@ -60,9 +60,9 @@
 			<li><strong>Managed fallback:</strong> <code>VrpSolverNativeBridge.IsAvailable</code> gates the native path. The managed solver mirrors the kernel move for move — same savings ordering, same tiebreaks, same acceptance epsilon — so both paths return the identical solution. The fallback is production behaviour, not a test convenience: the deployed container does not build the native libraries.</li>
 			<li>
 				<strong>Measured speedup:</strong> Native is <strong>1.9×</strong> to <strong>2.3×</strong> faster than the managed fallback, with bit-identical solutions. Median of 9 timed runs after 3 warmups, solve time only (matrix construction and polyline expansion excluded), from the harness described in <a href="https://github.com/brianpcoffey/gis-portfolio#measured-speedup" target="_blank" rel="noopener">the README</a>:
-				<div class="table-responsive mt-2 mb-2">
+				<div class="table-responsive mt-2 mb-2" tabindex="0" role="region" aria-labelledby="benchmarkCaption">
 					<table class="table table-sm w-auto mb-0">
-						<caption class="visually-hidden">Native versus managed benchmark results for the vehicle routing solver kernel, by workload.</caption>
+						<caption id="benchmarkCaption" class="visually-hidden">Native versus managed benchmark results for the vehicle routing solver kernel, by workload.</caption>
 						<thead>
 							<tr><th scope="col">Workload</th><th scope="col" class="text-end">Native</th><th scope="col" class="text-end">Managed</th><th scope="col" class="text-end">Speedup</th></tr>
 						</thead>

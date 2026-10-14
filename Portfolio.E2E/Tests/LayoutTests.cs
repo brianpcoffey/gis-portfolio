@@ -13,15 +13,10 @@ public sealed class LayoutTests(E2EHost host) : BrowserTestBase(host)
     internal static readonly (int Width, int Height)[] Viewports = [(360, 800), (768, 1024), (1280, 800)];
     private static readonly string[] Schemes = ["light", "dark"];
 
-    // Overflows the site has today, so this suite can land before their fixes (those are separate pull requests). Like the axe
-    // baseline it only shrinks: an overflow that is not listed fails, and a listed one that no longer happens fails too, so
-    // whoever fixes the page deletes its line. Each entry says what overflows and why.
-    internal static readonly Dictionary<(string Path, int Width), string> KnownOverflows = new()
-    {
-        [("/Projects/PlantOperationsDashboard", 360)] =
-            "The three D3 charts are drawn once, at the width their container has when the page loads, and are not redrawn on resize: " +
-            "shrinking from desktop to phone width leaves 374 px charts in a 360 px window (a page opened at 360 px fits).",
-    };
+    // Overflows the site has today, so a suite like this can land before their fixes (those are separate pull requests). Like the
+    // axe baseline it only shrinks: an overflow that is not listed fails, and a listed one that no longer happens fails too, so
+    // whoever fixes the page deletes its line. Each entry says what overflows and why. Empty: every page fits at every width.
+    internal static readonly Dictionary<(string Path, int Width), string> KnownOverflows = new();
 
     // Runs in the page. After the viewport changes it waits (in animation frames, not milliseconds) for the new width
     // to arrive and for the page's resize handlers and reflow to finish, then measures. A page that overflows only

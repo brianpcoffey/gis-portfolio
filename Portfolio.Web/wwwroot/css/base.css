@@ -198,6 +198,18 @@ body.dark-mode a:hover {
     color: var(--accent-light);
 }
 
+/* A link inside a sentence is told apart from the text around it by more than its colour (WCAG 1.4.1; axe
+   link-in-text-block): the link colour is under 3:1 against the text colour, most of all in dark mode.
+   Only plain anchors in prose: every link that is a control or a layout piece (button, nav item, footer
+   icon, card) carries a class and keeps its own look. */
+p a:not([class]),
+li a:not([class]),
+.form-text a:not([class]),
+.list-group-item a:not([class]) {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
 h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     color: var(--text);
