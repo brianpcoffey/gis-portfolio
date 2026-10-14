@@ -490,15 +490,6 @@ public class ObservabilityRegistrationTests
     public async Task TracedHost_TypedArcGisClientSpans_CarryNoQueryValues()
     {
         // Arrange
-        using var source = new ActivitySource("Portfolio.Tests.ObservabilityRegistration");
-        using var all = new ActivityListener
-        {
-            ShouldListenTo = s => s == source,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
-        };
-        ActivitySource.AddActivityListener(all);
-        using var parent = source.StartActivity("reverse-geocode")!;
-        using var capture = new SpanCapture(parent.TraceId, "System.Net.Http", a => a.Kind == ActivityKind.Client);
         await using var factory = new PortfolioAppFactory();
         // The fake 503 handler never builds a System.Net.Http span, so give the typed client a real handler whose
         // connect step fails at once: the request is described by the instrumentation but nothing leaves the process.
@@ -507,7 +498,22 @@ public class ObservabilityRegistrationTests
             {
                 ConnectCallback = (_, _) => throw new IOException("blocked in test")
             })));
+        // Start the host BEFORE the parent activity exists: background threads it starts (the OTLP exporter's) would
+        // otherwise inherit the parent through the execution context, and the exporter's own POST to the dummy endpoint
+        // would then carry the test's trace id.
         var service = traced.Services.GetRequiredService<IReverseGeocodingService>();
+        using var source = new ActivitySource("Portfolio.Tests.ObservabilityRegistration");
+        using var all = new ActivityListener
+        {
+            ShouldListenTo = s => s == source,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(all);
+        using var parent = source.StartActivity("reverse-geocode")!;
+        // Only the ArcGIS request is under test; anything else on System.Net.Http (such as an exporter POST) is ignored.
+        using var capture = new SpanCapture(parent.TraceId, "System.Net.Http", a =>
+            a.Kind == ActivityKind.Client
+            && (a.GetTagItem("url.full") as string)?.StartsWith("https://geocode.arcgis.com/", StringComparison.Ordinal) == true);
 
         // Act
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReverseGeocodeAsync(34.0555, -117.1825));
