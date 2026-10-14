@@ -113,7 +113,7 @@ The app exposes two anonymous probe endpoints that are exempt from rate limiting
 | `/health/live` | None: it answers `200` while the process is up | Render's Health Check Path |
 | `/health/ready` | Database connectivity (the result is cached for 10 seconds) | Kubernetes readiness probes (`k8s/`) |
 
-The service currently has **no Health Check Path set** in Render (observed in the dashboard in October 2026), so Render applies no application-level check to a new deploy or to a running instance. Set **Health Check Path** to `/health/live` (service **Settings** → **Health Check Path**). Prefer it to `/health/ready` on Render: the readiness check queries the database, a brief Neon outage would then take the instance out of rotation although the app is fine, and on a serverless database each probe can wake the compute.
+The service's **Health Check Path** is `/health/live` (set in the Render dashboard, service **Settings** → **Health Check Path**, on 2026-10-13). Render sends the service's custom domain as the `Host`, which `AllowedHosts` accepts, and a deploy goes live only once the new instance answers it. Prefer `/health/live` to `/health/ready` on Render: the readiness check queries the database, a brief Neon outage would then take the instance out of rotation although the app is fine, and on a serverless database each probe can wake the compute.
 
 ## Step 4: Deploy
 
